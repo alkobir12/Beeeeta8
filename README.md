@@ -1,21 +1,30 @@
-```txt
-npm install
-npm run dev
-```
+# استوديو الفواتير (Invoice Studio)
 
-```txt
-npm run deploy
-```
+نظام إدارة فواتير متكامل وقابل للتخصيص بالكامل، يعمل بسرعة البرق.
 
-[For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):
+## 🌟 المميزات الجديدة (v1.1)
+- **🎨 محرر القوالب**: تحكم كامل في ألوان الفاتورة، الخطوط، وتخطيط الرأس (Header).
+- **🖼️ الشعار**: إمكانية إضافة شعار شركتك ليظهر تلقائياً في الفواتير.
+- **👁️ معاينة حية**: شاهد التعديلات على التصميم فوراً.
+- **🖨️ طباعة احترافية**: تصميم جديد كلياً للفواتير المطبوعة (PDF).
 
-```txt
-npm run cf-typegen
-```
+## المميزات الأساسية
+- **لوحة تحكم**: عرض حالة الفواتير.
+- **إنشاء وتعديل**: محرر فواتير ديناميكي.
+- **تخزين سحابي**: حفظ البيانات في قاعدة بيانات D1.
 
-Pass the `CloudflareBindings` as generics when instantiation `Hono`:
+## التشغيل
 
-```ts
-// src/index.ts
-const app = new Hono<{ Bindings: CloudflareBindings }>()
-```
+### التطوير المحلي
+1. تثبيت الاعتماديات: `npm install`
+2. إعداد قاعدة البيانات: `npm run db:migrate:local`
+3. إضافة بيانات تجريبية: `npm run db:seed`
+4. التشغيل: `npm run dev:d1`
+
+### النشر
+`npm run deploy`
+
+## التقنيات
+- Hono (Backend)
+- Alpine.js + Tailwind CSS (Frontend)
+- Cloudflare D1 (Database)

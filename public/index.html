@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استوديو الفواتير</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9', // Sky blue - softer than harsh blue
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        },
+                        slate: {
+                            850: '#1e293b', // Custom dark for sidebar
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+                        'inner-light': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Cairo:wght@400;600;700&family=Almarai:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap');
+        
+        body { 
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+        }
+        
+        [x-cloak] { display: none !important; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; }
+            .invoice-preview { 
+                box-shadow: none; 
+                border: none; 
+                margin: 0; 
+                padding: 0; 
+                width: 100%; 
+                max-width: 100%; 
+                transform: none !important; /* Disable scaling on print */
+            }
+            @page { margin: 0cm; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-700 bg-[#f8fafc]" x-data="invoiceApp" :style="`font-family: '${settings.font_family}', sans-serif`" x-cloak>
+
+    <!-- Flex Container that fills viewport -->
+    <div class="flex-1 flex overflow-hidden w-full h-full">
+
+        <!-- Modern Sidebar (Collapsible) -->
+        <aside class="bg-white border-l border-slate-100 flex-shrink-0 no-print flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 w-72" 
+               x-show="!isEmbedded"
+               :class="{'hidden': isEmbedded}">
+            <div class="p-8">
+            <h1 class="text-2xl font-extrabold flex items-center gap-3 tracking-tight text-slate-800">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/30" :style="`background-color: ${settings.theme_color}`">
+                    <i class="fas fa-bolt text-lg"></i>
+                </div>
+                <span>استوديو</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-2 mr-1">إدارة فواتير ذكية وسريعة</p>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2">
+            <div class="text-xs font-bold text-slate-400 px-4 mb-2 uppercase tracking-wider">القائمة الرئيسية</div>
+            
+            <a href="#" @click.prevent="setView('dashboard')" 
+               class="flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group"
+               :class="view === 'dashboard' ? 'bg-slate-50 text-primary-600 font-bold shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'">
+                <i class="fas fa-th-large text-lg transition-colors" :style="view === 'dashboard' ? `color: ${settings.theme_color}` : ''"></i>
+                <span>لوحة التحكم</span>
+                <i class="fas fa-chevron-left mr-auto text-xs opacity-0 group-hover:opacity-100 transition-opacity text-slate-300"></i>
+            </a>
+
+            <a href="#" @click.prevent="newInvoice()" 
+               class="flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group"
+               :class="view === 'editor' && !currentInvoice.id ? 'bg-slate-50 text-primary-600 font-bold shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'">
+                <i class="fas fa-plus-circle text-lg transition-colors" :style="view === 'editor' && !currentInvoice.id ? `color: ${settings.theme_color}` : ''"></i>
+                <span>فاتورة جديدة</span>
+            </a>
+
+            <div class="text-xs font-bold text-slate-400 px-4 mt-8 mb-2 uppercase tracking-wider">التخصيص</div>
+
+            <a href="#" @click.prevent="setView('settings'); subView='general'" 
+               class="flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group"
+               :class="view === 'settings' ? 'bg-slate-50 text-primary-600 font-bold shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'">
+                <i class="fas fa-sliders-h text-lg transition-colors" :style="view === 'settings' ? `color: ${settings.theme_color}` : ''"></i>
+                <span>الإعدادات</span>
+            </a>
+        </nav>
+
+        <div class="p-6">
+            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+                        <i class="fas fa-user text-xs"></i>
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-slate-700">المستخدم</div>
+                        <div class="text-xs text-slate-400">الخطة المجانية</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content (Fluid) -->
+    <main class="flex-1 overflow-y-auto bg-[#f8fafc] relative w-full">
+        <!-- Decorative Background Blob -->
+        <div class="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-white to-[#f8fafc] z-0"></div>
+
+        <div class="relative z-10 p-4 md:p-8 w-full max-w-full mx-auto">
+            
+            <!-- Loading Overlay -->
+            <div x-show="isLoading" class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity">
+                <div class="flex flex-col items-center gap-3">
+                    <i class="fas fa-circle-notch fa-spin text-3xl" :style="`color: ${settings.theme_color}`"></i>
+                    <span class="text-slate-500 font-medium">جاري التحميل...</span>
+                </div>
+            </div>
+
+            <!-- Dashboard View -->
+            <div x-show="view === 'dashboard'" class="animate-fade-in space-y-8">
+                <header class="flex justify-between items-end">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">لوحة التحكم</h2>
+                        <p class="text-slate-500 mt-1">نظرة عامة على فواتيرك وأدائك المالي</p>
+                    </div>
+                    <button @click="newInvoice()" class="px-6 py-3 rounded-xl shadow-lg shadow-blue-500/20 text-white font-bold hover:transform hover:-translate-y-1 transition-all duration-200 flex items-center gap-2" :style="`background-color: ${settings.theme_color}`">
+                        <i class="fas fa-plus"></i> فاتورة جديدة
+                    </button>
+                </header>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-soft border border-slate-50 flex items-center justify-between">
+                        <div>
+                            <div class="text-slate-400 text-sm font-medium mb-1">إجمالي الفواتير</div>
+                            <div class="text-2xl font-bold text-slate-800" x-text="invoices.length"></div>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+                            <i class="fas fa-file-invoice text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-soft border border-slate-50 flex items-center justify-between">
+                        <div>
+                            <div class="text-slate-400 text-sm font-medium mb-1">المبالغ المحصلة</div>
+                            <div class="text-2xl font-bold text-emerald-600" x-text="invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total_amount, 0).toFixed(2)"></div>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
+                            <i class="fas fa-check-circle text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-soft border border-slate-50 flex items-center justify-between">
+                        <div>
+                            <div class="text-slate-400 text-sm font-medium mb-1">في الانتظار</div>
+                            <div class="text-2xl font-bold text-amber-600" x-text="invoices.filter(i => i.status !== 'paid').reduce((sum, i) => sum + i.total_amount, 0).toFixed(2)"></div>
+                        </div>
+                        <div class="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
+                            <i class="fas fa-clock text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoices Table -->
+                <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-slate-50/50 border-b border-slate-100">
+                            <tr>
+                                <th class="p-5 text-right text-slate-400 font-bold text-xs uppercase tracking-wider">رقم الفاتورة</th>
+                                <th class="p-5 text-right text-slate-400 font-bold text-xs uppercase tracking-wider">العميل</th>
+                                <th class="p-5 text-right text-slate-400 font-bold text-xs uppercase tracking-wider">التاريخ</th>
+                                <th class="p-5 text-right text-slate-400 font-bold text-xs uppercase tracking-wider">الحالة</th>
+                                <th class="p-5 text-right text-slate-400 font-bold text-xs uppercase tracking-wider">المبلغ</th>
+                                <th class="p-5 text-center text-slate-400 font-bold text-xs uppercase tracking-wider">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            <template x-for="inv in invoices" :key="inv.id">
+                                <tr class="hover:bg-slate-50/80 transition-colors group">
+                                    <td class="p-5">
+                                        <span class="font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded text-sm" x-text="inv.invoice_number"></span>
+                                    </td>
+                                    <td class="p-5">
+                                        <div class="font-medium text-slate-700" x-text="inv.client_name"></div>
+                                        <div class="text-xs text-slate-400" x-text="inv.client_email"></div>
+                                    </td>
+                                    <td class="p-5 text-slate-500 text-sm" x-text="inv.date"></td>
+                                    <td class="p-5">
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold border"
+                                              :class="{
+                                                  'bg-amber-50 text-amber-700 border-amber-100': inv.status === 'draft',
+                                                  'bg-emerald-50 text-emerald-700 border-emerald-100': inv.status === 'paid',
+                                                  'bg-blue-50 text-blue-700 border-blue-100': inv.status === 'sent',
+                                                  'bg-rose-50 text-rose-700 border-rose-100': inv.status === 'overdue'
+                                              }">
+                                            <i class="fas fa-circle text-[8px] ml-1 opacity-60"></i>
+                                            <span x-text="inv.status === 'draft' ? 'مسودة' : (inv.status === 'paid' ? 'مدفوعة' : (inv.status === 'sent' ? 'مرسلة' : 'متأخرة'))"></span>
+                                        </span>
+                                    </td>
+                                    <td class="p-5 font-bold text-slate-800" x-text="inv.total_amount.toFixed(2)"></td>
+                                    <td class="p-5 text-center">
+                                        <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button @click="editInvoice(inv.id)" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 flex items-center justify-center transition shadow-sm" title="تعديل"><i class="fas fa-pen text-xs"></i></button>
+                                            <button @click="printInvoice(inv)" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300 flex items-center justify-center transition shadow-sm" title="طباعة"><i class="fas fa-print text-xs"></i></button>
+                                            <button @click="deleteInvoice(inv.id)" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center transition shadow-sm" title="حذف"><i class="fas fa-trash text-xs"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                            <tr x-show="invoices.length === 0">
+                                <td colspan="6" class="p-20 text-center">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                            <i class="fas fa-file-invoice text-3xl text-slate-300"></i>
+                                        </div>
+                                        <h3 class="text-lg font-bold text-slate-700">لا توجد فواتير</h3>
+                                        <p class="text-slate-400 text-sm mt-1">ابدأ بإنشاء فاتورتك الأولى الآن</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Editor View -->
+            <div x-show="view === 'editor'" class="animate-fade-in w-full">
+                <header class="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 no-print sticky top-0 z-30 py-4 bg-[#f8fafc]/90 backdrop-blur border-b border-slate-200/50 w-full gap-4">
+                    <div>
+                        <button @click="view = 'dashboard'" class="text-slate-400 hover:text-slate-600 text-sm mb-1 flex items-center gap-1 transition">
+                            <i class="fas fa-arrow-right"></i> عودة للقائمة
+                        </button>
+                        <h2 class="text-2xl font-extrabold text-slate-800" x-text="currentInvoice.id ? 'تعديل الفاتورة' : 'فاتورة جديدة'"></h2>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button @click="printInvoice()" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl shadow-sm hover:bg-slate-50 transition flex items-center gap-2 font-medium">
+                            <i class="fas fa-eye text-slate-400"></i> معاينة
+                        </button>
+                        <button @click="saveInvoice()" class="text-white px-6 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition flex items-center gap-2 font-bold transform hover:-translate-y-0.5" :style="`background-color: ${settings.theme_color}; box-shadow: 0 10px 20px -5px ${settings.theme_color}40`">
+                            <i class="fas fa-check"></i> حفظ الفاتورة
+                        </button>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+                    <!-- Form Section -->
+                    <div class="lg:col-span-12 bg-white rounded-3xl shadow-soft border border-slate-100 p-4 md:p-8 w-full">
+                        <!-- Top Meta -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10 bg-slate-50 p-4 md:p-6 rounded-2xl border border-slate-100/50">
+                             <div>
+                                <label class="block text-slate-400 text-xs font-bold uppercase mb-2 tracking-wider">رقم الفاتورة</label>
+                                <input type="text" x-model="currentInvoice.invoice_number" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:border-transparent outline-none transition shadow-sm" :style="`--tw-ring-color: ${settings.theme_color}`">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 text-xs font-bold uppercase mb-2 tracking-wider">تاريخ الإصدار</label>
+                                <input type="date" x-model="currentInvoice.date" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:border-transparent outline-none transition shadow-sm" :style="`--tw-ring-color: ${settings.theme_color}`">
+                            </div>
+                             <div>
+                                <label class="block text-slate-400 text-xs font-bold uppercase mb-2 tracking-wider">تاريخ الاستحقاق</label>
+                                <input type="date" x-model="currentInvoice.due_date" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:border-transparent outline-none transition shadow-sm" :style="`--tw-ring-color: ${settings.theme_color}`">
+                            </div>
+                             <div>
+                                <label class="block text-slate-400 text-xs font-bold uppercase mb-2 tracking-wider">الحالة</label>
+                                <select x-model="currentInvoice.status" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:border-transparent outline-none transition shadow-sm appearance-none" :style="`--tw-ring-color: ${settings.theme_color}`">
+                                    <option value="draft">مسودة 📝</option>
+                                    <option value="sent">مرسلة 📨</option>
+                                    <option value="paid">مدفوعة ✅</option>
+                                    <option value="overdue">متأخرة ⏰</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Client Info -->
+                        <div class="mb-10">
+                            <h3 class="text-lg font-bold mb-5 text-slate-700 flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"><i class="fas fa-user-tie"></i></div>
+                                بيانات العميل
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                 <div>
+                                    <label class="block text-slate-500 text-sm mb-1.5 font-medium">اسم العميل</label>
+                                    <input type="text" x-model="currentInvoice.client_name" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition" :style="`--tw-ring-color: ${settings.theme_color}`" placeholder="اسم الشركة أو الشخص">
+                                </div>
+                                 <div>
+                                    <label class="block text-slate-500 text-sm mb-1.5 font-medium">البريد الإلكتروني</label>
+                                    <input type="email" x-model="currentInvoice.client_email" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition" :style="`--tw-ring-color: ${settings.theme_color}`">
+                                </div>
+                                 <div>
+                                    <label class="block text-slate-500 text-sm mb-1.5 font-medium">العنوان</label>
+                                    <input type="text" x-model="currentInvoice.client_address" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition" :style="`--tw-ring-color: ${settings.theme_color}`">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Items -->
+                        <div class="mb-10 w-full overflow-hidden">
+                            <h3 class="text-lg font-bold mb-5 text-slate-700 flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500"><i class="fas fa-list"></i></div>
+                                البنود والخدمات
+                            </h3>
+                            <div class="bg-slate-50/50 rounded-2xl border border-slate-100 overflow-x-auto">
+                                <table class="w-full min-w-[600px]">
+                                    <thead class="bg-slate-100/50">
+                                        <tr>
+                                            <th class="text-right p-4 text-slate-500 font-bold text-xs w-1/2">الوصف</th>
+                                            <th class="text-center p-4 text-slate-500 font-bold text-xs w-24">الكمية</th>
+                                            <th class="text-center p-4 text-slate-500 font-bold text-xs w-32">السعر</th>
+                                            <th class="text-center p-4 text-slate-500 font-bold text-xs w-32">الإجمالي</th>
+                                            <th class="w-12"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <template x-for="(item, index) in currentInvoice.items" :key="index">
+                                            <tr class="group hover:bg-white transition-colors">
+                                                <td class="p-2">
+                                                    <input type="text" x-model="item.description" class="w-full bg-transparent border-b border-transparent focus:border-slate-300 p-2 focus:bg-white rounded transition outline-none" placeholder="وصف الخدمة...">
+                                                </td>
+                                                <td class="p-2">
+                                                    <input type="number" x-model.number="item.quantity" @input="calculateItemTotal(item)" class="w-full bg-transparent border-b border-transparent focus:border-slate-300 p-2 text-center focus:bg-white rounded transition outline-none font-medium text-slate-600">
+                                                </td>
+                                                <td class="p-2">
+                                                    <input type="number" x-model.number="item.unit_price" @input="calculateItemTotal(item)" class="w-full bg-transparent border-b border-transparent focus:border-slate-300 p-2 text-center focus:bg-white rounded transition outline-none font-medium text-slate-600">
+                                                </td>
+                                                <td class="p-2 text-center font-bold text-slate-800" x-text="item.total.toFixed(2)"></td>
+                                                <td class="p-2 text-center">
+                                                    <button @click="removeItem(index)" class="w-8 h-8 rounded-full hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-3">
+                                <button @click="addItem()" class="text-sm font-bold flex items-center gap-2 hover:opacity-80 transition px-4 py-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">
+                                    <i class="fas fa-plus-circle"></i> إضافة بند جديد
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Totals & Notes -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 border-t border-slate-100 pt-8">
+                            <div>
+                                <label class="block text-slate-700 text-sm font-bold mb-3">ملاحظات وشروط</label>
+                                <textarea x-model="currentInvoice.notes" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-2xl p-4 h-32 focus:ring-2 outline-none transition resize-none text-sm text-slate-600" :style="`--tw-ring-color: ${settings.theme_color}`" placeholder="اكتب أي ملاحظات إضافية هنا..."></textarea>
+                            </div>
+                            <div class="bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                                <div class="flex justify-between mb-4 text-slate-500">
+                                    <span>المجموع الفرعي</span>
+                                    <span class="font-bold text-slate-800" x-text="currentInvoice.subtotal.toFixed(2)"></span>
+                                </div>
+                                <div class="flex justify-between mb-4 items-center text-slate-500">
+                                    <span class="flex items-center gap-2">
+                                        الضريبة
+                                        <div class="relative">
+                                            <input type="number" x-model.number="currentInvoice.tax_rate" @input="calculateTotals()" class="w-16 pl-4 pr-2 py-1 rounded-lg border-none bg-white shadow-sm text-center text-sm font-bold text-slate-700 outline-none focus:ring-1 ring-slate-200">
+                                            <span class="absolute left-2 top-1.5 text-xs text-slate-400">%</span>
+                                        </div>
+                                    </span>
+                                    <span class="font-bold text-slate-800" x-text="currentInvoice.tax_amount.toFixed(2)"></span>
+                                </div>
+                                <div class="h-px bg-slate-200 my-4"></div>
+                                <div class="flex justify-between items-end">
+                                    <span class="text-lg font-bold text-slate-700">الإجمالي الكلي</span>
+                                    <span class="text-3xl font-extrabold" :style="`color: ${settings.theme_color}`" x-text="currentInvoice.total_amount.toFixed(2)"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Settings View -->
+            <div x-show="view === 'settings'" class="max-w-5xl mx-auto animate-fade-in">
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">الإعدادات</h2>
+                        <p class="text-slate-500 mt-1">خصص تجربتك وفواتيرك</p>
+                    </div>
+                    <button @click="saveSettings()" class="text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition font-bold" :style="`background-color: ${settings.theme_color}`">
+                        حفظ التغييرات
+                    </button>
+                </header>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Settings Tabs -->
+                    <div class="lg:col-span-3">
+                        <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden p-2">
+                            <a href="#" @click.prevent="subView='general'" 
+                               class="flex items-center gap-3 p-3 rounded-xl transition-all mb-1"
+                               :class="subView === 'general' ? 'bg-slate-50 text-slate-800 font-bold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="subView === 'general' ? 'bg-white shadow-sm text-blue-500' : 'bg-slate-100 text-slate-400'">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                معلومات الشركة
+                            </a>
+                            <a href="#" @click.prevent="subView='design'" 
+                               class="flex items-center gap-3 p-3 rounded-xl transition-all"
+                               :class="subView === 'design' ? 'bg-slate-50 text-slate-800 font-bold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'">
+                               <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="subView === 'design' ? 'bg-white shadow-sm text-purple-500' : 'bg-slate-100 text-slate-400'">
+                                    <i class="fas fa-paint-brush"></i>
+                                </div>
+                                تصميم القالب
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Settings Content -->
+                    <div class="lg:col-span-9 space-y-6">
+                        <!-- General Settings -->
+                        <div x-show="subView === 'general'" class="bg-white rounded-3xl shadow-soft border border-slate-100 p-8 animate-fade-in">
+                            <h3 class="text-xl font-bold mb-6 text-slate-800">بيانات الشركة المصدرة</h3>
+                            <div class="space-y-6 max-w-2xl">
+                                <div>
+                                    <label class="block text-slate-500 text-sm font-bold mb-2">اسم الشركة / مقدم الخدمة</label>
+                                    <input type="text" x-model="settings.company_name" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none transition" :style="`--tw-ring-color: ${settings.theme_color}`">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-500 text-sm font-bold mb-2">العنوان</label>
+                                    <textarea x-model="settings.company_address" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none transition h-32" :style="`--tw-ring-color: ${settings.theme_color}`"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-slate-500 text-sm font-bold mb-2">البريد الإلكتروني</label>
+                                    <input type="email" x-model="settings.company_email" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none transition" :style="`--tw-ring-color: ${settings.theme_color}`">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Design Settings -->
+                        <div x-show="subView === 'design'" class="bg-white rounded-3xl shadow-soft border border-slate-100 p-8 animate-fade-in">
+                            <h3 class="text-xl font-bold mb-6 text-slate-800">تخصيص المظهر</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <!-- Color Picker -->
+                                    <div class="mb-8">
+                                        <label class="block text-slate-500 text-sm font-bold mb-3">اللون الرئيسي</label>
+                                        <div class="flex flex-wrap gap-3">
+                                            <template x-for="color in ['#0ea5e9', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#334155']">
+                                                <button 
+                                                    @click="settings.theme_color = color" 
+                                                    class="w-10 h-10 rounded-full transition-transform hover:scale-110 focus:outline-none shadow-sm"
+                                                    :class="settings.theme_color === color ? 'ring-2 ring-offset-2 ring-slate-300 scale-110' : ''"
+                                                    :style="`background-color: ${color}`">
+                                                </button>
+                                            </template>
+                                            <div class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-slate-200 hover:border-slate-400 transition">
+                                                <input type="color" x-model="settings.theme_color" class="absolute inset-0 w-[150%] h-[150%] -top-[25%] -left-[25%] cursor-pointer p-0 border-0">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Font Selector -->
+                                    <div class="mb-8">
+                                        <label class="block text-slate-500 text-sm font-bold mb-3">نوع الخط</label>
+                                        <div class="space-y-2">
+                                            <template x-for="font in fonts">
+                                                <div 
+                                                    @click="settings.font_family = font.value"
+                                                    class="flex items-center justify-between p-3 rounded-xl cursor-pointer border transition-all"
+                                                    :class="settings.font_family === font.value ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 hover:bg-slate-50 text-slate-600'">
+                                                    <span x-text="font.name" :style="`font-family: '${font.value}'`"></span>
+                                                    <i class="fas fa-check-circle" x-show="settings.font_family === font.value"></i>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Header Layout -->
+                                    <div class="mb-8">
+                                        <label class="block text-slate-500 text-sm font-bold mb-3">تخطيط الرأس</label>
+                                        <div class="grid grid-cols-3 gap-3">
+                                            <button @click="settings.header_layout = 'right'" class="border rounded-xl p-3 hover:bg-slate-50 flex flex-col items-center gap-2 transition" :class="settings.header_layout === 'right' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200'">
+                                                <div class="w-full h-6 bg-white border border-slate-200 rounded flex items-center px-1 gap-1">
+                                                    <div class="w-2 h-2 bg-slate-300 rounded-full"></div>
+                                                    <div class="h-1 w-6 bg-slate-100 rounded"></div>
+                                                </div>
+                                                <span class="text-xs font-medium text-slate-600">يمين</span>
+                                            </button>
+                                            <button @click="settings.header_layout = 'center'" class="border rounded-xl p-3 hover:bg-slate-50 flex flex-col items-center gap-2 transition" :class="settings.header_layout === 'center' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200'">
+                                                <div class="w-full h-6 bg-white border border-slate-200 rounded flex items-center justify-center px-1 gap-1 flex-col">
+                                                    <div class="w-2 h-2 bg-slate-300 rounded-full"></div>
+                                                    <div class="h-1 w-6 bg-slate-100 rounded"></div>
+                                                </div>
+                                                <span class="text-xs font-medium text-slate-600">وسط</span>
+                                            </button>
+                                            <button @click="settings.header_layout = 'left'" class="border rounded-xl p-3 hover:bg-slate-50 flex flex-col items-center gap-2 transition" :class="settings.header_layout === 'left' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-slate-200'">
+                                                <div class="w-full h-6 bg-white border border-slate-200 rounded flex items-center justify-between px-1 gap-1 flex-row-reverse">
+                                                    <div class="w-2 h-2 bg-slate-300 rounded-full"></div>
+                                                    <div class="h-1 w-6 bg-slate-100 rounded"></div>
+                                                </div>
+                                                <span class="text-xs font-medium text-slate-600">يسار</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Logo URL -->
+                                    <div>
+                                        <label class="block text-slate-500 text-sm font-bold mb-2">رابط الشعار (URL)</label>
+                                        <input type="text" x-model="settings.logo_url" class="w-full bg-slate-50 border-transparent focus:bg-white border focus:border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none transition" :style="`--tw-ring-color: ${settings.theme_color}`" placeholder="https://...">
+                                    </div>
+                                </div>
+
+                                <!-- Preview Card -->
+                                <div>
+                                    <div class="sticky top-8">
+                                        <label class="block text-slate-500 text-sm font-bold mb-3">معاينة حية</label>
+                                        <div class="bg-white p-6 rounded-2xl shadow-soft border border-slate-100 aspect-[210/297] flex flex-col transform transition-all duration-300" :style="`font-family: '${settings.font_family}'`">
+                                            <!-- Preview Header -->
+                                            <div class="flex items-start mb-4" :class="{
+                                                'flex-row': settings.header_layout === 'right',
+                                                'flex-col items-center text-center': settings.header_layout === 'center',
+                                                'flex-row-reverse': settings.header_layout === 'left'
+                                            }">
+                                                <div class="w-12 h-12 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center mb-2" x-show="!settings.logo_url">
+                                                    <i class="fas fa-building text-slate-300"></i>
+                                                </div>
+                                                <img :src="settings.logo_url" class="h-12 w-auto object-contain mb-2" x-show="settings.logo_url" @error="$el.style.display='none'">
+                                                
+                                                <div :class="{'mx-3': true}">
+                                                    <div class="font-bold text-sm text-slate-800" x-text="settings.company_name || 'اسم الشركة'"></div>
+                                                    <div class="text-[10px] text-slate-400">خدمات تقنية متقدمة</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="h-1 w-full rounded-full mb-4 opacity-20" :style="`background-color: ${settings.theme_color}`"></div>
+                                            
+                                            <div class="space-y-2 mb-4">
+                                                <div class="h-2 bg-slate-100 rounded w-1/3"></div>
+                                                <div class="h-2 bg-slate-100 rounded w-1/2"></div>
+                                            </div>
+
+                                            <div class="mt-auto">
+                                                <div class="flex justify-between items-center pt-3 border-t border-slate-50">
+                                                    <div class="text-xs font-bold text-slate-500">الإجمالي</div>
+                                                    <div class="text-sm font-bold" :style="`color: ${settings.theme_color}`">1,250.00</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview / Print View (Optimized for Paper) -->
+            <div x-show="view === 'preview'" class="w-full flex flex-col items-center">
+                <div class="w-full max-w-4xl no-print mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <button @click="view = 'editor'" class="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 font-medium">
+                        <i class="fas fa-arrow-right"></i> عودة للتحرير
+                    </button>
+                    <div class="flex items-center gap-3">
+                        <button @click="exportToWord()" class="bg-blue-700 text-white px-5 py-2.5 rounded-xl shadow hover:shadow-lg transition flex items-center gap-2 transform hover:-translate-y-0.5 font-medium">
+                            <i class="fas fa-file-word"></i> تحميل Word
+                        </button>
+                        <button @click="window.print()" class="text-white px-6 py-2.5 rounded-xl shadow hover:shadow-lg transition flex items-center gap-2 transform hover:-translate-y-0.5 font-bold" :style="`background-color: ${settings.theme_color}`">
+                            <i class="fas fa-print"></i> طباعة / PDF
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- A4 Paper Container -->
+                <div class="bg-white shadow-2xl mx-auto invoice-preview relative overflow-hidden transform scale-[0.6] md:scale-[0.8] lg:scale-100 origin-top transition-transform" style="width: 21cm; min-height: 29.7cm; padding: 0;">
+                    
+                    <!-- Top Decorative Band -->
+                    <div class="h-3 w-full" :style="`background-color: ${settings.theme_color}`"></div>
+
+                    <div class="p-16">
+                        <!-- Header -->
+                        <div class="flex justify-between items-start mb-16" :class="{
+                            'flex-row': settings.header_layout === 'right',
+                            'flex-col items-center text-center': settings.header_layout === 'center',
+                            'flex-row-reverse': settings.header_layout === 'left'
+                        }">
+                            <!-- Company Info -->
+                            <div class="flex-1">
+                                <img :src="settings.logo_url" class="h-24 w-auto object-contain mb-4 block" x-show="settings.logo_url" :class="{'mx-auto': settings.header_layout === 'center'}">
+                                <h1 class="text-3xl font-bold text-slate-900 mb-2" x-text="settings.company_name"></h1>
+                                <div class="text-slate-500 text-sm leading-relaxed whitespace-pre-line" x-text="settings.company_address"></div>
+                                <div class="text-slate-500 text-sm mt-1" x-text="settings.company_email"></div>
+                            </div>
+
+                            <!-- Invoice Title & Details -->
+                            <div class="flex-1" :class="{'text-left': settings.header_layout !== 'left', 'text-right': settings.header_layout === 'left', 'mt-8 w-full border-t pt-8': settings.header_layout === 'center'}">
+                                <div class="text-5xl font-extrabold opacity-10 tracking-widest mb-2 uppercase font-sans">Invoice</div>
+                                <div class="text-2xl font-bold mb-6" :style="`color: ${settings.theme_color}`">فاتورة ضريبية</div>
+                                
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-4" :class="settings.header_layout === 'left' ? 'justify-start' : (settings.header_layout === 'center' ? 'justify-center' : 'justify-end')">
+                                        <span class="text-slate-400 font-medium text-sm">رقم الفاتورة</span>
+                                        <span class="font-bold text-slate-800 text-lg" x-text="currentInvoice.invoice_number"></span>
+                                    </div>
+                                    <div class="flex items-center gap-4" :class="settings.header_layout === 'left' ? 'justify-start' : (settings.header_layout === 'center' ? 'justify-center' : 'justify-end')">
+                                        <span class="text-slate-400 font-medium text-sm">تاريخ الإصدار</span>
+                                        <span class="font-bold text-slate-800" x-text="currentInvoice.date"></span>
+                                    </div>
+                                    <div class="flex items-center gap-4" :class="settings.header_layout === 'left' ? 'justify-start' : (settings.header_layout === 'center' ? 'justify-center' : 'justify-end')" x-show="currentInvoice.due_date">
+                                        <span class="text-slate-400 font-medium text-sm">تاريخ الاستحقاق</span>
+                                        <span class="font-bold text-slate-800" x-text="currentInvoice.due_date"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bill To -->
+                        <div class="mb-12 flex">
+                            <div class="bg-slate-50 rounded-xl p-8 border-r-4 w-2/3" :style="`border-color: ${settings.theme_color}`">
+                                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">فاتورة إلى</div>
+                                <div class="text-xl font-bold text-slate-900 mb-2" x-text="currentInvoice.client_name"></div>
+                                <div class="text-slate-600 text-sm mb-1" x-text="currentInvoice.client_address"></div>
+                                <div class="text-slate-600 text-sm" x-text="currentInvoice.client_email"></div>
+                            </div>
+                        </div>
+
+                        <!-- Items Table -->
+                        <div class="mb-10">
+                            <table class="w-full">
+                                <thead>
+                                    <tr>
+                                        <th class="text-right py-4 px-4 font-bold text-white first:rounded-r-lg last:rounded-l-lg text-sm" :style="`background-color: ${settings.theme_color}`">الوصف</th>
+                                        <th class="text-center py-4 px-4 font-bold text-white text-sm" :style="`background-color: ${settings.theme_color}`">الكمية</th>
+                                        <th class="text-center py-4 px-4 font-bold text-white text-sm" :style="`background-color: ${settings.theme_color}`">السعر</th>
+                                        <th class="text-center py-4 px-4 font-bold text-white first:rounded-r-lg last:rounded-l-lg text-sm" :style="`background-color: ${settings.theme_color}`">الإجمالي</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <template x-for="(item, index) in currentInvoice.items">
+                                        <tr :class="index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'">
+                                            <td class="py-4 px-4 text-slate-800 font-medium" x-text="item.description"></td>
+                                            <td class="py-4 px-4 text-center text-slate-600" x-text="item.quantity"></td>
+                                            <td class="py-4 px-4 text-center text-slate-600" x-text="item.unit_price.toFixed(2)"></td>
+                                            <td class="py-4 px-4 text-center font-bold text-slate-800" x-text="item.total.toFixed(2)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Footer / Totals -->
+                        <div class="flex justify-end mb-16">
+                            <div class="w-80 bg-slate-50 rounded-xl p-6">
+                                <div class="flex justify-between mb-3 text-slate-500 text-sm">
+                                    <span>المجموع الفرعي</span>
+                                    <span class="font-bold text-slate-800" x-text="currentInvoice.subtotal.toFixed(2)"></span>
+                                </div>
+                                <div class="flex justify-between mb-4 text-slate-500 text-sm" x-show="currentInvoice.tax_amount > 0">
+                                    <span>الضريبة (<span x-text="currentInvoice.tax_rate"></span>%)</span>
+                                    <span class="font-bold text-slate-800" x-text="currentInvoice.tax_amount.toFixed(2)"></span>
+                                </div>
+                                <div class="h-px bg-slate-200 mb-4"></div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-lg font-bold text-slate-800">الإجمالي</span>
+                                    <span class="text-2xl font-extrabold" :style="`color: ${settings.theme_color}`" x-text="currentInvoice.total_amount.toFixed(2)"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="border-t border-slate-100 pt-8" x-show="currentInvoice.notes">
+                            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">ملاحظات وشروط</div>
+                            <p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line" x-text="currentInvoice.notes"></p>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Bar -->
+                    <div class="absolute bottom-0 left-0 w-full h-2 opacity-50" :style="`background-color: ${settings.theme_color}`"></div>
+                </div>
+            </div>
+
+        </div>
+    </div> <!-- End Flex Container -->
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
