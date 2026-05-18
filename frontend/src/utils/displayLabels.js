@@ -15,21 +15,12 @@ export const ACCOUNT_NAME_MAP = {
   '029': 'إيرادات فرامل وتعليق',
   '030': 'تكلفة الخدمات',
   '031': 'تكاليف مباشرة',
-  '035': 'المصروفات التشغيلية',
-  '036': 'مصروفات عامة وإدارية',
-  '037': 'رواتب إدارية',
+  '034': 'المصروفات التشغيلية',
+  '035': 'مصروفات عامة وإدارية',
+  '036': 'رواتب إدارية',
   '042': 'إيراد قطع الورشة',
   '0421': 'تكلفة قطع الورشة',
-  '1101': 'النقد',
-  '1102': 'البنك',
-  '1103': 'العملاء (ذمم مدينة)',
-  '1104': 'نقاط بيع',
-  '1105': 'مخزون قطع غيار',
   '2101': 'الموردون (ذمم دائنة)',
-  '4000': 'الإيرادات',
-  '4100': 'إيرادات الخدمات',
-  '6100': 'مصروفات عامة وإدارية',
-  '6101': 'رواتب إدارية',
 };
 
 export const OPERATION_TYPE_LABELS = {
@@ -121,9 +112,9 @@ export const LEGACY_TO_NEW_CODE = {
   "4100": "026",
   "5000": "030",
   "5100": "031",
-  "6000": "035",
-  "6100": "036",
-  "6101": "037",
+  "6000": "034",
+  "6100": "035",
+  "6101": "036",
   "3102": "022",
   "1201": "010",
 };
@@ -244,7 +235,8 @@ export const resolveAccountDisplay = (operation = {}, accounts = [], businessAcc
     const reverseMatch = Object.entries(ACCOUNT_NAME_MAP).find(([, label]) => String(label).replace(/\s+/g, ' ').trim() === compactName);
     if (reverseMatch) code = reverseMatch[0];
     else if (/إيراد|ايراد|خدمات/i.test(compactName)) code = '026';
-    else if (/مصروف|تكلفة|رواتب/i.test(compactName)) code = '036';
+    else if (/مصروف|تكلفة/i.test(compactName)) code = '034';
+    else if (/رواتب/i.test(compactName)) code = '036';
     else if (/مورد/i.test(compactName)) code = '2101';
     else if (/عميل|ذمم مدينة/i.test(compactName)) code = '005';
   }

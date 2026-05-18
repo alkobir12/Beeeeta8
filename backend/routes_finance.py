@@ -396,8 +396,10 @@ def _build_account_maps(accounts):
     # so callers that only consume id_to_code still get legacy lookups via the same dict.
     for legacy_code, current_code in legacy_to_current.items():
         # Only add if not already mapped as an id (avoid collisions)
-        if legacy_code not in id_to_code:
-            id_to_code[legacy_code] = current_code
+        # Note: If the ID is acc-4100 but legacy_code is 4100, we need to map BOTH
+        # to the current_code, since acc-4100 is just the internal ID.
+        id_to_code[legacy_code] = current_code
+        id_to_code[f"acc-{legacy_code}"] = current_code
     return id_to_code, code_to_name, code_to_type
 
 
@@ -2342,7 +2344,7 @@ async def get_chart_of_accounts(
             mapped_code = _map_legacy_prefix(mapped_code)
             if mapped_code not in merged_by_code:
                 # لا نُظهر أكواد قديمة مجهولة إذا تعذر ربطها بدليل الحسابات الجديد
-                if mapped_code == code and (code.isdigit() and int(code) >= 1000):
+                if mapped_code == code and (code.isdigit() and int(code) >= 1000) and code != "2101":
                     continue
 
                 merged_by_code[mapped_code] = {
