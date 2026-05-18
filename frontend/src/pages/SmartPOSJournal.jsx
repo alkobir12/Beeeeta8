@@ -17,6 +17,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { PAYMENT_METHOD_LABELS, SOURCE_LABELS, labelFromMap } from '../utils/displayLabels';
+import SmartAccountSelect from '../components/SmartAccountSelect';
 
 const formatSAR = (value) => (
   `${new Intl.NumberFormat('ar-SA', {
@@ -944,10 +945,10 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
                 <label className="block text-xs font-semibold text-slate-300 mb-2">اختر حساب المدين للمشتريات/المصروفات</label>
                 <div className="max-w-md">
                   <SmartAccountSelect
-                    accounts={accounts}
-                    selectedId={customPurchaseAccountId || accountRefs.operatingExpense?.id}
+                    allAccounts={accounts}
+                    operationType="purchase"
+                    value={customPurchaseAccountId || accountRefs.operatingExpense?.id}
                     onChange={(account) => setCustomPurchaseAccountId(account?.id)}
-                    typeFilter={['expense', 'asset']}
                   />
                 </div>
               </div>
