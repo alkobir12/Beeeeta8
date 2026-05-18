@@ -8,6 +8,7 @@ import {
   HandCoins,
   Landmark,
   Loader2,
+  Pencil,
   Plus,
   Save,
   ShoppingCart,
@@ -223,6 +224,7 @@ const buildVehicleLabel = (vehicle) => {
 export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], recentEntries = [], onSaved }) {
   const [activeTemplateKey, setActiveTemplateKey] = useState('instant_sale');
   const [customPurchaseAccountId, setCustomPurchaseAccountId] = useState(null);
+  const [isEditingDebit, setIsEditingDebit] = useState(false);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -930,29 +932,43 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
             </div>
 
             <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm text-slate-200">
-              <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3">
-                <div className="text-xs text-slate-400 mb-1">الحساب المدين</div>
-                <div className="font-semibold">{effectiveEntry.debitAccount?.code} · {effectiveEntry.debitAccount?.name}</div>
+              <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3 flex flex-col justify-center">
+                <div className="text-xs text-slate-400 mb-1 flex justify-between items-center">
+                  <span>الحساب المدين</span>
+                  {activeTemplateKey === 'purchase' && !isEditingDebit && (
+                    <button type="button" onClick={() => setIsEditingDebit(true)} className="text-sky-400 hover:text-sky-300 text-[10px] flex items-center gap-1">
+                      <Pencil size={10} /> تعديل
+                    </button>
+                  )}
+                  {isEditingDebit && (
+                    <button type="button" onClick={() => setIsEditingDebit(false)} className="text-slate-400 hover:text-slate-300 text-[10px]">
+                      إلغاء
+                    </button>
+                  )}
+                </div>
+                {activeTemplateKey === 'purchase' && isEditingDebit ? (
+                  <div className="mt-1 relative z-50">
+                    <SmartAccountSelect
+                      allAccounts={accounts.filter((a) => a.type === 'expense' || String(a.code).startsWith('03') || String(a.code).startsWith('01') || String(a.code).startsWith('5') || String(a.code).startsWith('6'))}
+                      includeAll={true}
+                      value={customPurchaseAccountId || effectiveEntry.debitAccount?.id}
+                      onChange={(account) => {
+                        if (account) setCustomPurchaseAccountId(account.id);
+                        setIsEditingDebit(false);
+                      }}
+                      compact={true}
+                      className="w-full"
+                    />
+                  </div>
+                ) : (
+                  <div className="font-semibold">{effectiveEntry.debitAccount?.code} · {effectiveEntry.debitAccount?.name}</div>
+                )}
               </div>
-              <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3">
+              <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-3 flex flex-col justify-center">
                 <div className="text-xs text-slate-400 mb-1">الحساب الدائن</div>
                 <div className="font-semibold">{effectiveEntry.creditAccount?.code} · {effectiveEntry.creditAccount?.name}</div>
               </div>
             </div>
-            
-            {activeTemplateKey === 'purchase' && (
-              <div className="mt-4 p-3 rounded-2xl bg-white/5 border border-white/10">
-                <label className="block text-xs font-semibold text-slate-300 mb-2">اختر حساب المدين للمشتريات/المصروفات</label>
-                <div className="max-w-md">
-                  <SmartAccountSelect
-                    allAccounts={accounts}
-                    operationType="purchase"
-                    value={customPurchaseAccountId || accountRefs.operatingExpense?.id}
-                    onChange={(account) => setCustomPurchaseAccountId(account?.id)}
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-4 space-y-4">
