@@ -245,7 +245,7 @@ python3 /app/invoices_integration_test.py
 
 - Supabase Dashboard: https://kqjlyozhvwswooztccag.supabase.co
 - SQL Editor: https://kqjlyozhvwswooztccag.supabase.co/project/_/sql
-- Backend API: https://vehicle-ledger-hub-1.preview.emergentagent.com/api
+- Backend API: https://vehicle-accounting-2.preview.emergentagent.com/api
 
 ---
 

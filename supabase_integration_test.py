@@ -18,7 +18,7 @@ import uuid
 import time
 
 # Get backend URL from environment
-BACKEND_URL = "https://vehicle-ledger-hub-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://vehicle-accounting-2.preview.emergentagent.com/api"
 
 # Test results tracking
 test_results = {

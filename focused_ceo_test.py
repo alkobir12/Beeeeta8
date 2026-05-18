@@ -12,7 +12,7 @@ import os
 from datetime import datetime
 
 # Get backend URL from environment
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://vehicle-ledger-hub-1.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://vehicle-accounting-2.preview.emergentagent.com')
 BASE_URL = f"{BACKEND_URL}/api"
 
 print("=" * 80)

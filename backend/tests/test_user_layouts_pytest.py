@@ -14,7 +14,7 @@ from server import app
 client = TestClient(app)
 
 # Also test against the live API
-LIVE_BASE_URL = "https://vehicle-ledger-hub-1.preview.emergentagent.com/api"
+LIVE_BASE_URL = "https://vehicle-accounting-2.preview.emergentagent.com/api"
 
 class TestUserLayoutsAPI:
     """Pytest test class for User Layouts API"""

@@ -7,7 +7,7 @@ Verifying the content/by-file endpoint returns full document with title, content
 import requests
 import json
 
-BACKEND_URL = "https://vehicle-ledger-hub-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://vehicle-accounting-2.preview.emergentagent.com/api"
 
 def test_content_by_file_detailed():
     """Test the content/by-file endpoint in detail"""

@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime
 
 # Backend URL from frontend .env
-BACKEND_URL = "https://vehicle-ledger-hub-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://vehicle-accounting-2.preview.emergentagent.com/api"
 VEHICLE_ID = "f3422cc1-dd9c-4e69-8205-0aa50b3795a1"
 
 class TestVisitDeleteAndInvoiceTotals:

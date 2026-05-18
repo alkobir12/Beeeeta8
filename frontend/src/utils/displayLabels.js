@@ -112,11 +112,27 @@ export const SOURCE_LABELS = {
   manual: 'يدوي',
 };
 
+export const LEGACY_TO_NEW_CODE = {
+  "1101": "003",
+  "1102": "004",
+  "1103": "005",
+  "1104": "006",
+  "4000": "025",
+  "4100": "026",
+  "5000": "030",
+  "5100": "031",
+  "6000": "035",
+  "6100": "036",
+  "6101": "037",
+  "3102": "022",
+  "1201": "010",
+};
+
 export const normalizeAccountCode = (value) => {
-  const raw = String(value || '').trim();
+  let raw = String(value || '').trim();
   if (!raw) return '';
-  if (raw.startsWith('acc-') && /^acc-\d+$/.test(raw)) return raw.replace('acc-', '');
-  return raw;
+  if (raw.startsWith('acc-') && /^acc-\d+$/.test(raw)) raw = raw.replace('acc-', '');
+  return LEGACY_TO_NEW_CODE[raw] || raw;
 };
 
 export const isRawIdentifier = (value) => {

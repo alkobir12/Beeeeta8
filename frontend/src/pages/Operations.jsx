@@ -20,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { resolveBackendBase } from '../utils/backendBase';
-import { resolveVisitDisplay } from '../utils/displayLabels';
+import { resolveVisitDisplay, normalizeAccountCode, LEGACY_TO_NEW_CODE } from '../utils/displayLabels';
 import { hasPermission } from '../utils/permissions';
 
 const API_URL = `${resolveBackendBase()}/api`;
@@ -136,12 +136,7 @@ const getAccountPriorityRank = (account) => {
   return Number.MAX_SAFE_INTEGER;
 };
 
-const normalizeAccountCode = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (raw.startsWith('acc-') && /^acc-\d+$/.test(raw)) return raw.replace('acc-', '');
-  return raw;
-};
+// normalizeAccountCode imported from displayLabels.js
 
 const accountMatchesPreference = (account, preference = {}) => {
   const code = normalizeAccountCode(account?.code || account?.id || '');

@@ -86,12 +86,12 @@ const resolveTargetAccountName = (operation, chartAccount, businessAccount, t) =
 const resolveAccountCode = (operation, chartAccount, businessAccount) => {
   const notes = String(operation?.notes || '');
   const codeMatch = notes.match(/ACCOUNT_CODE\s*:\s*([0-9]+)/i);
-  if (codeMatch?.[1]) return codeMatch[1];
-  if (chartAccount?.code) return String(chartAccount.code);
-  if (businessAccount?.code) return String(businessAccount.code);
+  if (codeMatch?.[1]) return normalizeAccountCode(codeMatch[1]);
+  if (chartAccount?.code) return normalizeAccountCode(String(chartAccount.code));
+  if (businessAccount?.code) return normalizeAccountCode(String(businessAccount.code));
   const fallback = operation?.accountCode || operation?.account_number || operation?.accountNumber;
   const normalized = normalizeAccountCode(fallback || operation?.accountingAccountId || '');
-  return ACCOUNT_NAME_MAP[normalized] ? normalized : (fallback ? String(fallback) : '');
+  return ACCOUNT_NAME_MAP[normalized] ? normalized : (fallback ? normalizeAccountCode(String(fallback)) : '');
 };
 
 const classifyAccountCode = (accountCode = '') => {

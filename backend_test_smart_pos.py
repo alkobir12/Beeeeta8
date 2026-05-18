@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://vehicle-ledger-hub-1.preview.emergentagent.com/api"
+BACKEND_URL = "https://vehicle-accounting-2.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 def test_smart_pos_journal_entries():

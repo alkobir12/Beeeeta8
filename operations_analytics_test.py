@@ -33,7 +33,7 @@ def get_base_url():
         print(f"❌ Error reading frontend .env: {e}")
     
     # Fallback
-    return "https://vehicle-ledger-hub-1.preview.emergentagent.com"
+    return "https://vehicle-accounting-2.preview.emergentagent.com"
 
 BASE_URL = get_base_url()
 API_BASE = f"{BASE_URL}/api"
