@@ -77,44 +77,45 @@ const TEMPLATE_META = [
   {
     key: 'instant_sale',
     title: '⚡ بيع فوري',
-    desc: 'فاتورة سريعة ببنود متعددة وعميل ومركبة',
+    desc: 'فاتورة سريعة ببنود متعددة وعميل ومركبة وامكانية بيع بدون عميل او مركبه',
     color: 'emerald',
     transactionType: 'sale',
     partyRole: 'customer',
     paymentSide: 'debit',
-    counterAccountKey: 'salesRevenue',
+    counterAccountKey: 'mechanicalRevenue',
     supportsItems: true,
     supportsVehicle: true,
     requiresParty: false,
     defaultPaymentMethod: 'cash',
   },
   {
-    key: 'cash_sale',
-    title: '💵 بيع نقدي',
-    desc: 'قيد بيع سريع بمبلغ مباشر',
+    key: 'purchase',
+    title: 'شراء',
+    desc: 'فاتورة مشتريات (يمكن تعديل حساب المدين)',
+    color: 'rose',
+    transactionType: 'expense',
+    partyRole: 'supplier',
+    paymentSide: 'credit',
+    counterAccountKey: 'operatingExpense',
+    supportsItems: true,
+    supportsVehicle: false,
+    requiresParty: false,
+    defaultPaymentMethod: 'cash',
+  },
+  {
+    key: 'receipt_voucher',
+    title: 'سند قبض',
+    desc: 'سند قبض مرتبط بعميل ومركبه',
     color: 'sky',
-    transactionType: 'sale',
+    transactionType: 'settlement',
     partyRole: 'customer',
     paymentSide: 'debit',
-    counterAccountKey: 'salesRevenue',
-    supportsItems: true,
+    counterAccountKey: 'customers',
+    supportsItems: false,
     supportsVehicle: true,
-    requiresParty: false,
+    requiresParty: true,
+    requiresVehicle: true,
     defaultPaymentMethod: 'cash',
-  },
-  {
-    key: 'card_sale',
-    title: '💳 بيع بنكي/بطاقة',
-    desc: 'تحصيل مباشر عبر البنك أو نقاط البيع',
-    color: 'cyan',
-    transactionType: 'sale',
-    partyRole: 'customer',
-    paymentSide: 'debit',
-    counterAccountKey: 'salesRevenue',
-    supportsItems: true,
-    supportsVehicle: true,
-    requiresParty: false,
-    defaultPaymentMethod: 'bank',
   },
   {
     key: 'salary',
@@ -131,20 +132,6 @@ const TEMPLATE_META = [
     defaultPaymentMethod: 'bank',
   },
   {
-    key: 'cash_expense',
-    title: '🧾 صرف نقدي',
-    desc: 'مصروف تشغيلي مباشر',
-    color: 'rose',
-    transactionType: 'expense',
-    partyRole: null,
-    paymentSide: 'credit',
-    counterAccountKey: 'operatingExpense',
-    supportsItems: false,
-    supportsVehicle: false,
-    requiresParty: false,
-    defaultPaymentMethod: 'cash',
-  },
-  {
     key: 'collect_customer',
     title: '🤝 تحصيل من عميل',
     desc: 'تسوية ذمم عميل مقابل نقد أو بنك',
@@ -154,14 +141,14 @@ const TEMPLATE_META = [
     paymentSide: 'debit',
     counterAccountKey: 'customers',
     supportsItems: false,
-    supportsVehicle: true,
+    supportsVehicle: false,
     requiresParty: true,
     defaultPaymentMethod: 'cash',
   },
   {
     key: 'pay_supplier',
     title: '📦 سداد لمورد',
-    desc: 'سداد رصيد مورد من الصندوق أو البنك',
+    desc: 'سداد رصيد مورد من النقد أو البنك',
     color: 'indigo',
     transactionType: 'settlement',
     partyRole: 'supplier',
@@ -175,7 +162,7 @@ const TEMPLATE_META = [
   {
     key: 'bank_deposit',
     title: '🏧 إيداع بنكي',
-    desc: 'نقل رصيد من النقد إلى البنك',
+    desc: 'إيداع بنكي',
     color: 'slate',
     transactionType: 'manual',
     partyRole: null,
@@ -234,6 +221,7 @@ const buildVehicleLabel = (vehicle) => {
 
 export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], recentEntries = [], onSaved }) {
   const [activeTemplateKey, setActiveTemplateKey] = useState('instant_sale');
+  const [customPurchaseAccountId, setCustomPurchaseAccountId] = useState(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -291,14 +279,20 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
       { codes: ['025', '026', '027'], type: 'revenue' },
     ], { code: '025', name: 'إيرادات الخدمات' });
 
+    const mechanicalRevenue = pickAccount(accounts, [
+      { codes: ['027'] },
+      { includesAll: ['إيرادات', 'ميكانيكية'] },
+    ], { code: '027', name: 'إيرادات خدمات ميكانيكية' });
+
     const operatingExpense = pickAccount(accounts, [
-      { codes: ['035'], type: 'expense' },
+      { codes: ['034'] },
+      { includesAll: ['المصروفات', 'التشغيلية'] },
+      { codes: ['035'] },
       { includesAll: ['مصروفات', 'إدارية'], type: 'expense' },
       { includesAll: ['مصروفات', 'عامة'], type: 'expense' },
-      { includesAll: ['المصروفات', 'التشغيلية'], type: 'expense' },
       { includesAny: ['مصروفات تشغيلية'], type: 'expense' },
       { codes: ['036'], type: 'expense' },
-    ], { code: '035', name: 'المصروفات التشغيلية' });
+    ], { code: '034', name: 'المصروفات التشغيلية' });
 
     const salaryExpense = pickAccount(accounts, [
       { includesAll: ['رواتب'], type: 'expense' },
@@ -313,6 +307,7 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
       customers: customersAccount,
       suppliers: suppliersAccount,
       salesRevenue,
+      mechanicalRevenue,
       operatingExpense,
       salaryExpense,
     };
@@ -509,24 +504,31 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
       };
     }
 
+    let resolvedCounterAccount = activeTemplate.counterAccount;
+    if (activeTemplate.key === 'purchase' && customPurchaseAccountId) {
+      const selectedAccount = accounts.find((a) => a.id === customPurchaseAccountId || a.code === customPurchaseAccountId);
+      if (selectedAccount) resolvedCounterAccount = selectedAccount;
+    }
+
     if (activeTemplate.paymentSide === 'debit') {
       return {
         debitAccount: paymentAccount,
-        creditAccount: activeTemplate.counterAccount,
+        creditAccount: resolvedCounterAccount,
       };
     }
 
     return {
-      debitAccount: activeTemplate.counterAccount,
+      debitAccount: resolvedCounterAccount,
       creditAccount: paymentAccount,
     };
-  }, [activeTemplate, accountRefs, paymentMethod]);
+  }, [activeTemplate, accountRefs, paymentMethod, customPurchaseAccountId, accounts]);
 
   const isValid = useMemo(() => {
     if (!(effectiveAmount > 0)) return false;
     if (activeTemplate?.requiresParty && !String(partyName || '').trim()) return false;
+    if (activeTemplate?.requiresVehicle && !String(vehicleId || vehicleRef || '').trim()) return false;
     return true;
-  }, [effectiveAmount, activeTemplate?.requiresParty, partyName]);
+  }, [effectiveAmount, activeTemplate?.requiresParty, activeTemplate?.requiresVehicle, partyName, vehicleId, vehicleRef]);
 
   const handlePartyChange = (value) => {
     const match = partyOptions.find((row) => normalizeText(row?.name) === normalizeText(value));
@@ -672,10 +674,15 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
           total,
         }];
 
-    if (activeTemplate?.key === 'collect_customer' || activeTemplate?.key === 'pay_supplier') {
+    if (activeTemplate?.transactionType === 'settlement') {
+      let itemName = 'تسوية عبر POS';
+      if (activeTemplate?.key === 'pay_supplier') itemName = 'سداد لمورد عبر POS';
+      else if (activeTemplate?.key === 'collect_customer') itemName = 'تحصيل من عميل عبر POS';
+      else if (activeTemplate?.key === 'receipt_voucher') itemName = 'سند قبض عبر POS';
+
       return {
         type: 'payment_order',
-        originalType: 'settlement',
+        originalType: activeTemplate?.transactionType,
         operationKind: vehicleId ? 'VEHICLE_OPERATION' : 'WORKSHOP_OPERATION',
         scope: vehicleId ? 'vehicle' : 'workshop',
         vehicleId: vehicleId || null,
@@ -686,7 +693,7 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         paymentStatus: 'paid',
         paymentAmount: total,
         items: [{
-          name: activeTemplate?.key === 'pay_supplier' ? 'سداد لمورد عبر POS' : 'تحصيل من عميل عبر POS',
+          name: itemName,
           itemType: 'service',
           quantity: 1,
           price: total,
@@ -832,14 +839,14 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
       [accountRefs.pos.code]: 'pos',
     };
 
-    let templateKey = 'cash_sale';
+    let templateKey = 'instant_sale';
     if (debitLine.account === accountRefs.suppliers.code) templateKey = 'pay_supplier';
     else if (creditLine.account === accountRefs.customers.code) templateKey = 'collect_customer';
     else if (debitLine.account === accountRefs.salaryExpense.code) templateKey = 'salary';
-    else if (debitLine.account === accountRefs.operatingExpense.code) templateKey = 'cash_expense';
+    else if (debitLine.account === accountRefs.operatingExpense.code) templateKey = 'purchase';
     else if (debitLine.account === accountRefs.bank.code && creditLine.account === accountRefs.cash.code) templateKey = 'bank_deposit';
-    else if (creditLine.account === accountRefs.salesRevenue.code) {
-      templateKey = stripTokens(entry?.description || '').includes('فاتورة') ? 'instant_sale' : 'cash_sale';
+    else if (creditLine.account === accountRefs.salesRevenue.code || creditLine.account === accountRefs.mechanicalRevenue.code) {
+      templateKey = 'instant_sale';
     }
 
     setActiveTemplateKey(templateKey);
@@ -931,6 +938,20 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
                 <div className="font-semibold">{effectiveEntry.creditAccount?.code} · {effectiveEntry.creditAccount?.name}</div>
               </div>
             </div>
+            
+            {activeTemplateKey === 'purchase' && (
+              <div className="mt-4 p-3 rounded-2xl bg-white/5 border border-white/10">
+                <label className="block text-xs font-semibold text-slate-300 mb-2">اختر حساب المدين للمشتريات/المصروفات</label>
+                <div className="max-w-md">
+                  <SmartAccountSelect
+                    accounts={accounts}
+                    selectedId={customPurchaseAccountId || accountRefs.operatingExpense?.id}
+                    onChange={(account) => setCustomPurchaseAccountId(account?.id)}
+                    typeFilter={['expense', 'asset']}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-4 space-y-4">

@@ -1406,17 +1406,17 @@ def _build_operation_journal_entry(
     elif op_type in ("purchase", "expense"):
         transaction_type = "purchase" if op_type == "purchase" else "expense"
 
-        # enforce purchases/expenses into expense accounts (030-059 new codes, or 5xxx/6xxx legacy)
+        # enforce purchases/expenses into expense/asset accounts (010, 030-059 new codes, or 5xxx/6xxx legacy)
         def _is_expense_code(c):
             if not c:
                 return False
             try:
                 n = int(c)
-                if 30 <= n <= 59:
+                if n == 10 or (30 <= n <= 59):
                     return True
             except (ValueError, TypeError):
                 pass
-            return str(c or "").startswith(("5", "6"))
+            return str(c or "").startswith(("5", "6", "1201"))
         if op_type == "purchase":
             debit_code = selected_code if (selected_code and len(selected_code) <= 12 and "-" not in selected_code and _is_expense_code(selected_code)) else "036"
         else:
