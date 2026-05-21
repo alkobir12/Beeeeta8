@@ -137,7 +137,7 @@ const KnowledgeBase = () => {
               </div>
               
               {dtcCards.map((card, idx) => (
-                <div key={idx} className="apple-card overflow-hidden border-l-4 border-l-amber-500">
+                <div key={card?.code ?? card?.id ?? `dtc-${idx}`} className="apple-card overflow-hidden border-l-4 border-l-amber-500">
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-6">
                       <div>
@@ -200,7 +200,7 @@ const KnowledgeBase = () => {
               </div>
               
               {searchResults.map((result, idx) => (
-                <div key={idx} className="apple-card p-5 hover:shadow-md transition-all cursor-pointer group">
+                <div key={result?.id ?? result?.title ?? `sr-${idx}`} className="apple-card p-5 hover:shadow-md transition-all cursor-pointer group">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
                       <FileText size={20} />
@@ -240,7 +240,7 @@ const KnowledgeBase = () => {
               
               <div className="space-y-3">
                 {historyItems.map((item, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => { setSearchQuery(item.query); setShowHistory(false); handleSearch(); }}>
+                  <div key={item?.id ?? item?.createdAt ?? `hist-${idx}`} className="p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => { setSearchQuery(item.query); setShowHistory(false); handleSearch(); }}>
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-medium text-gray-900">{item.query}</span>
                       <span className="text-xs text-gray-400">{new Date(item.createdAt).toLocaleDateString('ar-SA')}</span>

@@ -3264,7 +3264,7 @@ const Operations = () => {
                       </thead>
                       <tbody className="divide-y" style={{ borderColor: 'rgba(148,163,184,0.14)' }}>
                         {form.items.map((it, idx)=> (
-                          <tr key={idx}>
+                          <tr key={it?.id ?? it?.uid ?? `op-item-${idx}`}>
                             <td className="p-3" style={{ color: styles.textSecondary }}>{it.itemType==='part'? t('operations.part') : t('operations.service')}</td>
                             <td className="p-3 font-medium" style={{ color: styles.textPrimary }}>{it.name}</td>
                             <td className="p-3" style={{ color: styles.textSecondary }}>{it.quantity}</td>

@@ -1693,7 +1693,7 @@ const VisitCard = ({
               ) : (
                 items.map((item, idx) => (
                   <VisitItemCard
-                    key={idx}
+                    key={item?.id ?? item?.uid ?? `item-${idx}`}
                     item={item}
                     isEditing={isEditing}
                     onChange={(f, v) => updateItem(idx, f, v)}
@@ -1748,7 +1748,7 @@ const VisitCard = ({
                     ) : (
                       items.map((item, idx) => (
                         <VisitItemRow
-                          key={idx}
+                          key={item?.id ?? item?.uid ?? `row-${idx}`}
                           item={item}
                           isEditing={isEditing}
                           onChange={(f, v) => updateItem(idx, f, v)}

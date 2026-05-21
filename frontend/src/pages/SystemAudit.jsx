@@ -290,7 +290,7 @@ const SystemAudit = () => {
                 <div className="space-y-3 mb-4">
                   {auditReport.details.consistency_analysis.issues.map((issue, idx) => (
                     <div
-                      key={idx}
+                      key={`issue-${idx}-${String(issue).slice(0, 24)}`}
                       className="flex items-start gap-3 p-4 rounded-xl"
                       style={{
                         backgroundColor: 'rgba(239,68,68,0.1)',
@@ -308,7 +308,7 @@ const SystemAudit = () => {
                 <div className="space-y-3">
                   {auditReport.details.consistency_analysis.warnings.map((warning, idx) => (
                     <div
-                      key={idx}
+                      key={`warning-${idx}-${String(warning).slice(0, 24)}`}
                       className="flex items-start gap-3 p-4 rounded-xl"
                       style={{
                         backgroundColor: 'rgba(251,146,60,0.1)',
@@ -333,7 +333,7 @@ const SystemAudit = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {auditReport.corrections_needed.map((correction, idx) => (
                   <div
-                    key={idx}
+                    key={correction?.id ?? `corr-${idx}`}
                     className="rounded-xl p-4"
                     style={{
                       backgroundColor: 'var(--bg-card)',
@@ -371,7 +371,7 @@ const SystemAudit = () => {
               >
                 {auditReport.audit_log.map((log, idx) => (
                   <div
-                    key={idx}
+                    key={`log-${idx}-${String(log).slice(0, 24)}`}
                     className="text-sm py-1 font-mono"
                     style={{ 
                       color: log.includes('ERROR') ? '#ef4444' : 

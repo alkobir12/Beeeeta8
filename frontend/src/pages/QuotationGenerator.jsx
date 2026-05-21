@@ -404,7 +404,7 @@ const QuotationGenerator = () => {
                   </div>
                 )}
                 {formData.items.map((item, index) => (
-                  <div key={index} className="flex flex-wrap gap-2 items-end p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                  <div key={item?.id ?? `qitem-${index}`} className="flex flex-wrap gap-2 items-end p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                     <div className="flex-1 min-w-[200px]">
                       <Label>{isArabic ? 'الوصف' : 'Description'}</Label>
                       <Input
@@ -540,7 +540,7 @@ const QuotationGenerator = () => {
             <CardContent>
               <div className="space-y-3">
                 {formData.terms.map((term, index) => (
-                  <div key={index} className="flex gap-2">
+                  <div key={`term-${index}-${(term || '').slice(0, 20)}`} className="flex gap-2">
                     <Input
                       value={term}
                       onChange={(e) => handleTermChange(index, e.target.value)}

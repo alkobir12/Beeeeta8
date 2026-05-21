@@ -569,6 +569,3 @@ async def export_to_sheets():
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    faqs = await db.faqs.find(query).sort("order", 1).to_list(1000)
-    return [FAQ(**f) for f in faqs]
