@@ -29,6 +29,30 @@
 
 ## What's Been Implemented
 
+### 🛠️ إصلاح شامل عاجل (Theme + Runtime + Backend Recovery) — (21 May 2026)
+
+**الأعراض المبلّغ عنها:**
+- الثيم لا يتغير.
+- Runtime errors (Cannot find module '@/lib/utils').
+- Invalid Host header في Preview.
+
+**الإصلاحات المنفذة:**
+- تحويل `App.css` من فرض dark mode إلى CSS Theme-aware باستخدام متغيرات الثيم.
+- تثبيت حزم frontend المفقودة (Radix / DnD / i18n / markdown / pdf / xlsx).
+- توحيد استيرادات `@/lib/utils` داخل مكونات UI إلى مسارات ثابتة متوافقة.
+- استرجاع ملفات backend الحرجة التي كانت Placeholder (من git history):
+  - `server.py`
+  - `models.py`
+  - `supabase_service.py`
+
+**التحقق:**
+- Theme toggle: PASS (تغير فعلي من dark إلى light).
+- Preview runtime overlay: PASS (اختفاء خطأ module).
+- Backend APIs: `GET /api/health` = 200، `GET /api/vehicles` = 200.
+
+**توثيق إضافي:**
+- تم إنشاء تقرير مراجعة شامل لملف CSV في: `/app/memory/Problemss_review_report.md`.
+
 ### 🎨 تحسين تباين صفحة ملف المركبة (VehicleDetails) — (21 May 2026)
 
 **طلب المستخدم:**

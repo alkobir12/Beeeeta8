@@ -1,29 +1,29 @@
-/* Emergent.sh Global App Styles */
+/* Global App Styles (Theme-aware) */
 .App {
   min-height: 100vh;
-  background-color: #121314 !important;
-  color: #F5F5F5 !important;
+  background-color: var(--bg-primary, #f8fafc) !important;
+  color: var(--text-primary, #0f172a) !important;
 }
 
 /* Global Layout */
-body, html, #root {
+body,
+html,
+#root {
   margin: 0;
   padding: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  background-color: #121314 !important;
-  color: #F5F5F5 !important;
+  background-color: var(--bg-primary, #f8fafc) !important;
+  color: var(--text-primary, #0f172a) !important;
 }
 
-/* Override any white backgrounds */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #323232 #1E1E1E;
+  scrollbar-color: var(--border-color, #cbd5e1) var(--bg-secondary, #e2e8f0);
 }
 
-/* Emergent Theme - Dark Mode Always */
 .layout-main {
-  background-color: #121314 !important;
+  background-color: var(--bg-primary, #f8fafc) !important;
   min-height: 100vh;
 }
 
@@ -31,17 +31,15 @@ body, html, #root {
   background-color: transparent !important;
 }
 
-/* Cards and Containers */
 .apple-card {
-  background-color: #2D2D2D !important;
-  border-color: #323232 !important;
-  color: #919597 !important;
+  background-color: var(--bg-card, #ffffff) !important;
+  border-color: var(--border-color, #e2e8f0) !important;
+  color: var(--text-secondary, #475569) !important;
 }
 
-/* Ensure all pages have dark background */
 .page-container,
 .dashboard-container,
 .vehicle-container {
-  background-color: #121314 !important;
+  background-color: var(--bg-primary, #f8fafc) !important;
   min-height: 100vh;
 }
