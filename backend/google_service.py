@@ -1,5 +1,4 @@
 import os
-import pickle
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -20,7 +19,9 @@ class GoogleService:
         self._authenticate()
 
     def _authenticate(self):
-        # Try service account first (preferred for server)
+        # Service Account is the only supported auth path (server-side).
+        # Note: Legacy pickle-based OAuth token loading was removed for security
+        # (pickle.load on a file is an arbitrary-code-execution risk).
         sa_file = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
         if sa_file and os.path.exists(sa_file):
             try:
@@ -31,15 +32,9 @@ class GoogleService:
             except Exception as e:
                 print(f"❌ Service Account Auth failed: {e}")
 
-        # If no service account, check for OAuth token pickle
-        if not self.creds:
-            if os.path.exists("token.pickle"):
-                with open("token.pickle", "rb") as token:
-                    self.creds = pickle.load(token)
-
-            # Refresh if expired
-            if self.creds and self.creds.expired and self.creds.refresh_token:
-                self.creds.refresh(Request())
+        # Refresh if expired
+        if self.creds and getattr(self.creds, "expired", False) and getattr(self.creds, "refresh_token", None):
+            self.creds.refresh(Request())
 
         if self.creds:
             self.drive_service = build("drive", "v3", credentials=self.creds)

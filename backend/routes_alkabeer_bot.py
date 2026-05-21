@@ -1288,7 +1288,7 @@ async def upload_editor_asset(user_id: str = Query("manager"), file: UploadFile 
         "original_filename": file.filename,
         "content_type": content_type,
         "size": result.get("size") or len(data),
-        "created_at": __import__("datetime").datetime.utcnow().isoformat(),
+        "created_at": datetime.utcnow().isoformat(),
         "is_deleted": False,
     }
 

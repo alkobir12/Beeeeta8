@@ -39,7 +39,9 @@ const Users = () => {
       const res = await fetch(`${API_URL}/users`);
       const data = await res.json();
       setUsers(data || []);
-    } catch (e) {}
+    } catch (e) {
+      console.error('fetch_users_failed', e);
+    }
   };
 
   useEffect(() => { fetchUsers(); }, []);

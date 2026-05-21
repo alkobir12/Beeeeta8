@@ -62,8 +62,8 @@ const appendArchiveAudit = (payload = {}) => {
     };
     const next = [entry, ...(Array.isArray(rows) ? rows : [])].slice(0, 120);
     localStorage.setItem(ARCHIVE_AUDIT_KEY, JSON.stringify(next));
-  } catch {
-    // ignore storage errors
+  } catch (e) {
+    console.warn('archive_audit_storage_failed', e);
   }
 };
 
@@ -1117,8 +1117,8 @@ const VisitCard = ({
       if (createdJournalIds.length > 0) {
         try {
           await deleteJournalEntries(createdJournalIds);
-        } catch {
-          // ignore compensation cleanup failure
+        } catch (cleanupErr) {
+          console.warn('journal_cleanup_failed', cleanupErr);
         }
       }
       console.error('Save visit error:', e);
@@ -1254,8 +1254,8 @@ const VisitCard = ({
         try {
           await axios.post(`${API_URL}/smart-accounting/vehicle/${visit.vehicleId || visit.vehicle_id}/archive`);
           toast({ title: '📦 تم الأرشفة', description: 'انتقل ملف المركبة للأرشيف' });
-        } catch {
-          // لا توقف العملية عند فشل الأرشفة
+        } catch (archiveErr) {
+          console.warn('archive_after_payment_failed', archiveErr);
         }
       }
 
@@ -1264,8 +1264,8 @@ const VisitCard = ({
       if (createdJournalIds.length > 0) {
         try {
           await deleteJournalEntries(createdJournalIds);
-        } catch {
-          // ignore compensation cleanup failure
+        } catch (cleanupErr) {
+          console.warn('journal_cleanup_failed', cleanupErr);
         }
       }
       const errMsg = e?.response?.data?.detail || e?.message || '';
