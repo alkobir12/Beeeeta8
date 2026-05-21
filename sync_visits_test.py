@@ -20,7 +20,7 @@ import traceback
 class SyncVisitsBackendTester:
     def __init__(self):
         # Use the preview domain from frontend/.env
-        self.base_url = "https://vehicle-accounting-2.preview.emergentagent.com"
+        self.base_url = "https://contract-audit-demo.preview.emergentagent.com"
         self.api_url = f"{self.base_url}/api"
         self.results = []
         self.session = requests.Session()

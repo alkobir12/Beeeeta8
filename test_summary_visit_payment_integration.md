@@ -209,7 +209,7 @@ The Vehicle Details payment integration is correctly reflected in the backend:
 - Test Script: `/app/backend_test_visit_payment.py`
 - Test Summary: `/app/test_summary_visit_payment_integration.md`
 - Test Date: 2026-05-13
-- Backend URL: https://vehicle-accounting-2.preview.emergentagent.com/api
+- Backend URL: https://contract-audit-demo.preview.emergentagent.com/api
 - Workshop ID: finmodule-sync
 - Target Visit: ef0a3030-d377-4a96-ba7f-acf302cf3ad4
 

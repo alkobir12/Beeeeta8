@@ -153,7 +153,7 @@ const WorkshopSupplierPartPicker = ({ item, onChange, partsCatalog = [], rowId, 
     <div
       className="space-y-2 mt-2 p-2 rounded-lg"
       style={{
-        background: 'rgba(59,130,246,0.06)',
+        background: 'rgba(239,246,255,0.8)',
         border: '1px solid rgba(59,130,246,0.22)',
       }}
       data-testid={`${baseTestId}-wrapper`}
@@ -174,9 +174,9 @@ const WorkshopSupplierPartPicker = ({ item, onChange, partsCatalog = [], rowId, 
         }}
         className="w-full text-xs sm:text-sm rounded-lg p-2"
         style={{
-          background: 'rgba(255,255,255,0.06)',
+          background: 'rgba(255,255,255,0.8)',
           border: '1px solid rgba(59,130,246,0.30)',
-          color: 'rgba(248,250,252,0.92)',
+          color: 'rgba(15,23,42,0.92)',
         }}
         data-testid={`${baseTestId}-select`}
       >
@@ -200,9 +200,9 @@ const WorkshopSupplierPartPicker = ({ item, onChange, partsCatalog = [], rowId, 
           }}
           className="w-full text-xs sm:text-sm rounded-lg p-2"
           style={{
-            background: 'rgba(255,255,255,0.06)',
+            background: 'rgba(255,255,255,0.8)',
             border: '1px solid rgba(59,130,246,0.30)',
-            color: 'rgba(248,250,252,0.92)',
+            color: 'rgba(15,23,42,0.92)',
           }}
           placeholder="اكتب اسم القطعة يدوياً"
           data-testid={`${baseTestId}-manual`}
@@ -238,14 +238,14 @@ const VisitItemRow = ({
       ? 'عميل'
       : 'خدمة';
     return (
-      <tr className="border-b" style={{ borderColor: 'rgba(148,163,184,0.12)' }}>
-        <td className="py-2 px-3 text-xs" style={{ color: 'rgba(226,232,240,0.72)' }}>
+      <tr className="border-b" style={{ borderColor: 'rgba(203,213,225,0.8)', background: 'transparent' }}>
+        <td className="py-2 px-3 text-xs" style={{ color: 'rgba(71,85,105,0.9)' }}>
           {typeLabel}
         </td>
-        <td className="py-2 px-3 text-xs" style={{ color: 'rgba(248,250,252,0.92)' }}>{item.name}</td>
-        <td className="py-2 px-3 text-xs text-center" style={{ color: 'rgba(248,250,252,0.86)' }}>{item.quantity}</td>
-        <td className="py-2 px-3 text-xs text-center" style={{ color: 'rgba(248,250,252,0.86)' }}>{item.price}</td>
-        <td className="py-2 px-3 text-xs font-bold text-right tabular-nums" style={{ color: 'rgba(186,230,253,0.95)' }}>
+        <td className="py-2 px-3 text-xs font-semibold" style={{ color: 'rgba(15,23,42,0.95)' }}>{item.name}</td>
+        <td className="py-2 px-3 text-xs text-center font-medium" style={{ color: 'rgba(30,41,59,0.9)' }}>{item.quantity}</td>
+        <td className="py-2 px-3 text-xs text-center font-medium" style={{ color: 'rgba(30,41,59,0.9)' }}>{item.price}</td>
+        <td className="py-2 px-3 text-xs font-bold text-right tabular-nums" style={{ color: 'rgba(3,105,161,0.95)' }}>
           {formatCurrency(item.total ?? (item.quantity * item.price))}
           {item._priceQtyMismatch && (
             <span className="mr-1 text-[9px] text-amber-400" title={`السعر × الكمية = ${item.quantity * item.price} ر.س`}>⚠</span>
@@ -279,16 +279,16 @@ const VisitItemRow = ({
   };
 
   return (
-    <tr className="border-b" style={{ borderColor: 'rgba(56,189,248,0.18)', background: 'rgba(56,189,248,0.06)' }}>
+    <tr className="border-b" style={{ borderColor: 'rgba(56,189,248,0.18)', background: 'rgba(240,249,255,0.8)' }}>
       <td className="p-2 min-w-[90px]">
         <select
           value={item.itemType}
           onChange={(e) => onChange('itemType', e.target.value)}
           className="w-full text-xs sm:text-sm rounded-lg p-2"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(148,163,184,0.18)',
-            color: 'rgba(248,250,252,0.92)',
+            background: 'rgba(255,255,255,0.8)',
+            border: '1px solid rgba(203,213,225,0.8)',
+            color: 'rgba(15,23,42,0.92)',
           }}
           data-testid={`visit-item-type-${visitId}-${rowId}`}
         >
@@ -315,9 +315,9 @@ const VisitItemRow = ({
               }}
               className="w-full min-w-[140px] sm:min-w-[220px] text-xs sm:text-sm rounded-lg p-2"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(248,250,252,0.92)',
+                background: 'rgba(255,255,255,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(15,23,42,0.92)',
               }}
               data-testid={`visit-item-party-select-${visitId}-${rowId}`}
             >
@@ -340,9 +340,9 @@ const VisitItemRow = ({
                 }}
                 className="w-full min-w-[140px] sm:min-w-[220px] text-xs sm:text-sm rounded-lg p-2"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  color: 'rgba(248,250,252,0.92)',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(203,213,225,0.8)',
+                  color: 'rgba(15,23,42,0.92)',
                 }}
                 placeholder={`اكتب اسم ${partyLabel} يدويًا`}
                 data-testid={`visit-item-party-manual-${visitId}-${rowId}`}
@@ -379,9 +379,9 @@ const VisitItemRow = ({
               onChange={(e) => handleNameChange(e.target.value)}
               className="w-full min-w-[140px] sm:min-w-[220px] text-xs sm:text-sm rounded-lg p-2"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(248,250,252,0.92)',
+                background: 'rgba(255,255,255,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(15,23,42,0.92)',
               }}
               placeholder={item.itemType === 'part' ? 'اسم القطعة' : 'اسم الخدمة'}
               data-testid={`visit-item-name-${visitId}-${rowId}`}
@@ -401,9 +401,9 @@ const VisitItemRow = ({
           onChange={(e) => onChange('quantity', Number(e.target.value))}
           className="w-16 sm:w-20 text-xs sm:text-sm rounded-lg p-2 text-center"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(148,163,184,0.18)',
-            color: 'rgba(248,250,252,0.92)',
+            background: 'rgba(255,255,255,0.8)',
+            border: '1px solid rgba(203,213,225,0.8)',
+            color: 'rgba(15,23,42,0.92)',
           }}
           min="1"
           data-testid={`visit-item-quantity-${visitId}-${rowId}`}
@@ -416,9 +416,9 @@ const VisitItemRow = ({
           onChange={(e) => onChange('price', Number(e.target.value))}
           className="w-20 sm:w-24 text-xs sm:text-sm rounded-lg p-2 text-center"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(148,163,184,0.18)',
-            color: 'rgba(248,250,252,0.92)',
+            background: 'rgba(255,255,255,0.8)',
+            border: '1px solid rgba(203,213,225,0.8)',
+            color: 'rgba(15,23,42,0.92)',
           }}
           min="0"
           data-testid={`visit-item-price-${visitId}-${rowId}`}
@@ -428,7 +428,7 @@ const VisitItemRow = ({
         <button
           onClick={onDelete}
           className="p-2 rounded-lg"
-          style={{ color: 'rgba(254,202,202,0.95)', background: 'rgba(244,63,94,0.10)', border: '1px solid rgba(244,63,94,0.22)' }}
+          style={{ color: 'rgba(159,18,57,0.95)', background: 'rgba(254,242,242,0.8)', border: '1px solid rgba(244,63,94,0.3)' }}
           title="حذف"
           data-testid={`visit-item-delete-${visitId}-${rowId}`}
         >
@@ -445,9 +445,9 @@ const DragHandle = ({ listeners, attributes, blockId }) => {
       type="button"
       className="p-2 rounded-xl"
       style={{
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(148,163,184,0.16)',
-        color: 'rgba(226,232,240,0.85)',
+        background: 'rgba(255,255,255,0.8)',
+        border: '1px solid rgba(203,213,225,0.8)',
+        color: 'rgba(71,85,105,0.9)',
         cursor: 'grab',
         touchAction: 'none',
       }}
@@ -476,8 +476,8 @@ const SortableBlock = ({ id, title, children }) => {
         style={{
           borderRadius: 22,
           padding: 12,
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(148,163,184,0.14)',
+          background: 'rgba(241,245,249,0.8)',
+          border: '1px solid rgba(203,213,225,0.8)',
           boxShadow: '0 18px 60px rgba(2,6,23,0.55)',
         }}
       >
@@ -485,7 +485,7 @@ const SortableBlock = ({ id, title, children }) => {
           <div className="min-w-0">
             <div
               className="text-[13px] font-extrabold truncate"
-              style={{ color: 'rgba(248,250,252,0.95)' }}
+              style={{ color: 'rgba(15,23,42,0.95)' }}
               data-testid={`layout-block-title-${id}`}
             >
               {title}
@@ -536,20 +536,20 @@ const VisitItemCard = ({
   const typeStyle =
     typeAccent === 'rose'
       ? {
-          background: 'rgba(244,63,94,0.10)',
-          border: '1px solid rgba(244,63,94,0.22)',
-          color: 'rgba(254,202,202,0.95)',
+          background: 'rgba(244,63,94,0.15)',
+          border: '1px solid rgba(244,63,94,0.3)',
+          color: 'rgba(159,18,57,0.95)',
         }
       : typeAccent === 'amber'
       ? {
-          background: 'rgba(245,158,11,0.12)',
-          border: '1px solid rgba(245,158,11,0.24)',
-          color: 'rgba(254,243,199,0.95)',
+          background: 'rgba(245,158,11,0.2)',
+          border: '1px solid rgba(245,158,11,0.4)',
+          color: 'rgba(180,83,9,0.95)',
         }
       : {
-          background: 'rgba(168,85,247,0.10)',
-          border: '1px solid rgba(168,85,247,0.22)',
-          color: 'rgba(233,213,255,0.95)',
+          background: 'rgba(168,85,247,0.15)',
+          border: '1px solid rgba(168,85,247,0.3)',
+          color: 'rgba(107,33,168,0.95)',
         };
 
   const handleNameChange = (value) => {
@@ -569,7 +569,7 @@ const VisitItemCard = ({
         borderRadius: 18,
         padding: 12,
         background:
-          'radial-gradient(circle at 14% 18%, rgba(168,85,247,0.10), transparent 55%), rgba(255,255,255,0.05)',
+          'radial-gradient(circle at 14% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
       }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -578,12 +578,12 @@ const VisitItemCard = ({
             <span className="px-2 py-0.5 rounded-full text-[11px]" style={typeStyle}>
               {typeLabel}
             </span>
-            <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.60)' }}>
+            <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>
               {isEditing ? 'تعديل بند' : 'بند'}
             </div>
           </div>
           {!isEditing ? (
-            <div className="mt-2 text-sm font-semibold truncate" style={{ color: 'rgba(248,250,252,0.92)' }}>
+            <div className="mt-2 text-sm font-semibold truncate" style={{ color: 'rgba(15,23,42,0.92)' }}>
               {item.name || '—'}
             </div>
           ) : (
@@ -593,9 +593,9 @@ const VisitItemCard = ({
                 onChange={(e) => onChange('itemType', e.target.value)}
                 className="w-full text-sm rounded-lg p-2"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  color: 'rgba(248,250,252,0.92)',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(203,213,225,0.8)',
+                  color: 'rgba(15,23,42,0.92)',
                 }}
                 data-testid={`visit-item-type-card-${visitId}-${rowId}`}
               >
@@ -621,9 +621,9 @@ const VisitItemCard = ({
                     }}
                     className="w-full text-sm rounded-lg p-2"
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(148,163,184,0.18)',
-                      color: 'rgba(248,250,252,0.92)',
+                      background: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(203,213,225,0.8)',
+                      color: 'rgba(15,23,42,0.92)',
                     }}
                     data-testid={`visit-item-party-select-card-${visitId}-${rowId}`}
                   >
@@ -646,9 +646,9 @@ const VisitItemCard = ({
                       }}
                       className="w-full text-sm rounded-lg p-2"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.18)',
-                        color: 'rgba(248,250,252,0.92)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
+                        color: 'rgba(15,23,42,0.92)',
                       }}
                       placeholder={`اكتب اسم ${partyLabel} يدويًا`}
                       data-testid={`visit-item-party-manual-card-${visitId}-${rowId}`}
@@ -685,9 +685,9 @@ const VisitItemCard = ({
                     onChange={(e) => handleNameChange(e.target.value)}
                     className="w-full text-sm rounded-lg p-2"
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(148,163,184,0.18)',
-                      color: 'rgba(248,250,252,0.92)',
+                      background: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(203,213,225,0.8)',
+                      color: 'rgba(15,23,42,0.92)',
                     }}
                     placeholder={item.itemType === 'part' ? 'اسم القطعة' : 'اسم الخدمة'}
                     data-testid={`visit-item-name-card-${visitId}-${rowId}`}
@@ -708,8 +708,8 @@ const VisitItemCard = ({
             onClick={onDelete}
             className="p-2 rounded-lg shrink-0"
             style={{
-              color: 'rgba(254,202,202,0.95)',
-              background: 'rgba(244,63,94,0.10)',
+              color: 'rgba(159,18,57,0.95)',
+              background: 'rgba(254,242,242,0.8)',
               border: '1px solid rgba(244,63,94,0.22)',
             }}
             title="حذف"
@@ -722,9 +722,9 @@ const VisitItemCard = ({
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div>
-          <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.60)' }}>الكمية</div>
+          <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>الكمية</div>
           {!isEditing ? (
-            <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: 'rgba(248,250,252,0.92)' }}>
+            <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: 'rgba(15,23,42,0.92)' }}>
               {item.quantity}
             </div>
           ) : (
@@ -734,9 +734,9 @@ const VisitItemCard = ({
               onChange={(e) => onChange('quantity', Number(e.target.value))}
               className="mt-1 w-full text-sm rounded-lg p-2"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(248,250,252,0.92)',
+                background: 'rgba(255,255,255,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(15,23,42,0.92)',
               }}
               min="1"
               data-testid={`visit-item-quantity-card-${visitId}-${rowId}`}
@@ -745,9 +745,9 @@ const VisitItemCard = ({
         </div>
 
         <div>
-          <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.60)' }}>السعر</div>
+          <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>السعر</div>
           {!isEditing ? (
-            <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: 'rgba(248,250,252,0.92)' }}>
+            <div className="mt-1 text-sm font-semibold tabular-nums" style={{ color: 'rgba(15,23,42,0.92)' }}>
               {item.price}
             </div>
           ) : (
@@ -757,9 +757,9 @@ const VisitItemCard = ({
               onChange={(e) => onChange('price', Number(e.target.value))}
               className="mt-1 w-full text-sm rounded-lg p-2"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(248,250,252,0.92)',
+                background: 'rgba(255,255,255,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(15,23,42,0.92)',
               }}
               min="0"
               data-testid={`visit-item-price-card-${visitId}-${rowId}`}
@@ -769,8 +769,8 @@ const VisitItemCard = ({
       </div>
 
       <div className="mt-3 flex items-center justify-between">
-        <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.60)' }}>الإجمالي</div>
-        <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(186,230,253,0.95)' }}>
+        <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>الإجمالي</div>
+        <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(3,105,161,0.95)' }}>
           {formatCurrency(amount)}
         </div>
       </div>
@@ -1447,14 +1447,14 @@ const VisitCard = ({
   const statusPill =
     status === 'in_progress'
       ? {
-          background: 'rgba(56,189,248,0.10)',
+          background: 'rgba(240,249,255,0.8)',
           border: '1px solid rgba(56,189,248,0.22)',
-          color: 'rgba(186,230,253,0.95)',
+          color: 'rgba(3,105,161,0.95)',
         }
       : {
-          background: 'rgba(16,185,129,0.10)',
+          background: 'rgba(236,253,245,0.8)',
           border: '1px solid rgba(16,185,129,0.22)',
-          color: 'rgba(167,243,208,0.95)',
+          color: 'rgba(4,120,87,0.95)',
         };
 
   const entry = visit.entryDate || visit.entry_date || visit.createdAt || visit.created_at;
@@ -1470,9 +1470,9 @@ const VisitCard = ({
       label: 'ورشة',
       value: workshopDue,
       style: {
-        background: 'rgba(168,85,247,0.10)',
+        background: 'rgba(250,245,255,0.8)',
         border: '1px solid rgba(168,85,247,0.22)',
-        color: 'rgba(233,213,255,0.95)',
+        color: 'rgba(107,33,168,0.95)',
       },
     },
     {
@@ -1480,9 +1480,9 @@ const VisitCard = ({
       label: 'مورد',
       value: suppliersDue,
       style: {
-        background: 'rgba(244,63,94,0.10)',
+        background: 'rgba(254,242,242,0.8)',
         border: '1px solid rgba(244,63,94,0.22)',
-        color: 'rgba(254,202,202,0.95)',
+        color: 'rgba(159,18,57,0.95)',
       },
     },
     {
@@ -1490,9 +1490,9 @@ const VisitCard = ({
       label: 'مدفوع',
       value: paid,
       style: {
-        background: 'rgba(16,185,129,0.10)',
+        background: 'rgba(236,253,245,0.8)',
         border: '1px solid rgba(16,185,129,0.22)',
-        color: 'rgba(167,243,208,0.95)',
+        color: 'rgba(4,120,87,0.95)',
       },
     },
     {
@@ -1502,7 +1502,7 @@ const VisitCard = ({
       style: {
         background: balance === 0 ? 'rgba(16,185,129,0.10)' : 'rgba(56,189,248,0.10)',
         border: `1px solid ${balance === 0 ? 'rgba(16,185,129,0.22)' : 'rgba(56,189,248,0.22)'}`,
-        color: balance === 0 ? 'rgba(167,243,208,0.95)' : 'rgba(186,230,253,0.95)',
+        color: balance === 0 ? 'rgba(4,120,87,0.95)' : 'rgba(3,105,161,0.95)',
       },
     },
   ];
@@ -1514,12 +1514,9 @@ const VisitCard = ({
       data-testid={`visit-card-${visit.id}`}
       style={{
         cursor: 'default',
-        background:
-          'radial-gradient(circle at 12% 18%, rgba(56,189,248,0.10), transparent 55%), rgba(255,255,255,0.05)',
-        border: `1px solid ${isExpanded ? 'rgba(56,189,248,0.22)' : 'rgba(148,163,184,0.16)'}`,
-        boxShadow: '0 18px 60px rgba(2,6,23,0.55)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
+        background: 'rgba(255,255,255,0.96)',
+        border: `1px solid ${isExpanded ? 'rgba(56,189,248,0.42)' : 'rgba(203,213,225,0.78)'}`,
+        boxShadow: isExpanded ? '0 18px 60px rgba(15,23,42,0.1)' : '0 4px 20px rgba(15,23,42,0.05)',
         padding: 0,
       }}
     >
@@ -1545,8 +1542,8 @@ const VisitCard = ({
                   : '1px solid rgba(16,185,129,0.22)',
               color:
                 status === 'in_progress'
-                  ? 'rgba(186,230,253,0.95)'
-                  : 'rgba(167,243,208,0.95)',
+                  ? 'rgba(3,105,161,0.95)'
+                  : 'rgba(4,120,87,0.95)',
             }}
           >
             <Calendar size={18} />
@@ -1556,14 +1553,14 @@ const VisitCard = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 className="px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums"
-                style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.24)', color: 'rgba(186,230,253,0.95)' }}
+                style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.24)', color: 'rgba(3,105,161,0.95)' }}
                 data-testid={`visit-number-${visit.id}`}
               >
                 زيارة {visitNumberLabel}
               </span>
               <div
                 className="text-sm font-extrabold tabular-nums"
-                style={{ color: 'rgba(248,250,252,0.95)' }}
+                style={{ color: 'rgba(15,23,42,0.95)' }}
                 data-testid={`visit-entry-date-${visit.id}`}
               >
                 {entry ? new Date(entry).toLocaleDateString('ar-SA') : '—'}
@@ -1577,14 +1574,14 @@ const VisitCard = ({
               </span>
             </div>
 
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'rgba(226,232,240,0.62)' }}>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>
               <span data-testid={`visit-mileage-${visit.id}`}>
                 {mileage ? `${Number(mileage).toLocaleString()} كم` : 'بدون عداد'}
               </span>
               {items.length > 0 && <span data-testid={`visit-items-count-${visit.id}`}>• {items.length} بنود</span>}
               {totalAmount > 0 && (
                 <span
-                  style={{ color: 'rgba(167,243,208,0.92)' }}
+                  style={{ color: 'rgba(4,120,87,0.95)' }}
                   className="font-semibold tabular-nums"
                   data-testid={`visit-total-amount-${visit.id}`}
                 >
@@ -1608,26 +1605,26 @@ const VisitCard = ({
           </div>
         </div>
 
-        <div className="shrink-0 pt-1" style={{ color: 'rgba(226,232,240,0.55)' }}>
+        <div className="shrink-0 pt-1" style={{ color: 'rgba(100,116,139,0.9)' }}>
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
       </button>
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-0" style={{ borderTop: '1px solid rgba(148,163,184,0.12)' }}>
+        <div className="px-4 pb-4 pt-0" style={{ borderTop: '1px solid rgba(203,213,225,0.8)' }}>
           {/* Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-4" onClick={(e) => e.stopPropagation()}>
             <div>
-              <label className="block text-[11px] font-medium mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>
                 الفني المسؤول
               </label>
               <select
                 className="w-full text-sm rounded-lg p-2 disabled:opacity-60"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  color: 'rgba(248,250,252,0.92)',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(203,213,225,0.8)',
+                  color: 'rgba(15,23,42,0.92)',
                 }}
                 value={techId}
                 onChange={(e) => setTechId(e.target.value)}
@@ -1643,16 +1640,16 @@ const VisitCard = ({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-medium mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>
+              <label className="block text-[11px] font-medium mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>
                 قراءة العداد
               </label>
               <input
                 type="number"
                 className="w-full text-sm rounded-lg p-2 disabled:opacity-60"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  color: 'rgba(248,250,252,0.92)',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(203,213,225,0.8)',
+                  color: 'rgba(15,23,42,0.92)',
                 }}
                 value={mileage}
                 onChange={(e) => setMileage(e.target.value)}
@@ -1666,14 +1663,14 @@ const VisitCard = ({
           <div className="mb-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-2 mb-2">
               <div>
-                <div className="text-sm font-bold" style={{ color: 'rgba(248,250,252,0.95)' }}>
+                <div className="text-sm font-bold" style={{ color: 'rgba(15,23,42,0.95)' }}>
                   البنود
                 </div>
-                <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.60)' }}>
+                <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>
                   خدمات / قطع — إضافة وتعديل بسهولة
                 </div>
               </div>
-              <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(186,230,253,0.95)' }}>
+              <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(3,105,161,0.95)' }}>
                 {formatCurrency(totalAmount)}
               </div>
             </div>
@@ -1687,8 +1684,8 @@ const VisitCard = ({
                     borderRadius: 18,
                     padding: 14,
                     textAlign: 'center',
-                    color: 'rgba(226,232,240,0.62)',
-                    background: 'rgba(255,255,255,0.04)',
+                    color: 'rgba(100,116,139,0.9)',
+                    background: 'rgba(241,245,249,0.8)',
                   }}
                 >
                   لا توجد بنود مسجلة لهذه الزيارة
@@ -1717,9 +1714,9 @@ const VisitCard = ({
                   onClick={addItem}
                   className="w-full rounded-2xl px-4 py-3 text-sm font-bold flex items-center justify-center gap-2"
                   style={{
-                    background: 'rgba(56,189,248,0.10)',
+                    background: 'rgba(240,249,255,0.8)',
                     border: '1px solid rgba(56,189,248,0.22)',
-                    color: 'rgba(186,230,253,0.95)',
+                    color: 'rgba(3,105,161,0.95)',
                   }}
                   data-testid={`visit-add-item-button-mobile-${visit.id}`}
                 >
@@ -1732,19 +1729,19 @@ const VisitCard = ({
             <div className="hidden sm:block liquid-surface" style={{ borderRadius: 20, overflow: 'hidden' }}>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[620px]">
-                  <thead style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
+                  <thead style={{ background: 'rgba(241,245,249,0.8)', borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
                     <tr>
-                      <th className="py-2 px-3 text-right text-xs font-medium" style={{ color: 'rgba(226,232,240,0.72)' }}>النوع</th>
-                      <th className="py-2 px-3 text-right text-xs font-medium" style={{ color: 'rgba(226,232,240,0.72)' }}>البند</th>
-                      <th className="py-2 px-3 text-center text-xs font-medium" style={{ color: 'rgba(226,232,240,0.72)' }}>الكمية</th>
-                      <th className="py-2 px-3 text-center text-xs font-medium" style={{ color: 'rgba(226,232,240,0.72)' }}>السعر</th>
-                      <th className="py-2 px-3 text-right text-xs font-medium" style={{ color: 'rgba(226,232,240,0.72)' }}>الإجمالي</th>
+                      <th className="py-2 px-3 text-right text-xs font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>النوع</th>
+                      <th className="py-2 px-3 text-right text-xs font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>البند</th>
+                      <th className="py-2 px-3 text-center text-xs font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>الكمية</th>
+                      <th className="py-2 px-3 text-center text-xs font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>السعر</th>
+                      <th className="py-2 px-3 text-right text-xs font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>الإجمالي</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="py-8 text-center text-xs" style={{ color: 'rgba(226,232,240,0.60)' }}>
+                        <td colSpan="5" className="py-8 text-center text-xs" style={{ color: 'rgba(100,116,139,0.9)' }}>
                           لا توجد بنود مسجلة لهذه الزيارة
                         </td>
                       </tr>
@@ -1766,12 +1763,12 @@ const VisitCard = ({
                       ))
                     )}
                   </tbody>
-                  <tfoot style={{ background: 'rgba(255,255,255,0.04)', borderTop: '1px solid rgba(148,163,184,0.12)' }}>
+                  <tfoot style={{ background: 'rgba(241,245,249,0.8)', borderTop: '1px solid rgba(203,213,225,0.8)' }}>
                     <tr>
-                      <td colSpan="4" className="py-2 px-3 text-left text-xs font-bold" style={{ color: 'rgba(226,232,240,0.72)' }}>
+                      <td colSpan="4" className="py-2 px-3 text-left text-xs font-bold" style={{ color: 'rgba(100,116,139,0.9)' }}>
                         المجموع
                       </td>
-                      <td className="py-2 px-3 text-right text-xs font-extrabold tabular-nums" style={{ color: 'rgba(186,230,253,0.95)' }}>
+                      <td className="py-2 px-3 text-right text-xs font-extrabold tabular-nums" style={{ color: 'rgba(3,105,161,0.95)' }}>
                         {formatCurrency(totalAmount)}
                       </td>
                     </tr>
@@ -1785,9 +1782,9 @@ const VisitCard = ({
                   onClick={addItem}
                   className="w-full py-2 text-xs font-bold flex items-center justify-center gap-2"
                   style={{
-                    background: 'rgba(56,189,248,0.10)',
+                    background: 'rgba(240,249,255,0.8)',
                     borderTop: '1px solid rgba(56,189,248,0.18)',
-                    color: 'rgba(186,230,253,0.95)',
+                    color: 'rgba(3,105,161,0.95)',
                   }}
                   data-testid={`visit-add-item-button-${visit.id}`}
                 >
@@ -1803,23 +1800,23 @@ const VisitCard = ({
             style={{
               borderRadius: 20,
               padding: 12,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(148,163,184,0.14)',
+              background: 'rgba(248,250,252,0.96)',
+              border: '1px solid rgba(203,213,225,0.8)',
             }}
             onClick={(e) => e.stopPropagation()}
             data-testid={`visit-payments-${visit.id}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <div>
-                <div className="text-sm font-bold" style={{ color: 'rgba(248,250,252,0.95)' }}>
+                <div className="text-sm font-bold" style={{ color: 'rgba(15,23,42,0.95)' }}>
                   المدفوعات
                 </div>
-                <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.60)' }}>
+                <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>
                   تحت الحساب / دفعة مقدمة
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="text-[11px] font-semibold" style={{ color: 'rgba(186,230,253,0.95)' }} data-testid={`visit-payments-summary-${visit.id}`}>
+                <div className="text-[11px] font-semibold" style={{ color: 'rgba(3,105,161,0.95)' }} data-testid={`visit-payments-summary-${visit.id}`}>
                   إجمالي الدفعات: {formatCurrency(paymentsTotal)} • المقدّم: {formatCurrency(advanceTotal)}
                 </div>
                 {/* زر تأكيد السداد */}
@@ -1830,7 +1827,7 @@ const VisitCard = ({
                   style={{
                     background: 'rgba(34,197,94,0.18)',
                     border: '1px solid rgba(34,197,94,0.40)',
-                    color: 'rgba(167,243,208,0.95)',
+                    color: 'rgba(4,120,87,0.95)',
                   }}
                   data-testid={`visit-confirm-payment-btn-${visit.id}`}
                 >
@@ -1842,7 +1839,7 @@ const VisitCard = ({
 
             {supplierCandidates.length > 1 && (
               <div
-                className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100"
+                className="mb-3 rounded-lg border border-amber-500/35 bg-amber-100 px-3 py-2 text-[11px] text-amber-900"
                 data-testid={`visit-supplier-balance-multi-suppliers-note-${visit.id}`}
               >
                 يوجد أكثر من مورد في هذه الزيارة. عند اختيار «السداد من رصيد المورد» سيتم طلب تحديد المورد داخل نافذة السداد.
@@ -1850,7 +1847,7 @@ const VisitCard = ({
             )}
 
             {payments.length === 0 ? (
-              <div className="text-xs" style={{ color: 'rgba(226,232,240,0.6)' }} data-testid={`visit-payments-empty-${visit.id}`}>
+              <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid={`visit-payments-empty-${visit.id}`}>
                 لا توجد دفعات مسجلة لهذه الزيارة
               </div>
             ) : (
@@ -1863,18 +1860,18 @@ const VisitCard = ({
                       key={payment.id || idx}
                       className="flex items-center justify-between gap-2 rounded-xl px-3 py-2"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.16)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
                       }}
                       data-testid={`visit-payment-row-${visit.id}-${idx}`}
                     >
-                      <div className="text-xs font-semibold" style={{ color: 'rgba(226,232,240,0.85)' }} data-testid={`visit-payment-kind-${visit.id}-${idx}`}>
+                      <div className="text-xs font-semibold" style={{ color: 'rgba(71,85,105,0.9)' }} data-testid={`visit-payment-kind-${visit.id}-${idx}`}>
                         {kindLabel}
-                        <div className="text-[10px] mt-1" style={{ color: 'rgba(148,163,184,0.90)' }} data-testid={`visit-payment-method-${visit.id}-${idx}`}>
+                        <div className="text-[10px] mt-1" style={{ color: 'rgba(71,85,105,0.95)' }} data-testid={`visit-payment-method-${visit.id}-${idx}`}>
                           {methodLabel}
                         </div>
                       </div>
-                      <div className="text-xs font-extrabold tabular-nums" style={{ color: 'rgba(167,243,208,0.95)' }} data-testid={`visit-payment-amount-${visit.id}-${idx}`}>
+                      <div className="text-xs font-extrabold tabular-nums" style={{ color: 'rgba(4,120,87,0.95)' }} data-testid={`visit-payment-amount-${visit.id}-${idx}`}>
                         {formatCurrency(payment.amount || 0)}
                       </div>
                       {isEditing && (
@@ -1885,7 +1882,7 @@ const VisitCard = ({
                           style={{
                             background: 'rgba(244,63,94,0.14)',
                             border: '1px solid rgba(244,63,94,0.28)',
-                            color: 'rgba(254,202,202,0.95)',
+                            color: 'rgba(159,18,57,0.95)',
                           }}
                           data-testid={`visit-payment-remove-${visit.id}-${idx}`}
                         >
@@ -1905,9 +1902,9 @@ const VisitCard = ({
                   onChange={(e) => setPaymentDraft({ ...paymentDraft, kind: e.target.value })}
                   className="w-full text-xs rounded-lg p-2"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(148,163,184,0.18)',
-                    color: 'rgba(248,250,252,0.92)',
+                    background: 'rgba(255,255,255,0.8)',
+                    border: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(15,23,42,0.92)',
                   }}
                   data-testid={`visit-payment-kind-select-${visit.id}`}
                 >
@@ -1919,9 +1916,9 @@ const VisitCard = ({
                   onChange={(e) => setPaymentDraft({ ...paymentDraft, method: e.target.value })}
                   className="w-full text-xs rounded-lg p-2"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(148,163,184,0.18)',
-                    color: 'rgba(248,250,252,0.92)',
+                    background: 'rgba(255,255,255,0.8)',
+                    border: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(15,23,42,0.92)',
                   }}
                   data-testid={`visit-payment-method-select-${visit.id}`}
                 >
@@ -1935,9 +1932,9 @@ const VisitCard = ({
                   onChange={(e) => setPaymentDraft({ ...paymentDraft, amount: e.target.value })}
                   className="w-full text-xs rounded-lg p-2"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(148,163,184,0.18)',
-                    color: 'rgba(248,250,252,0.92)',
+                    background: 'rgba(255,255,255,0.8)',
+                    border: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(15,23,42,0.92)',
                   }}
                   placeholder="المبلغ"
                   data-testid={`visit-payment-amount-input-${visit.id}`}
@@ -1949,7 +1946,7 @@ const VisitCard = ({
                   style={{
                     background: 'rgba(56,189,248,0.14)',
                     border: '1px solid rgba(56,189,248,0.28)',
-                    color: 'rgba(186,230,253,0.95)',
+                    color: 'rgba(3,105,161,0.95)',
                   }}
                   data-testid={`visit-payment-add-${visit.id}`}
                 >
@@ -1961,15 +1958,15 @@ const VisitCard = ({
 
           {/* Notes */}
           <div className="mb-4" onClick={(e) => e.stopPropagation()}>
-            <label className="block text-[11px] font-medium mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>
+            <label className="block text-[11px] font-medium mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>
               ملاحظات الزيارة
             </label>
             <textarea
               className="w-full text-sm rounded-2xl p-3 min-h-[90px] resize-none disabled:opacity-60"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(248,250,252,0.92)',
+                background: 'rgba(255,255,255,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(15,23,42,0.92)',
               }}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -1986,15 +1983,15 @@ const VisitCard = ({
                 borderRadius: 20,
                 padding: 12,
                 background:
-                  'radial-gradient(circle at 12% 18%, rgba(245,158,11,0.10), transparent 55%), rgba(255,255,255,0.05)',
+                  'radial-gradient(circle at 12% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
                 border: '1px solid rgba(245,158,11,0.22)',
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="text-sm font-bold" style={{ color: 'rgba(254,243,199,0.95)' }}>
+              <div className="text-sm font-bold" style={{ color: 'rgba(180,83,9,0.95)' }}>
                 اعتماد واتساب
               </div>
-              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs" style={{ color: 'rgba(254,243,199,0.82)' }}>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs" style={{ color: 'rgba(120,53,15,0.95)' }}>
                 <div>
                   الحالة: <span className="font-semibold">{latestApproval.status}</span>
                 </div>
@@ -2027,18 +2024,18 @@ const VisitCard = ({
                 padding: 12,
                 border: '1px solid rgba(16,185,129,0.22)',
                 background:
-                  'radial-gradient(circle at 12% 18%, rgba(16,185,129,0.10), transparent 55%), rgba(255,255,255,0.05)',
+                  'radial-gradient(circle at 12% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
               }}
               data-testid={`visit-whatsapp-notification-${visit.id}`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm flex items-center gap-2" style={{ color: 'rgba(167,243,208,0.95)' }}>
+                  <div className="font-bold text-sm flex items-center gap-2" style={{ color: 'rgba(4,120,87,0.95)' }}>
                     <MessageCircle size={16} />
                     إبلاغ العميل بجاهزية المركبة
                   </div>
-                  <p className="mt-1 text-xs truncate" style={{ color: 'rgba(167,243,208,0.82)' }}>
+                  <p className="mt-1 text-xs truncate" style={{ color: 'rgba(6,95,70,0.95)' }}>
                     {whatsappNotification.customerName} - اضغط لإرسال الإشعار عبر واتساب
                   </p>
                 </div>
@@ -2051,7 +2048,7 @@ const VisitCard = ({
                     style={{
                       background: 'rgba(16,185,129,0.16)',
                       border: '1px solid rgba(16,185,129,0.28)',
-                      color: 'rgba(167,243,208,0.95)',
+                      color: 'rgba(4,120,87,0.95)',
                     }}
                     data-testid={`visit-whatsapp-send-${visit.id}`}
                   >
@@ -2065,9 +2062,9 @@ const VisitCard = ({
                     }}
                     className="p-2 rounded-xl"
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(148,163,184,0.18)',
-                      color: 'rgba(226,232,240,0.70)',
+                      background: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(203,213,225,0.8)',
+                      color: 'rgba(100,116,139,0.9)',
                     }}
                     title="إغلاق"
                     data-testid={`visit-whatsapp-dismiss-${visit.id}`}
@@ -2091,9 +2088,9 @@ const VisitCard = ({
               }}
               className="w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(248,250,252,0.92)',
+                background: 'rgba(255,255,255,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(15,23,42,0.92)',
               }}
               title="طباعة هذه الزيارة"
               data-testid={`visit-print-button-${visit.id}`}
@@ -2105,7 +2102,7 @@ const VisitCard = ({
           {/* Actions */}
           <div
             className="flex flex-col sm:flex-row sm:flex-wrap justify-end gap-2 pt-3"
-            style={{ borderTop: '1px solid rgba(148,163,184,0.12)' }}
+            style={{ borderTop: '1px solid rgba(203,213,225,0.8)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {isEditing ? (
@@ -2115,9 +2112,9 @@ const VisitCard = ({
                   onClick={() => setIsEditing(false)}
                   className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(148,163,184,0.18)',
-                    color: 'rgba(226,232,240,0.88)',
+                    background: 'rgba(255,255,255,0.8)',
+                    border: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(71,85,105,0.95)',
                   }}
                   data-testid={`visit-cancel-edit-${visit.id}`}
                   disabled={isSaving}
@@ -2133,7 +2130,7 @@ const VisitCard = ({
                   style={{
                     background: 'rgba(56,189,248,0.14)',
                     border: '1px solid rgba(56,189,248,0.28)',
-                    color: 'rgba(186,230,253,0.95)',
+                    color: 'rgba(3,105,161,0.95)',
                   }}
                   data-testid={`visit-save-button-${visit.id}`}
                 >
@@ -2148,7 +2145,7 @@ const VisitCard = ({
                   style={{
                     background: 'rgba(16,185,129,0.14)',
                     border: '1px solid rgba(16,185,129,0.28)',
-                    color: 'rgba(167,243,208,0.95)',
+                    color: 'rgba(4,120,87,0.95)',
                   }}
                   data-testid={`visit-close-button-${visit.id}`}
                 >
@@ -2163,7 +2160,7 @@ const VisitCard = ({
                 style={{
                   background: 'rgba(245,158,11,0.14)',
                   border: '1px solid rgba(245,158,11,0.28)',
-                  color: 'rgba(254,243,199,0.95)',
+                  color: 'rgba(180,83,9,0.95)',
                 }}
                 data-testid={`visit-reopen-button-${visit.id}`}
               >
@@ -2179,7 +2176,7 @@ const VisitCard = ({
                 style={{
                   background: 'rgba(244,63,94,0.12)',
                   border: '1px solid rgba(244,63,94,0.28)',
-                  color: 'rgba(254,202,202,0.95)',
+                  color: 'rgba(159,18,57,0.95)',
                 }}
                 data-testid={`visit-delete-button-${visit.id}`}
               >
@@ -3133,14 +3130,14 @@ const VehicleDetails = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-        <div className="text-xs" style={{ color: 'rgba(226,232,240,0.65)' }} data-testid="vehicle-loading-status">
+        <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-loading-status">
           جاري التحميل... {loadingProgress}%
         </div>
       </div>
     );
   }
   if (!vehicle) return (
-    <div className="text-center py-20" style={{ color: 'rgba(226,232,240,0.8)' }} data-testid="vehicle-not-found">
+    <div className="text-center py-20" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-not-found">
       المركبة غير موجودة
     </div>
   );
@@ -3161,14 +3158,14 @@ const VehicleDetails = () => {
                 borderRadius: 20,
                 padding: 14,
                 background:
-                  'radial-gradient(circle at 12% 18%, rgba(56,189,248,0.10), transparent 55%), rgba(255,255,255,0.05)',
-                border: '1px solid rgba(148,163,184,0.14)',
+                  'radial-gradient(circle at 12% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
+                border: '1px solid rgba(203,213,225,0.8)',
               }}
             >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2" style={{ color: 'rgba(186,230,253,0.95)' }}>
+                  <div className="flex items-center gap-2" style={{ color: 'rgba(3,105,161,0.95)' }}>
                     <Car size={18} />
-                    <h3 className="text-sm font-extrabold" style={{ color: 'rgba(248,250,252,0.95)' }}>
+                    <h3 className="text-sm font-extrabold" style={{ color: 'rgba(15,23,42,0.95)' }}>
                       {t('vehicle_details.vehicle_info')}
                     </h3>
                   </div>
@@ -3177,9 +3174,9 @@ const VehicleDetails = () => {
                       onClick={() => setIsVehicleInfoCollapsed((v) => !v)}
                       className="px-3 py-1.5 rounded-xl text-xs"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.16)',
-                        color: 'rgba(226,232,240,0.85)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
+                        color: 'rgba(71,85,105,0.9)',
                       }}
                       data-testid="vehicle-info-collapse-toggle"
                     >
@@ -3192,9 +3189,9 @@ const VehicleDetails = () => {
                       }}
                       className="p-2 rounded-xl"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.16)',
-                        color: 'rgba(226,232,240,0.85)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
+                        color: 'rgba(71,85,105,0.9)',
                       }}
                       data-testid="vehicle-edit-toggle"
                     >
@@ -3205,15 +3202,15 @@ const VehicleDetails = () => {
 
                 {(!isVehicleInfoCollapsed || isEditingVehicle) ? (
                 <div className="space-y-3" data-testid="vehicle-info-content">
-                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>{t('vehicles.plate_number')}</span>
+                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>{t('vehicles.plate_number')}</span>
                     {isEditingVehicle ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={vehicleForm.plateNumber}
                         onChange={(e) => setVehicleForm({ ...vehicleForm, plateNumber: e.target.value })}
@@ -3222,23 +3219,23 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(248,250,252,0.92)' }}
+                        style={{ color: 'rgba(15,23,42,0.92)' }}
                         data-testid="vehicle-plate-value"
                       >
                         {vehicle.plateNumber}
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>{t('vehicle_details.brand_model')}</span>
+                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>{t('vehicle_details.brand_model')}</span>
                     {isEditingVehicle ? (
                       <div className="flex gap-2">
                         <input
                           className="text-sm rounded-xl px-3 py-2 w-1/2"
                           style={{
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(148,163,184,0.18)',
-                            color: 'rgba(248,250,252,0.92)',
+                            background: 'rgba(255,255,255,0.8)',
+                            border: '1px solid rgba(203,213,225,0.8)',
+                            color: 'rgba(15,23,42,0.92)',
                           }}
                           value={vehicleForm.brand}
                           onChange={(e) => setVehicleForm({ ...vehicleForm, brand: e.target.value })}
@@ -3248,9 +3245,9 @@ const VehicleDetails = () => {
                         <input
                           className="text-sm rounded-xl px-3 py-2 w-1/2"
                           style={{
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(148,163,184,0.18)',
-                            color: 'rgba(248,250,252,0.92)',
+                            background: 'rgba(255,255,255,0.8)',
+                            border: '1px solid rgba(203,213,225,0.8)',
+                            color: 'rgba(15,23,42,0.92)',
                           }}
                           value={vehicleForm.model}
                           onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
@@ -3261,22 +3258,22 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(248,250,252,0.92)' }}
+                        style={{ color: 'rgba(15,23,42,0.92)' }}
                         data-testid="vehicle-brand-model-value"
                       >
                         {vehicle.brand} {vehicle.model}
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>{t('vehicle_details.vin_number')}</span>
+                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>{t('vehicle_details.vin_number')}</span>
                     {isEditingVehicle ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={vehicleForm.vin}
                         onChange={(e) => setVehicleForm({ ...vehicleForm, vin: e.target.value })}
@@ -3285,22 +3282,22 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold font-mono"
-                        style={{ color: 'rgba(248,250,252,0.92)' }}
+                        style={{ color: 'rgba(15,23,42,0.92)' }}
                         data-testid="vehicle-vin-value"
                       >
                         {vehicle.vin || '-'}
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>رقم ملف المركبة</span>
+                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>رقم ملف المركبة</span>
                     {isEditingVehicle ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={vehicleForm.fileNumber || ''}
                         onChange={(e) => setVehicleForm({ ...vehicleForm, fileNumber: e.target.value })}
@@ -3309,7 +3306,7 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(186,230,253,0.95)' }}
+                        style={{ color: 'rgba(3,105,161,0.95)' }}
                         data-testid="vehicle-file-number-value"
                       >
                         {vehicle.fileNumber || '-'}
@@ -3317,14 +3314,14 @@ const VehicleDetails = () => {
                     )}
                   </div>
                   <div className="flex flex-col py-2">
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>{t('vehicle_details.color')}</span>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>{t('vehicle_details.color')}</span>
                     {isEditingVehicle ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={vehicleForm.color}
                         onChange={(e) => setVehicleForm({ ...vehicleForm, color: e.target.value })}
@@ -3333,7 +3330,7 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(248,250,252,0.92)' }}
+                        style={{ color: 'rgba(15,23,42,0.92)' }}
                         data-testid="vehicle-color-value"
                       >
                         {vehicle.color || '-'}
@@ -3348,7 +3345,7 @@ const VehicleDetails = () => {
                       style={{
                         background: 'rgba(56,189,248,0.14)',
                         border: '1px solid rgba(56,189,248,0.28)',
-                        color: 'rgba(186,230,253,0.95)',
+                        color: 'rgba(3,105,161,0.95)',
                       }}
                       data-testid="vehicle-save-button"
                     >
@@ -3357,7 +3354,7 @@ const VehicleDetails = () => {
                   )}
                 </div>
                 ) : (
-                  <div className="text-xs" style={{ color: 'rgba(226,232,240,0.62)' }} data-testid="vehicle-info-collapsed-hint">
+                  <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-info-collapsed-hint">
                     البلوك منكمش — اضغط فتح لعرض التفاصيل.
                   </div>
                 )}
@@ -3371,14 +3368,14 @@ const VehicleDetails = () => {
                 borderRadius: 20,
                 padding: 14,
                 background:
-                  'radial-gradient(circle at 12% 18%, rgba(16,185,129,0.10), transparent 55%), rgba(255,255,255,0.05)',
-                border: '1px solid rgba(148,163,184,0.14)',
+                  'radial-gradient(circle at 12% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
+                border: '1px solid rgba(203,213,225,0.8)',
               }}
             >
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2" style={{ color: 'rgba(167,243,208,0.95)' }}>
+                  <div className="flex items-center gap-2" style={{ color: 'rgba(4,120,87,0.95)' }}>
                     <User size={18} />
-                    <h3 className="text-sm font-extrabold" style={{ color: 'rgba(248,250,252,0.95)' }}>
+                    <h3 className="text-sm font-extrabold" style={{ color: 'rgba(15,23,42,0.95)' }}>
                       {t('vehicle_details.customer_info')}
                     </h3>
                   </div>
@@ -3387,9 +3384,9 @@ const VehicleDetails = () => {
                       onClick={() => setIsCustomerInfoCollapsed((v) => !v)}
                       className="px-3 py-1.5 rounded-xl text-xs"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.16)',
-                        color: 'rgba(226,232,240,0.85)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
+                        color: 'rgba(71,85,105,0.9)',
                       }}
                       data-testid="customer-info-collapse-toggle"
                     >
@@ -3402,9 +3399,9 @@ const VehicleDetails = () => {
                       }}
                       className="p-2 rounded-xl"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.16)',
-                        color: 'rgba(226,232,240,0.85)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
+                        color: 'rgba(71,85,105,0.9)',
                       }}
                       data-testid="customer-edit-toggle"
                     >
@@ -3415,15 +3412,15 @@ const VehicleDetails = () => {
 
                 {(!isCustomerInfoCollapsed || isEditingCustomer) ? (
                 <div className="space-y-3" data-testid="customer-info-content">
-                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>{t('vehicles_page.customer_name')}</span>
+                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>{t('vehicles_page.customer_name')}</span>
                     {isEditingCustomer ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={customerForm.name}
                         onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
@@ -3432,22 +3429,22 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(248,250,252,0.92)' }}
+                        style={{ color: 'rgba(15,23,42,0.92)' }}
                         data-testid="customer-name-value"
                       >
                         {vehicle.customerName}
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(148,163,184,0.10)' }}>
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>رقم الجوال</span>
+                  <div className="flex flex-col py-2" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>رقم الجوال</span>
                     {isEditingCustomer ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={customerForm.phone}
                         onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
@@ -3456,7 +3453,7 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(248,250,252,0.92)' }}
+                        style={{ color: 'rgba(15,23,42,0.92)' }}
                         dir="ltr"
                         data-testid="customer-phone-value"
                       >
@@ -3465,24 +3462,24 @@ const VehicleDetails = () => {
                     )}
                   </div>
                   <div className="flex flex-col py-2">
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>رقم ملف المركبة</span>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>رقم ملف المركبة</span>
                     <span
                       className="text-sm font-semibold"
-                      style={{ color: 'rgba(186,230,253,0.95)' }}
+                      style={{ color: 'rgba(3,105,161,0.95)' }}
                       data-testid="customer-file-number-value"
                     >
                       {vehicle.fileNumber || '-'}
                     </span>
                   </div>
                   <div className="flex flex-col py-2">
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>رقم ملف العميل المرتبط</span>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>رقم ملف العميل المرتبط</span>
                     {isEditingCustomer ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={customerForm.fileNumber || ''}
                         onChange={(e) => setCustomerForm({ ...customerForm, fileNumber: e.target.value })}
@@ -3491,7 +3488,7 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(167,243,208,0.95)' }}
+                        style={{ color: 'rgba(4,120,87,0.95)' }}
                         data-testid="customer-linked-file-number-value"
                       >
                         {vehicle.customerFileNumber || '-'}
@@ -3499,14 +3496,14 @@ const VehicleDetails = () => {
                     )}
                   </div>
                   <div className="flex flex-col py-2">
-                    <span className="text-[11px] mb-1" style={{ color: 'rgba(226,232,240,0.62)' }}>البريد الإلكتروني</span>
+                    <span className="text-[11px] mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>البريد الإلكتروني</span>
                     {isEditingCustomer ? (
                       <input
                         className="w-full text-sm rounded-xl px-3 py-2"
                         style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(148,163,184,0.18)',
-                          color: 'rgba(248,250,252,0.92)',
+                          background: 'rgba(255,255,255,0.8)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(15,23,42,0.92)',
                         }}
                         value={customerForm.email}
                         onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
@@ -3515,7 +3512,7 @@ const VehicleDetails = () => {
                     ) : (
                       <span
                         className="text-sm font-semibold"
-                        style={{ color: 'rgba(248,250,252,0.92)' }}
+                        style={{ color: 'rgba(15,23,42,0.92)' }}
                         data-testid="customer-email-value"
                       >
                         {vehicle.customerEmail || '-'}
@@ -3530,7 +3527,7 @@ const VehicleDetails = () => {
                       style={{
                         background: 'rgba(16,185,129,0.14)',
                         border: '1px solid rgba(16,185,129,0.28)',
-                        color: 'rgba(167,243,208,0.95)',
+                        color: 'rgba(4,120,87,0.95)',
                       }}
                       data-testid="customer-save-button"
                     >
@@ -3539,7 +3536,7 @@ const VehicleDetails = () => {
                   )}
                 </div>
                 ) : (
-                  <div className="text-xs" style={{ color: 'rgba(226,232,240,0.62)' }} data-testid="customer-info-collapsed-hint">
+                  <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="customer-info-collapsed-hint">
                     البلوك منكمش — اضغط فتح لعرض التفاصيل.
                   </div>
                 )}
@@ -3552,17 +3549,17 @@ const VehicleDetails = () => {
                 borderRadius: 20,
                 padding: 16,
                 background:
-                  'radial-gradient(circle at 12% 18%, rgba(56,189,248,0.10), transparent 55%), rgba(255,255,255,0.05)',
-                border: '1px solid rgba(148,163,184,0.14)',
+                  'radial-gradient(circle at 12% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
+                border: '1px solid rgba(203,213,225,0.8)',
               }}
               data-testid="vehicle-files-card"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2" style={{ color: 'rgba(186,230,253,0.95)' }}>
+                <div className="flex items-center gap-2" style={{ color: 'rgba(3,105,161,0.95)' }}>
                   <FileText size={18} />
                   <h3
                     className="text-sm font-extrabold"
-                    style={{ color: 'rgba(248,250,252,0.95)' }}
+                    style={{ color: 'rgba(15,23,42,0.95)' }}
                     data-testid="vehicle-files-title"
                   >
                     {t('vehicle_details.files')}
@@ -3572,9 +3569,9 @@ const VehicleDetails = () => {
                   onClick={() => setShowFiles((v) => !v)}
                   className="text-xs px-3 py-1.5 rounded-xl"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(148,163,184,0.18)',
-                    color: 'rgba(226,232,240,0.82)',
+                    background: 'rgba(255,255,255,0.8)',
+                    border: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(71,85,105,0.9)',
                   }}
                   data-testid="vehicle-files-toggle"
                 >
@@ -3589,9 +3586,9 @@ const VehicleDetails = () => {
                       onClick={openScanner}
                       className="p-2 rounded-xl"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.18)',
-                        color: 'rgba(226,232,240,0.82)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
+                        color: 'rgba(71,85,105,0.9)',
                       }}
                       data-testid="vehicle-files-scan-button"
                     >
@@ -3600,9 +3597,9 @@ const VehicleDetails = () => {
                     <label
                       className="p-2 rounded-xl cursor-pointer inline-flex"
                       style={{
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(148,163,184,0.18)',
-                        color: 'rgba(226,232,240,0.82)',
+                        background: 'rgba(255,255,255,0.8)',
+                        border: '1px solid rgba(203,213,225,0.8)',
+                        color: 'rgba(71,85,105,0.9)',
                       }}
                       data-testid="vehicle-files-upload-button"
                     >
@@ -3633,9 +3630,9 @@ const VehicleDetails = () => {
                         key={idx}
                         className="aspect-square rounded-xl flex items-center justify-center text-xs overflow-hidden relative group cursor-pointer"
                         style={{
-                          background: 'rgba(255,255,255,0.05)',
-                          border: '1px solid rgba(148,163,184,0.16)',
-                          color: 'rgba(226,232,240,0.72)',
+                          background: 'rgba(248,250,252,0.6)',
+                          border: '1px solid rgba(203,213,225,0.8)',
+                          color: 'rgba(100,116,139,0.9)',
                         }}
                         onClick={() => setPreviewImage(`${FILE_BASE}/api/vehicles/${id}/files/${file.id}`)}
                         data-testid={`vehicle-file-item-${file.id || idx}`}
@@ -3656,7 +3653,7 @@ const VehicleDetails = () => {
               )}
 
               {!showFiles && (
-                <div className="text-xs" style={{ color: 'rgba(226,232,240,0.62)' }} data-testid="vehicle-files-placeholder">
+                <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-files-placeholder">
                   اضغط “عرض” لتحميل ملفات المركبة
                 </div>
               )}
@@ -3668,25 +3665,25 @@ const VehicleDetails = () => {
                 borderRadius: 20,
                 padding: 16,
                 background:
-                  'radial-gradient(circle at 12% 18%, rgba(16,185,129,0.10), transparent 55%), rgba(255,255,255,0.05)',
-                border: '1px solid rgba(148,163,184,0.14)',
+                  'radial-gradient(circle at 12% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
+                border: '1px solid rgba(203,213,225,0.8)',
               }}
               data-testid="vehicle-linked-journal-card"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2" style={{ color: 'rgba(167,243,208,0.95)' }}>
+                <div className="flex items-center gap-2" style={{ color: 'rgba(4,120,87,0.95)' }}>
                   <Receipt size={18} />
-                  <h3 className="text-sm font-extrabold" style={{ color: 'rgba(248,250,252,0.95)' }}>
+                  <h3 className="text-sm font-extrabold" style={{ color: 'rgba(15,23,42,0.95)' }}>
                     قيود دفتر اليومية المرتبطة
                   </h3>
                 </div>
-                <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.62)' }} data-testid="vehicle-linked-journal-count">
+                <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-linked-journal-count">
                   {linkedJournalEntries.length} قيد
                 </div>
               </div>
 
               {linkedJournalEntries.length === 0 ? (
-                <div className="text-xs" style={{ color: 'rgba(226,232,240,0.62)' }} data-testid="vehicle-linked-journal-empty">
+                <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-linked-journal-empty">
                   لا توجد قيود مرتبطة بالمركبة أو العميل حالياً.
                 </div>
               ) : (
@@ -3696,23 +3693,23 @@ const VehicleDetails = () => {
                       key={entry?.id || `linked-journal-${index}`}
                       className="rounded-xl px-3 py-2.5"
                       style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(148,163,184,0.16)',
+                        background: 'rgba(248,250,252,0.6)',
+                        border: '1px solid rgba(203,213,225,0.8)',
                       }}
                       data-testid={`vehicle-linked-journal-row-${entry?.id || index}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold truncate" style={{ color: 'rgba(248,250,252,0.92)' }}>
+                          <div className="text-sm font-semibold truncate" style={{ color: 'rgba(15,23,42,0.92)' }}>
                             {stripJournalTags(entry?.description || 'قيد مرتبط')}
                           </div>
-                          <div className="text-[11px] mt-1" style={{ color: 'rgba(226,232,240,0.62)' }}>
+                          <div className="text-[11px] mt-1" style={{ color: 'rgba(100,116,139,0.9)' }}>
                             {String(entry?.date || '').slice(0, 10) || '-'} • {labelFromMap(entry?.source, SOURCE_LABELS, 'قيد يومية')}
                             {entry?.vehicle_label ? ` • مركبة: ${entry.vehicle_label}` : ''}
                             {entry?.party_label ? ` • عميل: ${entry.party_label}` : ''}
                           </div>
                         </div>
-                        <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(167,243,208,0.95)' }}>
+                        <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(4,120,87,0.95)' }}>
                           {formatCurrency(entry?.total || 0)}
                         </div>
                       </div>
@@ -3760,13 +3757,13 @@ const VehicleDetails = () => {
                 style={{
                   background: 'rgba(56,189,248,0.16)',
                   border: '1px solid rgba(56,189,248,0.28)',
-                  color: 'rgba(186,230,253,0.95)',
+                  color: 'rgba(3,105,161,0.95)',
                 }}
                 data-testid="visit-create-button"
               >
                 <Plus size={14} /> زيارة جديدة
               </button>
-              <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.60)' }} data-testid="visit-items-edit-hint">
+              <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="visit-items-edit-hint">
                 {t('vehicle_details.items_edit_hint')}
               </div>
             </div>
@@ -3774,27 +3771,27 @@ const VehicleDetails = () => {
             <div
               className="rounded-xl px-3 py-2.5 flex flex-wrap gap-2 items-center"
               style={{
-                background: 'rgba(255,255,255,0.04)',
+                background: 'rgba(241,245,249,0.8)',
                 border: '1px solid rgba(148,163,184,0.20)',
               }}
               data-testid="vehicle-linkage-summary-card"
             >
-              <span className="px-2 py-1 rounded-full text-[11px]" style={{ background: 'rgba(34,197,94,0.16)', color: 'rgba(134,239,172,0.95)' }} data-testid="vehicle-linkage-ok-count">
+              <span className="px-2 py-1 rounded-full text-[11px]" style={{ background: 'rgba(34,197,94,0.16)', color: 'rgba(21,128,61,0.95)' }} data-testid="vehicle-linkage-ok-count">
                 مترابط: {vehicleLinkSummary.ok || 0}
               </span>
-              <span className="px-2 py-1 rounded-full text-[11px]" style={{ background: 'rgba(239,68,68,0.14)', color: 'rgba(252,165,165,0.95)' }} data-testid="vehicle-linkage-warning-count">
+              <span className="px-2 py-1 rounded-full text-[11px]" style={{ background: 'rgba(239,68,68,0.14)', color: 'rgba(185,28,28,0.95)' }} data-testid="vehicle-linkage-warning-count">
                 ملاحظات: {vehicleLinkSummary.warnings || 0}
               </span>
-              <span className="px-2 py-1 rounded-full text-[11px]" style={{ background: 'rgba(245,158,11,0.16)', color: 'rgba(253,224,71,0.95)' }} data-testid="vehicle-linkage-duplicate-count">
+              <span className="px-2 py-1 rounded-full text-[11px]" style={{ background: 'rgba(245,158,11,0.16)', color: 'rgba(180,83,9,0.95)' }} data-testid="vehicle-linkage-duplicate-count">
                 تكرار محتمل: {vehicleLinkSummary.duplicates || 0}
               </span>
-              <span className="text-[11px]" style={{ color: 'rgba(226,232,240,0.72)' }} data-testid="vehicle-linkage-location-hint">
+              <span className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-linkage-location-hint">
                 كشف الربط: ملف المركبة ↔ العمليات ↔ دفتر اليومية.
               </span>
             </div>
 
             {vehicleLinkIssues.length > 0 && (
-              <div className="rounded-xl px-3 py-2 text-[11px] space-y-1" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.26)', color: 'rgba(254,226,226,0.95)' }} data-testid="vehicle-linkage-issues-list">
+              <div className="rounded-xl px-3 py-2 text-[11px] space-y-1" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.26)', color: 'rgba(159,18,57,0.95)' }} data-testid="vehicle-linkage-issues-list">
                 {vehicleLinkIssues.map((issue, idx) => (
                   <div key={`vehicle-link-issue-${idx}`} data-testid={`vehicle-linkage-issue-${idx}`}>
                     • {issue?.invoice_number ? `فاتورة ${issue.invoice_number}` : `عملية مرتبطة ${String(issue?.op_id || '').slice(0, 8)}`} فيها: {(issue?.warnings || []).map((w) => integrityLabelMap[w] || w).join('، ')}
@@ -3828,9 +3825,9 @@ const VehicleDetails = () => {
                     onClick={() => setVisitFilter(filter.key)}
                     className="px-3 py-1.5 rounded-full text-xs font-bold transition-all"
                     style={{
-                      background: isActive ? 'rgba(56,189,248,0.16)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${isActive ? 'rgba(56,189,248,0.28)' : 'rgba(148,163,184,0.18)'}`,
-                      color: isActive ? 'rgba(186,230,253,0.95)' : 'rgba(226,232,240,0.76)',
+                      background: isActive ? 'rgba(56,189,248,0.16)' : 'rgba(241,245,249,0.8)',
+                      border: `1px solid ${isActive ? 'rgba(56,189,248,0.28)' : 'rgba(203,213,225,0.8)'}`,
+                      color: isActive ? 'rgba(3,105,161,0.95)' : 'rgba(100,116,139,0.9)',
                     }}
                     data-testid={`visit-filter-${filter.key}`}
                   >
@@ -3846,7 +3843,7 @@ const VehicleDetails = () => {
                 style={{
                   background: 'rgba(245,158,11,0.08)',
                   border: '1px solid rgba(245,158,11,0.22)',
-                  color: 'rgba(254,243,199,0.95)',
+                  color: 'rgba(180,83,9,0.95)',
                 }}
                 data-testid="visit-filter-empty-hint"
               >
@@ -3854,7 +3851,7 @@ const VehicleDetails = () => {
                 <button
                   onClick={() => setVisitFilter('all')}
                   className="font-bold underline mr-2"
-                  style={{ color: 'rgba(254,243,199,0.95)' }}
+                  style={{ color: 'rgba(180,83,9,0.95)' }}
                   data-testid="visit-filter-show-all"
                 >
                   عرض الكل
@@ -3867,15 +3864,15 @@ const VehicleDetails = () => {
                 <div
                   className="text-center py-8 rounded-xl"
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
+                    background: 'rgba(241,245,249,0.8)',
                     border: '1px dashed rgba(148,163,184,0.20)',
-                    color: 'rgba(226,232,240,0.72)',
+                    color: 'rgba(100,116,139,0.9)',
                   }}
                   data-testid="visits-empty-state"
                 >
                   <Calendar size={32} className="mx-auto mb-2" style={{ color: 'rgba(148,163,184,0.55)' }} />
                   <p className="text-xs" data-testid="visits-empty-title">لا توجد زيارات بعد</p>
-                  <p className="text-[11px] mt-1" style={{ color: 'rgba(226,232,240,0.60)' }} data-testid="visits-empty-subtitle">
+                  <p className="text-[11px] mt-1" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="visits-empty-subtitle">
                     اضغط "زيارة جديدة" لاستقبال المركبة
                   </p>
                 </div>
@@ -3937,22 +3934,22 @@ const VehicleDetails = () => {
               style={{
                 borderRadius: 20,
                 padding: 16,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(148,163,184,0.14)',
+                background: 'rgba(248,250,252,0.6)',
+                border: '1px solid rgba(203,213,225,0.8)',
               }}
               data-testid="vehicle-status-card"
             >
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-medium" style={{ color: 'rgba(226,232,240,0.62)' }}>
+                  <label className="text-[11px] font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>
                     {t('quick_actions.change_status')}
                   </label>
                   <select
                     className="w-full text-sm rounded-xl p-2"
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(148,163,184,0.18)',
-                      color: 'rgba(248,250,252,0.92)',
+                      background: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(203,213,225,0.8)',
+                      color: 'rgba(15,23,42,0.92)',
                     }}
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
@@ -3967,15 +3964,15 @@ const VehicleDetails = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-medium" style={{ color: 'rgba(226,232,240,0.62)' }}>
+                  <label className="text-[11px] font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>
                     الفني المسؤول
                   </label>
                   <select
                     className="w-full text-sm rounded-xl p-2"
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(148,163,184,0.18)',
-                      color: 'rgba(248,250,252,0.92)',
+                      background: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(203,213,225,0.8)',
+                      color: 'rgba(15,23,42,0.92)',
                     }}
                     value={assignedTech}
                     onChange={(e) => setAssignedTech(e.target.value)}
@@ -3991,15 +3988,15 @@ const VehicleDetails = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[11px] font-medium" style={{ color: 'rgba(226,232,240,0.62)' }}>
+                  <label className="text-[11px] font-medium" style={{ color: 'rgba(100,116,139,0.9)' }}>
                     ملاحظات عامة
                   </label>
                   <textarea
                     className="w-full text-sm rounded-2xl p-3 min-h-[120px] resize-none"
                     style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(148,163,184,0.18)',
-                      color: 'rgba(248,250,252,0.92)',
+                      background: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(203,213,225,0.8)',
+                      color: 'rgba(15,23,42,0.92)',
                     }}
                     placeholder="ملاحظات..."
                     value={notes}
@@ -4014,7 +4011,7 @@ const VehicleDetails = () => {
                   style={{
                     background: 'rgba(56,189,248,0.14)',
                     border: '1px solid rgba(56,189,248,0.28)',
-                    color: 'rgba(186,230,253,0.95)',
+                    color: 'rgba(3,105,161,0.95)',
                   }}
                   data-testid="vehicle-status-save-button"
                 >
@@ -4028,21 +4025,21 @@ const VehicleDetails = () => {
               style={{
                 borderRadius: 20,
                 padding: 16,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(148,163,184,0.14)',
+                background: 'rgba(241,245,249,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
               }}
               data-testid="vehicle-dates-card"
             >
-              <div className="space-y-3 text-xs" style={{ color: 'rgba(226,232,240,0.72)' }}>
+              <div className="space-y-3 text-xs" style={{ color: 'rgba(100,116,139,0.9)' }}>
                 <div className="flex justify-between">
                   <span>تاريخ الدخول</span>
-                  <span className="font-semibold" style={{ color: 'rgba(248,250,252,0.92)' }} data-testid="vehicle-entry-date">
+                  <span className="font-semibold" style={{ color: 'rgba(15,23,42,0.92)' }} data-testid="vehicle-entry-date">
                     {vehicle.entryDate ? new Date(vehicle.entryDate).toLocaleDateString('ar-SA') : '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>آخر تحديث</span>
-                  <span className="font-semibold" style={{ color: 'rgba(248,250,252,0.92)' }} data-testid="vehicle-updated-date">
+                  <span className="font-semibold" style={{ color: 'rgba(15,23,42,0.92)' }} data-testid="vehicle-updated-date">
                     {vehicle.updatedAt || vehicle.updated_at
                       ? new Date(vehicle.updatedAt || vehicle.updated_at).toLocaleDateString('ar-SA')
                       : '-'}
@@ -4059,11 +4056,16 @@ const VehicleDetails = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-20 space-y-6" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
+    <div className="vehicle-details-page max-w-6xl mx-auto pb-20 space-y-6" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <style>{`
         /* Make native select/options readable (browser renders options in its own UI) */
-        select { color: rgba(248,250,252,0.92); }
+        select { color: rgba(15,23,42,0.92); }
         option { color: #0f172a; }
+
+        /* Contrast hardening for remaining legacy inline colors in this page */
+        .vehicle-details-page [style*="100, 116, 139"] { color: rgba(51,65,85,0.95) !important; }
+        .vehicle-details-page [style*="248, 250, 252, 0.6"] { background: rgba(248,250,252,0.96) !important; }
+        .vehicle-details-page [style*="255, 255, 255, 0.8"] { background: rgba(255,255,255,0.96) !important; }
       `}</style>
 
       {isArchiveSource && (
@@ -4072,12 +4074,12 @@ const VehicleDetails = () => {
           style={{
             background: 'rgba(56,189,248,0.12)',
             border: '1px solid rgba(56,189,248,0.28)',
-            color: 'rgba(186,230,253,0.95)',
+            color: 'rgba(3,105,161,0.95)',
           }}
           data-testid="vehicle-archive-edit-mode-banner"
         >
           <div className="text-sm font-bold">وضع تحرير الأرشيف مفعل</div>
-          <div className="text-xs mt-1" style={{ color: 'rgba(226,232,240,0.82)' }}>
+          <div className="text-xs mt-1" style={{ color: 'rgba(71,85,105,0.9)' }}>
             يمكنك تعديل بيانات المركبة والعميل والزيارات والبنود بالكامل. يتم تسجيل التعديلات في سجل الأرشيف.
           </div>
         </div>
@@ -4090,8 +4092,8 @@ const VehicleDetails = () => {
           padding: 16,
           borderRadius: 24,
           background:
-            'radial-gradient(circle at 12% 18%, rgba(56,189,248,0.12), transparent 55%), rgba(255,255,255,0.05)',
-          border: '1px solid rgba(148,163,184,0.18)',
+            'radial-gradient(circle at 12% 18%, rgba(248,250,252,0.98), rgba(241,245,249,0.96))',
+          border: '1px solid rgba(203,213,225,0.8)',
         }}
         data-testid="vehicle-header"
       >
@@ -4101,9 +4103,9 @@ const VehicleDetails = () => {
               onClick={() => navigate(isArchiveSource ? '/archive' : '/')}
               className="p-2 rounded-xl transition-colors"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(226,232,240,0.85)',
+                background: 'rgba(255,255,255,0.8)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(71,85,105,0.9)',
               }}
               data-testid="vehicle-back-button"
             >
@@ -4113,7 +4115,7 @@ const VehicleDetails = () => {
               <div className="flex items-center gap-3 flex-wrap">
                 <h1
                   className="text-xl sm:text-3xl font-extrabold"
-                  style={{ color: 'rgba(248,250,252,0.95)' }}
+                  style={{ color: 'rgba(15,23,42,0.95)' }}
                   data-testid="vehicle-plate-header"
                 >
                   {vehicle.plateNumber}
@@ -4128,7 +4130,7 @@ const VehicleDetails = () => {
               </div>
               <p
                 className="mt-1 text-sm"
-                style={{ color: 'rgba(226,232,240,0.68)' }}
+                style={{ color: 'rgba(100,116,139,0.9)' }}
                 data-testid="vehicle-brand-model-header"
               >
                 {vehicle.brand} {vehicle.model} - {vehicle.year}
@@ -4141,9 +4143,9 @@ const VehicleDetails = () => {
               <button
                 className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  color: 'rgba(248,250,252,0.92)',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(203,213,225,0.8)',
+                  color: 'rgba(15,23,42,0.92)',
                 }}
                 data-testid="vehicle-print-menu-button"
               >
@@ -4154,9 +4156,8 @@ const VehicleDetails = () => {
               <div
                 className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-50"
                 style={{
-                  background: 'rgba(15,23,42,0.92)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  backdropFilter: 'blur(16px)',
+                  background: 'rgba(255,255,255,0.98)',
+                  border: '1px solid rgba(203,213,225,0.8)',
                 }}
                 data-testid="vehicle-print-menu"
               >
@@ -4167,10 +4168,10 @@ const VehicleDetails = () => {
                     openQuickPrintDialog({ type: 'invoice', visitId: vid });
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
-                  style={{ color: 'rgba(226,232,240,0.9)' }}
+                  style={{ color: 'rgba(15,23,42,0.9)' }}
                   data-testid="vehicle-print-invoice"
                 >
-                  <Receipt size={16} style={{ color: 'rgba(167,243,208,0.95)' }} />
+                  <Receipt size={16} style={{ color: 'rgba(4,120,87,0.95)' }} />
                   فاتورة مبيعات
                 </button>
                 <button
@@ -4181,12 +4182,12 @@ const VehicleDetails = () => {
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{
-                    borderTop: '1px solid rgba(148,163,184,0.12)',
-                    color: 'rgba(226,232,240,0.9)',
+                    borderTop: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(15,23,42,0.9)',
                   }}
                   data-testid="vehicle-print-quote"
                 >
-                  <FileCheck size={16} style={{ color: 'rgba(186,230,253,0.95)' }} />
+                  <FileCheck size={16} style={{ color: 'rgba(3,105,161,0.95)' }} />
                   عرض سعر
                 </button>
                 <button
@@ -4197,8 +4198,8 @@ const VehicleDetails = () => {
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{
-                    borderTop: '1px solid rgba(148,163,184,0.12)',
-                    color: 'rgba(226,232,240,0.9)',
+                    borderTop: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(15,23,42,0.9)',
                   }}
                   data-testid="vehicle-print-diagnosis"
                 >
@@ -4217,7 +4218,7 @@ const VehicleDetails = () => {
       {/* Draggable Layout Blocks */}
       {layoutLoaded ? (
         <div className="px-4 sm:px-0">
-          <div className="hidden md:block text-[11px] mb-2" style={{ color: 'rgba(226,232,240,0.58)' }}>
+          <div className="hidden md:block text-[11px] mb-2" style={{ color: 'rgba(100,116,139,0.9)' }}>
             اسحب البلوكات من زر (⋮⋮) لترتيب الصفحة كما تريد — يتم الحفظ تلقائياً.
           </div>
           <DndContext
@@ -4237,7 +4238,7 @@ const VehicleDetails = () => {
           </DndContext>
         </div>
       ) : (
-        <div className="px-4 sm:px-0 text-xs" style={{ color: 'rgba(226,232,240,0.62)' }}>
+        <div className="px-4 sm:px-0 text-xs" style={{ color: 'rgba(100,116,139,0.9)' }}>
           جاري تحميل التخطيط...
         </div>
       )}
@@ -4249,17 +4250,17 @@ const VehicleDetails = () => {
           style={{
             background: 'rgba(16,185,129,0.12)',
             border: '1px solid rgba(16,185,129,0.28)',
-            color: 'rgba(167,243,208,0.95)',
+            color: 'rgba(4,120,87,0.95)',
           }}
           data-testid="page-whatsapp-notification"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1">
-              <div className="font-bold text-sm flex items-center gap-2 mb-1" style={{ color: 'rgba(167,243,208,0.95)' }}>
+              <div className="font-bold text-sm flex items-center gap-2 mb-1" style={{ color: 'rgba(4,120,87,0.95)' }}>
                 <MessageCircle size={16} />
                 إبلاغ العميل بجاهزية المركبة
               </div>
-              <p className="text-xs" style={{ color: 'rgba(167,243,208,0.82)' }}>
+              <p className="text-xs" style={{ color: 'rgba(6,95,70,0.95)' }}>
                 {pageWhatsappNotification.customerName} - اضغط لإرسال الإشعار عبر واتساب
               </p>
             </div>
@@ -4273,7 +4274,7 @@ const VehicleDetails = () => {
                 style={{
                   background: 'rgba(16,185,129,0.20)',
                   border: '1px solid rgba(16,185,129,0.36)',
-                  color: 'rgba(167,243,208,0.95)',
+                  color: 'rgba(4,120,87,0.95)',
                 }}
                 data-testid="page-whatsapp-send-button"
               >
@@ -4283,9 +4284,9 @@ const VehicleDetails = () => {
                 onClick={() => setPageWhatsappNotification(null)}
                 className="px-2 py-2 rounded-xl transition-colors"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  color: 'rgba(226,232,240,0.7)',
+                  background: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(203,213,225,0.8)',
+                  color: 'rgba(100,116,139,0.9)',
                 }}
                 title="إغلاق"
                 data-testid="page-whatsapp-dismiss-button"
@@ -4304,23 +4305,23 @@ const VehicleDetails = () => {
           <div
             className="liquid-surface w-full max-w-3xl max-h-[85vh] overflow-hidden"
             style={{
-              background: 'rgba(15,23,42,0.95)',
+              background: 'rgba(255,255,255,0.98)',
               border: '1px solid rgba(148,163,184,0.22)',
               borderRadius: 16,
             }}
             data-testid="vehicle-financial-source-modal"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(148,163,184,0.16)' }}>
-              <h3 className="text-sm font-extrabold" style={{ color: 'rgba(248,250,252,0.95)' }} data-testid="vehicle-financial-source-title">
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(203,213,225,0.8)' }}>
+              <h3 className="text-sm font-extrabold" style={{ color: 'rgba(15,23,42,0.95)' }} data-testid="vehicle-financial-source-title">
                 {financialSourceTitle || 'مصدر الرقم'}
               </h3>
               <button
                 onClick={() => setFinancialSourceOpen(false)}
                 className="px-3 py-1.5 rounded-xl text-xs"
                 style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(148,163,184,0.18)',
-                  color: 'rgba(226,232,240,0.85)',
+                  background: 'rgba(255,255,255,0.96)',
+                  border: '1px solid rgba(203,213,225,0.8)',
+                  color: 'rgba(30,41,59,0.95)',
                 }}
                 data-testid="vehicle-financial-source-close"
               >
@@ -4330,14 +4331,14 @@ const VehicleDetails = () => {
 
             <div className="p-4 overflow-auto max-h-[70vh]" data-testid="vehicle-financial-source-content">
               {financialSourceRows.length === 0 ? (
-                <div className="text-xs" style={{ color: 'rgba(226,232,240,0.62)' }} data-testid="vehicle-financial-source-empty">
+                <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-financial-source-empty">
                   لا توجد بيانات مصدر ضمن الفترة الحالية.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs" data-testid="vehicle-financial-source-table">
                     <thead>
-                      <tr className="border-b" style={{ borderColor: 'rgba(148,163,184,0.18)', color: 'rgba(226,232,240,0.72)' }}>
+                      <tr className="border-b" style={{ borderColor: 'rgba(203,213,225,0.8)', color: 'rgba(100,116,139,0.9)' }}>
                         <th className="py-2 px-2 text-right">التاريخ</th>
                         <th className="py-2 px-2 text-right">الزيارة</th>
                         <th className="py-2 px-2 text-right">النوع</th>
@@ -4348,7 +4349,7 @@ const VehicleDetails = () => {
                     </thead>
                     <tbody>
                       {financialSourceRows.map((row, idx) => (
-                        <tr key={`${row.visitId}-${idx}`} className="border-b" style={{ borderColor: 'rgba(148,163,184,0.10)', color: 'rgba(248,250,252,0.9)' }} data-testid={`vehicle-financial-source-row-${idx}`}>
+                        <tr key={`${row.visitId}-${idx}`} className="border-b" style={{ borderColor: 'rgba(203,213,225,0.8)', color: 'rgba(15,23,42,0.92)' }} data-testid={`vehicle-financial-source-row-${idx}`}>
                           <td className="py-2 px-2">{row.date && row.date !== '-' ? new Date(row.date).toLocaleDateString('ar-SA') : '-'}</td>
                           <td className="py-2 px-2">{resolveVisitDisplay(row, '-')}</td>
                           <td className="py-2 px-2">{labelFromMap(row.type, OPERATION_TYPE_LABELS, '-')}</td>
@@ -4371,8 +4372,8 @@ const VehicleDetails = () => {
           <div
             className="liquid-surface max-w-lg w-full p-4 relative"
             style={{
-              background: 'rgba(15,23,42,0.92)',
-              border: '1px solid rgba(148,163,184,0.18)',
+              background: 'rgba(255,255,255,0.98)',
+              border: '1px solid rgba(203,213,225,0.8)',
             }}
             data-testid="scanner-modal"
           >
@@ -4380,15 +4381,15 @@ const VehicleDetails = () => {
               onClick={closeScanner}
               className="absolute top-4 left-4 p-2 rounded-full"
               style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(148,163,184,0.18)',
-                color: 'rgba(226,232,240,0.85)',
+                background: 'rgba(255,255,255,0.96)',
+                border: '1px solid rgba(203,213,225,0.8)',
+                color: 'rgba(30,41,59,0.95)',
               }}
               data-testid="scanner-close-button"
             >
               <X size={20} />
             </button>
-            <h3 className="text-lg font-bold mb-4 text-center" style={{ color: 'rgba(248,250,252,0.95)' }} data-testid="scanner-title">
+            <h3 className="text-lg font-bold mb-4 text-center" style={{ color: 'rgba(15,23,42,0.95)' }} data-testid="scanner-title">
               التقاط صورة
             </h3>
             {!capturedImage ? (
@@ -4408,7 +4409,7 @@ const VehicleDetails = () => {
                   style={{
                     background: 'rgba(56,189,248,0.18)',
                     border: '1px solid rgba(56,189,248,0.32)',
-                    color: 'rgba(186,230,253,0.95)',
+                    color: 'rgba(3,105,161,0.95)',
                   }}
                   data-testid="scanner-capture-button"
                 >
@@ -4420,9 +4421,9 @@ const VehicleDetails = () => {
                     onClick={() => setCapturedImage(null)}
                     className="flex-1 py-3 rounded-xl font-bold"
                     style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(148,163,184,0.18)',
-                      color: 'rgba(226,232,240,0.9)',
+                      background: 'rgba(255,255,255,0.96)',
+                      border: '1px solid rgba(203,213,225,0.8)',
+                      color: 'rgba(30,41,59,0.95)',
                     }}
                     data-testid="scanner-retake-button"
                   >
@@ -4434,7 +4435,7 @@ const VehicleDetails = () => {
                     style={{
                       background: 'rgba(16,185,129,0.2)',
                       border: '1px solid rgba(16,185,129,0.32)',
-                      color: 'rgba(167,243,208,0.95)',
+                      color: 'rgba(4,120,87,0.95)',
                     }}
                     data-testid="scanner-save-button"
                   >
@@ -4457,9 +4458,9 @@ const VehicleDetails = () => {
           <button
             className="absolute top-4 left-4 p-2 rounded-full"
             style={{
-              background: 'rgba(15,23,42,0.6)',
-              border: '1px solid rgba(148,163,184,0.18)',
-              color: 'rgba(248,250,252,0.95)',
+              background: 'rgba(255,255,255,0.96)',
+              border: '1px solid rgba(203,213,225,0.8)',
+              color: 'rgba(15,23,42,0.95)',
             }}
             onClick={() => setPreviewImage(null)}
             data-testid="preview-close-button"

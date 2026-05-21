@@ -7,7 +7,7 @@ Testing specific requirements from Arabic review request:
 2) تأكد أن HTML لا يحتوي 'موافقة العميل' ولا 'QR' ولا 'barcode' ولا 'token'
 3) تأكد أن صناديق بيانات العميل/الورشة أصغر (تحقق من وجود padding الجديد 0.6rem 0.7rem و font-size 0.7rem إن أمكن في HTML)
 
-Backend URL: https://vehicle-accounting-2.preview.emergentagent.com/api
+Backend URL: https://contract-audit-demo.preview.emergentagent.com/api
 """
 
 import requests
@@ -19,7 +19,7 @@ import traceback
 
 class ArabicApprovalBackendTester:
     def __init__(self):
-        self.base_url = "https://vehicle-accounting-2.preview.emergentagent.com"
+        self.base_url = "https://contract-audit-demo.preview.emergentagent.com"
         self.api_url = f"{self.base_url}/api"
         self.results = []
         self.session = requests.Session()
