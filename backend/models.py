@@ -227,9 +227,7 @@ class InvoiceBase(BaseModel):
     type: str  # "diagnosis" (تشخيص), "quotation" (تسعيرة), "service" (فاتورة خدمة)
     items: List[InvoiceItem]
     subtotal: float
-    tax: float = 0.0  # Default 0% VAT per current settings
-
-    tax: float = 0.15  # 15% ضريبة
+    tax: float = 0.15  # 15% ضريبة (FIX-M001: removed duplicate)
     total: float
     paymentMethod: str  # "cash" (كاش) or "card" (شبكة)
     notes: Optional[str] = None
@@ -259,7 +257,7 @@ class TransactionBase(BaseModel):
     reference: Optional[str] = None  # رقم الفاتورة أو المرجع
     accountId: Optional[str] = None  # للربط بالفروع
     paymentStatus: Optional[str] = "paid"  # paid, unpaid, pending
-    linkedAccounts: Optional[List[dict]] = []  # القيود المحاسبية
+    linkedAccounts: Optional[List[dict]] = Field(default_factory=list)  # القيود المحاسبية (FIX-M005)
 
 
 class TransactionCreate(TransactionBase):

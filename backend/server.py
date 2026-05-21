@@ -430,6 +430,7 @@ from time import time
 from fastapi import Request
 
 _RATE_STATE = {}  # (ip, bucket, window) -> count
+_RATE_STATE_MAX = 10000  # FIX-B011: bound memory growth
 
 
 def _get_client_ip(request: Request) -> str:
@@ -471,6 +472,9 @@ async def security_headers_and_rate_limit(request: Request, call_next):
         ip = _get_client_ip(request)
         window = int(time() // 60)
         key = (ip, bucket_name, window)
+        # FIX-B011: تجنّب نمو الذاكرة بلا حدود — أعد الضبط عند تجاوز السقف
+        if len(_RATE_STATE) > _RATE_STATE_MAX:
+            _RATE_STATE.clear()
         count = _RATE_STATE.get(key, 0) + 1
         _RATE_STATE[key] = count
 
@@ -490,6 +494,9 @@ async def security_headers_and_rate_limit(request: Request, call_next):
             response.headers["Access-Control-Allow-Origin"] = origin
 
     response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")  # FIX-SEC003
+    response.headers.setdefault("X-XSS-Protection", "1; mode=block")  # FIX-SEC003
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'")
     response.headers.setdefault(
         "Permissions-Policy",
@@ -958,7 +965,7 @@ async def save_vehicle_parts_and_create_journal(
         # حفظ العملية
         if DB_PROVIDER == "supabase":
             try:
-                supabase_service.supabase.table("operations").insert(operation_data).execute()
+                supabase_service.client.table("operations").insert(operation_data).execute()
                 print("✅ Operation created in Supabase")
             except Exception as e:
                 print(f"Failed to create operation in Supabase: {e}")
@@ -1001,14 +1008,14 @@ async def save_vehicle_parts_and_create_journal(
         if DB_PROVIDER == "supabase":
             try:
                 try:
-                    supabase_service.supabase.table("journal_entries").insert(journal_entry).execute()
+                    supabase_service.client.table("journal_entries").insert(journal_entry).execute()
                 except Exception:
                     fallback_entry = {
                         k: v
                         for k, v in journal_entry.items()
                         if k not in {"transaction_type", "reference_id"}
                     }
-                    supabase_service.supabase.table("journal_entries").insert(fallback_entry).execute()
+                    supabase_service.client.table("journal_entries").insert(fallback_entry).execute()
                 print("✅ Journal entry saved to Supabase")
             except Exception as e:
                 print(f"Failed to save journal entry to Supabase: {e}")
@@ -1027,7 +1034,7 @@ async def save_vehicle_parts_and_create_journal(
         # التحقق من وجود فاتورة مفتوحة
         if DB_PROVIDER == "supabase":
             try:
-                existing_invoices = supabase_service.supabase.table("invoices")\
+                existing_invoices = supabase_service.client.table("invoices")\
                     .select("*")\
                     .eq("vehicle_id", vehicle_id)\
                     .neq("status", "paid")\
@@ -1042,7 +1049,7 @@ async def save_vehicle_parts_and_create_journal(
                     updated_items = invoice.get('items', []) + parts
                     new_total = sum(item.get('price', 0) * item.get('quantity', 1) for item in updated_items)
                     
-                    supabase_service.supabase.table("invoices").update({
+                    supabase_service.client.table("invoices").update({
                         "items": updated_items,
                         "subtotal": new_total,
                         "tax": new_total * 0.15,
@@ -1066,7 +1073,7 @@ async def save_vehicle_parts_and_create_journal(
                         "issue_date": datetime.now(timezone.utc).isoformat(),
                         "due_date": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
                     }
-                    supabase_service.supabase.table("invoices").insert(new_invoice).execute()
+                    supabase_service.client.table("invoices").insert(new_invoice).execute()
                     print(f"✅ Created new invoice: {invoice_id}")
             except Exception as e:
                 print(f"Invoice creation/update in Supabase failed: {e}")
@@ -2569,17 +2576,38 @@ async def upload_vehicle_file(
         vehicle_dir = UPLOAD_DIR / "vehicles" / vehicle_id
         vehicle_dir.mkdir(parents=True, exist_ok=True)
 
-        # حفظ الملف فعليًا على القرص
-        file_path = vehicle_dir / file.filename
+        # FIX-B027: فلتر نوع الملف (MIME)
+        ALLOWED_CONTENT_TYPES = {
+            "image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf",
+        }
+        if file.content_type and file.content_type not in ALLOWED_CONTENT_TYPES:
+            raise HTTPException(status_code=400, detail="نوع الملف غير مسموح به")
+
+        # FIX-B006: حماية من Path Traversal — اسم ملف آمن وضمن مجلد المركبة
+        original_name = file.filename or "upload.bin"
+        safe_name = re.sub(
+            r"[^A-Za-z0-9._\-\u0600-\u06FF]", "_", os.path.basename(original_name)
+        )
+        if not safe_name or safe_name in {".", ".."}:
+            safe_name = f"upload-{uuid.uuid4().hex[:8]}.bin"
+        file_path = vehicle_dir / safe_name
+        if not str(file_path.resolve()).startswith(str(vehicle_dir.resolve())):
+            raise HTTPException(status_code=400, detail="اسم ملف غير صالح")
+
+        # FIX-B026: فحص الحجم قبل الكتابة (10MB)
+        content = await file.read()
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="الملف أكبر من الحد المسموح (10MB)")
+
         with open(file_path, "wb") as f:
-            f.write(await file.read())
+            f.write(content)
 
         # حفظ سجل الملف في تخزين JSON (ذاكرة)
         rows = _mem_read("vehicle_files")
         record = {
             "id": str(uuid.uuid4()),
             "vehicleId": vehicle_id,
-            "filename": file.filename,
+            "filename": safe_name,
             "fileType": file_type,
             "filePath": str(file_path),
             "uploadedAt": datetime.now(timezone.utc).isoformat(),
