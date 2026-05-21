@@ -215,7 +215,7 @@ async def search_similar_faults(
                     supabase_client.table("fault_knowledge").update(
                         {"usage_count": (fault.get("usage_count") or 0) + 1}
                     ).eq("id", fault["id"]).execute()
-                except:
+                except Exception:
                     pass
 
             return {

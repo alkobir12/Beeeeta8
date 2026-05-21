@@ -103,7 +103,7 @@ try:
             "balance": 0,
         }
         res = supa.table("accounts").insert(new_acc).execute()
-        print(f"  ✅ Created: 041 — تكلفة قطع الورشة (expense)")
+        print("  ✅ Created: 041 — تكلفة قطع الورشة (expense)")
         if res.data:
             print(f"     id={res.data[0].get('id')}")
 except Exception as e:

@@ -25,7 +25,7 @@ def load_sections():
         try:
             with open(CONTENT_DIR / "sections.json", "r", encoding="utf-8") as f:
                 _sections_cache = json.load(f)
-        except:
+        except Exception:
             _sections_cache = []
     return _sections_cache
 
@@ -39,7 +39,7 @@ def load_content_batch(batch_num):
                 CONTENT_DIR / f"content_batch_{batch_num}.json", "r", encoding="utf-8"
             ) as f:
                 _content_cache[batch_num] = json.load(f)
-        except:
+        except Exception:
             _content_cache[batch_num] = []
     return _content_cache[batch_num]
 
@@ -51,7 +51,7 @@ def load_search_index():
         try:
             with open(CONTENT_DIR / "search_index.json", "r", encoding="utf-8") as f:
                 _index_cache = json.load(f)
-        except:
+        except Exception:
             _index_cache = []
     return _index_cache
 

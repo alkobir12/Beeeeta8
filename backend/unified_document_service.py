@@ -10,9 +10,6 @@ Unified Document Generation Service
 
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-import io
-import base64
-import json
 # qrcode removed: approvals should not be embedded in printed documents
 from arabic_quotation import ArabicQuotationBuilder
 

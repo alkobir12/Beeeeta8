@@ -17,7 +17,7 @@ import json
 import os
 import uuid
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, List
 
 
 # Public, mutable state — set by server.py at startup.

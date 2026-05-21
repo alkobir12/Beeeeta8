@@ -108,7 +108,7 @@ async def create_salary_record(payload: Dict[str, Any]):
             }
             try:
                 await db.transactions.insert_one(transaction)
-            except:
+            except Exception:
                 pass
 
         record.pop("_id", None)

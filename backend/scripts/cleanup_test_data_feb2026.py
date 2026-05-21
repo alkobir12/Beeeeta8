@@ -79,5 +79,5 @@ for t in ["journal_entries", "operations", "customers", "vehicles", "vehicle_vis
     try:
         r = supa.table(t).select("*", count="exact").limit(1).execute()
         print(f"   {t}: {r.count}")
-    except Exception as e:
+    except Exception:
         print(f"   {t}: error")

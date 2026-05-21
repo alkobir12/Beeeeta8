@@ -5,7 +5,6 @@ routes_suppliers_extended.py
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from fastapi.responses import HTMLResponse
 from typing import Any, Dict, List, Optional
-import os
 import uuid
 import json
 import csv

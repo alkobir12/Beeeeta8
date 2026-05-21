@@ -48,7 +48,7 @@ async def get_advanced_dashboard(
         # محاولة جلب البيانات الحقيقية (إذا كانت متوفرة)
         # هذا placeholder - سيتم تحديثه لاحقاً
         pass
-    except:
+    except Exception:
         pass
 
     report = financial_analytics.generate_analytics_report(

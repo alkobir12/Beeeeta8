@@ -13,8 +13,8 @@ import base64
 import os
 import urllib.parse
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict
 
 from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 

@@ -11,7 +11,7 @@ try:
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
     GEMINI_AVAILABLE = True
-except:
+except Exception:
     GEMINI_AVAILABLE = False
 
 
@@ -23,7 +23,7 @@ class AIRecommendations:
         if GEMINI_AVAILABLE:
             try:
                 self.llm = LlmChat(model="gemini-2.0-flash-exp")
-            except:
+            except Exception:
                 pass
 
     def analyze_pricing(

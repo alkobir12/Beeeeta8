@@ -6,7 +6,6 @@ import sys
 sys.path.append('/app/backend')
 
 from accounting_auditor import AccountingSystemAuditor
-import json
 
 # ============================================================================
 # مثال 1: تدقيق نظام ورشة السيارات
@@ -117,7 +116,7 @@ def example_problematic_system():
     
     # عرض المشكلات
     if report.get('corrections_needed'):
-        print(f"\n🔴 المشكلات المكتشفة:")
+        print("\n🔴 المشكلات المكتشفة:")
         for i, correction in enumerate(report['corrections_needed'], 1):
             print(f"\n{i}. {correction.get('issue', '')}")
             if 'correction' in correction:
@@ -180,7 +179,7 @@ async def audit_real_system_data():
             auditor = AccountingSystemAuditor("النظام الحقيقي - بيانات من API")
             report = auditor.run_comprehensive_audit(real_data)
             
-            print(f"\n✅ تم تدقيق البيانات الحقيقية بنجاح!")
+            print("\n✅ تم تدقيق البيانات الحقيقية بنجاح!")
             print(f"🎯 درجة الصحة: {report['health_score']}/100")
             
             return report

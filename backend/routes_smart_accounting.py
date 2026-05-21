@@ -3,8 +3,7 @@ routes_smart_accounting.py
 Smart account dropdowns + Supplier balance payment + Vehicle archive
 """
 from fastapi import APIRouter, HTTPException, Query, Body
-from typing import Any, Dict, List, Optional
-import os
+from typing import Any, Dict, List
 import json
 import uuid
 from datetime import datetime, timezone

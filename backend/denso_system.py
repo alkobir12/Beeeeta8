@@ -236,7 +236,7 @@ class DensoInjectorDiagnostics:
                 return_limit_str.replace("< ", "").replace(" ml/min", "")
             )
             return_ok = return_quantity < return_limit
-        except:
+        except Exception:
             return_ok = False
 
         result = {

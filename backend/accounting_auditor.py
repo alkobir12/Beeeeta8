@@ -1,9 +1,5 @@
-import pandas as pd
-import numpy as np
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
-import json
-import re
+from typing import Dict, Tuple
 
 class AccountingSystemAuditor:
     """
@@ -41,7 +37,7 @@ class AccountingSystemAuditor:
             total_liabilities_equity = liabilities + equity
             
             if abs(assets - total_liabilities_equity) < 0.01:
-                msg = self.log_audit("✅ معادلة المحاسبة متوازنة: الأصول = الخصوم + حقوق الملكية", "SUCCESS")
+                self.log_audit("✅ معادلة المحاسبة متوازنة: الأصول = الخصوم + حقوق الملكية", "SUCCESS")
                 return True, "متوازن"
             else:
                 imbalance = assets - total_liabilities_equity
@@ -52,7 +48,7 @@ class AccountingSystemAuditor:
                 else:
                     suggestion = "اقتراح: زيادة الأصول"
                 
-                msg = self.log_audit(
+                self.log_audit(
                     f"❌ الميزانية غير متوازنة: الأصول ({assets:,.2f}) ≠ الخصوم+الملكية ({total_liabilities_equity:,.2f})",
                     "ERROR"
                 )
@@ -65,7 +61,7 @@ class AccountingSystemAuditor:
                 return False, f"غير متوازن - {correction}"
                 
         except Exception as e:
-            msg = self.log_audit(f"❌ خطأ في فحص معادلة المحاسبة: {str(e)}", "ERROR")
+            self.log_audit(f"❌ خطأ في فحص معادلة المحاسبة: {str(e)}", "ERROR")
             return False, f"خطأ: {str(e)}"
     
     def analyze_financial_statements_consistency(self, 

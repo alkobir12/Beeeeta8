@@ -9,7 +9,6 @@ Extracted from routes_extended.py (lines 5094-7059) on 2026-02-11.
 URL paths preserved as-is.
 """
 
-import io
 import os
 import time
 import uuid
@@ -17,7 +16,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
 
 try:
     import openpyxl

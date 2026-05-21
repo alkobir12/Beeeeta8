@@ -8,7 +8,7 @@ from typing import Dict, Any
 try:
     from notion_service import NotionService
     from supabase_service import SupabaseService
-except:
+except Exception:
     NotionService = None
     SupabaseService = None
 
@@ -51,7 +51,7 @@ class AutoSyncService:
             # 2. حفظ في Notion (إذا متوفر ومفعّل)
             if self.notion and not self.notion.mock_mode:
                 try:
-                    notion_result = self.notion.create_customer(
+                    self.notion.create_customer(
                         name=customer_data.get("name", ""),
                         email=customer_data.get("email", ""),
                         phone=customer_data.get("phone", ""),
@@ -73,7 +73,7 @@ class AutoSyncService:
                         "phone": customer_data.get("phone", ""),
                         "company": customer_data.get("company", ""),
                     }
-                    supabase_result = (
+                    (
                         self.supabase.client.table("customers")
                         .insert(supabase_data)
                         .execute()

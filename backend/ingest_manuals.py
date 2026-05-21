@@ -26,7 +26,7 @@ async def ingest_manuals():
         try:
             with open(KB_FILE, "r", encoding="utf-8") as f:
                 existing_docs = json.load(f)
-        except:
+        except Exception:
             existing_docs = []
 
     new_docs = []
