@@ -160,6 +160,27 @@ body.light-mode {
   background-color: var(--bg-primary) !important;
 }
 
+/* Dark mode — adapt hardcoded LIGHT Tailwind classes (bg-white/slate-50/etc.) */
+body.dark-mode .bg-white,
+body.dark-mode [class*="bg-white\/"] { background-color: var(--bg-card) !important; }
+body.dark-mode .bg-slate-50,
+body.dark-mode .bg-slate-100,
+body.dark-mode .bg-slate-200 { background-color: var(--bg-secondary) !important; }
+body.dark-mode .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.12) !important; }
+body.dark-mode .bg-amber-50  { background-color: rgba(245, 158, 11, 0.12) !important; }
+body.dark-mode .bg-red-50    { background-color: rgba(239, 68, 68, 0.12) !important; }
+body.dark-mode .bg-blue-50   { background-color: rgba(59, 130, 246, 0.12) !important; }
+body.dark-mode .bg-sky-50    { background-color: rgba(14, 165, 233, 0.12) !important; }
+body.dark-mode .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.12) !important; }
+body.dark-mode .border-slate-200,
+body.dark-mode .border-slate-300 { border-color: var(--border-color) !important; }
+body.dark-mode .text-slate-950,
+body.dark-mode .text-slate-900,
+body.dark-mode .text-slate-800,
+body.dark-mode .text-slate-700 { color: var(--text-primary) !important; }
+body.dark-mode .text-slate-600,
+body.dark-mode .text-slate-500 { color: var(--text-secondary) !important; }
+
 /* Light mode specific overrides for Tailwind dark classes */
 body.light-mode .bg-gray-900 { background-color: var(--bg-surface) !important; }
 body.light-mode .bg-gray-800 { background-color: var(--bg-card) !important; }
@@ -169,6 +190,45 @@ body.light-mode .bg-gray-800\/50 { background-color: rgba(255,255,255,0.8) !impo
 body.light-mode .bg-gray-900\/50 { background-color: rgba(248,250,252,0.8) !important; }
 body.light-mode .bg-gray-900\/80 { background-color: rgba(248,250,252,0.9) !important; }
 body.light-mode .bg-gray-900\/90 { background-color: rgba(248,250,252,0.95) !important; }
+
+/* Light mode — slate-* dark Tailwind classes (added: many pages use slate, not gray) */
+body.light-mode .bg-slate-950,
+body.light-mode .bg-slate-900,
+body.light-mode .bg-slate-800 { background-color: var(--bg-surface) !important; }
+body.light-mode [class*="bg-slate-950\/"],
+body.light-mode [class*="bg-slate-900\/"],
+body.light-mode [class*="bg-slate-800\/"] { background-color: var(--bg-card) !important; }
+body.light-mode .bg-slate-700 { background-color: var(--bg-secondary) !important; }
+body.light-mode [class*="from-slate-950"],
+body.light-mode [class*="from-slate-900"],
+body.light-mode [class*="from-slate-800"] { --tw-gradient-from: #ffffff !important; }
+body.light-mode [class*="to-slate-950"],
+body.light-mode [class*="to-slate-900"],
+body.light-mode [class*="to-slate-800"] { --tw-gradient-to: #f8fafc !important; }
+body.light-mode .via-slate-900,
+body.light-mode [class*="via-slate-900"] { --tw-gradient-via: #f1f5f9 !important; }
+body.light-mode .border-slate-800,
+body.light-mode .border-slate-700,
+body.light-mode [class*="border-slate-800\/"],
+body.light-mode [class*="border-slate-700\/"] { border-color: var(--border-color) !important; }
+body.light-mode .text-slate-50,
+body.light-mode .text-slate-100,
+body.light-mode .text-slate-200 { color: var(--text-primary) !important; }
+body.light-mode .text-slate-300,
+body.light-mode .text-slate-400 { color: var(--text-secondary) !important; }
+body.light-mode .text-slate-500,
+body.light-mode .text-slate-600 { color: var(--text-muted) !important; }
+
+/* Light mode — apple-button-secondary should adapt (was hardcoded dark via Tailwind --secondary) */
+body.light-mode .apple-button-secondary {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+body.light-mode .apple-button-secondary:hover {
+  background-color: var(--bg-secondary) !important;
+}
+
 body.light-mode .from-gray-800 { --tw-gradient-from: #ffffff !important; }
 body.light-mode .from-gray-800\/80 { --tw-gradient-from: #ffffff !important; }
 body.light-mode .from-gray-800\/90 { --tw-gradient-from: #ffffff !important; }
@@ -789,6 +849,49 @@ body[data-theme="dashPro"] .sidebar-item:hover {
 body[data-theme="dashPro"] .sidebar-item.active {
   background-color: #3b82f6 !important;
   color: #ffffff !important;
+}
+
+/* DashPro — same content-area light overrides as light mode (dark Tailwind classes) */
+body[data-theme="dashPro"] .bg-gray-900,
+body[data-theme="dashPro"] .bg-slate-950,
+body[data-theme="dashPro"] .bg-slate-900,
+body[data-theme="dashPro"] .bg-slate-800 { background-color: #ffffff !important; }
+body[data-theme="dashPro"] [class*="bg-slate-950\/"],
+body[data-theme="dashPro"] [class*="bg-slate-900\/"],
+body[data-theme="dashPro"] [class*="bg-slate-800\/"],
+body[data-theme="dashPro"] .bg-gray-800\/80,
+body[data-theme="dashPro"] .bg-gray-800\/90 { background-color: #f8fafc !important; }
+body[data-theme="dashPro"] [class*="from-slate-950"],
+body[data-theme="dashPro"] [class*="from-slate-900"],
+body[data-theme="dashPro"] [class*="from-slate-800"],
+body[data-theme="dashPro"] .from-gray-800 { --tw-gradient-from: #ffffff !important; }
+body[data-theme="dashPro"] [class*="to-slate-950"],
+body[data-theme="dashPro"] [class*="to-slate-900"],
+body[data-theme="dashPro"] [class*="to-slate-800"],
+body[data-theme="dashPro"] .to-gray-900 { --tw-gradient-to: #f8fafc !important; }
+body[data-theme="dashPro"] .border-slate-800,
+body[data-theme="dashPro"] .border-slate-700,
+body[data-theme="dashPro"] [class*="border-slate-800\/"],
+body[data-theme="dashPro"] [class*="border-slate-700\/"],
+body[data-theme="dashPro"] .border-gray-700,
+body[data-theme="dashPro"] .border-gray-600 { border-color: #e2e8f0 !important; }
+body[data-theme="dashPro"] :where(main, .layout-main) .text-white,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-slate-50,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-slate-100,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-slate-200,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-gray-100,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-gray-200 { color: #1e293b !important; }
+body[data-theme="dashPro"] :where(main, .layout-main) .text-slate-300,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-slate-400,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-gray-300,
+body[data-theme="dashPro"] :where(main, .layout-main) .text-gray-400 { color: #475569 !important; }
+body[data-theme="dashPro"] .apple-button-secondary {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #e2e8f0 !important;
+}
+body[data-theme="dashPro"] .apple-button-secondary:hover {
+  background-color: #f1f5f9 !important;
 }
   
   .sidebar-item {
