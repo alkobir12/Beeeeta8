@@ -176,8 +176,21 @@ export const themes = {
   },
 };
 
+// تحديد الثيم الأولي بشكل متناسق مع الـ inline script في index.html (يمنع FOWT)
+function getInitialTheme() {
+  try {
+    const fromHtml = document.documentElement.getAttribute('data-theme');
+    if (fromHtml && themes[fromHtml]) return fromHtml;
+    const fromStorage = localStorage.getItem('theme');
+    if (fromStorage && themes[fromStorage]) return fromStorage;
+  } catch (e) {
+    // localStorage may be unavailable
+  }
+  return 'dashPro';
+}
+
 export const ThemeProvider = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState(() => localStorage.getItem('theme') || 'dashPro');
+  const [currentTheme, setCurrentTheme] = useState(getInitialTheme);
   const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'large');
   const [layoutMode, setLayoutMode] = useState(() => localStorage.getItem('layoutMode') || 'comfortable');
 
@@ -205,6 +218,17 @@ export const ThemeProvider = ({ children }) => {
 
     // إضافة اسم الثيم كـ class
     document.body.setAttribute('data-theme', themeName);
+    // مزامنة مع <html> (الذي ضبطه inline script)
+    document.documentElement.setAttribute('data-theme', themeName);
+    document.documentElement.setAttribute('data-theme-mode', theme.mode);
+    document.documentElement.style.colorScheme = theme.mode;
+    // مزامنة لون الخلفية على <html> لمنع أي وميض عند التنقل
+    document.documentElement.style.backgroundColor = theme.background || '';
+    // تحديث لون شريط العنوان على الموبايل
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', theme.background || '#0f172a');
+    }
   };
 
   const applyFontSize = (size) => {

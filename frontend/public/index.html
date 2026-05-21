@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#0f172a" id="meta-theme-color" />
         <meta name="description" content="A product of emergent.sh" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -50,6 +50,57 @@
                 tailwindScript.src = 'https://cdn.tailwindcss.com';
                 document.head.appendChild(tailwindScript);
             }
+        </script>
+
+        <!--
+        ============================================================
+        EARLY THEME LOADER — prevents Flash of Wrong Theme (FOWT)
+        Runs SYNCHRONOUSLY before React mounts. Reads localStorage
+        and applies data-theme + class on <html> and (when ready) <body>.
+        Must match ThemeContext logic for consistency.
+        ============================================================
+        -->
+        <script>
+            (function () {
+                try {
+                    var savedTheme = localStorage.getItem('theme');
+                    var validThemes = { dark: 'dark', light: 'light', dashPro: 'light' };
+                    // default = dashPro (modern sidebar dark, content light)
+                    if (!savedTheme || !(savedTheme in validThemes)) {
+                        savedTheme = 'dashPro';
+                    }
+                    var mode = validThemes[savedTheme]; // 'dark' or 'light'
+                    var html = document.documentElement;
+                    html.setAttribute('data-theme', savedTheme);
+                    html.setAttribute('data-theme-mode', mode);
+                    html.style.colorScheme = mode;
+
+                    // Apply background color immediately to <html> to prevent any FOWT
+                    var bg = mode === 'dark' ? '#0f172a' : '#f8fafc';
+                    html.style.backgroundColor = bg;
+
+                    // Update mobile address bar color for consistency
+                    var metaTheme = document.querySelector('meta[name="theme-color"]');
+                    if (metaTheme) {
+                        metaTheme.setAttribute('content', mode === 'dark' ? '#0f172a' : '#f8fafc');
+                    }
+
+                    // Apply on body as soon as it exists
+                    function applyBody() {
+                        if (document.body) {
+                            document.body.classList.remove('dark-mode', 'light-mode');
+                            document.body.classList.add(mode === 'dark' ? 'dark-mode' : 'light-mode');
+                            document.body.setAttribute('data-theme', savedTheme);
+                            document.body.style.backgroundColor = bg;
+                        } else {
+                            requestAnimationFrame(applyBody);
+                        }
+                    }
+                    applyBody();
+                } catch (e) {
+                    // localStorage might be blocked — fall back silently
+                }
+            })();
         </script>
     </head>
     <body>
