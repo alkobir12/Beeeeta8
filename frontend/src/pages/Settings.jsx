@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useToast } from '../hooks/use-toast';
 import axios from 'axios';
 import { useTheme, themes } from '../contexts/ThemeContext';
@@ -58,6 +58,7 @@ const Settings = () => {
   });
   const [stitchHistory, setStitchHistory] = useState([]);
   const [showStitchCode, setShowStitchCode] = useState(false);
+  const themeRequestRef = useRef(0);
   const stitchSuggestions = [
     {
       id: 'full-dashboard',
@@ -82,6 +83,10 @@ const Settings = () => {
   useEffect(() => { fetchSettings(); }, []);
 
   useEffect(() => {
+    setSettings((prev) => (prev.themeName === themeName ? prev : { ...prev, themeName: themeName || 'dark' }));
+  }, [themeName]);
+
+  useEffect(() => {
     try {
       setSidebarPrefs({
         collapsed: localStorage.getItem('ui.sidebarCollapsed') === 'true',
@@ -103,10 +108,18 @@ const Settings = () => {
   const fetchSettings = async () => {
     try {
       const response = await axios.get(`${API_URL}/settings`);
+      const localTheme = localStorage.getItem('theme');
+      const backendTheme = response?.data?.themeName;
+      const resolvedTheme = localTheme || backendTheme || themeName || 'dark';
+
+      if (resolvedTheme !== themeName) {
+        changeTheme(resolvedTheme);
+      }
+
       setSettings({
         ...response.data,
         language: response.data.language || 'ar',
-        themeName: response.data.themeName || themeName
+        themeName: resolvedTheme
       });
     } catch (error) {
       console.error(error);
@@ -115,9 +128,21 @@ const Settings = () => {
     }
   };
 
-  const handleThemeChange = (newTheme) => {
-    setSettings({...settings, themeName: newTheme});
+  const handleThemeChange = async (newTheme) => {
+    const nextSettings = { ...settings, themeName: newTheme };
+    setSettings(nextSettings);
     changeTheme(newTheme);
+
+    // Persist theme immediately to prevent fast reverts between sessions/environments.
+    const reqId = Date.now();
+    themeRequestRef.current = reqId;
+    try {
+      await axios.post(`${API_URL}/settings`, nextSettings);
+      if (themeRequestRef.current !== reqId) return;
+    } catch (error) {
+      // Keep applied theme locally even if backend save fails temporarily.
+      console.error('theme_save_failed', error);
+    }
   };
 
   const updateSidebarPrefs = (updater) => {

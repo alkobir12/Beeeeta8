@@ -172,7 +172,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <div className="App" style={{ backgroundColor: '#121314', minHeight: '100vh' }}>
+          <div className="App" style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
             <Router>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
