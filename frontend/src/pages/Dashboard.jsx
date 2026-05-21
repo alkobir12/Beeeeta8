@@ -13,7 +13,7 @@ import { hasPermission } from '../utils/permissions';
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { themeName } = useTheme();
-  const isLight = true;
+  const isLight = themeName === 'light' || themeName === 'dashPro';
   const isRTL = i18n.language === 'ar';
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -414,22 +414,24 @@ const Dashboard = () => {
     );
   }
 
-  // Light Dash Pro-style dashboard palette
+  // Theme-aware dashboard palette
   const styles = {
-    bg: 'linear-gradient(180deg, #f6f7fb 0%, #eef3f8 48%, #f8fafc 100%)',
-    cardBg: 'rgba(255,255,255,0.92)',
-    cardBorder: 'rgba(15,23,42,0.08)',
-    textPrimary: '#05070d',
-    textSecondary: '#243044',
-    textMuted: '#4b5565',
-    inputBg: 'rgba(255,255,255,0.96)',
-    inputBorder: 'rgba(15,23,42,0.10)',
-    hoverBg: 'rgba(37,99,235,0.08)',
-    statCardBg: 'rgba(255,255,255,0.94)',
+    bg: isLight
+      ? 'linear-gradient(180deg, #f6f7fb 0%, #eef3f8 48%, #f8fafc 100%)'
+      : 'linear-gradient(180deg, #0b1223 0%, #0f172a 45%, #111827 100%)',
+    cardBg: isLight ? 'rgba(255,255,255,0.92)' : 'rgba(15,23,42,0.72)',
+    cardBorder: isLight ? 'rgba(15,23,42,0.08)' : 'rgba(148,163,184,0.22)',
+    textPrimary: isLight ? '#05070d' : '#f8fafc',
+    textSecondary: isLight ? '#243044' : 'rgba(226,232,240,0.92)',
+    textMuted: isLight ? '#4b5565' : 'rgba(148,163,184,0.92)',
+    inputBg: isLight ? 'rgba(255,255,255,0.96)' : 'rgba(15,23,42,0.72)',
+    inputBorder: isLight ? 'rgba(15,23,42,0.10)' : 'rgba(148,163,184,0.28)',
+    hoverBg: isLight ? 'rgba(37,99,235,0.08)' : 'rgba(56,189,248,0.18)',
+    statCardBg: isLight ? 'rgba(255,255,255,0.94)' : 'rgba(15,23,42,0.78)',
   };
 
-  // ألوان خاصة لكروت المركبات لتشبه الكرت الأزرق في الصورة
-  const isGlassPurpleTheme = false;
+  // Vehicle cards follow selected theme
+  const isGlassPurpleTheme = !isLight;
   const vehicleCardBackground = isGlassPurpleTheme
     ? 'radial-gradient(circle at 12% 18%, rgba(168,85,247,0.24), transparent 52%), radial-gradient(circle at 88% 78%, rgba(99,102,241,0.20), transparent 55%), rgba(255,255,255,0.06)'
     : 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(247,250,252,0.96) 100%)';

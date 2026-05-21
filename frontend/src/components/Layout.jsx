@@ -12,11 +12,14 @@ import { siteBuilderAPI } from '../services/siteBuilderAPI';
 import { PageCustomCardsDock } from './PageCustomCardsDock';
 import { applyPageCustomizations, clearPageCustomizations } from '../utils/pageCustomization';
 import { useRecentPagesTracker } from '../hooks/useRecentPages';
+import { useTheme } from '../contexts/ThemeContext';
 
 
 
 const Layout = ({ pageTitle }) => {
   useRecentPagesTracker();
+  const { themeName } = useTheme();
+  const isLightTheme = themeName === 'light' || themeName === 'dashPro';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pageCustomization, setPageCustomization] = useState({ custom_cards: [] });
   const appliedCustomizationsRef = useRef([]);
@@ -213,7 +216,10 @@ const Layout = ({ pageTitle }) => {
   );
 
   return (
-    <div className="layout-main" style={{ backgroundColor: '#121314', minHeight: '100vh', position: 'relative' }}>
+    <div
+      className="layout-main"
+      style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', position: 'relative' }}
+    >
       {/* Animated Background */}
       {process.env.NODE_ENV === 'production' ? null : <AnimatedBackground />}
       <div
@@ -221,14 +227,23 @@ const Layout = ({ pageTitle }) => {
         style={{
           position: 'absolute',
           inset: 0,
-          background:
-            'radial-gradient(1200px circle at 20% 10%, rgba(168,85,247,0.18), transparent 45%), radial-gradient(900px circle at 80% 20%, rgba(99,102,241,0.16), transparent 50%)',
-          opacity: 0.9,
+          background: isLightTheme
+            ? 'radial-gradient(1200px circle at 20% 10%, rgba(37,99,235,0.08), transparent 45%), radial-gradient(900px circle at 80% 20%, rgba(14,165,233,0.06), transparent 50%)'
+            : 'radial-gradient(1200px circle at 20% 10%, rgba(168,85,247,0.18), transparent 45%), radial-gradient(900px circle at 80% 20%, rgba(99,102,241,0.16), transparent 50%)',
+          opacity: isLightTheme ? 0.75 : 0.9,
           zIndex: 1,
         }}
       />
-      <div className="pointer-events-none absolute -top-20 left-[18%] h-56 w-56 rounded-full bg-cyan-400/12 blur-[90px] animate-pulse" />
-      <div className="pointer-events-none absolute bottom-10 right-[12%] h-64 w-64 rounded-full bg-sky-500/10 blur-[110px] animate-pulse" />
+      <div
+        className={`pointer-events-none absolute -top-20 left-[18%] h-56 w-56 rounded-full blur-[90px] animate-pulse ${
+          isLightTheme ? 'bg-cyan-500/10' : 'bg-cyan-400/12'
+        }`}
+      />
+      <div
+        className={`pointer-events-none absolute bottom-10 right-[12%] h-64 w-64 rounded-full blur-[110px] animate-pulse ${
+          isLightTheme ? 'bg-sky-500/8' : 'bg-sky-500/10'
+        }`}
+      />
       
       {/* Sidebar */}
       {isEditorWorkspace ? null : (
@@ -244,7 +259,11 @@ const Layout = ({ pageTitle }) => {
         <button
           type="button"
           onClick={toggleSidebarVisibility}
-          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/85 text-slate-100 shadow-2xl shadow-black/35 backdrop-blur-2xl transition-all hover:bg-white/12"
+          className={`pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl border backdrop-blur-2xl transition-all ${
+            isLightTheme
+              ? 'border-slate-200 bg-white/95 text-slate-700 shadow-lg shadow-slate-300/25 hover:bg-slate-50'
+              : 'border-white/10 bg-slate-950/85 text-slate-100 shadow-2xl shadow-black/35 hover:bg-white/12'
+          }`}
           data-testid={desktopSidebarHidden ? 'floating-sidebar-show-button' : 'floating-sidebar-hide-button'}
           title={isMobileViewport ? 'القائمة' : desktopSidebarHidden ? 'إظهار القائمة' : 'إخفاء القائمة'}
           aria-label={isMobileViewport ? 'Toggle Menu' : desktopSidebarHidden ? 'Show Sidebar' : 'Hide Sidebar'}
@@ -256,18 +275,26 @@ const Layout = ({ pageTitle }) => {
       {/* Main Content */}
       <main className="content-area" style={{ backgroundColor: 'transparent', position: 'relative', zIndex: 10, '--content-offset': isEditorWorkspace ? '0px' : contentOffset }}>
         {/* Mobile Header - Fixed at top */}
-        {isEditorWorkspace ? null : <div className="lg:hidden sticky top-0 z-40 mt-8 mb-4 rounded-[20px] border border-white/10 bg-slate-950/88 px-4 py-3 shadow-xl shadow-black/25 backdrop-blur-xl">
+        {isEditorWorkspace ? null : <div className={`lg:hidden sticky top-0 z-40 mt-8 mb-4 rounded-[20px] border px-4 py-3 backdrop-blur-xl ${
+          isLightTheme
+            ? 'border-slate-200 bg-white/95 shadow-lg shadow-slate-300/25'
+            : 'border-white/10 bg-slate-950/88 shadow-xl shadow-black/25'
+        }`}>
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/6 text-slate-100 transition-colors hover:bg-white/12"
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-2xl border transition-colors ${
+                isLightTheme
+                  ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  : 'border-white/10 bg-white/6 text-slate-100 hover:bg-white/12'
+              }`}
               aria-label="Open Menu"
               data-testid="mobile-sidebar-open-button"
             >
               <Menu size={18} className="text-foreground" />
             </button>
             <div className="min-w-0 flex-1 text-center">
-              <h1 className="truncate text-sm font-bold text-white">{pageTitle || t('app.dashboard')}</h1>
+              <h1 className={`truncate text-sm font-bold ${isLightTheme ? 'text-slate-900' : 'text-white'}`}>{pageTitle || t('app.dashboard')}</h1>
             </div>
             <span className="h-9 w-9" aria-hidden="true" />
           </div>

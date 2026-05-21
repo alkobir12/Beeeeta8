@@ -32,6 +32,7 @@ import { resolveBackendBase } from '../utils/backendBase';
 import { hasPermission, hasRoutePermission, resolveRoutePermission } from '../utils/permissions';
 import { readRecentPages, clearRecentPages } from '../hooks/useRecentPages';
 import { Clock } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 const API_URL = (
   process.env.NODE_ENV === 'production'
@@ -46,6 +47,8 @@ const Sidebar = ({
   isHidden = false,
 }) => {
   const { t, i18n } = useTranslation();
+  const { themeName } = useTheme();
+  const isLightTheme = themeName === 'light' || themeName === 'dashPro';
   const navigate = useNavigate();
   const location = useLocation();
   const navRef = useRef(null);
@@ -330,11 +333,15 @@ const Sidebar = ({
 
           {isCollapsed && hasFloatingMenu && (
             <div
-              className="absolute top-0 z-[9999] w-64 rounded-[20px] border border-white/12 bg-slate-950/97 p-3 shadow-2xl shadow-black/50 backdrop-blur-2xl"
+              className={`absolute top-0 z-[9999] w-64 rounded-[20px] border p-3 backdrop-blur-2xl ${
+                isLightTheme
+                  ? 'border-slate-200 bg-white/98 shadow-xl shadow-slate-300/25'
+                  : 'border-white/12 bg-slate-950/97 shadow-2xl shadow-black/50'
+              }`}
               style={{ left: 'calc(100% + 10px)' }}
               data-testid={`sidebar-collapsed-group-panel-${index}`}
             >
-              <div className="mb-2 flex items-center gap-2 px-2 text-slate-100">
+              <div className={`mb-2 flex items-center gap-2 px-2 ${isLightTheme ? 'text-slate-900' : 'text-slate-100'}`}>
                 <Icon size={16} className="text-sky-300" />
                 <span className="text-sm font-semibold">{item.label}</span>
               </div>
@@ -408,7 +415,11 @@ const Sidebar = ({
         data-testid="app-sidebar"
         data-collapsed={isCollapsed ? 'true' : 'false'}
       >
-        <div className={`border-b border-white/10 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 ${isCollapsed ? 'px-3 py-4' : 'p-5'}`}>
+        <div className={`${isCollapsed ? 'px-3 py-4' : 'p-5'} border-b ${
+          isLightTheme
+            ? 'border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100'
+            : 'border-white/10 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900'
+        }`}>
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-3`}>
             <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#0ea5e9] via-[#38bdf8] to-[#6366f1] text-white shadow-lg shadow-sky-500/30">
@@ -416,10 +427,10 @@ const Sidebar = ({
             </div>
               {!isCollapsed && (
                 <div>
-                  <h2 className="max-w-[150px] truncate text-sm font-semibold leading-tight text-slate-50" data-testid="sidebar-workshop-name">
+                  <h2 className={`max-w-[150px] truncate text-sm font-semibold leading-tight ${isLightTheme ? 'text-slate-900' : 'text-slate-50'}`} data-testid="sidebar-workshop-name">
                     {workshopName || t('nav.workshop_system')}
                   </h2>
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+                  <div className={`mt-1 flex items-center gap-2 text-[11px] ${isLightTheme ? 'text-slate-500' : 'text-slate-400'}`}>
                     <Activity size={12} className="text-sky-300" />
                     <span>{t('nav.workshop_system')}</span>
                   </div>
@@ -428,7 +439,7 @@ const Sidebar = ({
             </div>
 
           </div>
-          <button onClick={onClose} className="mt-3 text-slate-400 hover:text-white lg:hidden" data-testid="mobile-sidebar-close-button">
+          <button onClick={onClose} className={`mt-3 lg:hidden ${isLightTheme ? 'text-slate-500 hover:text-slate-900' : 'text-slate-400 hover:text-white'}`} data-testid="mobile-sidebar-close-button">
             <X size={20} />
           </button>
         </div>
@@ -436,9 +447,9 @@ const Sidebar = ({
         <nav ref={navRef} className={`overflow-y-auto flex-1 min-h-0 ${isCollapsed ? 'px-2 pt-3' : 'px-3 pt-3'}`}>
           {/* 📜 Recent Pages — last 5 visited */}
           {!isCollapsed && recentPages.length > 0 ? (
-            <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-2.5" data-testid="sidebar-recent-pages">
+            <div className={`mb-4 rounded-xl border p-2.5 ${isLightTheme ? 'border-slate-200 bg-white' : 'border-white/10 bg-white/[0.03]'}`} data-testid="sidebar-recent-pages">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                <div className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold ${isLightTheme ? 'text-slate-500' : 'text-slate-400'}`}>
                   <Clock size={11} className="text-slate-400" />
                   أحدث الصفحات
                 </div>
@@ -482,7 +493,9 @@ const Sidebar = ({
           </div>
         </nav>
 
-        <div className={`flex-shrink-0 border-t border-white/10 bg-black/10 ${isCollapsed ? 'px-2 py-3 pb-6' : 'p-4 pb-6'} space-y-2`}>
+        <div className={`flex-shrink-0 border-t ${isCollapsed ? 'px-2 py-3 pb-6' : 'p-4 pb-6'} space-y-2 ${
+          isLightTheme ? 'border-slate-200 bg-slate-50/90' : 'border-white/10 bg-black/10'
+        }`}>
           <LanguageToggleButton collapsed={isCollapsed} />
           <button
             onClick={handleLogout}
