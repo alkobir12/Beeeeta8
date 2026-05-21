@@ -19,7 +19,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://contract-audit-demo.preview.emergentagent.com/api"
+BASE_URL = "https://fleet-audit-system-2.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 class P0CreditPaymentTester:

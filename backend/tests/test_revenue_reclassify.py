@@ -4,7 +4,7 @@
 import requests
 import json
 
-API_URL = "https://contract-audit-demo.preview.emergentagent.com/api"
+API_URL = "https://fleet-audit-system-2.preview.emergentagent.com/api"
 WID = "finmodule-sync"
 TOWDHEEB = ["توضيب", "تلميع مكينة", "توضيب مكينه"]
 

@@ -14,7 +14,7 @@ import requests
 import os
 
 BASE_URL = os.environ.get(
-    "REACT_APP_BACKEND_URL", "https://contract-audit-demo.preview.emergentagent.com"
+    "REACT_APP_BACKEND_URL", "https://fleet-audit-system-2.preview.emergentagent.com"
 ).rstrip("/")
 WORKSHOP_ID = "finmodule-sync"
 
