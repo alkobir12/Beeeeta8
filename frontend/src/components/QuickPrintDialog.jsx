@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { getWhatsAppLink } from '../utils/constants';
+import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 
 const QuickPrintDialog = ({
   open,
@@ -33,33 +34,12 @@ const QuickPrintDialog = ({
   }, [open, initialPhone]);
 
   const loadWorkshop = useCallback(async () => {
-      try {
-        const [settingsRes, profileRes] = await Promise.all([
-          fetch(`${API_BASE}/settings`),
-          fetch(`${API_BASE}/profile`),
-        ]);
-        const settingsData = settingsRes.ok ? await settingsRes.json() : {};
-        const profileData = profileRes.ok ? await profileRes.json() : {};
-        const profile = profileData?.profile || profileData?.data || profileData || {};
-        return {
-          name: settingsData?.workshopName || profile?.business_name || profile?.name || 'ورشتي',
-          address: settingsData?.workshopAddress || profile?.address || '',
-          phone: settingsData?.workshopPhone || profile?.phone || profile?.phone_number || '',
-          tax_number: settingsData?.taxNumber || profile?.taxNumber || profile?.tax_number || '',
-          commercial_register: settingsData?.commercialRegister || profile?.commercialRegister || profile?.commercial_register || '',
-          business_name: settingsData?.workshopName || profile?.business_name || profile?.name || '',
-          logo_url: settingsData?.logoUrl || profile?.logo_url || '',
-        };
-      } catch (e) {
-        return {
-          name: 'ورشتي',
-          address: '',
-          phone: '',
-          tax_number: '',
-          logo_url: '',
-        };
-      }
-    }, []);
+    // يستخدم الأداة المساعدة الموحَّدة لجلب بيانات الورشة (اسم/شعار/ضريبي/ت.تجاري/…)
+    // ⚠️ المفتاح الصحيح هو `logo` (Base64) وليس `logo_url`. تم تصحيحه هنا.
+    return await loadWorkshopPrintInfo(async (path) => {
+      return await fetch(`${API_BASE}${path}`);
+    });
+  }, []);
 
   const generateHtml = useCallback(async () => {
     if (!payloadBuilder) return '';

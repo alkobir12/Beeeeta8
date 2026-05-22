@@ -7,6 +7,7 @@ import DebtWhatsAppComposerDialog from '../components/DebtWhatsAppComposerDialog
 import { buildDebtWhatsAppDraft } from '../utils/debtWhatsapp';
 import { getWhatsAppLink } from '../utils/constants';
 import { resolveVisitDisplay } from '../utils/displayLabels';
+import { loadWorkshopPrintInfo, buildWorkshopHeaderHtml } from '../utils/workshopPrintInfo';
 
 const Customers = () => {
   const { themeName } = useTheme();
@@ -263,30 +264,12 @@ const Customers = () => {
     });
   };
 
-  const loadWorkshopPrintInfo = async () => {
-    try {
-      const [settingsRes, profileRes] = await Promise.all([
-        api.get('/settings').catch(() => ({ data: {} })),
-        api.get('/profile').catch(() => ({ data: {} })),
-      ]);
-      const settings = settingsRes?.data || {};
-      const profile = profileRes?.data?.profile || profileRes?.data?.data || profileRes?.data || {};
-      return {
-        name: settings?.workshopName || profile?.business_name || profile?.name || 'الورشة',
-        address: settings?.workshopAddress || profile?.address || '',
-        phone: settings?.workshopPhone || profile?.phone || profile?.phone_number || '',
-      };
-    } catch {
-      return {
-        name: 'الورشة',
-        address: '',
-        phone: '',
-      };
-    }
+  const loadWorkshopPrintInfoLocal = async () => {
+    return await loadWorkshopPrintInfo(api);
   };
 
   const printCollectionReceipt = async ({ customer, amount, operationId, date }) => {
-    const workshop = await loadWorkshopPrintInfo();
+    const workshop = await loadWorkshopPrintInfoLocal();
     const win = window.open('', '_blank', 'noopener,noreferrer');
     if (!win) return;
     const html = `
@@ -296,7 +279,7 @@ const Customers = () => {
           <title>إيصال دفع</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
-            .card { border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; max-width: 520px; margin: 0 auto; }
+            .card { border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; max-width: 560px; margin: 0 auto; }
             h1 { margin: 0 0 16px; font-size: 22px; }
             p { margin: 8px 0; font-size: 14px; }
             .amount { font-size: 24px; font-weight: 700; color: #0369a1; }
@@ -307,10 +290,8 @@ const Customers = () => {
         </head>
         <body>
           <div class="card">
-            <h1>إيصال دفع</h1>
-            <p>الورشة: <strong>${workshop?.name || '-'}</strong></p>
-            <p>هاتف الورشة: <strong>${workshop?.phone || '-'}</strong></p>
-            <p>عنوان الورشة: <strong>${workshop?.address || '-'}</strong></p>
+            ${buildWorkshopHeaderHtml(workshop)}
+            <h1 style="margin-top:0;">إيصال دفع</h1>
             <hr style="border:none;border-top:1px solid #e2e8f0;margin:12px 0;" />
             <p>العميل: <strong>${customer?.name || '-'}</strong></p>
             <p>رقم الجوال: <strong>${customer?.phone || '-'}</strong></p>

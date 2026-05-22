@@ -606,6 +606,11 @@ export default function JournalEntries() {
     const workshopAddress = workshopSettings?.workshopAddress || workshopProfile?.address || '';
     const workshopTax = workshopSettings?.taxNumber || workshopProfile?.taxNumber || workshopProfile?.tax_number || '';
     const workshopCR = workshopSettings?.commercialRegister || workshopProfile?.commercialRegister || workshopProfile?.commercial_register || '';
+    // الشعار (base64 أو URL)
+    const workshopLogo = workshopProfile?.logo || workshopProfile?.logo_url || workshopProfile?.logoUrl || workshopSettings?.logoUrl || '';
+    const logoHtml = workshopLogo
+      ? `<img src="${workshopLogo}" alt="logo" style="max-height:56px;max-width:120px;object-fit:contain;margin-left:12px;border-radius:6px;background:#fff;padding:4px;" />`
+      : '';
     printWindow.document.write(`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -614,7 +619,7 @@ export default function JournalEntries() {
   <style>
     body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; background: #f5f5f5; color: #111827; }
     .container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 24px 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #3b82f6; padding-bottom: 16px; margin-bottom: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3b82f6; padding-bottom: 16px; margin-bottom: 24px; }
     .title { font-size: 22px; font-weight: 700; color: #1e40af; }
     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
     th { background: #1e40af; color: white; padding: 12px; text-align: right; }
@@ -626,7 +631,10 @@ export default function JournalEntries() {
 <body>
   <div class="container">
     <div class="header">
-      <div class="title">${workshopName}</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        ${logoHtml}
+        <div class="title">${workshopName}</div>
+      </div>
       <div>فاتورة: ${safeEntry.entry_number || '-'}<br/>التاريخ: ${safeEntry.entry_date || '-'}</div>
     </div>
     <p><strong>العنوان:</strong> ${workshopAddress || '-'} | <strong>الهاتف:</strong> ${workshopPhone || '-'}</p>
