@@ -62,23 +62,29 @@ const QuotationGenerator = () => {
   React.useEffect(() => {
     const loadData = async () => {
       try {
-        // Load workshop settings
-        const settingsRes = await axios.get(`${API_URL}/settings`);
-        if (settingsRes.data) {
-          setFormData(prev => ({
-            ...prev,
-            company: {
-              name: settingsRes.data.workshopName || 'ورشة السيارات',
-              name_en: settingsRes.data.workshopNameEn || 'Auto Workshop',
-              address: settingsRes.data.workshopAddress || 'الرياض - المملكة العربية السعودية',
-              phone: settingsRes.data.workshopPhone || '',
-              email: settingsRes.data.workshopEmail || '',
-              website: settingsRes.data.workshopWebsite || '',
-              tax_number: settingsRes.data.workshopTaxNumber || ''
-            },
-            tax_rate: settingsRes.data.taxRate || 15
-          }));
-        }
+        // 🎯 Load workshop info from BOTH profile (priority) and settings (fallback)
+        const [settingsRes, profileRes] = await Promise.all([
+          axios.get(`${API_URL}/settings`).catch(() => ({ data: {} })),
+          axios.get(`${API_URL}/profile`).catch(() => ({ data: {} })),
+        ]);
+        const settings = settingsRes?.data || {};
+        const profile = profileRes?.data?.profile || profileRes?.data?.data || profileRes?.data || {};
+        setFormData(prev => ({
+          ...prev,
+          company: {
+            // الأولوية: Profile (يحدّثه المستخدم من ملف الورشة) > Settings (افتراضي)
+            name: profile.business_name || profile.name || settings.workshopName || 'ورشتي',
+            name_en: profile.name_english || profile.nameEnglish || settings.workshopNameEn || '',
+            address: profile.address || settings.workshopAddress || '',
+            phone: profile.phone || profile.phone_number || settings.workshopPhone || '',
+            email: profile.email || settings.workshopEmail || '',
+            website: profile.website || settings.workshopWebsite || '',
+            tax_number: profile.taxNumber || profile.tax_number || settings.taxNumber || settings.workshopTaxNumber || '',
+            commercial_register: profile.commercialRegister || profile.commercial_register || settings.commercialRegister || '',
+            logo: profile.logo || profile.logo_url || settings.logoUrl || '',
+          },
+          tax_rate: (settings.taxRate ?? 15)
+        }));
         
         // Load services
         const servicesRes = await axios.get(`${API_URL}/services`);

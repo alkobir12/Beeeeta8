@@ -60,45 +60,47 @@ export async function loadWorkshopPrintInfo(apiOrFetcher) {
 
     const profile = profileRaw?.profile || profileRaw?.data || profileRaw || {};
 
+    // 🎯 الأولوية: ملف الورشة (Profile) > الإعدادات (Settings) > الافتراضي
+    // (المستخدم يحدّث اسم/شعار/عنوان الورشة من صفحة "ملف الورشة"، لذا تكون لها الأولوية)
     return {
       name:
-        settings?.workshopName ||
         profile?.business_name ||
         profile?.name ||
+        settings?.workshopName ||
         FALLBACK.name,
       business_name:
-        settings?.workshopName ||
         profile?.business_name ||
         profile?.name ||
+        settings?.workshopName ||
         FALLBACK.business_name,
       phone:
-        settings?.workshopPhone ||
         profile?.phone ||
         profile?.phone_number ||
+        settings?.workshopPhone ||
         FALLBACK.phone,
       address:
-        settings?.workshopAddress ||
         profile?.address ||
+        settings?.workshopAddress ||
         FALLBACK.address,
       tax_number:
-        settings?.taxNumber ||
         profile?.taxNumber ||
         profile?.tax_number ||
+        settings?.taxNumber ||
         FALLBACK.tax_number,
       commercial_register:
-        settings?.commercialRegister ||
         profile?.commercialRegister ||
         profile?.commercial_register ||
+        settings?.commercialRegister ||
         FALLBACK.commercial_register,
       email:
-        settings?.workshopEmail ||
         profile?.email ||
+        settings?.workshopEmail ||
         FALLBACK.email,
       website:
-        settings?.workshopWebsite ||
         profile?.website ||
+        settings?.workshopWebsite ||
         FALLBACK.website,
-      // الشعار يأتي base64 أو URL مباشر — نقبل أيّاً منهما
+      // الشعار يأتي base64 أو URL مباشر — نقبل أيّاً منهما (Profile له الأولوية)
       logo:
         profile?.logo ||
         profile?.logo_url ||

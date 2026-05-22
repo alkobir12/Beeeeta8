@@ -601,11 +601,12 @@ export default function JournalEntries() {
       .map((line) => ensureObject(line))
       .filter(Boolean);
     const total = Number(safeEntry.total_debit || 0);
-    const workshopName = workshopSettings?.workshopName || workshopProfile?.business_name || workshopProfile?.name || 'ورشة الصيانة';
-    const workshopPhone = workshopSettings?.workshopPhone || workshopProfile?.phone || workshopProfile?.phone_number || '';
-    const workshopAddress = workshopSettings?.workshopAddress || workshopProfile?.address || '';
-    const workshopTax = workshopSettings?.taxNumber || workshopProfile?.taxNumber || workshopProfile?.tax_number || '';
-    const workshopCR = workshopSettings?.commercialRegister || workshopProfile?.commercialRegister || workshopProfile?.commercial_register || '';
+    // 🎯 الأولوية: Profile (المستخدم يضبطه يدوياً) > Settings (افتراضي قديم)
+    const workshopName = workshopProfile?.business_name || workshopProfile?.name || workshopSettings?.workshopName || 'ورشة الصيانة';
+    const workshopPhone = workshopProfile?.phone || workshopProfile?.phone_number || workshopSettings?.workshopPhone || '';
+    const workshopAddress = workshopProfile?.address || workshopSettings?.workshopAddress || '';
+    const workshopTax = workshopProfile?.taxNumber || workshopProfile?.tax_number || workshopSettings?.taxNumber || '';
+    const workshopCR = workshopProfile?.commercialRegister || workshopProfile?.commercial_register || workshopSettings?.commercialRegister || '';
     // الشعار (base64 أو URL)
     const workshopLogo = workshopProfile?.logo || workshopProfile?.logo_url || workshopProfile?.logoUrl || workshopSettings?.logoUrl || '';
     const logoHtml = workshopLogo
