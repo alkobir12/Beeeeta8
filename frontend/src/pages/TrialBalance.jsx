@@ -21,6 +21,10 @@ const TrialBalance = () => {
       return;
     }
     fetchData();
+    // 🔄 إعادة التحميل عند أي عملية مالية
+    const onFinUpdated = () => fetchData();
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
     // eslint disabled
   }, [asOfDate, workshopId]);
 

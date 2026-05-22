@@ -86,6 +86,11 @@ export default function ChartOfAccounts() {
   // جلب الحسابات من الـ API عند تحميل الصفحة
   useEffect(() => {
     fetchAccounts();
+    // 🔄 إعادة التحميل عند أي عملية مالية تؤثر على أرصدة الحسابات
+    const onFinUpdated = () => fetchAccounts();
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAccounts = async () => {

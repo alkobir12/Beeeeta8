@@ -34,10 +34,12 @@ const ConfirmPaymentDialog = ({
   vehicleId  = null,   // إذا كان مرتبطاً بمركبة
   showArchiveOption = false,  // هل يظهر خيار الأرشفة
   allowSupplierBalance = true,
+  allowDiscount = true, // عرض حقل الخصم
 }) => {
   const [lines, setLines]             = useState([emptyLine()]);
   const [dateStr, setDateStr]         = useState(todayISO());
   const [archiveVehicle, setArchiveVehicle] = useState(false);
+  const [discountStr, setDiscountStr] = useState('');
   const [supplierBal, setSupplierBal] = useState(null); // رصيد المورد المُجلَب
   const [balLoading, setBalLoading]   = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState(supplierId || '');
@@ -83,6 +85,7 @@ const ConfirmPaymentDialog = ({
       setArchiveVehicle(false);
       setSupplierBal(null);
       setSelectedSupplierId(supplierId || '');
+      setDiscountStr('');
     }
     onOpenChange(v);
   };
@@ -121,11 +124,18 @@ const ConfirmPaymentDialog = ({
     return s + (Number.isFinite(n) && n > 0 ? n : 0);
   }, 0);
 
+  const discountValue = (() => {
+    const n = parseFloat(discountStr);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  })();
+
+  const totalCovered = enteredTotal + discountValue;
+
   const hasError = lines.some(l => {
     if (!l.amountStr.trim()) return false;
     const n = parseFloat(l.amountStr);
     return !Number.isFinite(n) || n <= 0;
-  });
+  }) || (discountValue > remainingBalance + 0.01);
 
   const handleSubmit = async () => {
     if (hasError) return;
@@ -157,6 +167,7 @@ const ConfirmPaymentDialog = ({
       archiveVehicle,
       viaSupplierBalance: usesSupplierBalance,
       supplierId: effectiveSupplierId || null,
+      discount: discountValue,
     });
   };
 
@@ -294,6 +305,47 @@ const ConfirmPaymentDialog = ({
               <span className="font-bold tabular-nums text-sky-300">
                 {enteredTotal.toLocaleString('ar-SA', { minimumFractionDigits: 2 })} ر.س
               </span>
+            </div>
+          )}
+
+          {/* حقل الخصم — يقلل من رصيد العميل بدون أن يكون دفعة نقدية */}
+          {allowDiscount && (
+            <div className="space-y-1.5">
+              <label className="text-xs text-slate-400 flex items-center justify-between">
+                <span>الخصم (اختياري)</span>
+                {discountValue > 0 && (
+                  <span className="text-[10px] text-emerald-300">
+                    سيُخصم من رصيد العميل
+                  </span>
+                )}
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={discountStr}
+                onChange={e => setDiscountStr(e.target.value)}
+                placeholder="0.00"
+                className={`w-full rounded-lg border px-3 py-2 text-sm bg-slate-900/60 text-slate-100 outline-none focus:ring-1 ${
+                  discountValue > remainingBalance + 0.01
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-emerald-500/40 focus:ring-emerald-500'
+                }`}
+                data-testid="confirm-payment-dialog-discount"
+              />
+              {discountValue > remainingBalance + 0.01 && (
+                <p className="text-xs text-red-400">
+                  الخصم أكبر من الرصيد المتبقي ({remainingBalance.toLocaleString('ar-SA')} ر.س)
+                </p>
+              )}
+              {totalCovered > 0 && discountValue > 0 && (
+                <div className="flex justify-between text-xs rounded-lg bg-emerald-500/8 border border-emerald-500/20 px-2 py-1.5 mt-1">
+                  <span className="text-emerald-300">المسدَّد + الخصم</span>
+                  <span className="font-bold tabular-nums text-emerald-200">
+                    {totalCovered.toLocaleString('ar-SA', { minimumFractionDigits: 2 })} ر.س
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

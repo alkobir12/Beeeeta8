@@ -79,6 +79,10 @@ export default function DebtFollowUp() {
 
   useEffect(() => {
     fetchData();
+    // 🔄 إعادة التحديث عند أي عملية مالية في صفحة أخرى
+    const onFinUpdated = () => fetchData();
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
   }, []);
 
   const fmt = (v) => Number(v || 0).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

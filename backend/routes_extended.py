@@ -712,6 +712,7 @@ ACCOUNT_NAME_MAP = {
     "005": "العملاء (ذمم مدينة)",
     "006": "نقاط بيع",
     "022": "مسحوبات المالك",
+    "024": "خصم مسموح به للعملاء",
     "025": "الإيرادات",
     "026": "إيرادات الخدمات",
     "027": "إيرادات خدمات ميكانيكية",
@@ -2582,6 +2583,16 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
         if pay_amount <= 0:
             raise HTTPException(status_code=400, detail="amount must be > 0")
 
+        # FIX: قبول حقل الخصم (يُقلِّل من رصيد العميل دون أن يكون دفعة نقدية)
+        discount_amount = 0.0
+        if (payload or {}).get("discount") is not None:
+            try:
+                discount_amount = float((payload or {}).get("discount") or 0)
+            except Exception:
+                discount_amount = 0.0
+            if discount_amount < 0:
+                discount_amount = 0.0
+
         already_paid = 0.0
         try:
             prev = (
@@ -2617,9 +2628,14 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
             print(f"Visit payment lookup failed: {e}")
 
         remaining = max(0.0, total - already_paid)
-        if pay_amount > remaining + 0.0001:
-            pay_amount = remaining
-        if pay_amount <= 0:
+        # حد الخصم لا يتجاوز المتبقي
+        if discount_amount > remaining:
+            discount_amount = remaining
+        # الدفعة الفعلية لا تتجاوز المتبقي - الخصم
+        max_payable = max(0.0, remaining - discount_amount)
+        if pay_amount > max_payable + 0.0001:
+            pay_amount = max_payable
+        if pay_amount <= 0 and discount_amount <= 0:
             return {"success": True, "message": "no remaining amount to confirm"}
 
         # Choose cash/bank account for settlement based on explicit selected method
@@ -2775,7 +2791,38 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
             entry["receipt_name"] = receipt_info.get("filename")
         _safe_insert_journal_entry(supa, entry)
 
-        remaining_after = max(0.0, remaining - pay_amount)
+        # FIX: قيد الخصم منفصل — مدين "خصم مسموح به" (024) / دائن "العملاء" (005)
+        if discount_amount > 0 and op_type in ("sale", "service") and has_base_operation_entry:
+            try:
+                discount_entry = {
+                    "id": str(uuid.uuid4()),
+                    "workshop_id": workshop_id,
+                    "date": pay_date or datetime.utcnow().isoformat(),
+                    "description": f"خصم ممنوح للعميل - {op_row.get('partner_name') or ''}".strip(),
+                    "lines": [
+                        {
+                            "account": "024",
+                            "account_name": ACCOUNT_NAME_MAP.get("024", "خصم مسموح به للعملاء"),
+                            "debit": discount_amount,
+                            "credit": 0,
+                        },
+                        {
+                            "account": "005",
+                            "account_name": ACCOUNT_NAME_MAP.get("005", "العملاء"),
+                            "debit": 0,
+                            "credit": discount_amount,
+                        },
+                    ],
+                    "total": discount_amount,
+                    "source": "operation_discount",
+                    "transaction_type": "discount",
+                    "reference_id": op_id,
+                }
+                _safe_insert_journal_entry(supa, discount_entry)
+            except Exception as disc_err:
+                print(f"discount entry insert failed: {disc_err}")
+
+        remaining_after = max(0.0, remaining - pay_amount - discount_amount)
         new_status = "paid" if remaining_after <= 0.0001 else "partial"
         new_method = settlement_method if new_status == "paid" else "credit"
 
@@ -2823,6 +2870,7 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
             "success": True,
             "data": {
                 "paid": round(pay_amount, 2),
+                "discount": round(discount_amount, 2),
                 "remaining": round(remaining_after, 2),
                 "status": new_status,
                 "payment_method": new_method,
@@ -2832,8 +2880,6 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
             },
         }
 
-    except HTTPException:
-        raise
     except HTTPException:
         raise
     except Exception as e:

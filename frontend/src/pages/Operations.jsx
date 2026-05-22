@@ -581,6 +581,20 @@ const Operations = () => {
     return () => window.clearTimeout(timer);
   }, [isDeferredDataEnabled, operationsQuery.isSuccess, cachedOperations.length]);
 
+  // 🔄 إعادة التحديث عند أي عملية مالية في صفحة أخرى (POS / تأكيد سداد / تسوية مورد)
+  useEffect(() => {
+    const onFinUpdated = () => {
+      try {
+        queryClient.invalidateQueries({ queryKey: ['operations'] });
+        queryClient.invalidateQueries({ queryKey: ['biz-accounts'] });
+      } catch (e) {
+        console.warn('finance:updated invalidate failed', e);
+      }
+    };
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
+  }, [queryClient]);
+
   const bizAccountsQuery = useQuery({
     queryKey: ['biz-accounts'],
     queryFn: async () => {
@@ -3675,7 +3689,7 @@ const Operations = () => {
           const total = parseFloat(op.total || op.workshopTotal || 0);
           return Math.max(0, total);
         })()}
-        onConfirm={async ({ paymentLines, date, amount, paymentMethod, receipt, supplierId }) => {
+        onConfirm={async ({ paymentLines, date, amount, paymentMethod, receipt, supplierId, discount = 0 }) => {
           if (!confirmTarget?.id) return;
           // جلب workshopId من env أو من العملية مباشرة
           const wid = workshopId
@@ -3716,6 +3730,7 @@ const Operations = () => {
                   date,
                   payment_method: line.method || 'bank',
                   receipt: receipt || null,
+                  ...(Number(discount) > 0 && { discount: Number(discount) }),
                 });
               }
             }
@@ -3723,6 +3738,12 @@ const Operations = () => {
             setConfirmOpen(false);
             setConfirmTarget(null);
             queryClient.invalidateQueries({ queryKey: ['operations'] });
+            // 🔄 إشعار باقي الصفحات (Dashboard) بالتحديث
+            try {
+              window.dispatchEvent(new CustomEvent('finance:updated', {
+                detail: { source: 'operation_confirm_payment', opId: confirmTarget.id }
+              }));
+            } catch (e) { console.warn('finance:updated dispatch failed', e); }
             toast({ title: 'تم السداد بنجاح', description: 'تم تسجيل الدفعة وتحديث حالة العملية' });
           } catch (e) {
             console.error('Failed to confirm payment:', e);

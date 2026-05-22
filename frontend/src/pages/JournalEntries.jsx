@@ -228,6 +228,16 @@ export default function JournalEntries() {
     };
   }, []);
 
+  // 🔄 إعادة التحميل عند أي عملية مالية (سداد / POS / تسوية مورد / خصم)
+  useEffect(() => {
+    const onFinUpdated = () => {
+      try { fetchJournalEntries(); } catch (e) { console.warn('finance refresh err', e); }
+    };
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (coaAccounts.length > 0) {
       fetchJournalEntries();

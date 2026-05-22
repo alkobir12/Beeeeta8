@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { financeAPI } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import { OPERATION_TYPE_LABELS, labelFromMap } from '../utils/displayLabels';
 
 const ARReceivablesTab = () => {
+  const queryClient = useQueryClient();
   const workshopId = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
   const [asOf, setAsOf] = useState(() => new Date().toISOString().split('T')[0]);
   const [startDate, setStartDate] = useState(() => {
@@ -16,6 +17,18 @@ const ARReceivablesTab = () => {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [exporting, setExporting] = useState(false);
+
+  // 🔄 إعادة التحميل عند أي عملية مالية
+  useEffect(() => {
+    const onFinUpdated = () => {
+      try {
+        queryClient.invalidateQueries({ queryKey: ['ar-customers'] });
+        queryClient.invalidateQueries({ queryKey: ['ar-aging'] });
+      } catch (e) { console.warn('ar refresh err', e); }
+    };
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
+  }, [queryClient]);
 
   const customersQuery = useQuery({
     queryKey: ['ar-customers', workshopId, asOf],

@@ -842,12 +842,15 @@ const VisitCard = ({
       bank: { code: '004', name: 'البنك' },
       pos: { code: '006', name: 'نقاط بيع' },
     };
+    const DISCOUNT_ACCOUNT = { code: '024', name: 'خصم مسموح به للعملاء' };
     const createdIds = [];
     const syncedPayments = [];
 
     for (const row of paymentRows) {
       const method = String(row?.paymentMethod || row?.method || 'cash').trim().toLowerCase();
       const amount = Number(row?.amount || 0);
+      const rowKind = String(row?.kind || '').trim().toLowerCase();
+      const isDiscount = rowKind === 'discount';
       const normalizedRow = {
         ...row,
         method,
@@ -859,38 +862,49 @@ const VisitCard = ({
         continue;
       }
 
-      const paymentAccount = paymentAccounts[method] || paymentAccounts.cash;
-      const isAdvance = String(row?.kind || '').trim().toLowerCase() === 'advance';
       const paymentDate = String(row?.date || new Date().toISOString()).slice(0, 10);
       const customerName = String(vehicle?.customerName || 'عميل').trim() || 'عميل';
       const vehicleRef = String(vehicle?.plateNumber || vehicle?.plate_number || '').trim();
-      const description = [
-        isAdvance ? 'سند قبض — دفعة مقدمة' : 'سند قبض — تحت الحساب',
-        customerName,
-        vehicleRef,
-      ].filter(Boolean).join(' — ');
+
+      let description;
+      let lines;
+      let txType;
+      let source;
+
+      if (isDiscount) {
+        // قيد الخصم: مدين خصم مسموح به / دائن العملاء
+        description = ['خصم ممنوح للعميل', customerName, vehicleRef].filter(Boolean).join(' — ');
+        txType = 'discount';
+        source = 'visit_discount';
+        lines = [
+          { account: DISCOUNT_ACCOUNT.code, account_name: DISCOUNT_ACCOUNT.name, debit: amount, credit: 0 },
+          { account: '005', account_name: 'العملاء', debit: 0, credit: amount },
+        ];
+      } else {
+        // قيد الدفع العادي
+        const paymentAccount = paymentAccounts[method] || paymentAccounts.cash;
+        const isAdvance = rowKind === 'advance';
+        description = [
+          isAdvance ? 'سند قبض — دفعة مقدمة' : 'سند قبض — تحت الحساب',
+          customerName,
+          vehicleRef,
+        ].filter(Boolean).join(' — ');
+        txType = 'payment';
+        source = 'visit_receipt_voucher';
+        lines = [
+          { account: paymentAccount.code, account_name: paymentAccount.name, debit: amount, credit: 0 },
+          { account: '005', account_name: 'العملاء', debit: 0, credit: amount },
+        ];
+      }
 
       const response = await axios.post(`${API_URL}/finance/journal-entries`, {
         date: paymentDate,
         description: `${description} [PARTY:${customerName}] [PARTY_TYPE:customer]${vehicleRef ? ` [VEHICLE_REF:${vehicleRef}]` : ''} [VISIT:${visit.id}]`,
-        transaction_type: 'payment',
-        source: 'visit_receipt_voucher',
+        transaction_type: txType,
+        source,
         reference_id: visit.id,
         total: amount,
-        lines: [
-          {
-            account: paymentAccount.code,
-            account_name: paymentAccount.name,
-            debit: amount,
-            credit: 0,
-          },
-          {
-            account: '005',
-            account_name: 'العملاء',
-            debit: 0,
-            credit: amount,
-          },
-        ],
+        lines,
       }, {
         params: { workshop_id: activeWorkshopId },
       });
@@ -1150,7 +1164,7 @@ const VisitCard = ({
   const latestApproval = approvals?.[0];
 
   // ─── تأكيد السداد من الزيارة مباشرة ────────────────────────────────────────
-  const handleConfirmVisitPayment = async ({ paymentLines, date, archiveVehicle, viaSupplierBalance, supplierId: spId }) => {
+  const handleConfirmVisitPayment = async ({ paymentLines, date, archiveVehicle, viaSupplierBalance, supplierId: spId, discount = 0 }) => {
     // حساب الرصيد المتبقي للورشة
     const workshopTotal = items.reduce((sum, it) => {
       if (it.itemType === 'supplier') return sum;
@@ -1165,11 +1179,15 @@ const VisitCard = ({
       return;
     }
 
-    // توزيع الرصيد على الوسائل التي بدون مبلغ
+    // الخصم لا يتجاوز الرصيد المتبقي
+    const safeDiscount = Math.max(0, Math.min(Number(discount) || 0, remainingBalance));
+    const remainingAfterDiscount = Math.round((remainingBalance - safeDiscount) * 100) / 100;
+
+    // توزيع الرصيد المتبقي بعد الخصم على الوسائل التي بدون مبلغ
     const linesWithNull = (paymentLines || []).filter(l => !l.amount);
     const linesWithAmount = (paymentLines || []).filter(l => l.amount && l.amount > 0);
     const sumWithAmount = linesWithAmount.reduce((s, l) => s + l.amount, 0);
-    const leftover = Math.max(0, remainingBalance - sumWithAmount);
+    const leftover = Math.max(0, remainingAfterDiscount - sumWithAmount);
 
     // توزيع المتبقي على السطور بدون مبلغ بالتساوي
     const share = linesWithNull.length > 0 ? Math.round((leftover / linesWithNull.length) * 100) / 100 : 0;
@@ -1178,8 +1196,8 @@ const VisitCard = ({
       amount: (l.amount && l.amount > 0) ? l.amount : share,
     })).filter(l => l.amount > 0.01);
 
-    if (!resolvedLines.length) {
-      toast({ title: 'تنبيه', description: 'يرجى إدخال مبلغ', variant: 'destructive' });
+    if (!resolvedLines.length && safeDiscount <= 0) {
+      toast({ title: 'تنبيه', description: 'يرجى إدخال مبلغ أو خصم', variant: 'destructive' });
       return;
     }
 
@@ -1244,10 +1262,22 @@ const VisitCard = ({
 
       setConfirmPayOpen(false);
       const summaryParts = resolvedLines.map(l => `${(paymentMethodLabelMap[l.method] || l.method)}: ${l.amount.toLocaleString('ar-SA')} ر.س`);
+      if (safeDiscount > 0) {
+        summaryParts.push(`خصم: ${safeDiscount.toLocaleString('ar-SA')} ر.س`);
+      }
       toast({
         title: 'تم السداد',
         description: summaryParts.join(' • '),
       });
+
+      // 🔄 إشعار باقي الصفحات (Dashboard / Operations / DebtFollowUp) بالتحديث
+      try {
+        window.dispatchEvent(new CustomEvent('finance:updated', {
+          detail: { source: 'visit_payment', visitId: visit.id, amount: totalConfirmed, discount: safeDiscount }
+        }));
+      } catch (evtErr) {
+        console.warn('finance:updated dispatch failed', evtErr);
+      }
 
       // أرشفة المركبة إذا اختار المستخدم ذلك
       if (archiveVehicle && (visit.vehicleId || visit.vehicle_id)) {

@@ -816,6 +816,12 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         resetFormAfterSave();
         setSavedToast({ ok: true, total });
         if (typeof onSaved === 'function') onSaved(response.data);
+        // 🔄 إشعار باقي الصفحات بالتحديث
+        try {
+          window.dispatchEvent(new CustomEvent('finance:updated', {
+            detail: { source: 'pos_journal', total }
+          }));
+        } catch (evtErr) { console.warn('finance:updated dispatch failed', evtErr); }
       } else {
         setSavedToast({ ok: false, error: 'استجابة غير متوقعة من الخادم' });
       }

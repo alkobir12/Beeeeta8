@@ -65,6 +65,12 @@ export default function SupplierSettlementDialog({ open, onOpenChange, supplier,
       await loadData();
       setSelected(new Set()); setNotes('');
       setTab('history');
+      // 🔄 إشعار باقي الصفحات بالتحديث
+      try {
+        window.dispatchEvent(new CustomEvent('finance:updated', {
+          detail: { source: 'supplier_settlement', supplierId: supplier.id }
+        }));
+      } catch (evtErr) { console.warn('finance:updated dispatch failed', evtErr); }
     } catch (e) {
       alert(e?.response?.data?.detail || 'فشل التسوية');
     } finally { setSaving(false); }

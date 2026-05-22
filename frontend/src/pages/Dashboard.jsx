@@ -72,14 +72,24 @@ const Dashboard = () => {
         fetchData(false);
       }
     };
-    
+
+    // Listen for ANY financial update (payment confirmed, POS sale, supplier settlement)
+    const handleFinanceUpdated = (e) => {
+      console.log('💰 Finance updated:', e?.detail?.source || 'unknown');
+      if (isMountedRef.current) {
+        fetchData(false);
+      }
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('vehicleUpdated', handleVehicleUpdated);
-    
+    window.addEventListener('finance:updated', handleFinanceUpdated);
+
     return () => {
       isMountedRef.current = false;
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('vehicleUpdated', handleVehicleUpdated);
+      window.removeEventListener('finance:updated', handleFinanceUpdated);
     };
   }, []);
 
