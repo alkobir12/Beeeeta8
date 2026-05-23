@@ -808,16 +808,129 @@ class ArabicQuotationBuilder:
                 gap: 0.5rem;
             }}
         }}
-        
+
+        /* ===========================================
+           طباعة A4 — تتفوق على قواعد الموبايل
+           (مهمة عند الطباعة من جوال: يجب أن تكون A4)
+           =========================================== */
         @media print {{
-            body {{
-                background: white;
+            html, body {{
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-size: 11px !important;
             }}
-            
             .container {{
-                box-shadow: none;
-                margin: 0;
-                border: none;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+            }}
+            @page {{
+                size: A4 portrait;
+                margin: 8mm 7mm;
+            }}
+
+            /* هيدر مدمج للطباعة */
+            .header {{
+                padding: 0.55rem 0.8rem !important;
+            }}
+            .header-content {{
+                flex-direction: row !important;
+                text-align: right !important;
+                gap: 0.7rem !important;
+                align-items: center !important;
+            }}
+            .company-section {{
+                gap: 0.6rem !important;
+            }}
+            .logo {{
+                width: 44px !important;
+                height: 44px !important;
+                border-width: 2px !important;
+            }}
+            .company-info h1 {{
+                font-size: 0.95rem !important;
+                margin-bottom: 0.1rem !important;
+                line-height: 1.15 !important;
+            }}
+            .company-name-en,
+            .company-slogan {{
+                font-size: 0.62rem !important;
+                margin-bottom: 0.1rem !important;
+            }}
+            .company-address {{
+                font-size: 0.58rem !important;
+                line-height: 1.15 !important;
+            }}
+            .quote-section {{
+                padding: 0.4rem 0.6rem !important;
+            }}
+            .quote-title {{
+                font-size: 1.1rem !important;
+            }}
+            .content {{
+                padding: 0.6rem 0.9rem !important;
+            }}
+            .details-section {{
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0.5rem !important;
+                margin: 0.4rem 0 !important;
+            }}
+
+            /* التوقيعات: قسمين متجاورين (عميل يمين، ورشة يسار في RTL) */
+            .signatures-section {{
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0.6rem !important;
+                margin: 0.5rem 0 !important;
+                page-break-inside: avoid !important;
+            }}
+            .signature-box {{
+                padding: 0.5rem 0.6rem !important;
+                box-shadow: none !important;
+            }}
+            .signature-box h4 {{
+                font-size: 0.7rem !important;
+                margin-bottom: 0.5rem !important;
+            }}
+            .signature-line {{
+                margin: 0.6rem 0 0.3rem !important;
+            }}
+
+            /* الجدول مدمج لاستيعاب بنود أكثر */
+            table {{
+                font-size: 10px !important;
+                page-break-inside: auto !important;
+            }}
+            table th, table td {{
+                padding: 0.35rem 0.45rem !important;
+            }}
+            tr {{
+                page-break-inside: avoid !important;
+                page-break-after: auto !important;
+            }}
+
+            /* footer مدمج وفي أسفل الصفحة */
+            .footer {{
+                padding: 0.4rem 0.7rem !important;
+                font-size: 0.6rem !important;
+            }}
+            .footer-content {{
+                flex-direction: row !important;
+                text-align: center !important;
+                gap: 0.4rem !important;
+            }}
+            .contact-info {{
+                flex-direction: row !important;
+                gap: 0.6rem !important;
+            }}
+            .footer-content p,
+            .contact-info span {{
+                font-size: 0.58rem !important;
             }}
         }}
         """
