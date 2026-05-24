@@ -1,0 +1,44 @@
+{
+  "summary": "Iter217 — Verified OTP-enabled customer approval flow (backend fully tested via pytest; frontend code reviewed statically). Backend create/get/respond endpoints all behave correctly: POST /api/approvals returns 4-digit numeric otp, GET /api/approvals/public/{token} does NOT leak otp/otp_code, POST .../respond rejects wrong OTP (400) and accepts correct OTP (200). UI Playwright run was blocked by Emergent's 'Preview Unavailable' splash on the public preview host (browser-context only — direct curls to same URL return 200), so frontend was validated via static code review of VehicleQuickActions.jsx and ApprovalPublic.jsx instead.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/approvals (Mongo legacy branch)", "issue": "MongoDB legacy code path in routes_approvals.py does NOT generate/store an otp field at create time (only the Supabase branch does). Since DB_PROVIDER=supabase currently, this is dormant — but if the project ever rolls back to mongo, OTP gating will silently break (stored_otp = '' => OTP never required). Recommend mirroring the Supabase otp_code generation in the Mongo branch (line 175-189)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "code_review_findings": [
+    "VehicleQuickActions.jsx: cancel button (approval-dialog-cancel, line 629) now uses solid 'bg-white dark:bg-slate-800 border-2 border-purple-300 dark:border-purple-600 text-purple-800 dark:text-purple-100' — no bg-white/5 anywhere in the file (grep clean). Fix confirmed.",
+    "VehicleQuickActions.jsx: all dark-mode tinted backgrounds use /70 (e.g. dark:bg-purple-900/70, dark:bg-blue-900/70, dark:bg-amber-900/70, dark:bg-emerald-900/70, dark:bg-sky-900/70, dark:bg-orange-900/70, dark:bg-green-900/70) — no /40 leftover. Faint-color fix confirmed.",
+    "Structural separation confirmed: <Button data-testid='quick-actions-delete-vehicle'> at line 520-522 is self-closing with only <Trash2/> + text inside. The <Dialog data-testid='whatsapp-preview-dialog'> at line 638 is a top-level sibling inside the root fragment — NOT nested inside the delete button. Previous structural bug is resolved.",
+    "Required data-testids all present in WhatsApp preview: whatsapp-preview-dialog (640), whatsapp-preview-textarea (653), whatsapp-preview-send (661), whatsapp-preview-copy (671), whatsapp-preview-close (689).",
+    "OTP propagation into WA message: line 306-309 reads `data?.otp || data?.otp_code` from POST /api/approvals response and appends `🔐 *رمز التحقق (OTP): {otp}*` to the message — wired correctly to the verified backend response.",
+    "ApprovalPublic.jsx: data-testid='approval-otp-input' (line 134), formData.append('otp', otp) (line 47), submit disabled until `otp.trim() && accepted` (line 165) — correct OTP gating on the customer-facing page."
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_approvals_otp_iter217.py",
+    "/app/test_reports/pytest/iter217_approvals_otp.xml"
+  ],
+  "action_items": [
+    "(Optional / low-priority) Mirror Supabase OTP generation into the MongoDB legacy branch of POST /api/approvals so OTP gating still works if DB_PROVIDER is switched back to mongo.",
+    "No frontend fixes required — colors are solid, structure is correct, all data-testids present, OTP wired."
+  ],
+  "critical_code_review_comments": [
+    "Module routes_approvals.py has parallel Supabase/Mongo branches — high duplication. Consider extracting a single service layer to avoid the divergence that already caused the missing-OTP gap on the Mongo path.",
+    "VehicleQuickActions.jsx is ~714 lines — over the 700-line guideline. Recommend splitting the ApprovalRequestDialog and WhatsappPreviewDialog into their own components."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_approvals_otp_iter217.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "static-review-only"},
+  "test_credentials": "admin = 'مدير' (no password); rbac = 'فرج1' — from /app/memory/test_credentials.md",
+  "seed_data_creation": "Test created one TEST_iter217_OTP approval row in Supabase against the first existing vehicle/customer; no fixture cleanup performed (record now in 'approved' status).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Public preview URL (workshop-mgr-3.preview.emergentagent.com) was intercepted by Emergent's 'Preview Unavailable' wake-up splash inside Playwright browser context, even though curl/fetch on the same URL returned HTTP 200. If you hit the same issue, click 'Open Emergent' via UI or trigger any warm-up request before launching Playwright. The backend OTP flow is solid (4/4 pytests pass). DB_PROVIDER=supabase in current env.",
+  "rca_of_the_issue": "No bug found in scope. Backend OTP path verified end-to-end via pytest (create→get→respond-wrong→respond-correct). Frontend faint-color and structural fixes verified by source inspection: bg-white/5 fully eliminated, dark-mode tints raised from /40 to /70, WhatsApp preview dialog extracted to a sibling of the delete button. Only residual concern is the dormant Mongo legacy branch lacking otp_code generation — flagged as minor since DB_PROVIDER=supabase."
+}
