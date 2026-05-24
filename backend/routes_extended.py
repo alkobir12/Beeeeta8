@@ -2509,7 +2509,7 @@ async def get_operation_payment_receipt(op_id: str, filename: str):
 
 
 @router.post("/operations/{op_id}/confirm-payment")
-async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(None)):
+async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[str, Any] = Body(None)):
     """تأكيد سداد عملية آجل.
 
     - الآجل يُسجَّل في operations (Accrual) فقط.
@@ -2518,7 +2518,18 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
       * شراء: مدين ذمم دائنة 211 / دائن نقدية 101
 
     يدعم الدفعات الجزئية عبر payload.amount.
+    🔒 Idempotency: يدعم header `Idempotency-Key` لمنع التكرار خلال 24 ساعة.
     """
+    # 🔒 Idempotency check - يمنع تكرار نفس الدفعة (مفتاح من header أو تلقائي من المحتوى)
+    from idempotency import get_idempotency_key, get_cached_response, store_response, make_idempotency_key
+    _idem_key = get_idempotency_key(request)
+    if not _idem_key:
+        _wid = (payload or {}).get("workshopId") or (payload or {}).get("workshop_id") or "default"
+        _idem_key = make_idempotency_key(_wid, f"confirm-payment:{op_id}", payload or {})
+    _cached = get_cached_response(_idem_key)
+    if _cached is not None:
+        return {**_cached, "idempotent_replay": True}
+
     try:
         try:
             uuid.UUID(str(op_id))
@@ -2866,7 +2877,7 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
         except Exception:
             pass
 
-        return {
+        result = {
             "success": True,
             "data": {
                 "paid": round(pay_amount, 2),
@@ -2879,6 +2890,12 @@ async def confirm_operation_payment(op_id: str, payload: Dict[str, Any] = Body(N
                 "receipt_name": receipt_info.get("filename") if receipt_info else None,
             },
         }
+        # 🔒 Idempotency: خزِّن الاستجابة لاستجابة التكرار خلال 24h
+        try:
+            store_response(_idem_key, result)
+        except Exception:
+            pass
+        return result
 
     except HTTPException:
         raise

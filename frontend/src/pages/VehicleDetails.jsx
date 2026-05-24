@@ -43,6 +43,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { userLayoutsAPI } from '../services/userLayoutsAPI';
 import { resolveBackendBase } from '../utils/backendBase';
+import { generateIdempotencyKey } from '../utils/idempotency';
 
 const ARCHIVE_AUDIT_KEY = 'vehicle-archive-edit-audit-v1';
 
@@ -897,6 +898,11 @@ const VisitCard = ({
         ];
       }
 
+      // 🔒 مفتاح Idempotency فريد لكل دفعة — يحمي من التكرار/النقر المزدوج
+      const idemKey = generateIdempotencyKey(
+        isDiscount ? 'visit-discount' : 'visit-payment',
+        `${visit.id}-${row?.id || amount}`
+      );
       const response = await axios.post(`${API_URL}/finance/journal-entries`, {
         date: paymentDate,
         description: `${description} [PARTY:${customerName}] [PARTY_TYPE:customer]${vehicleRef ? ` [VEHICLE_REF:${vehicleRef}]` : ''} [VISIT:${visit.id}]`,
@@ -907,6 +913,7 @@ const VisitCard = ({
         lines,
       }, {
         params: { workshop_id: activeWorkshopId },
+        headers: { 'Idempotency-Key': idemKey },
       });
 
       const journalEntryId = response?.data?.id || response?.data?.data?.[0]?.id || '';

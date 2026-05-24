@@ -2974,7 +2974,7 @@ async def close_period(
 
 
 @router.post("/journal-entries")
-async def create_journal_entry(entry: dict, workshop_id: str = Query(...)):
+async def create_journal_entry(entry: dict, request: Request, workshop_id: str = Query(...)):
     """إنشاء قيد محاسبي يدوي جديد في Supabase مع نوع حركة واضح.
 
     المثال المتوقع للـ payload من الواجهة:
@@ -2985,7 +2985,16 @@ async def create_journal_entry(entry: dict, workshop_id: str = Query(...)):
         "lines": [...],
         "total": 500
     }
+
+    🔒 Idempotency: يدعم header `Idempotency-Key` لمنع القيود المكررة عند النقر المزدوج أو إعادة المحاولة.
     """
+    # 🔒 Idempotency check
+    from idempotency import get_idempotency_key, get_cached_response, store_response
+    _idem_key = get_idempotency_key(request)
+    _cached = get_cached_response(_idem_key) if _idem_key else None
+    if _cached is not None:
+        return {**_cached, "idempotent_replay": True}
+
     try:
         def _to_decimal(value: Any) -> Decimal:
             try:
@@ -3068,12 +3077,18 @@ async def create_journal_entry(entry: dict, workshop_id: str = Query(...)):
             response = supabase.table("journal_entries").insert(full_entry_data).execute()
 
             invalidate_finance_caches()
-            return {
+            result = {
                 "success": True,
                 "message": "تم إنشاء القيد المحاسبي بنجاح",
                 "id": entry_data["id"],
                 "data": response.data,
             }
+            if _idem_key:
+                try:
+                    store_response(_idem_key, result)
+                except Exception:
+                    pass
+            return result
 
         except Exception as schema_error:
             # If transaction_type column doesn't exist, try with basic fields only
@@ -3081,13 +3096,19 @@ async def create_journal_entry(entry: dict, workshop_id: str = Query(...)):
             response = supabase.table("journal_entries").insert(entry_data).execute()
 
             invalidate_finance_caches()
-            return {
+            result = {
                 "success": True,
                 "message": "تم إنشاء القيد المحاسبي بنجاح (بدون transaction_type)",
                 "id": entry_data["id"],
                 "data": response.data,
                 "note": "تم الحفظ بدون حقل transaction_type - يحتاج تحديث قاعدة البيانات",
             }
+            if _idem_key:
+                try:
+                    store_response(_idem_key, result)
+                except Exception:
+                    pass
+            return result
 
     except HTTPException:
         raise

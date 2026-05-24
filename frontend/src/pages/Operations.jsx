@@ -9,6 +9,7 @@ import { useToast } from '../hooks/use-toast';
 import GuidanceStepper from '../components/GuidanceStepper';
 // Floating assistant disabled: AbuFahad floating chat is injected via Layout
 import { financeAPI } from '../services/api';
+import { generateIdempotencyKey } from '../utils/idempotency';
 import { useTheme } from '../contexts/ThemeContext';
 import ConfirmPaymentDialog from '../components/ConfirmPaymentDialog';
 import SmartAccountSelect from '../components/SmartAccountSelect';
@@ -3715,23 +3716,33 @@ const Operations = () => {
                   throw new Error('يرجى اختيار المورد قبل السداد عبر رصيد المورد.');
                 }
 
-                await axios.post(`${API_URL}/smart-accounting/operations/${confirmTarget.id}/confirm-via-supplier-balance`, {
-                  workshopId: wid,
-                  workshop_id: wid,
-                  supplier_id: resolvedSupplierId,
-                  ...(payAmt !== undefined && { amount: payAmt }),
-                  date,
-                  notes: `تسوية عملية عبر رصيد المورد — ${confirmTarget?.partnerName || confirmTarget?.supplierName || ''}`.trim(),
-                });
+                const idemKey = generateIdempotencyKey('op-supbal', confirmTarget.id);
+                await axios.post(
+                  `${API_URL}/smart-accounting/operations/${confirmTarget.id}/confirm-via-supplier-balance`,
+                  {
+                    workshopId: wid,
+                    workshop_id: wid,
+                    supplier_id: resolvedSupplierId,
+                    ...(payAmt !== undefined && { amount: payAmt }),
+                    date,
+                    notes: `تسوية عملية عبر رصيد المورد — ${confirmTarget?.partnerName || confirmTarget?.supplierName || ''}`.trim(),
+                  },
+                  { headers: { 'Idempotency-Key': idemKey } },
+                );
               } else {
-                await axios.post(`${API_URL}/operations/${confirmTarget.id}/confirm-payment`, {
-                  workshopId: wid,
-                  ...(payAmt !== undefined && { amount: payAmt }),
-                  date,
-                  payment_method: line.method || 'bank',
-                  receipt: receipt || null,
-                  ...(Number(discount) > 0 && { discount: Number(discount) }),
-                });
+                const idemKey = generateIdempotencyKey('op-pay', confirmTarget.id);
+                await axios.post(
+                  `${API_URL}/operations/${confirmTarget.id}/confirm-payment`,
+                  {
+                    workshopId: wid,
+                    ...(payAmt !== undefined && { amount: payAmt }),
+                    date,
+                    payment_method: line.method || 'bank',
+                    receipt: receipt || null,
+                    ...(Number(discount) > 0 && { discount: Number(discount) }),
+                  },
+                  { headers: { 'Idempotency-Key': idemKey } },
+                );
               }
             }
 

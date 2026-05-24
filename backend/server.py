@@ -521,6 +521,8 @@ def write_settings(data: dict):
 
 
 # Include Routers
+from auth_jwt import router as auth_router
+app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(user_layouts_router)
 app.include_router(injectors_router)

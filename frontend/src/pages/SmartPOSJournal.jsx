@@ -18,6 +18,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { PAYMENT_METHOD_LABELS, SOURCE_LABELS, labelFromMap } from '../utils/displayLabels';
+import { generateIdempotencyKey } from '../utils/idempotency';
 import SmartAccountSelect from '../components/SmartAccountSelect';
 
 const formatSAR = (value) => (
@@ -743,14 +744,19 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         }
 
         const total = roundAmount(effectiveAmount);
-        const response = await axios.post(`${apiBase}/operations/${targetOperation.id}/confirm-payment`, {
-          amount: total,
-          paymentMethod,
-          payment_method: paymentMethod,
-          workshopId,
-          date: new Date().toISOString().slice(0, 10),
-          notes: note || 'تحصيل من POS مرتبط بالعملية الأصلية',
-        });
+        const idemKey = generateIdempotencyKey('pos-collect', targetOperation.id);
+        const response = await axios.post(
+          `${apiBase}/operations/${targetOperation.id}/confirm-payment`,
+          {
+            amount: total,
+            paymentMethod,
+            payment_method: paymentMethod,
+            workshopId,
+            date: new Date().toISOString().slice(0, 10),
+            notes: note || 'تحصيل من POS مرتبط بالعملية الأصلية',
+          },
+          { headers: { 'Idempotency-Key': idemKey } }
+        );
 
         resetFormAfterSave();
         setSavedToast({ ok: true, total, message: 'تم تسجيل التحصيل على العملية الأصلية بدون إنشاء عملية جديدة.' });

@@ -4,6 +4,7 @@ import { useToast } from '../hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { resolveBackendBase } from '../utils/backendBase';
 import { getRolePermissions, normalizePermissions } from '../utils/permissions';
+import { loginAndIssueToken } from '../utils/authToken';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -86,6 +87,8 @@ const Login = () => {
       };
       localStorage.setItem('session', JSON.stringify(session));
       localStorage.setItem('user', JSON.stringify(fallbackUser));
+      // 🔒 Issue JWT token (server-side authenticator) — fires in parallel, non-blocking
+      loginAndIssueToken(fallbackUser.name).catch(() => {});
       window.dispatchEvent(new Event('sessionUpdated'));
 
       // keep session in cookie for Protected routes
@@ -155,6 +158,7 @@ const Login = () => {
           }
           localStorage.setItem('session', JSON.stringify(session));
           localStorage.setItem('user', JSON.stringify(fallbackUser));
+          loginAndIssueToken(fallbackUser.name).catch(() => {});
           window.dispatchEvent(new Event('sessionUpdated'));
           toast({ title: 'مرحباً بك', description: `أهلاً بعودتك، ${fallbackUser.name}` });
           await Promise.all([
@@ -189,6 +193,7 @@ const Login = () => {
 
       localStorage.setItem('session', JSON.stringify(session));
       localStorage.setItem('user', JSON.stringify(user));
+      loginAndIssueToken(user.name).catch(() => {});
       window.dispatchEvent(new Event('sessionUpdated'));
 
       // Update last login

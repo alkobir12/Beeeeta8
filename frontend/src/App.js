@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from "react";
+import axios from "axios";
 import "./App.css"
 import "./i18n"; // Initialize i18next
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
@@ -9,6 +10,11 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { queryClient } from './queryClient';
 import { getFirstAllowedRoute, hasRoutePermission, normalizePermissions, resolveRoutePermission } from './utils/permissions';
 import { resolveBackendBase } from './utils/backendBase';
+import { installAuthInterceptors } from './utils/authToken';
+
+// 🔒 Install JWT interceptors globally — auto-attaches Authorization header to every
+// axios/fetch request once a token is stored in localStorage (set by Login.jsx).
+installAuthInterceptors(axios);
 
 // Eager load critical pages
 import Dashboard from "./pages/Dashboard";
