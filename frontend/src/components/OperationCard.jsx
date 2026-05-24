@@ -379,6 +379,58 @@ export default function OperationCard({
   const canDeleteOperation = typeof onDelete === 'function';
   const paymentStatusLabel = labelFromMap(paymentStatus, PAYMENT_STATUS_LABELS, '-');
   const paymentMethodLabel = labelFromMap(paymentMethod, PAYMENT_METHOD_LABELS, '-');
+
+  // 🟢 تصنيف الحركة: مدينة (Debit) أم دائنة (Credit) من منظور حسابات الورشة
+  // - مدينة (يزيد رصيد أصول/مصاريف الورشة): مبيعات/خدمات/تحصيل من عملاء/مشتريات/مصاريف
+  // - دائنة (يزيد رصيد التزامات/إيرادات الورشة): سداد لمورد / مرتجع مبيعات / استلام إيراد
+  // المرجع: قواعد القيد المزدوج للورشة
+  const opType = String(operation.type || '').toLowerCase();
+  const debitTypes = new Set(['sale', 'service', 'instant_sale', 'collect_customer', 'purchase', 'expense', 'cash_expense', 'salary']);
+  const creditTypes = new Set(['payment_order', 'sale_return', 'purchase_return', 'receipt_voucher']);
+  let movementSide = '';
+  let movementLabel = '';
+  if (debitTypes.has(opType)) {
+    movementSide = 'debit';
+    movementLabel = 'حركة مدينة';
+  } else if (creditTypes.has(opType)) {
+    movementSide = 'credit';
+    movementLabel = 'حركة دائنة';
+  } else {
+    // fallback من طريقة الدفع/الحالة
+    if (paymentMethod === 'credit' || paymentStatus === 'credit' || paymentStatus === 'unpaid') {
+      movementSide = 'debit'; // ذمم مدينة (العميل يدين لنا)
+      movementLabel = 'حركة مدينة';
+    } else {
+      movementSide = 'debit';
+      movementLabel = 'حركة مدينة';
+    }
+  }
+
+  // 🟡 مصدر العملية: POS أم ملف المركبة
+  const opSource = String(operation.source || '').toLowerCase();
+  const opNotesStr = String(operation.notes || '').toLowerCase();
+  let originLabel = '';
+  let originColor = '';
+  if (
+    opSource.includes('pos') ||
+    opSource.includes('instant_sale') ||
+    opSource === 'pos_template' ||
+    opNotesStr.includes('[pos]')
+  ) {
+    originLabel = 'POS';
+    originColor = 'bg-indigo-50 text-indigo-950 border-indigo-300';
+  } else if (
+    opSource === 'vehicle_visit_sync' ||
+    opSource.startsWith('visit_') ||
+    operation.visitId || operation.visit_id ||
+    operation.vehicleId || operation.vehicle_id
+  ) {
+    originLabel = 'ملف المركبة';
+    originColor = 'bg-cyan-50 text-cyan-950 border-cyan-300';
+  } else {
+    originLabel = 'عام';
+    originColor = 'bg-slate-50 text-slate-900 border-slate-300';
+  }
   const visitDisplay = resolveVisitDisplay(operation, 'زيارة مرتبطة');
   const operationNotesDisplay = useMemo(() => {
     const cleaned = sanitizeAccountingText(operation.notes);
@@ -458,6 +510,24 @@ export default function OperationCard({
                   {paymentStatusLabel}
                 </span>
               ) : null}
+
+              {/* شارة الحركة: مدينة (Debit) أو دائنة (Credit) */}
+              <span
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${movementSide === 'debit' ? 'bg-blue-50 text-blue-950 border-blue-300' : 'bg-rose-50 text-rose-950 border-rose-300'}`}
+                data-testid={`operation-card-movement-pill-${operation.id}`}
+                title={movementSide === 'debit' ? 'تزيد أصول/مصاريف الورشة' : 'تزيد التزامات/إيرادات الورشة'}
+              >
+                {movementLabel}
+              </span>
+
+              {/* شارة المصدر: POS / ملف المركبة / عام */}
+              <span
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${originColor}`}
+                data-testid={`operation-card-origin-pill-${operation.id}`}
+                title={`المصدر: ${originLabel}`}
+              >
+                {originLabel}
+              </span>
             </div>
 
             <div className="mt-2.5 flex flex-col gap-1.5">

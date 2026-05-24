@@ -72,29 +72,97 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
     setDocumentDialogOpen(true);
   };
 
-  const buildVehiclePayload = (docType) => {
+  const buildVehiclePayload = async (docType) => {
     const labelMap = {
       invoice: 'فاتورة',
       diagnosis: 'تقرير تشخيص',
       quote: 'عرض سعر',
       receipt: 'سند قبض',
     };
-    const items = (approvalItems || []).map((item) => {
-      const quantity = Number(item?.quantity || 1);
-      const price = Number(item?.price || 0);
-      const itemName = item?.name || 'عنصر';
-      return {
-        name: itemName,
-        description: itemName,
-        quantity,
-        price,
-        total: Number(item?.total || quantity * price),
-        unit: item?.unit || 'حبة',
-      };
-    });
+
+    // اجلب عمليات الزيارة الحالية ديناميكياً (بدلاً من الاعتماد على approvalItems)
+    let dynamicItems = [];
+    let totalPaid = 0;
+    let totalAmount = 0;
+    let invoiceNumber = '';
+    try {
+      const visitsRes = await axios.get(`${API_URL}/vehicles/${vehicle.id}/visits`);
+      const visits = visitsRes.data || [];
+      const latestVisit = visits[0] || null;
+      const visitId = latestVisit?.id || null;
+
+      let ops = [];
+      if (visitId) {
+        const opsRes = await axios.get(`${API_URL}/visits/${visitId}/operations`);
+        ops = opsRes.data || [];
+      } else {
+        const opsRes = await axios.get(`${API_URL}/operations`, { params: { vehicle_id: vehicle.id } });
+        ops = opsRes.data || [];
+      }
+
+      // فلترة حسب نوع المستند
+      if (docType === 'receipt') {
+        // سند قبض: فقط عمليات السداد/التحصيل
+        const paymentOps = ops.filter((op) => {
+          const t = String(op?.type || '').toLowerCase();
+          return t === 'collect_customer' || t === 'payment_order' || t === 'receipt_voucher';
+        });
+        paymentOps.forEach((op) => {
+          const amt = Number(op?.total || op?.paymentAmount || 0);
+          totalPaid += amt;
+          dynamicItems.push({
+            name: op?.notes || `سند قبض ${op?.invoiceNumber || ''}`.trim(),
+            quantity: 1,
+            price: amt,
+            total: amt,
+            unit: 'سند',
+          });
+          if (!invoiceNumber && op?.invoiceNumber) invoiceNumber = op.invoiceNumber;
+        });
+      } else {
+        // فاتورة / عرض سعر / تشخيص: بنود الخدمات والقطع
+        ops.forEach((op) => {
+          (op.items || []).forEach((it) => {
+            if (!it?.name) return;
+            const quantity = Number(it.quantity || 1);
+            const price = Number(it.price || 0);
+            dynamicItems.push({
+              name: it.name,
+              description: it.name,
+              quantity,
+              price,
+              total: Number(it.total || quantity * price),
+              unit: it.unit || (it.itemType === 'part' ? 'حبة' : 'خدمة'),
+            });
+            totalAmount += quantity * price;
+          });
+          if (!invoiceNumber && op?.invoiceNumber) invoiceNumber = op.invoiceNumber;
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load visit operations for print:', e);
+    }
+
+    // Fallback: إذا لم يجد عمليات، استخدم approvalItems (سلوك سابق)
+    if (dynamicItems.length === 0 && approvalItems && approvalItems.length > 0) {
+      dynamicItems = approvalItems.map((item) => {
+        const quantity = Number(item?.quantity || 1);
+        const price = Number(item?.price || 0);
+        const itemName = item?.name || 'عنصر';
+        return {
+          name: itemName,
+          description: itemName,
+          quantity,
+          price,
+          total: Number(item?.total || quantity * price),
+          unit: item?.unit || 'حبة',
+        };
+      });
+    }
+
     return {
       doc_type: docType,
-      items,
+      items: dynamicItems,
       customer: {
         name: vehicle?.customerName || vehicle?.ownerName || '',
         phone: vehicle?.customerPhone || vehicle?.customerPhoneNumber || '',
@@ -105,8 +173,9 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
         brand: vehicle?.vehicleBrand || vehicle?.brand || '',
       },
       settings: {
-        document_number: '',
+        document_number: invoiceNumber || '',
         document_title: labelMap[docType] || 'مستند',
+        ...(docType === 'receipt' ? { totals: { paid: totalPaid } } : { totals: { amount: totalAmount } }),
       },
     };
   };

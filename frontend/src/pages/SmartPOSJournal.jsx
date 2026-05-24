@@ -760,6 +760,12 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
 
         resetFormAfterSave();
         setSavedToast({ ok: true, total, message: 'تم تسجيل التحصيل على العملية الأصلية بدون إنشاء عملية جديدة.' });
+        // 🔄 إشعار باقي الصفحات (Operations / Dashboard / DebtFollowUp) بالتحديث
+        try {
+          window.dispatchEvent(new CustomEvent('finance:updated', {
+            detail: { source: 'pos_collect_customer', opId: targetOperation.id, total }
+          }));
+        } catch (evtErr) { console.warn('finance:updated dispatch failed', evtErr); }
         if (typeof onSaved === 'function') onSaved(response.data);
         return;
       }

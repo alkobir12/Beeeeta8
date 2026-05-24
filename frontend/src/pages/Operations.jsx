@@ -586,8 +586,10 @@ const Operations = () => {
   useEffect(() => {
     const onFinUpdated = () => {
       try {
+        // invalidate + force refetch لضمان ظهور التحديث فوراً في الواجهة
         queryClient.invalidateQueries({ queryKey: ['operations'] });
         queryClient.invalidateQueries({ queryKey: ['biz-accounts'] });
+        queryClient.refetchQueries({ queryKey: ['operations'], type: 'active' });
       } catch (e) {
         console.warn('finance:updated invalidate failed', e);
       }
