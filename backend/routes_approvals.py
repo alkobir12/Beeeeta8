@@ -172,9 +172,11 @@ async def create_approval(payload: Dict[str, Any] = Body(...)):
             }
 
         # MongoDB legacy
+        otp_code = f"{secrets.randbelow(9000) + 1000}"  # 1000-9999 cryptographically secure
         doc = {
             "id": str(uuid.uuid4()),
             "token": token,
+            "otp_code": otp_code,
             "vehicleId": payload.get("vehicleId"),
             "customerId": payload.get("customerId"),
             "title": payload.get("title") or "طلب اعتماد",
@@ -188,6 +190,7 @@ async def create_approval(payload: Dict[str, Any] = Body(...)):
         }
         await db.approval_requests.insert_one(doc)
         doc.pop("_id", None)
+        doc["otp"] = otp_code  # expose to creator response only
         return doc
     except HTTPException:
         raise
@@ -430,6 +433,12 @@ async def respond_public_approval(token: str, request: Request):
         if d.get("expiresAt") and d["expiresAt"] < datetime.utcnow():
             raise HTTPException(status_code=410, detail="انتهت صلاحية الرابط")
 
+        # OTP gate (Mongo branch) — mirror of Supabase logic
+        stored_otp = str(d.get("otp_code") or "").strip()
+        if stored_otp:
+            if not otp or str(otp).strip() != stored_otp:
+                raise HTTPException(status_code=400, detail="رمز OTP غير صحيح")
+
         client_ip = request.client.host
         user_agent = request.headers.get("user-agent", "unknown")
         timestamp = datetime.utcnow().isoformat()
@@ -445,6 +454,7 @@ async def respond_public_approval(token: str, request: Request):
             "clientIp": client_ip,
             "userAgent": user_agent,
             "signature": signature,
+            "otpVerifiedAt": timestamp,
         }
         await db.approval_requests.update_one({"token": token}, {"$set": upd})
 
