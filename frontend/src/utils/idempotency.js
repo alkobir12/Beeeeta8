@@ -21,7 +21,9 @@ export function generateIdempotencyKey(prefix = 'op', refId = '') {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       uuid = crypto.randomUUID();
     }
-  } catch {}
+  } catch (e) {
+    console.warn('crypto.randomUUID unavailable:', e);
+  }
   if (!uuid) {
     uuid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }

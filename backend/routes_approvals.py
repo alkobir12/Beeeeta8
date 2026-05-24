@@ -13,7 +13,7 @@ import asyncio
 import hashlib
 import json
 import os
-import random
+import secrets  # was: random — OTP codes need cryptographic randomness
 import urllib.parse
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -139,7 +139,7 @@ async def create_approval(payload: Dict[str, Any] = Body(...)):
 
         if provider == "supabase":
             supa = SupabaseService()
-            otp_code = str(random.randint(1000, 9999))
+            otp_code = f"{secrets.randbelow(9000) + 1000}"  # 1000-9999 cryptographically secure
             row = {
                 "token": token,
                 "otp_code": otp_code,

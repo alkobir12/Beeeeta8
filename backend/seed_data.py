@@ -1,8 +1,18 @@
 import requests
-import random
+import secrets
 
 # Config
 API_URL = "http://localhost:8001/api"
+
+
+def _rand_int(low: int, high: int) -> int:
+    """عشوائي آمن — يستخدم secrets بدل random (cryptographically secure)."""
+    return secrets.randbelow(high - low + 1) + low
+
+
+def _rand_choice(seq):
+    """اختيار آمن من قائمة."""
+    return seq[secrets.randbelow(len(seq))]
 
 
 # Data Generators
@@ -54,11 +64,11 @@ def generate_services():
     ]
 
     for i in range(100):
-        action = random.choice(actions)
-        part = random.choice(parts)
+        action = _rand_choice(actions)
+        part = _rand_choice(parts)
         name = f"{action} {part} - {i+1}"
-        price = random.randint(50, 2000)
-        duration = random.choice([30, 60, 90, 120, 180, 240])
+        price = _rand_int(50, 2000)
+        duration = _rand_choice([30, 60, 90, 120, 180, 240])
 
         services.append(
             {
@@ -121,20 +131,20 @@ def generate_parts():
     ]
 
     for i in range(200):
-        name = random.choice(names)
-        brand = random.choice(brands)
+        name = _rand_choice(names)
+        brand = _rand_choice(brands)
         full_name = f"{name} {brand} - {i+1}"
 
         parts_list.append(
             {
-                "partNumber": f"PRT-{random.randint(10000, 99999)}-{i}",
+                "partNumber": f"PRT-{_rand_int(10000, 99999)}-{i}",
                 "name": full_name,
                 "category": "مكينة",
-                "purchasePrice": random.randint(50, 500),
-                "sellingPrice": random.randint(80, 800),
-                "quantity": random.randint(5, 50),
+                "purchasePrice": _rand_int(50, 500),
+                "sellingPrice": _rand_int(80, 800),
+                "quantity": _rand_int(5, 50),
                 "minQuantity": 5,
-                "location": f"R-{random.randint(1, 10)}-S-{random.randint(1, 5)}",
+                "location": f"R-{_rand_int(1, 10)}-S-{_rand_int(1, 5)}",
             }
         )
     return parts_list

@@ -37,11 +37,14 @@ export async function loginAndIssueToken(username) {
 
 export function getStoredToken() {
   try { return localStorage.getItem(TOKEN_KEY) || ''; }
-  catch { return ''; }
+  catch (e) {
+    console.warn('getStoredToken failed:', e);
+    return '';
+  }
 }
 
 export function clearStoredToken() {
-  try { localStorage.removeItem(TOKEN_KEY); } catch {}
+  try { localStorage.removeItem(TOKEN_KEY); } catch (e) { console.warn('clearStoredToken failed:', e); }
 }
 
 /** Install global axios + fetch interceptors that attach Bearer header. */

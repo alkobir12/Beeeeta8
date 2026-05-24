@@ -2037,7 +2037,7 @@ function EntryFormModal({ entry, onClose, onSave, saving, isLight, styles, coaAc
                 </thead>
                 <tbody>
                   {formData.lines.map((line, idx) => (
-                    <tr key={idx} style={{ borderBottom: `1px solid ${styles.cardBorder}` }}>
+                    <tr key={line?.id ?? line?.uid ?? `line-${idx}`} style={{ borderBottom: `1px solid ${styles.cardBorder}` }}>
                       <td className="px-4 py-3">
                         <div className="space-y-1.5" data-testid={`line-account-wrapper-${idx}`}>
                           <SmartAccountSelect
@@ -2291,7 +2291,7 @@ function EntryDetailModal({ entry, onClose, onPrint, isLight, styles }) {
               entry.vehicle_plate && { label: 'رقم اللوحة', value: entry.vehicle_plate, icon: Wrench, iconBg: 'bg-orange-50', iconColor: 'text-orange-600' },
             ].filter(Boolean).map((item, i) => (
               <div 
-                key={i}
+                key={item?.label ?? `info-${i}`}
                 className="rounded-xl p-4"
                 style={{ backgroundColor: 'rgba(15, 23, 42, 0.85)' }}
               >
@@ -2330,7 +2330,7 @@ function EntryDetailModal({ entry, onClose, onPrint, isLight, styles }) {
                 </thead>
                 <tbody>
                   {safeLines.map((line, idx) => (
-                    <tr key={idx} style={{ borderBottom: `1px solid ${styles.cardBorder}` }}>
+                    <tr key={line?.id ?? `${line?.account_code || 'acc'}-${idx}`} style={{ borderBottom: `1px solid ${styles.cardBorder}` }}>
                       <td className="px-4 py-3" style={{ color: styles.textPrimary }}>
                         <span className="font-mono text-xs bg-blue-500/15 text-blue-200 px-2 py-0.5 rounded ml-2">
                           {line.account_code || '-'}
