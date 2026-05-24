@@ -409,32 +409,32 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           data-testid="vehicle-quick-actions-dialog"
-          className={`w-[95vw] max-w-[520px] max-h-[90vh] overflow-y-auto ${isRTL ? 'rtl' : 'ltr'} bg-white/5 border border-purple-500/20 shadow-2xl backdrop-blur-xl`}
+          className={`w-[95vw] max-w-[560px] max-h-[90vh] overflow-y-auto ${isRTL ? 'rtl' : 'ltr'} bg-white dark:bg-slate-900 border-2 border-purple-200 dark:border-purple-700/50 shadow-2xl`}
           dir={isRTL ? 'rtl' : 'ltr'}
         >
-          <DialogHeader className="sticky top-0 bg-transparent z-10 pb-2">
-            <DialogTitle className="flex items-center justify-between text-base sm:text-lg">
-              <span>{t('quick_actions.title')}</span>
-              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10"><X size={18} /></Button>
+          <DialogHeader className="sticky top-0 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/40 dark:to-blue-950/40 -mx-6 -mt-6 px-6 pt-6 pb-4 z-10 border-b border-purple-200 dark:border-purple-700/30">
+            <DialogTitle className="flex items-center justify-between text-base sm:text-lg text-purple-900 dark:text-purple-100">
+              <span className="font-extrabold">{t('quick_actions.title')}</span>
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10 text-purple-700 dark:text-purple-200 hover:bg-purple-200/50 dark:hover:bg-purple-800/50"><X size={18} /></Button>
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
+            <DialogDescription className="text-xs sm:text-sm text-purple-700/80 dark:text-purple-300/80 mt-1">
               {t('quick_actions.subtitle', { defaultValue: 'اختر إجراء لهذه المركبة' })}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 sm:space-y-6 pb-4">
+          <div className="space-y-4 sm:space-y-6 pb-4 pt-4">
             {/* Vehicle Info Card */}
-            <div className="bg-white/5 p-3 sm:p-4 rounded-xl border border-purple-500/20">
-              <h3 className="font-bold text-base sm:text-lg text-foreground mb-1">{vehicle.plateNumber}</h3>
-              <p className="text-muted-foreground text-xs sm:text-sm">{vehicle.brand} {vehicle.model} - {vehicle.year}</p>
-              <p className="text-muted-foreground text-xs sm:text-sm">{vehicle.customerName}</p>
+            <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/40 dark:to-blue-950/30 p-4 rounded-xl border-2 border-purple-200 dark:border-purple-700/40 shadow-sm">
+              <h3 className="font-extrabold text-lg sm:text-xl text-purple-900 dark:text-purple-50 mb-1">{vehicle.plateNumber}</h3>
+              <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium">{vehicle.brand} {vehicle.model} - {vehicle.year}</p>
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm">{vehicle.customerName}</p>
             </div>
 
             {/* Status Update */}
             <div className="space-y-2 sm:space-y-3">
-              <Label className="text-sm sm:text-base font-semibold">{t('quick_actions.change_status')}</Label>
+              <Label className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100">{t('quick_actions.change_status')}</Label>
               <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger className="w-full h-10 sm:h-11"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full h-10 sm:h-11 border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {statusOptions.map(option => (
                     <SelectItem key={`status-${option.value}`} value={option.value}>
@@ -446,55 +446,55 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={handleStatusUpdate} disabled={loading || newStatus === vehicle.status} className="w-full h-10 sm:h-11 bg-purple-600 hover:bg-purple-700 text-white text-sm">
+              <Button onClick={handleStatusUpdate} disabled={loading || newStatus === vehicle.status} className="w-full h-10 sm:h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-sm font-bold shadow-md">
                 <CheckCircle size={16} className="ml-2" />{t('quick_actions.change_status')}
               </Button>
             </div>
 
             {/* Quick Actions Grid - 2 columns on mobile */}
             <div className="space-y-2 sm:space-y-3">
-              <Label className="text-sm sm:text-base font-semibold">{t('quick_actions.title')}</Label>
+              <Label className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100">{t('quick_actions.title')}</Label>
 
               <div className="grid grid-cols-2 gap-2">
                 {/* Approval Request */}
-                <Button data-testid="quick-actions-send-approval" onClick={handleRequestApproval} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-white/5 border-purple-500/20 hover:bg-purple-500/10 hover:text-purple-200">
-                  <BadgeCheck size={18} />
+                <Button data-testid="quick-actions-send-approval" onClick={handleRequestApproval} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-purple-50 dark:bg-purple-950/40 border-2 border-purple-300 dark:border-purple-700/50 text-purple-800 dark:text-purple-100 hover:bg-purple-100 dark:hover:bg-purple-900/60 hover:border-purple-500 font-semibold">
+                  <BadgeCheck size={20} className="text-purple-600 dark:text-purple-300" />
                   <span>{t('quick_actions.send_approval')}</span>
                 </Button>
 
                 {/* Diagnosis Report - Quick print dialog */}
-                <Button onClick={() => openPrintDialog('diagnosis')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs hover:bg-blue-500/10 hover:text-blue-400">
-                  <FileText size={18} />
+                <Button onClick={() => openPrintDialog('diagnosis')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-blue-50 dark:bg-blue-950/40 border-2 border-blue-300 dark:border-blue-700/50 text-blue-800 dark:text-blue-100 hover:bg-blue-100 dark:hover:bg-blue-900/60 hover:border-blue-500 font-semibold">
+                  <FileText size={20} className="text-blue-600 dark:text-blue-300" />
                   <span>{t('quick_actions.diagnosis_report')}</span>
                 </Button>
 
                 {/* Quote - Quick print dialog */}
-                <Button onClick={() => openPrintDialog('quote')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs hover:bg-amber-500/10 hover:text-amber-400">
-                  <FileText size={18} />
+                <Button onClick={() => openPrintDialog('quote')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/50 text-amber-800 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-900/60 hover:border-amber-500 font-semibold">
+                  <FileText size={20} className="text-amber-600 dark:text-amber-300" />
                   <span>{t('quick_actions.print_quotation')}</span>
                 </Button>
 
                 {/* Invoice - Quick print dialog */}
-                <Button onClick={() => openPrintDialog('invoice')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs hover:bg-purple-500/10 hover:text-purple-400">
-                  <Printer size={18} />
+                <Button onClick={() => openPrintDialog('invoice')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-indigo-50 dark:bg-indigo-950/40 border-2 border-indigo-300 dark:border-indigo-700/50 text-indigo-800 dark:text-indigo-100 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 hover:border-indigo-500 font-semibold">
+                  <Printer size={20} className="text-indigo-600 dark:text-indigo-300" />
                   <span>{t('quick_actions.print_invoice')}</span>
                 </Button>
 
                 {/* Receipt - Quick print dialog */}
-                <Button onClick={() => openPrintDialog('receipt')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs hover:bg-emerald-500/10 hover:text-emerald-400">
-                  <FileText size={18} />
+                <Button onClick={() => openPrintDialog('receipt')} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-300 dark:border-emerald-700/50 text-emerald-800 dark:text-emerald-100 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 hover:border-emerald-500 font-semibold">
+                  <FileText size={20} className="text-emerald-600 dark:text-emerald-300" />
                   <span>{t('quick_actions.receipt')}</span>
                 </Button>
 
                 {/* Details */}
-                <Button onClick={() => navigate(`/vehicle/${vehicle.id}`)} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs hover:bg-slate-700/50">
-                  <FileText size={18} />
+                <Button onClick={() => navigate(`/vehicle/${vehicle.id}`)} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-slate-50 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-500 font-semibold">
+                  <FileText size={20} className="text-slate-600 dark:text-slate-300" />
                   <span>{t('quick_actions.details')}</span>
                 </Button>
 
                 {/* Parts - Navigate to vehicle page with parts tab */}
-                <Button onClick={() => navigate(`/vehicle/${vehicle.id}?tab=parts`)} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs hover:bg-blue-500/10 hover:text-blue-400">
-                  <Package size={18} />
+                <Button onClick={() => navigate(`/vehicle/${vehicle.id}?tab=parts`)} disabled={loading} variant="outline" className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-sky-50 dark:bg-sky-950/40 border-2 border-sky-300 dark:border-sky-700/50 text-sky-800 dark:text-sky-100 hover:bg-sky-100 dark:hover:bg-sky-900/60 hover:border-sky-500 font-semibold">
+                  <Package size={20} className="text-sky-600 dark:text-sky-300" />
                   <span>{t('quick_actions.spare_parts')}</span>
                 </Button>
 
@@ -503,35 +503,35 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
                   onClick={() => navigate(`/operations?vehicleId=${vehicle.id}&plate=${encodeURIComponent(vehicle.plateNumber || '')}`)}
                   disabled={loading}
                   variant="outline"
-                  className="h-auto py-3 px-2 flex-col gap-1 text-xs hover:bg-orange-500/10 hover:text-orange-400"
+                  className="h-auto py-3 px-2 flex-col gap-1 text-xs bg-orange-50 dark:bg-orange-950/40 border-2 border-orange-300 dark:border-orange-700/50 text-orange-800 dark:text-orange-100 hover:bg-orange-100 dark:hover:bg-orange-900/60 hover:border-orange-500 font-semibold"
                 >
-                  <Wrench size={18} />
+                  <Wrench size={20} className="text-orange-600 dark:text-orange-300" />
                   <span>{t('quick_actions.operations')}</span>
                 </Button>
               </div>
 
               {/* Full Width Actions */}
               <div className="space-y-2 pt-2">
-                <Button onClick={() => handleStatusUpdate('delivered')} disabled={loading} variant="outline" className="w-full h-10 justify-start text-sm hover:bg-green-500/10 hover:text-green-400">
-                  <CheckCircle size={16} className="ml-2" />{t('status.delivered')}
+                <Button onClick={() => handleStatusUpdate('delivered')} disabled={loading} variant="outline" className="w-full h-10 justify-start text-sm bg-green-50 dark:bg-green-950/40 border-2 border-green-300 dark:border-green-700/50 text-green-800 dark:text-green-100 hover:bg-green-100 dark:hover:bg-green-900/60 font-semibold">
+                  <CheckCircle size={16} className="ml-2 text-green-600 dark:text-green-300" />{t('status.delivered')}
 
       {/* WhatsApp Preview Dialog */}
       <Dialog open={whatsappPreviewOpen} onOpenChange={setWhatsappPreviewOpen}>
-        <DialogContent className="w-[95vw] max-w-[620px] max-h-[90vh] overflow-y-auto bg-white/5 border border-purple-500/20 shadow-2xl backdrop-blur-xl" dir="rtl">
+        <DialogContent className="w-[95vw] max-w-[620px] max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border-2 border-purple-200 dark:border-purple-700/50 shadow-2xl" dir="rtl">
           <DialogHeader>
-            <DialogTitle>معاينة رسالة واتساب قبل الإرسال</DialogTitle>
+            <DialogTitle className="text-purple-900 dark:text-purple-100">معاينة رسالة واتساب قبل الإرسال</DialogTitle>
             <DialogDescription>
               يمكنك نسخ الرسالة أو فتح واتساب لإرسالها.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3">
-            <Textarea value={whatsappPreviewMessage} readOnly className="min-h-[240px] bg-white/5 border-purple-500/20" />
+            <Textarea value={whatsappPreviewMessage} readOnly className="min-h-[240px] bg-slate-50 dark:bg-slate-800 border-2 border-purple-200 dark:border-purple-700/40" />
 
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 type="button"
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold shadow-md"
                 onClick={() => {
                   // فتح واتساب (سيحوّل إلى الرابط)
                   sendToWhatsApp('approval', whatsappPreviewLink, whatsappPreviewMessage);
@@ -544,7 +544,7 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 bg-white/5 border-purple-500/20 hover:bg-purple-500/10"
+                className="flex-1 bg-blue-50 dark:bg-blue-950/40 border-2 border-blue-300 dark:border-blue-700/50 text-blue-800 dark:text-blue-100 hover:bg-blue-100 dark:hover:bg-blue-900/60 font-semibold"
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(whatsappPreviewMessage || '');
@@ -568,7 +568,7 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
 
                 </Button>
 
-                <Button onClick={handleDelete} disabled={loading} variant="destructive" className="w-full h-10 justify-start text-sm hover:bg-red-600">
+                <Button onClick={handleDelete} disabled={loading} variant="destructive" className="w-full h-10 justify-start text-sm bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow-md">
                   <Trash2 size={16} className="ml-2" />{t('quick_actions.delete_vehicle')}
                 </Button>
               </div>
@@ -587,7 +587,7 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
 
       {/* Approval Request Dialog */}
       <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-[560px] max-h-[90vh] overflow-y-auto bg-white/5 border border-purple-500/20 shadow-2xl backdrop-blur-xl" dir="rtl">
+        <DialogContent className="w-[95vw] max-w-[560px] max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border-2 border-purple-200 dark:border-purple-700/50 shadow-2xl" dir="rtl">
           <DialogHeader>
             <DialogTitle>طلب اعتماد من العميل</DialogTitle>
             <DialogDescription>أضف تفاصيل طلب الاعتماد وصور الأعطال</DialogDescription>
