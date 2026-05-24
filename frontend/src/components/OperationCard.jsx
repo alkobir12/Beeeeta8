@@ -380,30 +380,23 @@ export default function OperationCard({
   const paymentStatusLabel = labelFromMap(paymentStatus, PAYMENT_STATUS_LABELS, '-');
   const paymentMethodLabel = labelFromMap(paymentMethod, PAYMENT_METHOD_LABELS, '-');
 
-  // 🟢 تصنيف الحركة: مدينة (Debit) أم دائنة (Credit) من منظور حسابات الورشة
-  // - مدينة (يزيد رصيد أصول/مصاريف الورشة): مبيعات/خدمات/تحصيل من عملاء/مشتريات/مصاريف
-  // - دائنة (يزيد رصيد التزامات/إيرادات الورشة): سداد لمورد / مرتجع مبيعات / استلام إيراد
-  // المرجع: قواعد القيد المزدوج للورشة
+  // 🟢 تصنيف الحركة من منظور الورشة:
+  // - مدينة (Debit / IN): الأموال داخلة للورشة → مبيعات، خدمات، تحصيل عميل، سند قبض
+  // - دائنة (Credit / OUT): الأموال خارجة من الورشة → مشتريات، مصاريف، سداد لمورد، رواتب
   const opType = String(operation.type || '').toLowerCase();
-  const debitTypes = new Set(['sale', 'service', 'instant_sale', 'collect_customer', 'purchase', 'expense', 'cash_expense', 'salary']);
-  const creditTypes = new Set(['payment_order', 'sale_return', 'purchase_return', 'receipt_voucher']);
+  const incomeTypes = new Set(['sale', 'service', 'instant_sale', 'collect_customer', 'receipt_voucher', 'sale_return']);
+  const outflowTypes = new Set(['purchase', 'expense', 'cash_expense', 'salary', 'payment_order', 'pay_supplier', 'purchase_return']);
   let movementSide = '';
   let movementLabel = '';
-  if (debitTypes.has(opType)) {
+  if (incomeTypes.has(opType)) {
     movementSide = 'debit';
-    movementLabel = 'حركة مدينة';
-  } else if (creditTypes.has(opType)) {
+    movementLabel = 'مدين (داخل)';
+  } else if (outflowTypes.has(opType)) {
     movementSide = 'credit';
-    movementLabel = 'حركة دائنة';
+    movementLabel = 'دائن (خارج)';
   } else {
-    // fallback من طريقة الدفع/الحالة
-    if (paymentMethod === 'credit' || paymentStatus === 'credit' || paymentStatus === 'unpaid') {
-      movementSide = 'debit'; // ذمم مدينة (العميل يدين لنا)
-      movementLabel = 'حركة مدينة';
-    } else {
-      movementSide = 'debit';
-      movementLabel = 'حركة مدينة';
-    }
+    movementSide = 'neutral';
+    movementLabel = 'متعادل';
   }
 
   // 🟡 مصدر العملية: POS أم ملف المركبة
@@ -511,11 +504,15 @@ export default function OperationCard({
                 </span>
               ) : null}
 
-              {/* شارة الحركة: مدينة (Debit) أو دائنة (Credit) */}
+              {/* شارة الحركة: مدين (داخل) / دائن (خارج) */}
               <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${movementSide === 'debit' ? 'bg-blue-50 text-blue-950 border-blue-300' : 'bg-rose-50 text-rose-950 border-rose-300'}`}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                  movementSide === 'debit' ? 'bg-emerald-50 text-emerald-950 border-emerald-300' :
+                  movementSide === 'credit' ? 'bg-rose-50 text-rose-950 border-rose-300' :
+                  'bg-slate-50 text-slate-800 border-slate-300'
+                }`}
                 data-testid={`operation-card-movement-pill-${operation.id}`}
-                title={movementSide === 'debit' ? 'تزيد أصول/مصاريف الورشة' : 'تزيد التزامات/إيرادات الورشة'}
+                title={movementSide === 'debit' ? 'الأموال داخلة للورشة' : movementSide === 'credit' ? 'الأموال خارجة من الورشة' : 'حركة متعادلة'}
               >
                 {movementLabel}
               </span>

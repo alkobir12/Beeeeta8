@@ -1,0 +1,52 @@
+{
+  "summary": "Iter218 — Verified _operation_payment_snapshot backend fix end-to-end (3/3 pytest pass). Cash-immediate operations (pos/cash/transfer/bank/card/mada/visa/mastercard) with paymentStatus∉{unpaid,credit,partial,deferred,pending} now return paymentStatus='paid' and balance=0 from GET /api/operations. Credit/unpaid purchases correctly remain unpaid with full balance. Frontend OperationCard movement pill (مدين/دائن/متعادل) renders correctly. Origin pill renders 'ملف المركبة' and 'عام' correctly. CRITICAL FINDING: the 'POS' origin badge NEVER renders for any real POS-created operation — root cause described below.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/operations", "issue": "Top-level 'source' field sent in the create payload (e.g. 'SMART_POS') is NOT persisted — GET returns source=null. The real internal POS code path writes the marker into notes as '[SOURCE:SMART_POS]' instead. Not a regression of the current fix, but it interacts with the frontend origin-pill bug below."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "OperationCard.jsx (origin-pill block, lines 403-426)",
+        "issue": "POS origin badge never renders. Backend stores POS-created operations with source=null and the marker '[SOURCE:SMART_POS]' inside notes. The detection condition `opNotesStr.includes('[pos]')` does NOT match '[source:smart_pos]'. As a result all 11/15 cash/POS operations on the live page render as 'عام' instead of 'POS' (0/15 cards show the POS badge). This directly contradicts the requested behaviour: 'عند إنشاء عملية POS expense، صفحة /operations يجب أن تعرضها بشارات دائن (خارج) + POS + مدفوع'.",
+        "selector": "[data-testid^='operation-card-origin-pill-']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "POS expense → /operations origin badge",
+        "issue": "Real POS operation INV001032 (paymentMethod=pos, paymentStatus=paid, balance=0, notes contains '[SOURCE:SMART_POS]') displays origin='عام'. Expected 'POS'. Snapshot of pill distribution on live page: POS=0, ملف المركبة=4, عام=11.",
+        "affected_selectors": ["[data-testid^='operation-card-origin-pill-']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_operation_payment_snapshot_iter218.py",
+    "/app/test_reports/pytest/iter218_operation_snapshot.xml"
+  ],
+  "action_items": [
+    "Fix OperationCard.jsx origin-pill detection: extend the notes regex/match to also accept '[source:smart_pos]', 'smart_pos', or 'source:pos' (lowercased). Suggested condition: `opSource.includes('pos') || opSource.includes('instant_sale') || opSource === 'pos_template' || /\\[source:[^\\]]*pos[^\\]]*\\]/i.test(operation.notes || '') || opNotesStr.includes('smart_pos') || opNotesStr.includes('[pos]')`.",
+    "(Optional) Have POST /api/operations preserve the top-level 'source' field so future writes don't depend on a notes marker."
+  ],
+  "critical_code_review_comments": [
+    "Origin-pill detection in OperationCard.jsx duplicates logic that is really a backend concern — operations should expose a clean 'source' enum (pos | vehicle_file | general) so the UI doesn't have to parse notes text.",
+    "POST /api/operations silently drops unknown fields (e.g. source). Consider documenting/whitelisting accepted fields or returning a 422 when an unsupported field is sent, to avoid silent integration breakage."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_operation_payment_snapshot_iter218.py (new)"
+  ],
+  "success_rate": {"backend": "100% (3/3 pytest)", "frontend": "movement-pill 100%, origin-pill 67% (POS branch broken)"},
+  "test_credentials": "admin = 'مدير' (no password) — verified working",
+  "seed_data_creation": "Created 6 TEST_iter218_* operations via POST /api/operations (INV001036–INV001041): 2× POS expense paid, 2× cash expense paid, 2× credit purchase unpaid. No cleanup endpoint available — rows remain in Supabase tagged with TEST_iter218 prefix in partnerName and notes.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend snapshot fix is verified — DO NOT regress it. Focus next iteration on the POS origin-pill rendering. Reproduction: login as 'مدير', go to /operations, run JS `document.querySelectorAll('[data-testid^=\\\"operation-card-origin-pill-\\\"]').length` and verify at least one card shows 'POS' text content. Real POS ops in the DB: INV001032 (paymentMethod=pos, source=null, notes contains '[SOURCE:SMART_POS]'). Login screen warm-up via plain curl to / works fine — no Preview Unavailable splash hit this iter.",
+  "rca_of_the_issue": {
+    "primary_bug_reported_by_user": "RESOLVED — `_operation_payment_snapshot` in supabase_service.py (lines 175-188) now respects stored paymentStatus for cash-immediate methods. Verified by pytest: cash/pos expense with paymentStatus=paid persists as paymentStatus=paid + balance=0; credit/unpaid purchase still persists as unpaid + balance=full. No regression.",
+    "secondary_bug_discovered": "POS origin badge missing — caused by mismatch between backend notes marker '[SOURCE:SMART_POS]' and frontend detection token '[pos]'. Frontend never finds the substring '[pos]' inside '[source:smart_pos]' (no '[pos]' substring exists)."
+  }
+}

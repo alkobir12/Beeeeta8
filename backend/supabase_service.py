@@ -169,6 +169,24 @@ def _operation_payment_snapshot(row: Dict[str, Any], visit_summary: Dict[str, An
     total = round(_safe_float(operation_total or row.get('total') or row.get('subtotal') or 0), 2)
     paid = round(_safe_float(visit_summary.get('total_paid') or row.get('total_paid') or row.get('paymentAmount') or 0), 2)
     explicit_balance = row.get('balance') if row.get('balance') is not None else row.get('remaining_balance')
+
+    # 🔒 FIX: احترام الحالة المُخزّنة للعمليات النقدية الفورية (POS, مصروف نقدي, …)
+    # المنطق السابق كان يُعيد 'unpaid' عند paid<=0 رغم أن العملية مدفوعة نقدًا فوراً
+    stored_method = str(row.get('payment_method') or row.get('paymentMethod') or '').strip().lower()
+    stored_status = str(row.get('payment_status') or row.get('paymentStatus') or '').strip().lower()
+    is_cash_immediate = (
+        stored_method in {'cash', 'transfer', 'bank', 'card', 'pos', 'mada', 'visa', 'mastercard', 'supplier_balance'}
+        and stored_status not in {'credit', 'unpaid', 'partial', 'deferred', 'pending'}
+    )
+    if is_cash_immediate:
+        # العملية مدفوعة فوراً — تظهر بصفتها كذلك دون انتظار journal_entries
+        return {
+            'payment_method': stored_method,
+            'payment_status': stored_status or 'paid',
+            'total_paid': total,
+            'balance': 0.0,
+        }
+
     if explicit_balance is not None:
         balance = round(max(_safe_float(explicit_balance), 0.0), 2)
     else:
