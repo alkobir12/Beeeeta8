@@ -4,7 +4,8 @@ import { Eye, EyeOff, Menu } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AnimatedBackground from './AnimatedBackground';
 import { useTranslation } from 'react-i18next';
-import UnifiedBotWidget from './UnifiedBotWidget';
+import { AssistantProvider } from './assistant/AssistantProvider';
+import UnifiedAssistantDrawer from './assistant/UnifiedAssistantDrawer';
 import FinanceAlertsWidget from './FinanceAlertsWidget';
 import { Toaster } from './ui/toaster';
 import { hasRoutePermission, resolveRoutePermission } from '../utils/permissions';
@@ -216,6 +217,7 @@ const Layout = ({ pageTitle }) => {
   );
 
   return (
+    <AssistantProvider>
     <div
       className="layout-main"
       style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', position: 'relative' }}
@@ -328,15 +330,16 @@ const Layout = ({ pageTitle }) => {
           </Suspense>
         </div>
 
-        {/* AbuFahad Floating Chat - replaced by UnifiedBotWidget */}
+        {/* AbuFahad Floating Chat - replaced by UnifiedAssistantDrawer */}
       </main>
-        {/* Unified Bot Widget (replaces AbuFahadFloatingChat + ChatWidget) */}
-        {isEditorWorkspace ? null : <UnifiedBotWidget />}
+        {/* Unified Assistant Drawer (kernel-backed, replaces UnifiedBotWidget + FloatingAIAssistant + WorkshopAIBot UI) */}
+        {isEditorWorkspace ? null : <UnifiedAssistantDrawer />}
 
       
       {/* Toast Notifications */}
       <Toaster />
     </div>
+    </AssistantProvider>
   );
 };
 

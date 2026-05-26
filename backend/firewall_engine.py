@@ -730,4 +730,10 @@ class FirewallEngine:
         }
         if use_cache:
             _ANALYSIS_CACHE[cache_key] = (time.time(), result)
+        # 📡 ربط مباشر بـ alert_bus (Phase 3 integration)
+        try:
+            from core import alert_bus  # lazy import لتجنب circular
+            alert_bus.publish_alerts_batch(all_alerts)
+        except Exception as _e:
+            pass
         return result
