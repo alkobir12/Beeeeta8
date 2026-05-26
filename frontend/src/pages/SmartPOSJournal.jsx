@@ -776,6 +776,16 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         if (operationResponse?.data?.id) {
           resetFormAfterSave();
           setSavedToast({ ok: true, total: roundAmount(effectiveAmount) });
+          // 🔄 إشعار باقي الصفحات (Operations / Dashboard / DebtFollowUp) بالتحديث الفوري
+          try {
+            window.dispatchEvent(new CustomEvent('finance:updated', {
+              detail: {
+                source: `pos_${activeTemplate?.key || 'operation'}`,
+                opId: operationResponse.data.id,
+                total: roundAmount(effectiveAmount),
+              },
+            }));
+          } catch (evtErr) { console.warn('finance:updated dispatch failed', evtErr); }
           if (typeof onSaved === 'function') onSaved(operationResponse.data);
           return;
         }

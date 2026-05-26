@@ -1125,6 +1125,20 @@ const VisitCard = ({
       setOriginalPayments(syncedPayments);
       setIsEditing(archiveMode);
       onUpdate?.();
+
+      // 🔄 إشعار باقي الصفحات (Operations / Dashboard / DebtFollowUp) بتحديث البنود
+      try {
+        window.dispatchEvent(new CustomEvent('finance:updated', {
+          detail: {
+            source: 'visit_items_save',
+            visitId: visit.id,
+            vehicleId: visit.vehicleId || visit.vehicle_id,
+            itemsCount: items.length,
+            totalAmount,
+          },
+        }));
+      } catch (evtErr) { console.warn('finance:updated dispatch failed', evtErr); }
+
       onAuditEvent?.({
         action: 'visit_save',
         actionLabel: 'حفظ تعديل زيارة',

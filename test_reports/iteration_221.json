@@ -1,0 +1,45 @@
+{
+  "summary": "Iter221 — Integration tests for the 5 finance-sync flows across POS, VehicleDetails, and Operations. Backend: 5/5 pytest tests PASS — Flow 1 (POS expense + cash → paymentStatus=paid, totalPaid=75, balance=0), Flow 2 (POS salary + cash → paid, totalPaid=500), Flow 3 (confirm-payment 100+200 on credit-300 op → SAME op_id, totalPaid=300, balance=0, status transitions unpaid→partial→paid), Flow 4 (PUT /api/visits/{id} with extra item triggers _sync_visit_to_operation and operation total/items grow), and health. Frontend: code-level verification confirms (a) SmartPOSJournal.jsx L775-797 dispatches finance:updated after POST /api/operations; (b) VehicleDetails.jsx L1121-1140 dispatches finance:updated after PUT /api/visits; (c) Operations.jsx L586-599 attaches a window listener that calls queryClient.invalidateQueries(['operations','biz-accounts']) + refetchQueries(['operations'], type:'active'). Listener attachment was verified live in the browser — a manually-dispatched finance:updated event was captured by the page. Full UI round-trip (POS→Operations auto-refresh) could NOT be reproduced in headless Playwright because the workshop selector remains on the placeholder 'نظام إدارة الورشة' after re-login (Emergent JWT side-channel 'Failed to fetch' error — same auth-state artifact documented in iter220). This is a TEST-ENVIRONMENT issue, not a regression in the new event-dispatch code.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/operations/{id}/confirm-payment", "issue": "Returns 400 'unsupported operation type' for operation type='instant_sale' even though /api/operations POST happily creates them. Only sale/service/purchase/expense are accepted by confirm-payment. If POS templates ever write type='instant_sale', their collections will fail. Recommend either normalizing instant_sale→sale inside confirm-payment, or rejecting instant_sale at POST time."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_finance_sync_iter221.py",
+    "/app/test_reports/pytest/iter221_results.xml"
+  ],
+  "action_items": [
+    "(Optional, minor) Normalize 'instant_sale' to 'sale' inside POST /api/operations/{id}/confirm-payment so collections never 400 if a POS template emits that type.",
+    "(Test-env only) The workshop selector doesn't auto-populate after headless re-login because the Emergent JWT side-channel returns 'Failed to fetch'. End-user manual testing in a normal browser is unaffected. Not a code bug — flagged for awareness only.",
+    "(Optional, nice-to-have) Expose a clean `source` enum on GET /api/operations so OperationCard.jsx no longer parses '[SOURCE:SMART_POS]' out of free-text notes (still flagged from iter219)."
+  ],
+  "critical_code_review_comments": [
+    "Operations.jsx L592 uses queryClient.refetchQueries({type:'active'}) which is a no-op when no operations query is currently active (e.g., workshop_id not yet resolved). For the very first POS save right after login when /operations tab was never opened, the cache will still be stale when the user finally navigates there. Consider also invalidateQueries (without {type:'active'}) so the stale flag is set even on inactive queries — which the code already does, so this is fine; just noting the dual call is intentional and correct.",
+    "Flow 4 sync path (_sync_visit_to_operation) currently re-runs on EVERY PUT /api/visits even when items did not change — that's wasteful for status-only edits. Consider diffing before triggering the heavy snapshot rebuild. Not blocking.",
+    "VehicleDetails.jsx L1118 sends `notes` as a stringified JSON. The backend _sync_visit_to_operation must JSON.parse it; any non-JSON-safe payload (e.g., a free-text note with embedded quotes saved by a different flow) would crash sync silently. Add a try/except around JSON.loads on the backend side."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_finance_sync_iter221.py"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 pytest pass — covers flows 1, 2, 3, 4 + health)",
+    "frontend": "Code-level 100% (event dispatch + listener wiring verified). UI round-trip end-to-end NOT reproducible in this headless session due to workshop-selector auth-state artifact (same as iter220)."
+  },
+  "test_credentials": "admin = 'مدير' (no password). Login form submitted OK; Emergent JWT side-channel logged 'Failed to fetch' which prevents workshop_id from auto-populating in headless preview.",
+  "seed_data_creation": "Test-only operations created via API with names prefixed TEST_iter221_*: one expense (cash 75 paid), one salary (cash 500 paid), one credit sale (300, fully collected via two partial confirm-payment calls). All in workshop_id=finmodule-sync. No production data was touched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 4 backend flows are PROVEN working via /app/backend/tests/test_finance_sync_iter221.py — re-run with: REACT_APP_BACKEND_URL=https://fleet-audit-system-2.preview.emergentagent.com pytest /app/backend/tests/test_finance_sync_iter221.py -v . For Flow 5 (frontend auto-refresh via finance:updated event), the event listener in Operations.jsx L586-599 IS correctly attached — verified by my page-side counter (window.__finUpdated captured a manually-dispatched event with source='TEST_iter221'). To verify the full UI round-trip end-to-end, do it in a REAL browser (Chrome incognito, not headless Playwright): login as 'مدير', wait for sidebar workshop header to show 'ورشة عبدالله الكبير', open /operations in tab A, then in tab B open /smart-pos-journal, save a cash expense — tab A should refetch within ~1s. The SmartPOSJournal POST→event dispatch line is /app/frontend/src/pages/SmartPOSJournal.jsx:781. The VehicleDetails save→event dispatch is /app/frontend/src/pages/VehicleDetails.jsx:1131.",
+  "rca_of_the_issue": {
+    "original_main_agent_fix_recap": "SmartPOSJournal.jsx and VehicleDetails.jsx were dispatching finance:updated only after journal_entries POST success — they now dispatch it after POST /api/operations success and after PUT /api/visits success as well. Operations.jsx listens and invalidates+refetches.",
+    "verification_done_this_iteration": "Backend pytest 5/5 PASS proves: (1) POST /api/operations with cash+paid persists paymentStatus=paid via _operation_payment_snapshot (the iter219 fix is intact); (2) confirm-payment updates the SAME op_id and correctly walks unpaid→partial→paid; (3) PUT /api/visits triggers _sync_visit_to_operation and updates the operations row's items+total. Browser-side: finance:updated listener is alive and capturing events.",
+    "unverifiable_in_headless": "Full POS→Operations auto-refresh UI animation. The Operations refetch trigger fires window.dispatchEvent path-correctly, but Playwright's workshop-selector state prevented the actual operations query from being active, so no fetch was observable. This is identical to the iter220 auth-state artifact."
+  }
+}
