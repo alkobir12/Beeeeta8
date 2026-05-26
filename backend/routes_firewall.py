@@ -1,24 +1,30 @@
 """
-🛡️ Accounting Firewall Dashboard API
+🛡️ Accounting Firewall API — Smart Center
 
-نقطة نهاية موحدة تعرض حالة جدار حماية المحاسبة في الوقت الفعلي:
-
-  • Balance integrity   — التحقق من توازن جميع قيود اليومية (مدين = دائن)
-  • COGS generation     — قيود تكلفة البضاعة المباعة المولدة تلقائياً
-  • Idempotency hits    — حالات منع التكرار
-  • Recent rejections   — رفض القيود غير المتوازنة (من السجل الزمني)
-  • Precision drift     — انحراف الأرقام عن الصفر بسبب الفاصلة العشرية
-
-Route: GET /api/firewall/status
+Endpoints:
+  • GET  /api/firewall/status               — legacy summary (الإصدار القديم)
+  • GET  /api/firewall/dashboard            — JSON شامل للوحة الجديدة
+  • GET  /api/firewall/health-score         — درجة الصحة فقط
+  • GET  /api/firewall/alerts               — كل التنبيهات (مع فلترة category/severity)
+  • GET  /api/firewall/alerts/{alert_id}    — تفاصيل تنبيه واحد
+  • POST /api/firewall/alerts/{alert_id}/dismiss
+  • POST /api/firewall/alerts/{alert_id}/resolve
+  • POST /api/firewall/auto-fix             — تنفيذ إصلاح آلي
+  • GET  /api/firewall/live-activity        — آخر القيود
+  • GET  /api/firewall/ai-insights          — توصيات ذكية (rules + AI)
+  • POST /api/firewall/test/log-rejection   — اختبار تسجيل رفض
 """
 
 import os
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 
 import firewall_state
+from firewall_engine import FirewallEngine
+from firewall_ai_insights import generate_insights
 
 router = APIRouter(prefix="/api/firewall", tags=["firewall"])
 
@@ -201,3 +207,242 @@ async def test_log_rejection(payload: Dict[str, Any]):
         },
     )
     return {"success": True}
+
+
+# ============================================================
+# 🆕 SMART CENTER ENDPOINTS (Phase 2)
+# ============================================================
+
+@router.get("/dashboard")
+async def firewall_dashboard(workshop_id: Optional[str] = Query(default=None)):
+    """JSON شامل للوحة Accounting Firewall Center (Health Score + Alerts + Cash flow + Live)."""
+    try:
+        engine = FirewallEngine(workshop_id=workshop_id)
+        analysis = engine.run_full_analysis()
+        return {"success": True, "data": analysis}
+    except Exception as e:
+        import traceback
+        print(f"[firewall_dashboard] error: {e}\n{traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/health-score")
+async def firewall_health_score(workshop_id: Optional[str] = Query(default=None)):
+    """درجة الصحة المالية فقط (للويدجت الخفيفة)."""
+    try:
+        engine = FirewallEngine(workshop_id=workshop_id)
+        analysis = engine.run_full_analysis()
+        return {"success": True, "data": {
+            "health": analysis["health"],
+            "alerts_count": analysis["alerts_count"],
+            "counts_by_severity": analysis["counts_by_severity"],
+        }}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/alerts")
+async def firewall_alerts(
+    workshop_id: Optional[str] = Query(default=None),
+    category: Optional[str] = Query(default=None),
+    severity: Optional[str] = Query(default=None),
+    limit: int = Query(default=200, le=1000),
+):
+    """قائمة التنبيهات مع فلترة."""
+    try:
+        engine = FirewallEngine(workshop_id=workshop_id)
+        analysis = engine.run_full_analysis()
+        alerts = analysis.get("alerts", [])
+        if category:
+            alerts = [a for a in alerts if a.get("category") == category]
+        if severity:
+            alerts = [a for a in alerts if a.get("severity") == severity]
+        return {"success": True, "data": alerts[:limit], "total": len(alerts)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/alerts/{alert_id}")
+async def firewall_alert_detail(alert_id: str, workshop_id: Optional[str] = Query(default=None)):
+    """تفاصيل تنبيه واحد (يبحث في كل التنبيهات الحية)."""
+    try:
+        engine = FirewallEngine(workshop_id=workshop_id)
+        analysis = engine.run_full_analysis()
+        found = next((a for a in analysis.get("alerts", []) if a.get("id") == alert_id), None)
+        if not found:
+            raise HTTPException(status_code=404, detail="alert not found (قد يكون تم حله أو تجاهله)")
+        return {"success": True, "data": found}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/alerts/{alert_id}/dismiss")
+async def firewall_dismiss(
+    alert_id: str,
+    workshop_id: Optional[str] = Query(default="finmodule-sync"),
+    payload: Dict[str, Any] = Body(default=None),
+):
+    """تجاهل تنبيه (مع expiry اختياري)."""
+    try:
+        from server import db
+        from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+        body = payload or {}
+        hours = int(body.get("expires_in_hours") or 24)
+        expires_at = (_dt.now(_tz.utc) + _td(hours=hours)).isoformat()
+        await db.firewall_dismissed_alerts.update_one(
+            {"alert_id": alert_id, "workshop_id": workshop_id or "finmodule-sync"},
+            {"$set": {
+                "alert_id": alert_id,
+                "workshop_id": workshop_id or "finmodule-sync",
+                "dismissed_at": _dt.now(_tz.utc).isoformat(),
+                "expires_at": expires_at,
+                "reason": body.get("reason") or "user_dismissed",
+            }},
+            upsert=True,
+        )
+        return {"success": True, "alert_id": alert_id, "expires_at": expires_at}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/alerts/{alert_id}/resolve")
+async def firewall_resolve(
+    alert_id: str,
+    workshop_id: Optional[str] = Query(default="finmodule-sync"),
+    payload: Dict[str, Any] = Body(default=None),
+):
+    """تعليم كمحلول (يخزّن في collection مختلف للسجل الدائم)."""
+    try:
+        from server import db
+        from datetime import datetime as _dt, timezone as _tz
+        body = payload or {}
+        await db.firewall_resolved_alerts.insert_one({
+            "alert_id": alert_id,
+            "workshop_id": workshop_id or "finmodule-sync",
+            "resolved_at": _dt.now(_tz.utc).isoformat(),
+            "resolved_by": body.get("user") or "system",
+            "notes": body.get("notes"),
+        })
+        # also dismiss permanently
+        await db.firewall_dismissed_alerts.update_one(
+            {"alert_id": alert_id, "workshop_id": workshop_id or "finmodule-sync"},
+            {"$set": {
+                "alert_id": alert_id,
+                "workshop_id": workshop_id or "finmodule-sync",
+                "dismissed_at": _dt.now(_tz.utc).isoformat(),
+                "expires_at": None,
+                "reason": "resolved",
+            }},
+            upsert=True,
+        )
+        return {"success": True, "alert_id": alert_id}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/auto-fix")
+async def firewall_auto_fix(
+    workshop_id: Optional[str] = Query(default=None),
+    payload: Dict[str, Any] = Body(...),
+):
+    """تنفيذ Auto-Fix لتنبيه قابل للإصلاح آلياً.
+
+    Body: {alert_id, dry_run?}
+    Returns: {success, action_taken, details}
+    """
+    try:
+        body = payload or {}
+        alert_id = body.get("alert_id")
+        if not alert_id:
+            raise HTTPException(status_code=400, detail="alert_id is required")
+        dry_run = bool(body.get("dry_run", False))
+
+        engine = FirewallEngine(workshop_id=workshop_id)
+        analysis = engine.run_full_analysis()
+        alert = next((a for a in analysis.get("alerts", []) if a.get("id") == alert_id), None)
+        if not alert:
+            raise HTTPException(status_code=404, detail="alert not found")
+        if alert.get("auto_fix") != "auto":
+            return {"success": False, "error": "هذا التنبيه يحتاج معالجة يدوية أو موجّهة"}
+
+        fix = alert.get("auto_fix_preview") or {}
+        fix_type = fix.get("type")
+        supa = _supa()
+        if not supa:
+            raise HTTPException(status_code=400, detail="Auto-Fix requires Supabase provider")
+
+        if fix_type == "delete_orphan_journal":
+            journal_id = fix.get("journal_id") or (alert.get("evidence") or {}).get("journal_id")
+            if dry_run:
+                return {"success": True, "dry_run": True, "would_delete": journal_id}
+            supa.client.table("journal_entries").delete().eq("id", journal_id).execute()
+            return {"success": True, "action_taken": "deleted_orphan_journal", "journal_id": journal_id}
+
+        elif fix_type == "balancing_adjustment":
+            journal_id = (alert.get("evidence") or {}).get("journal_id")
+            side = fix.get("side")
+            amount = float(fix.get("amount") or 0)
+            if dry_run:
+                return {"success": True, "dry_run": True, "would_create_adjustment": {
+                    "for_journal": journal_id, "side": side, "amount": amount,
+                }}
+            # ننشئ قيد تعديل
+            import uuid as _uuid
+            from datetime import datetime as _dt, timezone as _tz
+            entry = {
+                "id": str(_uuid.uuid4()),
+                "workshop_id": workshop_id or "finmodule-sync",
+                "date": _dt.now(_tz.utc).date().isoformat(),
+                "description": f"تسوية جدار حماية لقيد {journal_id}",
+                "source": "firewall_adjustment",
+                "reference_id": journal_id,
+                "total": amount,
+                "lines": [
+                    {"account": "9999", "account_name": "تسوية جدار حماية", "debit": amount if side == "debit" else 0, "credit": amount if side == "credit" else 0},
+                    {"account": "9998", "account_name": "تسوية مقابلة", "debit": amount if side == "credit" else 0, "credit": amount if side == "debit" else 0},
+                ],
+                "created_at": _dt.now(_tz.utc).isoformat(),
+            }
+            supa.client.table("journal_entries").insert(entry).execute()
+            return {"success": True, "action_taken": "created_balancing_adjustment", "journal_entry_id": entry["id"]}
+
+        return {"success": False, "error": f"نوع الإصلاح غير مدعوم: {fix_type}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[firewall_auto_fix] error: {e}\n{traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/live-activity")
+async def firewall_live_activity(
+    workshop_id: Optional[str] = Query(default=None),
+    limit: int = Query(default=30, le=200),
+):
+    """آخر القيود التي حدثت."""
+    try:
+        engine = FirewallEngine(workshop_id=workshop_id)
+        live = engine.run_full_analysis().get("live_activity", [])
+        return {"success": True, "data": live[:limit]}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/ai-insights")
+async def firewall_ai_insights(
+    workshop_id: Optional[str] = Query(default=None),
+    use_ai: bool = Query(default=True),
+):
+    """توصيات ذكية. يستخدم AI provider إن توفر، وإلا rule engine."""
+    try:
+        engine = FirewallEngine(workshop_id=workshop_id)
+        analysis = engine.run_full_analysis()
+        result = await generate_insights(analysis, use_ai=use_ai)
+        return {"success": True, "data": result}
+    except Exception as e:
+        import traceback
+        print(f"[firewall_ai_insights] error: {e}\n{traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
