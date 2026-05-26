@@ -2519,6 +2519,7 @@ async def get_journal_entries(
 
         operation_map: Dict[str, Dict[str, Any]] = {}
         visit_map: Dict[str, Dict[str, Any]] = {}
+        vehicle_map: Dict[str, Dict[str, Any]] = {}
         if operation_refs and supabase:
             try:
                 op_rows = (
@@ -2565,6 +2566,7 @@ async def get_journal_entries(
             except Exception:
                 operation_map = {}
                 visit_map = {}
+                vehicle_map = {}
 
         type_labels = {
             "sale": "بيع",
