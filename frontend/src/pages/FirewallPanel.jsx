@@ -45,6 +45,7 @@ const FirewallPanel = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [dashboardLoaded, setDashboardLoaded] = useState(false);  // dashboard is independent of AI
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [selectedAlert, setSelectedAlert] = useState(null);
@@ -58,6 +59,7 @@ const FirewallPanel = () => {
     try {
       const res = await axios.get(`${API_URL}/firewall/dashboard`, { params: { workshop_id: WORKSHOP_ID } });
       if (res.data?.success) setData(res.data.data);
+      setDashboardLoaded(true);
     } catch (e) {
       console.error('Firewall dashboard load failed:', e);
       toast({ title: 'خطأ', description: 'تعذر تحميل لوحة الجدار', variant: 'destructive' });
@@ -157,7 +159,8 @@ const FirewallPanel = () => {
   }, [data, filterCategory, filterSeverity]);
 
   // ---------- render ----------
-  if (loading && !data) {
+  // Only block full-page loader if dashboard hasn't loaded yet (AI insights load in parallel without blocking)
+  if (loading && !dashboardLoaded) {
     return (
       <div data-testid="firewall-loading" className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-300">
         <div className="text-center">
