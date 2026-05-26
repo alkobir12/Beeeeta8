@@ -23,7 +23,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, HTTPException, Query
 
 import firewall_state
-from firewall_engine import FirewallEngine
+from firewall_engine import FirewallEngine, invalidate_firewall_cache
 from firewall_ai_insights import generate_insights
 
 router = APIRouter(prefix="/api/firewall", tags=["firewall"])
@@ -305,6 +305,8 @@ async def firewall_dismiss(
         return {"success": True, "alert_id": alert_id, "expires_at": expires_at}
     except Exception as e:
         return {"success": False, "error": str(e)}
+    finally:
+        invalidate_firewall_cache(workshop_id or "finmodule-sync")
 
 
 @router.post("/alerts/{alert_id}/resolve")
@@ -340,6 +342,8 @@ async def firewall_resolve(
         return {"success": True, "alert_id": alert_id}
     except Exception as e:
         return {"success": False, "error": str(e)}
+    finally:
+        invalidate_firewall_cache(workshop_id or "finmodule-sync")
 
 
 @router.post("/auto-fix")
@@ -415,6 +419,8 @@ async def firewall_auto_fix(
         import traceback
         print(f"[firewall_auto_fix] error: {e}\n{traceback.format_exc()}")
         return {"success": False, "error": str(e)}
+    finally:
+        invalidate_firewall_cache(workshop_id or "finmodule-sync")
 
 
 @router.get("/live-activity")

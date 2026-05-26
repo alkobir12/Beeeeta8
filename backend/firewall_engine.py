@@ -22,10 +22,23 @@
 
 from __future__ import annotations
 import os
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Tuple
+
+# Module-level TTL cache to avoid repeated 30s scans across endpoints/requests
+_ANALYSIS_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+_CACHE_TTL_SECONDS = 30  # كل 30 ثانية يُعاد التحليل
+
+
+def invalidate_firewall_cache(workshop_id: Optional[str] = None) -> None:
+    """يُبطل الكاش لورشة معينة أو كلها."""
+    if workshop_id:
+        _ANALYSIS_CACHE.pop(f"ws:{workshop_id}", None)
+    else:
+        _ANALYSIS_CACHE.clear()
 
 # ------------------------- مساعدات -------------------------
 
@@ -655,9 +668,15 @@ class FirewallEngine:
         }
 
     # =========================================================
-    # 🔄 Master Run — تجميع كل التحليلات
+    # 🔄 Master Run — تجميع كل التحليلات (مع TTL Cache)
     # =========================================================
-    def run_full_analysis(self) -> Dict[str, Any]:
+    def run_full_analysis(self, use_cache: bool = True) -> Dict[str, Any]:
+        cache_key = f"ws:{self.workshop_id or 'finmodule-sync'}"
+        if use_cache:
+            cached = _ANALYSIS_CACHE.get(cache_key)
+            if cached and (time.time() - cached[0]) < _CACHE_TTL_SECONDS:
+                return cached[1]
+
         # تشغيل كل المحللات
         all_alerts: List[Dict[str, Any]] = []
         all_alerts.extend(self.detect_trial_balance_issues())
@@ -693,7 +712,7 @@ class FirewallEngine:
                 "source": entry.get("source"),
             })
 
-        return {
+        result = {
             "workshop_id": self.workshop_id,
             "generated_at": _now().isoformat(),
             "health": health,
@@ -709,3 +728,6 @@ class FirewallEngine:
                 "total_visits": len(self._visits()),
             },
         }
+        if use_cache:
+            _ANALYSIS_CACHE[cache_key] = (time.time(), result)
+        return result
