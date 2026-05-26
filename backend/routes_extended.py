@@ -2579,6 +2579,9 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             return {"success": True, "message": "operation is not credit"}
 
         op_type = (op_row.get("type") or "").lower()
+        # Normalize instant_sale → sale for confirm-payment compatibility (iter221 fix)
+        if op_type == "instant_sale":
+            op_type = "sale"
         total = float(op_row.get("total") or 0)
         if total <= 0:
             raise HTTPException(status_code=400, detail="invalid operation total")
