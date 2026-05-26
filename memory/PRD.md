@@ -23,14 +23,18 @@
 ## Recent Work — All 4 Sessions Summary (Feb 2026)
 
 ### Session 5 (Feb 11 — current)
-- ✅ **Fixed faded "Quick Actions" dialog** (`VehicleQuickActions.jsx`):
-  - Removed translucent `bg-white/5 border-purple-500/20` from cancel button
-  - Raised all dark-mode tinted backgrounds from `/40` to solid `/70` (purple, blue, amber, indigo, emerald, sky, orange, green)
-  - Strengthened borders (`border-2 border-X-400 dark:border-X-600`) and text contrast (`text-X-900 dark:text-X-50`)
-- ✅ **Fixed structural bug**: `WhatsApp Preview Dialog` was incorrectly nested INSIDE the Delete button. Extracted as a top-level sibling alongside `QuickPrintDialog`.
-- ✅ **OTP feature verified** end-to-end: backend creates 4-digit OTP via `secrets.randbelow`, public GET never leaks OTP, wrong OTP → 400, correct OTP → 200 (pytest 4/4 pass).
-- ✅ **Mirrored OTP generation in MongoDB legacy branch** of `routes_approvals.py` (was Supabase-only), so OTP gating still works if `DB_PROVIDER` is switched.
-- ✅ Added comprehensive `data-testid` attributes to every interactive element in VehicleQuickActions.
+- ✅ **Fixed faded "Quick Actions" dialog** (`VehicleQuickActions.jsx`): translucent classes removed, dark-mode `/40 → /70`, structural Dialog nesting bug resolved.
+- ✅ **OTP feature verified + Mongo legacy branch mirrored**.
+- ✅ **Quick Actions print buttons (invoice/receipt) now work**: `buildVehiclePayload` is async and fetches the latest visit's operations dynamically (was using empty `approvalItems` array).
+- ✅ **Operation list live refresh**: `finance:updated` handler in `Operations.jsx` now invalidates + `refetchQueries({type:'active'})` for immediate UI update.
+- ✅ **POS `collect_customer` now dispatches `finance:updated`**: was missing the event before the early `return`, so Operations didn't reflect collected amounts.
+- ✅ **🔥 ROOT CAUSE fix: cash POS expense was showing as "شراء آجل"**:
+  - `_operation_payment_snapshot` in `supabase_service.py` was returning `paymentStatus='unpaid'` for cash-immediate operations because it required `journal_entries` with `source=operation_payment` to mark as paid.
+  - Added `is_cash_immediate` short-circuit: if `payment_method ∈ {cash,transfer,bank,card,pos,mada,visa,mastercard,supplier_balance}` AND `payment_status ∉ {unpaid,credit,partial,deferred,pending}`, return `paid` immediately with `balance=0`. Verified via 3/3 pytest pass.
+- ✅ **Operation card badges added**:
+  - **Movement pill** (`operation-card-movement-pill-*`): "مدين (داخل)" green for income-side ops (sale/service/instant_sale/collect_customer/receipt_voucher/sale_return), "دائن (خارج)" rose for outflow ops (purchase/expense/cash_expense/salary/payment_order/pay_supplier/purchase_return), "متعادل" gray otherwise.
+  - **Origin pill** (`operation-card-origin-pill-*`): "POS" indigo for SmartPOSJournal operations (detected via `[SOURCE:SMART_POS]` marker in notes OR `source.includes('pos')`), "ملف المركبة" cyan for visit/vehicle-linked, "عام" slate otherwise.
+  - Final tested distribution on /operations: POS=5, ملف المركبة=4, عام=6 (15 total cards, all correctly classified).
 
 ### Critical Bugs Fixed
 - ✅ **Operations page broken**: 7 shadcn UI files used invalid `@/components/ui/button` alias → relative paths

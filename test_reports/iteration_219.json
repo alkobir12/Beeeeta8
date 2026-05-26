@@ -1,0 +1,30 @@
+{
+  "summary": "Iter219 — Retest of POS origin-pill fix flagged HIGH in iter218. CONFIRMED RESOLVED. On /operations (logged in as 'مدير') 5 of 15 cards now render the 'POS' badge. Both real DB IDs referenced in the request — 339be01c-880f-4e46-8e18-51b60234dbfd and 9a48d961-6bc2-426b-accc-8f0cb8802b66 — show text='POS' inside [data-testid^='operation-card-origin-pill-']. The previously-fixed iter218 backend snapshot is NOT regressed: 12/15 payment-status pills render 'مدفوع' and 3/15 render 'غير مسدد' for the unpaid/credit ones — matching expected paymentStatus='paid' for cash-immediate ops. Origin pill distribution: POS=5, ملف المركبة=4, عام=6 (was 0/4/11 in iter218). No other testing was performed per the request's scope restriction.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_219.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "OperationCard.jsx origin-pill detection (lines 402-414) still parses backend semantic data out of free-text notes. Recommend the backend expose a clean `source` enum field (pos | vehicle_visit_sync | general) on GET /api/operations so the UI does not need a regex + multi-substring fallback. The current fix works but is fragile: any future change to the SmartPOSJournal notes marker would silently break the badge again. A simple test_pos_origin_marker pytest in backend_tests would close the loop."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only retest)", "frontend": "100% — POS origin-pill + paid status both verified"},
+  "test_credentials": "admin = 'مدير' (no password) — verified working",
+  "seed_data_creation": "No new seed data created this iteration. iter218 TEST_iter218_* operations remain in DB but were not used directly; the verification used the real POS operations 339be01c and 9a48d961 referenced in the request.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend OperationCard.jsx lines 402-414 now correctly detects POS origin via three OR-paths: opSource.includes('pos'), opNotesStr.includes('smart_pos'), and regex /\\[source:[^\\]]*pos[^\\]]*\\]/i on operation.notes. Verified live: 5 POS pills among 15 cards on /operations. Quick re-verify: login 'مدير' -> /operations -> run `document.querySelectorAll('[data-testid^=\"operation-card-origin-pill-\"]')` and confirm at least one .textContent === 'POS'. Backend snapshot fix from iter218 is also still intact (مدفوع badge present on cash-immediate ops).",
+  "rca_of_the_issue": {
+    "primary_bug": "RESOLVED — the iter218 frontend bug (POS badge never renders for POS-created operations) was caused by detection condition only matching '[pos]' substring while backend writes the marker as '[SOURCE:SMART_POS]' inside notes. Fix in OperationCard.jsx adds `opNotesStr.includes('smart_pos')` and the regex /\\[source:[^\\]]*pos[^\\]]*\\]/i which both match the real backend marker. Verified against real DB rows 339be01c and 9a48d961.",
+    "secondary_observation": "Backend POST /api/operations still silently drops a top-level 'source' field. Not a regression; recorded for future hardening only."
+  }
+}

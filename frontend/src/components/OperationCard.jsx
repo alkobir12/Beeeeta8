@@ -402,14 +402,19 @@ export default function OperationCard({
   // 🟡 مصدر العملية: POS أم ملف المركبة
   const opSource = String(operation.source || '').toLowerCase();
   const opNotesStr = String(operation.notes || '').toLowerCase();
-  let originLabel = '';
-  let originColor = '';
-  if (
+  // POS marker قد يأتي بصيغ مختلفة: source=pos*, notes [pos]/[source:smart_pos]/smart_pos
+  const posInNotesRegex = /\[source:[^\]]*pos[^\]]*\]/i;
+  const isPosOrigin = (
     opSource.includes('pos') ||
     opSource.includes('instant_sale') ||
     opSource === 'pos_template' ||
-    opNotesStr.includes('[pos]')
-  ) {
+    opNotesStr.includes('[pos]') ||
+    opNotesStr.includes('smart_pos') ||
+    posInNotesRegex.test(operation.notes || '')
+  );
+  let originLabel = '';
+  let originColor = '';
+  if (isPosOrigin) {
     originLabel = 'POS';
     originColor = 'bg-indigo-50 text-indigo-950 border-indigo-300';
   } else if (
