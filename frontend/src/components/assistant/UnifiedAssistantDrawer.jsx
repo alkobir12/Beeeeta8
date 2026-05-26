@@ -75,7 +75,7 @@ export const UnifiedAssistantDrawer = () => {
       <button
         data-testid="unified-assistant-fab"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 left-6 z-40 group"
+        className="fixed bottom-6 right-6 z-[80] group"
         title="افتح المساعد الذكي (Ctrl+Shift+B)"
         dir="rtl"
       >
@@ -97,7 +97,7 @@ export const UnifiedAssistantDrawer = () => {
   return (
     <div
       data-testid="unified-assistant-drawer"
-      className="fixed bottom-0 left-0 sm:bottom-6 sm:left-6 z-40 w-full sm:w-[420px] h-[85vh] sm:h-[640px] bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border-2 border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden"
+      className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-[80] w-full sm:w-[420px] h-[85vh] sm:h-[640px] bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border-2 border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden"
       dir="rtl"
     >
       {/* Header */}

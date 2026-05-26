@@ -33,6 +33,8 @@ export const AssistantProvider = ({ children }) => {
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState(null);
   const lastFetchRef = useRef(0);
+  const skipNextSessionReloadRef = useRef(false);
+  const initialSessionLoadedRef = useRef(false);
 
   // ----- session persistence -----
   useEffect(() => {
@@ -41,9 +43,17 @@ export const AssistantProvider = ({ children }) => {
     }
   }, [sessionId]);
 
-  // ----- load existing messages on mount if session exists -----
+  // ----- load existing messages on mount if session exists (ONCE only, skip if produced by sendMessage) -----
   useEffect(() => {
     if (!sessionId) return;
+    // Skip if this sessionId was just produced by sendMessage (avoid race condition that wipes optimistic state)
+    if (skipNextSessionReloadRef.current) {
+      skipNextSessionReloadRef.current = false;
+      return;
+    }
+    // Only run on initial mount (when sessionId came from localStorage)
+    if (initialSessionLoadedRef.current) return;
+    initialSessionLoadedRef.current = true;
     let cancelled = false;
     (async () => {
       try {
@@ -55,7 +65,7 @@ export const AssistantProvider = ({ children }) => {
             meta: m.meta,
             ts: m.ts,
           }));
-          setMessages(msgs);
+          if (msgs.length > 0) setMessages(msgs);
         }
       } catch (e) {
         // session expired or backend not ready — ignore
@@ -117,7 +127,11 @@ export const AssistantProvider = ({ children }) => {
       }
 
       const data = res.data.data;
-      if (data.session_id && data.session_id !== sessionId) setSessionId(data.session_id);
+      if (data.session_id && data.session_id !== sessionId) {
+        // skip the session-reload effect to prevent overwriting optimistic state
+        skipNextSessionReloadRef.current = true;
+        setSessionId(data.session_id);
+      }
       setActiveAgent(data.agent);
 
       const assistantMsg = {
@@ -153,6 +167,8 @@ export const AssistantProvider = ({ children }) => {
 
   const resetSession = useCallback(() => {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }
+    initialSessionLoadedRef.current = false;
+    skipNextSessionReloadRef.current = false;
     setSessionId('');
     setMessages([]);
     setActiveAgent(null);
