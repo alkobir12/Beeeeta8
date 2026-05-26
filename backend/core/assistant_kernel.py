@@ -86,7 +86,7 @@ async def _llm_chat(
             api_key=api_key,
             session_id=session_id,
             system_message=system_message,
-        ).with_model(model_provider, model_name).with_max_tokens(max_tokens)
+        ).with_model(model_provider, model_name)
         # حقن المحادثة (LlmChat لا يحفظ history افتراضياً عبر sessions، نحقنها كرسائل)
         msg_text = user_message
         if history:

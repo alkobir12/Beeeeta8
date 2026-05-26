@@ -1,0 +1,40 @@
+{
+  "summary": "Retest iter225 of the 2 frontend bugs from iter223/iter224 + Firewall regression. ALL THREE NOW VERIFIED FIXED. AssistantProvider lift to App.js top-level resolved the unmount/remount issue; Firewall regression was a false positive in iter224 (page just needs ~13-15s to render due to slow /api/firewall/dashboard endpoint, not a true regression).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/firewall/dashboard", "issue": "Endpoint is correct (curl returns 200 in 0.18s) but in-browser axios call takes ~10-13s to resolve while ai-insights (~10s) runs in parallel. UI loading spinner can confuse testers with short waits. Consider parallel non-blocking pattern: render dashboard skeleton immediately, fill in AI later. Non-blocking."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iter225_after_messages.jpeg",
+    "/app/test_reports/iter225_fw_debug.jpeg",
+    "/app/test_reports/iter225_drawer_open.jpeg"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FirewallPanel.jsx (lines 85-88): useEffect calls both loadDashboard() and loadInsights() in parallel, but loading state stays true until loadDashboard finishes. Since AI-insights occasionally takes 10+s and dashboard endpoint also runs heavy aggregation, users see a spinner for up to 15s on first mount. Recommend: split loading state per panel (loadingDashboard vs loadingInsights) so the dashboard cards render as soon as /firewall/dashboard returns, even if AI insights are still pending.",
+    "AssistantProvider was moved to top-level in App.js (line 182, between ThemeProvider and the App <div>) — correct placement; survives all route changes and Layout re-mounts. Recommend documenting this constraint with a code comment so future refactors don't move it back inside Layout.",
+    "Both .with_max_tokens() calls were removed from backend (core/assistant_kernel.py, firewall_ai_insights.py) — confirmed via grep. No backend errors observed during 3 successive assistant chats (all returned 200).",
+    "Bug 2 root cause was correctly identified: AssistantProvider was being unmounted on route/state changes inside Layout, wiping messages state and aborting the in-flight axios.post. Moving it above Layout in the tree is the proper fix."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "n/a (not re-tested per request; iter223 reported 17/17 PASSED)",
+    "frontend": "100% (3 of 3 verifications passed)"
+  },
+  "test_credentials": "Login: username='مدير' (no password). Used per /app/memory/test_credentials.md.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All three flows verified end-to-end in iter225 with REAL mouse clicks after localStorage.clear(): (1) FAB at [data-testid='unified-assistant-fab'] (right-6 z-[80]) — clickable, opens drawer. (2) Assistant chat — sent 3 successive messages ('مرحبا', 'ما هو الوضع المالي؟', 'أعطني تقرير'); all 3 fired POST /api/assistant/chat with 200 response; final message count in drawer = 6 (3 user + 3 assistant) — all persist after subsequent sends. (3) /accounting/firewall — GET /api/firewall/dashboard fires on mount and returns 200; with 15s wait, [data-testid='firewall-health-score-value']=73 renders, 'تحديث الآن' button visible, AlertCards shown. The earlier iter224 'firewall regression' was caused by an insufficient 10s wait — the /firewall/dashboard endpoint sometimes responds after /firewall/ai-insights (~13s); recommend separating loading states. No console errors or pageerrors during any flow.",
+  "rca_of_the_issue": {
+    "bug2_messages_disappear_RESOLVED": "Confirmed RCA from iter224 was correct: AssistantProvider was inside Layout, which contains many useState/useEffect hooks that triggered re-mount on route navigation. The remount wiped messages and aborted the in-flight axios.post, which is why POST /api/assistant/chat never reached the network. Fix verified: AssistantProvider now at App.js top-level (between ThemeProvider and the inner Router/Layout). 3 successive sends produce 3 POSTs (200 OK each), and the drawer correctly displays 6 messages persisting.",
+    "firewall_false_regression_RESOLVED": "iter224 reported a regression because the test waited only 10s while /api/firewall/dashboard occasionally takes ~13s (likely due to heavy aggregation + parallel /firewall/ai-insights call). With 15s wait, everything renders correctly. Recommend splitting loadingDashboard/loadingInsights into separate states so the dashboard becomes interactive as soon as its own endpoint returns, independent of AI insights."
+  }
+}

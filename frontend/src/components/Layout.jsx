@@ -4,7 +4,6 @@ import { Eye, EyeOff, Menu } from 'lucide-react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AnimatedBackground from './AnimatedBackground';
 import { useTranslation } from 'react-i18next';
-import { AssistantProvider } from './assistant/AssistantProvider';
 import UnifiedAssistantDrawer from './assistant/UnifiedAssistantDrawer';
 import FinanceAlertsWidget from './FinanceAlertsWidget';
 import { Toaster } from './ui/toaster';
@@ -217,7 +216,6 @@ const Layout = ({ pageTitle }) => {
   );
 
   return (
-    <AssistantProvider>
     <div
       className="layout-main"
       style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', position: 'relative' }}
@@ -339,7 +337,6 @@ const Layout = ({ pageTitle }) => {
       {/* Toast Notifications */}
       <Toaster />
     </div>
-    </AssistantProvider>
   );
 };
 

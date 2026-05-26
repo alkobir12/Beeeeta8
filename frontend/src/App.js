@@ -7,6 +7,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import ErrorBoundary from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AssistantProvider } from './components/assistant/AssistantProvider';
 import { queryClient } from './queryClient';
 import { getFirstAllowedRoute, hasRoutePermission, normalizePermissions, resolveRoutePermission } from './utils/permissions';
 import { resolveBackendBase } from './utils/backendBase';
@@ -178,6 +179,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
+          <AssistantProvider>
           <div className="App" style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
             <Router>
               <Suspense fallback={<PageLoader />}>
@@ -244,6 +246,7 @@ function App() {
               </Suspense>
             </Router>
           </div>
+          </AssistantProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>

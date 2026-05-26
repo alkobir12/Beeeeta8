@@ -157,7 +157,7 @@ async def _ai_insights(analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
             api_key=api_key,
             session_id=session_id,
             system_message=system_msg,
-        ).with_model("openai", "gpt-4o-mini").with_max_tokens(900)
+        ).with_model("openai", "gpt-4o-mini")
         response = await chat.send_message(UserMessage(text=user_msg))
         text = str(response or "").strip()
         # extract JSON list
