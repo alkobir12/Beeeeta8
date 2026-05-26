@@ -8,7 +8,7 @@ import { buildDebtWhatsAppDraft } from '../utils/debtWhatsapp';
 import { getWhatsAppLink } from '../utils/constants';
 
 export default function DebtFollowUp() {
-  const workshopId = process.env.REACT_APP_WORKSHOP_ID;
+  const workshopId = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -28,11 +28,11 @@ export default function DebtFollowUp() {
     try {
       setLoading(true);
       const [customersRes, suppliersRes] = await Promise.all([
-        customerAPI.getAll(workshopId ? { workshop_id: workshopId } : {}),
-        supplierAPI.getAll(workshopId ? { workshop_id: workshopId } : {}),
+        customerAPI.getAll({ workshop_id: workshopId }),
+        supplierAPI.getAll({ workshop_id: workshopId }),
       ]);
 
-      const accountsRes = await api.get('/finance/chart-of-accounts', workshopId ? { params: { workshop_id: workshopId } } : undefined);
+      const accountsRes = await api.get('/finance/chart-of-accounts', { params: { workshop_id: workshopId } });
       const accountRows = Array.isArray(accountsRes?.data?.data)
         ? accountsRes.data.data
         : Array.isArray(accountsRes?.data)
