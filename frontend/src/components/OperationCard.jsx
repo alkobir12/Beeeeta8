@@ -145,9 +145,11 @@ const cleanNotes = (notes) => {
   if (!notes) return '';
   return String(notes)
     .replace(/\[.*?\]/g, '')
-    .replace(/PARTY_TYPE:.*/g, '')
-    .replace(/SOURCE:.*/g, '')
-    .replace(/VEHICLE_REF:.*/g, '')
+    .replace(/PARTY_TYPE:\s*\S+/g, '')
+    .replace(/SOURCE:\s*\S+/g, '')
+    .replace(/VEHICLE_REF:\s*\S+/g, '')
+    .replace(/ACCOUNT_CODE:\s*\S+/g, '')
+    .replace(/ACCOUNTING_TARGET:\s*[^\n]+/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 };
