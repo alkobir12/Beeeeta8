@@ -1,0 +1,22 @@
+[
+  {
+    "id": "076f1f0f-42a8-4745-b79a-6c8de9f9076e",
+    "action": "cleanup_keep_debts_only",
+    "source_endpoint": "/api/cleanup/keep-debts-only",
+    "workshop_id": "",
+    "user": {
+      "id": "88fe138a-0768-47d1-aa66-d67679b5f2ff",
+      "role": "admin"
+    },
+    "items": {
+      "operations_kept": 7,
+      "operations_deleted": 52,
+      "journal_entries_deleted": 55
+    },
+    "meta": {
+      "confirm": "KEEP_DEBTS_ONLY",
+      "provider": "supabase"
+    },
+    "created_at": "2026-05-29T17:50:04.197356+00:00"
+  }
+]

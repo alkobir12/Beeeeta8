@@ -1,0 +1,77 @@
+{
+  "summary": "Iteration 227 - Verified 5 reported bugs. 4/5 fixes confirmed working (BUG #1 expanded card view, BUG #3 live sync via finance:updated event, BUG #4 no raw-field leaks, BUG #5 light theme fully working with .dark class on html). CRITICAL: BUG #2 DebtFollowUp page is BROKEN by routing guard - /debts-followup redirects to / because resolveRoutePermission returns null (route pattern not registered in ROUTE_PERMISSIONS).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "App.js routing guard + utils/permissions.js",
+        "issue": "Navigating to /debts-followup always redirects to / (Dashboard). Root cause: ROUTE_PERMISSIONS array in /app/frontend/src/utils/permissions.js (lines 113-141) has NO entry matching /^\\/debts-followup/. In App.js line 164-168 the <Protected> guard executes `if (!routePermission && location.pathname !== '/') return <Navigate to={fallbackPath} replace />`, so any unmatched non-root path is bounced back to /. The Sidebar item at /app/frontend/src/components/Sidebar.jsx:67 declares { module: 'debts', action: 'view' } but the matching ROUTE_PERMISSIONS pattern is missing.",
+        "selector": "/debts-followup",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_checks": {
+    "BUG_1_expanded_card_view": {
+      "status": "PASS",
+      "details": "Clicking operation card toggles data-expanded false->true. All 6 expanded data-testids render: operation-card-payment-status-expanded-{id}, total-paid-expanded, balance-expanded, account-class-expanded, supplier-total, operation-card-expanded."
+    },
+    "BUG_3_live_sync": {
+      "status": "PASS",
+      "details": "On /operations, dispatching window.dispatchEvent(new CustomEvent('finance:updated')) triggers an API refetch within 2.5s (fetch interceptor captured a /operations or /finance call). The listener is wired correctly."
+    },
+    "BUG_4_no_raw_field_leaks": {
+      "status": "PASS",
+      "details": "Scanned /operations, /debts-followup, /accounting/firewall, /smart-pos-journal — no UUID leaks, no 'paid_full'/'partial'/'unpaid' literals (except harmless tooltip 'unpaid' on /operations), no ACCOUNT_CODE: or ACCOUNTING_TARGET: markers, no 'WORKSHOP_OPERATION', no 'pos_template', no 'operationKind', no 'reference_id' literal labels. NOTE: /debts-followup raw-text check ran on the redirected dashboard (because BUG #2 redirects), so leak inspection of the actual DebtFollowUp page is pending the routing fix."
+    },
+    "BUG_5_light_theme": {
+      "status": "PASS",
+      "details": "After setting appTheme='light' and reload, document.documentElement.classList.contains('dark') === false; body bg = rgb(248,250,252); /operations page background also light (rgb(248,250,252)) instead of the previous #111111. Tailwind dark mode toggling is now correct."
+    }
+  },
+  "backend_pytest_results": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "details": {
+      "TestDebtFollowUpDeps.test_customers_endpoint": "PASS (HTTP 200)",
+      "TestDebtFollowUpDeps.test_suppliers_endpoint": "PASS (HTTP 200)",
+      "TestDebtFollowUpDeps.test_chart_of_accounts": "PASS (HTTP 200)",
+      "TestLiveSyncSources.test_operations_listing": "PASS (HTTP 200)",
+      "TestLiveSyncSources.test_journal_entries": "PASS (HTTP 200)",
+      "TestLiveSyncSources.test_smart_pos_journal_source": "PASS (HTTP 200)",
+      "TestNoRawLeaks.test_operation_shape": "PASS"
+    }
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_integration_iter227.py",
+    "/app/test_reports/pytest/iter227_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix BUG #2 by adding a route-permission entry for /debts-followup in /app/frontend/src/utils/permissions.js ROUTE_PERMISSIONS array. Suggested addition near line 132: `{ pattern: /^\\/debts-followup/, module: 'reports', action: 'view' }` (or use 'customers'/'operations' depending on intended RBAC). Without this, the <Protected> guard in App.js:164-168 redirects every visit back to /.",
+    "Optional: After fixing the routing, re-verify that DebtFollowUp renders customer+supplier entries and that totals header populates from /api/customers, /api/suppliers, /api/finance/chart-of-accounts (all confirmed HTTP 200).",
+    "Optional: The harmless English 'unpaid' literal appears in /operations text (probably from a status badge fallback). Consider replacing with Arabic-only label for full localization."
+  ],
+  "critical_code_review_comments": [
+    "ROUTE_PERMISSIONS array (utils/permissions.js) is the single source of truth for route guarding. Any new route added to App.js MUST have a corresponding pattern here, otherwise the <Protected> guard silently redirects. Recommend adding a unit test or build-time check that cross-references React Router <Route> paths against ROUTE_PERMISSIONS to prevent recurrence.",
+    "App.js:165 redirect logic treats 'no matching permission rule' identically to 'permission denied' — these should be distinguished. Unknown routes should arguably show a 404 instead of silently going to /."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_integration_iter227.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "80% (4/5 user-reported bugs verified fixed; BUG #2 still broken due to missing route permission entry)"
+  },
+  "test_credentials": "Login: 'مدير' with empty password (per /app/memory/test_credentials.md)",
+  "seed_data_creation": "None - relied on existing seed (8 operation cards visible on /operations).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent adds the /debts-followup ROUTE_PERMISSIONS entry, re-run /app/backend/tests/test_integration_iter227.py and re-navigate to /debts-followup to confirm currentPath stays at /debts-followup and that customer+supplier debt rows render. All other 4 bugs have been thoroughly verified and need no retest unless the main agent touches OperationCard.jsx, ThemeContext.jsx, or the finance:updated listener.",
+  "rca_of_the_issue": "BUG #2 RCA: When location.pathname === '/debts-followup' is loaded, App.js Protected wrapper calls resolveRoutePermission('/debts-followup'). The ROUTE_PERMISSIONS regex list (utils/permissions.js lines 113-141) has no pattern that matches /debts-followup, so the function returns null. The next branch `if (!routePermission && location.pathname !== '/')` evaluates to true, returning `<Navigate to={getFirstAllowedRoute(session)} replace />`, which is `/` for the admin. The DebtFollowUp component is therefore never mounted. Reproduction: login as 'مدير', visit /debts-followup; URL bounces to / within one render tick. Fix: append `{ pattern: /^\\/debts-followup/, module: 'reports', action: 'view' }` (or a 'debts' module if one is defined in permissions) to ROUTE_PERMISSIONS."
+}

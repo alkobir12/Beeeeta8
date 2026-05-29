@@ -211,9 +211,13 @@ export const ThemeProvider = ({ children }) => {
     if (theme.mode === 'dark') {
       document.body.classList.add('dark-mode');
       document.body.classList.remove('light-mode');
+      // ضروري لـ Tailwind darkMode: 'class'
+      document.documentElement.classList.add('dark');
     } else {
       document.body.classList.add('light-mode');
       document.body.classList.remove('dark-mode');
+      // إزالة .dark لتفعيل light mode في Tailwind
+      document.documentElement.classList.remove('dark');
     }
 
     // إضافة اسم الثيم كـ class

@@ -74,6 +74,12 @@
                     html.setAttribute('data-theme', savedTheme);
                     html.setAttribute('data-theme-mode', mode);
                     html.style.colorScheme = mode;
+                    // ضروري لـ Tailwind darkMode: 'class' لمنع FOWT
+                    if (mode === 'dark') {
+                        html.classList.add('dark');
+                    } else {
+                        html.classList.remove('dark');
+                    }
 
                     // Apply background color immediately to <html> to prevent any FOWT
                     var bg = mode === 'dark' ? '#0f172a' : '#f8fafc';
