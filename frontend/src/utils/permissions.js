@@ -138,6 +138,7 @@ export const ROUTE_PERMISSIONS = [
   { pattern: /^\/denso-diagnostics/, module: 'vehicles', action: 'view' },
   { pattern: /^\/fault-knowledge/, module: 'vehicles', action: 'view' },
   { pattern: /^\/moltbot/, module: 'reports', action: 'view' },
+  { pattern: /^\/debts-followup/, module: 'reports', action: 'view' },
 ];
 
 export const resolveRoutePermission = (path) => {

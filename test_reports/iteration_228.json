@@ -1,0 +1,70 @@
+{
+  "summary": "Iteration 228 - Focused retest of BUG #2 (DebtFollowUp route guard) and regression check on /accounting/firewall + /operations after adding the /^\\/debts-followup/ pattern to ROUTE_PERMISSIONS. ROUTE-GUARD FIX VERIFIED: /debts-followup no longer redirects to / and the DebtFollowUp component mounts with its real testids. No regressions on the other two protected routes. SECONDARY ISSUE detected: DebtFollowUp data fetch is stuck in loading + a 422 console error; totals all show ٠٫٠٠ ر.س and 0 rows — this is NOT a routing problem but a data/API issue surfaced now that the page is reachable.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "(unknown) called by DebtFollowUp.jsx",
+        "issue": "Console reports 'Failed to load resource: the server responded with a status of 422 ()' while DebtFollowUp loads. /api/customers (157 items, HTTP 200) and /api/suppliers (49 items, HTTP 200) return objects with balance:null, so the page cannot compute debts. Page stays in [data-testid=debt-followup-loading] for 10s+ and 'عدد الجهات: 0'."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "DebtFollowUp data load",
+        "issue": "Page mounts correctly but never leaves the loading state ('جار تحميل الذمم...'). All 6 summary cards render but every total = ٠٫٠٠ ر.س and عدد الجهات: 0. Expected by problem statement: 3 customers with ~3819 SAR debt. Likely caused by the 422 response on a debts/aging endpoint and/or by the fact that /api/customers samples have balance:null (no debt field populated server-side).",
+        "affected_selectors": ["[data-testid=\"debt-followup-loading\"]", "[data-testid=\"debt-metrics-cards-grid\"]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "passed_checks": {
+    "BUG_2_a_url_preserved": {
+      "status": "PASS",
+      "details": "After login as 'مدير' and navigating to /debts-followup, page.url remains 'https://fleet-audit-system-2.preview.emergentagent.com/debts-followup' (no redirect to /). resolveRoutePermission() now matches the new {pattern:/^\\/debts-followup/, module:'reports', action:'view'} entry at permissions.js:141 and admin has reports.view → guard allows the route."
+    },
+    "BUG_2_b_component_mounts": {
+      "status": "PASS",
+      "details": "[data-testid=\"debt-followup-page\"] is present; [data-testid=\"debt-followup-title\"] text = 'متابعة الذمم والتحصيل'; [data-testid=\"debt-followup-refresh-button\"], [data-testid=\"debt-metrics-cards-grid\"] (6 [data-testid^=\"debt-summary-card-\"]), [data-testid=\"debt-followup-table-wrapper\"], [data-testid=\"debt-select-all-button\"] all render. Sidebar item 'متابعة الذمم والتحصيل' is highlighted active."
+    },
+    "BUG_2_c_totals_header_structure": {
+      "status": "PARTIAL",
+      "details": "Totals header structure (6 cards: ذمم العملاء (آجل), ذمم الموردين (آجل), 0-30 يوم, 31+ يوم, رصيد حساب النقد, رصيد حساب البنك) renders correctly. HOWEVER all values = ٠٫٠٠ ر.س and entries table is stuck in [data-testid=\"debt-followup-loading\"] with 0 rows. Expected 3 customers / ~3819 SAR not displayed (see integration_issues)."
+    },
+    "regression_accounting_firewall": {
+      "status": "PASS",
+      "details": "Navigated to /accounting/firewall after the new pattern was added; URL stayed at /accounting/firewall, page rendered, no redirect. The existing /^\\/accounting\\// rule (permissions.js:127) still resolves first because pattern order is preserved."
+    },
+    "regression_operations": {
+      "status": "PASS",
+      "details": "Navigated to /operations; URL stayed at /operations, page rendered, no error elements detected. No regression from the added pattern."
+    }
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_227.json",
+    "/app/backend/tests/test_integration_iter227.py"
+  ],
+  "action_items": [
+    "BUG #2 routing fix is verified — main agent can close the route-guard portion.",
+    "Investigate why DebtFollowUp stays in loading state. Open browser devtools network tab while on /debts-followup and identify the 422 endpoint (likely an aging/debt summary route). /api/customers returns balance:null for sampled records, so either (a) the page should derive debts from operations/invoices rather than customer.balance, or (b) the server must populate balance/outstanding_debt on the customer list, or (c) fix the 422 payload on the dedicated debts endpoint so the page can finish loading.",
+    "Consider distinguishing 'no matching permission rule' from 'permission denied' in App.js Protected guard (carried over from iter227 review) so future missing-route-pattern bugs surface as 404 instead of silent redirect."
+  ],
+  "critical_code_review_comments": [
+    "permissions.js line 141 addition is minimal and correctly placed AFTER the broader /^\\/debts-followup/ pattern that the Sidebar already linked to; ROUTE_PERMISSIONS order is preserved so /^\\/accounting\\// still matches before any later pattern.",
+    "DebtFollowUp loading-state handling has no timeout / error-toast fallback when an underlying request 422s. Recommend surfacing the API error (toast already wired at line 74) and rendering the empty state instead of an infinite spinner.",
+    "Root cause prevention: add a build-time / unit test that asserts every React <Route path=...> in App.js has a matching entry in ROUTE_PERMISSIONS (or is explicitly whitelisted), so adding a new page can never silently redirect again."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (route paths reachable, 4/4 probed endpoints return 200 except chart-of-accounts which failed only due to test-side double-clone of Response)",
+    "frontend": "BUG #2 routing fix: 100% verified (a, b PASS; c structural PASS, data-load PARTIAL due to separate 422 issue). Regressions: 0."
+  },
+  "test_credentials": "Login: 'مدير' (admin) with empty password — confirmed via /app/memory/test_credentials.md pattern; UI login form has no password field for this username.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "BUG #2 route-guard fix (permissions.js:141) is verified working. The DebtFollowUp page now mounts and renders the 6 summary cards + structure. A SEPARATE data-loading issue remains: the page is stuck in loading + console 422 + customer/supplier objects have balance:null. If main agent fixes the debts data source, retest by logging in as 'مدير', going to /debts-followup, and waiting up to 15s for [data-testid=\"debt-followup-table\"] to appear with rows whose data-testid='debt-row-*' and totals matching the seeded ~3819 SAR across 3 customers. No need to retest the 4 already-verified bugs from iter227.",
+  "rca_of_the_issue": "BUG #2 RCA confirmed and resolved: previously resolveRoutePermission('/debts-followup') returned null because no regex matched, so App.js Protected guard hit `if (!routePermission && location.pathname !== '/') return <Navigate to=\"/\" />`. Adding { pattern: /^\\/debts-followup/, module: 'reports', action: 'view' } at permissions.js:141 makes resolveRoutePermission return a rule, hasRoutePermission(session, rule) returns true for admin (who has reports.view), and the guard now renders <DebtFollowUp /> instead of redirecting. Verified end-to-end via Playwright (URL retained, debt-followup-page testid present, regression checks on /accounting/firewall and /operations green)."
+}
