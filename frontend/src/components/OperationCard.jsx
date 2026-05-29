@@ -32,6 +32,11 @@ import {
   resolveVehicleDisplay,
   resolveVisitDisplay,
 } from '../utils/displayLabels';
+import { cleanNotes as cleanNotesUtil } from '../utils/operationCardHelpers';
+import OperationCardHeader from './operation/OperationCardHeader';
+import OperationCardMeta from './operation/OperationCardMeta';
+import AccountingBadge from './operation/AccountingBadge';
+import StatusBadgeNew from './operation/StatusBadge';
 
 const formatDateTime = (dateLike, isRTL) => {
   try {
@@ -138,65 +143,10 @@ const classifyOperationAccount = (operation = {}, accountCode = '', accountName 
 };
 
 // ============================================================
-// 🎨 New visual helpers (mobile-first ERP redesign)
+// 🎨 Visual helpers moved to /utils/operationCardHelpers.js and /components/operation/*
+// (cleanNotes, StatusBadge, InfoCard are now imported from dedicated files)
 // ============================================================
-
-const cleanNotes = (notes) => {
-  if (!notes) return '';
-  return String(notes)
-    .replace(/\[.*?\]/g, '')
-    .replace(/PARTY_TYPE:\s*\S+/g, '')
-    .replace(/SOURCE:\s*\S+/g, '')
-    .replace(/VEHICLE_REF:\s*\S+/g, '')
-    .replace(/ACCOUNT_CODE:\s*\S+/g, '')
-    .replace(/ACCOUNTING_TARGET:\s*[^\n]+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
-
-const StatusBadge = ({ text, tone = 'slate', testid }) => {
-  const tones = {
-    emerald: 'bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-300 dark:border-emerald-700',
-    amber:   'bg-amber-500/10 text-amber-700 border-amber-300 dark:text-amber-300 dark:border-amber-700',
-    rose:    'bg-rose-500/10 text-rose-700 border-rose-300 dark:text-rose-300 dark:border-rose-700',
-    sky:     'bg-sky-500/10 text-sky-700 border-sky-300 dark:text-sky-300 dark:border-sky-700',
-    indigo:  'bg-indigo-500/10 text-indigo-700 border-indigo-300 dark:text-indigo-300 dark:border-indigo-700',
-    cyan:    'bg-cyan-500/10 text-cyan-700 border-cyan-300 dark:text-cyan-300 dark:border-cyan-700',
-    slate:   'bg-slate-500/10 text-slate-700 border-slate-300 dark:text-slate-200 dark:border-slate-600',
-  };
-  return (
-    <span
-      data-testid={testid}
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${tones[tone] || tones.slate}`}
-    >
-      {text}
-    </span>
-  );
-};
-
-const InfoCard = ({ icon, label, value, accent = 'slate', testid }) => {
-  const accents = {
-    slate: 'text-slate-500 dark:text-slate-400',
-    cyan: 'text-cyan-600 dark:text-cyan-400',
-    emerald: 'text-emerald-600 dark:text-emerald-400',
-    amber: 'text-amber-600 dark:text-amber-400',
-    indigo: 'text-indigo-600 dark:text-indigo-400',
-  };
-  return (
-    <div
-      data-testid={testid}
-      className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white/80 p-3 dark:border-white/5 dark:bg-white/[0.03] shadow-sm"
-    >
-      <div className={`shrink-0 ${accents[accent] || accents.slate}`}>{icon}</div>
-      <div className="min-w-0">
-        <p className="text-[10px] text-slate-500 dark:text-zinc-500 font-medium">{label}</p>
-        <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate" title={value}>
-          {value || '-'}
-        </p>
-      </div>
-    </div>
-  );
-};
+const cleanNotes = cleanNotesUtil;
 
 export default function OperationCard({
   operation,
@@ -539,86 +489,29 @@ export default function OperationCard({
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-gradient-to-br from-cyan-500/5 to-emerald-500/5 dark:from-cyan-500/10 dark:to-emerald-500/10" />
 
       <div className="relative z-10 p-4 sm:p-5">
-        {/* ===== HEADER: Amount + Status pills ===== */}
-        <div className="flex items-start justify-between gap-3">
-          {/* Amount */}
-          <div className="min-w-0">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums" data-testid={`operation-card-total-${operation.id}`}>
-              {Number(displayedWorkshopAmount).toFixed(2)}
-              <span className="ms-2 text-base font-semibold text-slate-500 dark:text-zinc-500">ر.س</span>
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-zinc-400">
-              {isIncome ? 'إيراد الورشة' : (isPurchaseOperation ? 'مصروف الورشة' : 'حركة مالية')} • {typeLabel}
-            </p>
-          </div>
+        {/* ===== HEADER ===== */}
+        <OperationCardHeader
+          operationId={operation.id}
+          amount={displayedWorkshopAmount}
+          subLabel={`${isIncome ? 'إيراد الورشة' : (isPurchaseOperation ? 'مصروف الورشة' : 'حركة مالية')} • ${typeLabel}`}
+          paymentStatusLabel={paymentStatusLabel}
+          paymentStatusTone={isCredit ? 'amber' : 'emerald'}
+          hasPaymentStatus={hasPaymentStatus}
+          movementLabel={movementLabel}
+          movementSide={movementSide}
+          originLabel={originLabel}
+          invoiceNumber={operation.invoiceNumber}
+          integrityWarningsCount={integrityStatus && hasIntegrityWarning ? integrityWarnings.length : 0}
+        />
 
-          {/* Status pills */}
-          <div className="flex flex-wrap justify-end gap-1.5 max-w-[60%]" data-testid={`operation-card-pills-${operation.id}`}>
-            {hasPaymentStatus ? (
-              <StatusBadge
-                text={paymentStatusLabel}
-                tone={isCredit ? 'amber' : 'emerald'}
-                testid={`operation-card-payment-status-pill-${operation.id}`}
-              />
-            ) : null}
-            <StatusBadge
-              text={movementLabel}
-              tone={movementSide === 'debit' ? 'emerald' : movementSide === 'credit' ? 'rose' : 'slate'}
-              testid={`operation-card-movement-pill-${operation.id}`}
-            />
-            <StatusBadge
-              text={originLabel}
-              tone={originLabel === 'POS' ? 'indigo' : originLabel === 'ملف المركبة' ? 'cyan' : 'slate'}
-              testid={`operation-card-origin-pill-${operation.id}`}
-            />
-            {operation.invoiceNumber ? (
-              <StatusBadge
-                text={operation.invoiceNumber}
-                tone="slate"
-                testid={`operation-card-invoice-${operation.id}`}
-              />
-            ) : null}
-            {integrityStatus && hasIntegrityWarning ? (
-              <StatusBadge
-                text={`⚠️ ${integrityWarnings.length}`}
-                tone="rose"
-                testid={`operation-card-integrity-pill-${operation.id}`}
-              />
-            ) : null}
-          </div>
-        </div>
-
-        {/* ===== QUICK INFO GRID (4 cards) ===== */}
-        <div className="mt-5 grid grid-cols-2 gap-2.5" data-testid={`operation-card-meta-${operation.id}`}>
-          <InfoCard
-            icon={<Calendar size={16} />}
-            label="التاريخ"
-            value={formatDateTime(operation.date || operation.op_date || operation.createdAt, isRTL)}
-            accent="emerald"
-            testid={`operation-card-meta-date-${operation.id}`}
-          />
-          <InfoCard
-            icon={<Wallet size={16} />}
-            label="طريقة الدفع"
-            value={paymentMethodLabel}
-            accent="amber"
-            testid={`operation-card-meta-method-${operation.id}`}
-          />
-          <InfoCard
-            icon={<Car size={16} />}
-            label="المركبة"
-            value={vehicleDisplay}
-            accent="cyan"
-            testid={`operation-card-meta-vehicle-${operation.id}`}
-          />
-          <InfoCard
-            icon={<Receipt size={16} />}
-            label="نوع العملية"
-            value={typeLabel}
-            accent="indigo"
-            testid={`operation-card-meta-type-${operation.id}`}
-          />
-        </div>
+        {/* ===== QUICK INFO GRID ===== */}
+        <OperationCardMeta
+          operationId={operation.id}
+          dateText={formatDateTime(operation.date || operation.op_date || operation.createdAt, isRTL)}
+          paymentMethodLabel={paymentMethodLabel}
+          vehicleDisplay={vehicleDisplay}
+          typeLabel={typeLabel}
+        />
 
         {/* ===== Customer / Partner ===== */}
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/[0.03]" data-testid={`operation-card-partner-block-${operation.id}`}>
@@ -629,23 +522,13 @@ export default function OperationCard({
         </div>
 
         {/* ===== Accounting Entry Badge ===== */}
-        <div className="mt-3 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/[0.05]">
-          <div className="flex items-center gap-2 mb-1">
-            <Receipt size={14} className="text-cyan-600 dark:text-cyan-400" />
-            <p className="text-xs font-bold text-cyan-700 dark:text-cyan-300">القيد المحاسبي</p>
-          </div>
-          <p className="text-xs text-slate-700 dark:text-zinc-300 leading-6 whitespace-normal break-words" data-testid={`operation-card-journal-entry-${operation.id}`}>
-            {journalEntryText}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-white/70 dark:bg-white/[0.06] border border-cyan-200 dark:border-cyan-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-zinc-200" data-testid={`operation-card-account-name-${operation.id}`}>
-              {targetAccountName || 'حساب غير محدد'}{accountCode ? ` (${accountCode})` : ''}
-            </span>
-            <span className="rounded-full bg-white/70 dark:bg-white/[0.06] border border-cyan-200 dark:border-cyan-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-zinc-200" data-testid={`operation-card-account-class-${operation.id}`}>
-              تصنيف: {accountClassLabel}
-            </span>
-          </div>
-        </div>
+        <AccountingBadge
+          operationId={operation.id}
+          journalEntryText={journalEntryText}
+          accountName={targetAccountName}
+          accountCode={accountCode}
+          accountClassLabel={accountClassLabel}
+        />
 
         {/* ===== Notes (clean) ===== */}
         {displayNotesClean ? (

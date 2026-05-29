@@ -233,6 +233,10 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
   const [partyId, setPartyId] = useState('');
   const [vehicleRef, setVehicleRef] = useState('');
   const [vehicleId, setVehicleId] = useState('');
+  // 🆕 P0: collect_customer — اختيار زيارة نشطة محددة للعميل
+  const [customerOpenVisits, setCustomerOpenVisits] = useState([]);
+  const [selectedVisitId, setSelectedVisitId] = useState('');
+  const [visitsLoading, setVisitsLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [itemDraft, setItemDraft] = useState({ name: '', price: '', qty: 1, itemType: 'service' });
   const [customers, setCustomers] = useState([]);
@@ -357,6 +361,68 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
     }
   }, [activeTemplate?.partyRole]);
 
+  // 🆕 P0: جلب الزيارات الآجلة المفتوحة للعميل المحدد (collect_customer mode)
+  useEffect(() => {
+    if (activeTemplate?.key !== 'collect_customer' || !partyId) {
+      setCustomerOpenVisits([]);
+      setSelectedVisitId('');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setVisitsLoading(true);
+      try {
+        // اجلب كل عمليات العميل الآجلة المفتوحة (sale/service/instant_sale + balance>0)
+        const res = await axios.get(`${apiBase}/operations`, {
+          params: { partner_id: partyId, limit: 100 },
+        });
+        const rows = normalizeArray(res?.data);
+        const openOps = rows
+          .filter((op) => {
+            const partnerId = String(op?.partnerId || op?.partner_id || '').trim();
+            const t = String(op?.type || '').toLowerCase();
+            if (partnerId && partnerId !== String(partyId).trim()) return false;
+            if (!['sale', 'service', 'instant_sale'].includes(t)) return false;
+            const total = Number(op?.workshopTotal ?? op?.total ?? 0) || 0;
+            const paid = Number(op?.totalPaid ?? op?.paymentAmount ?? 0) || 0;
+            const balance = Number(op?.balance ?? Math.max(total - paid, 0)) || 0;
+            return balance > 0.009;
+          })
+          .map((op) => ({
+            id: op.id,
+            visitId: op.visitId || op.visit_id,
+            vehicleId: op.vehicleId || op.vehicle_id,
+            vehicleRef: op.vehicleRef || op.vehicle_ref || '',
+            invoiceNumber: op.invoiceNumber || op.invoice_number || '',
+            date: op.date || op.createdAt,
+            total: Number(op?.workshopTotal ?? op?.total ?? 0) || 0,
+            paid: Number(op?.totalPaid ?? op?.paymentAmount ?? 0) || 0,
+            balance: Number(op?.balance ?? 0) || 0,
+            description: op.notes || op.description || '',
+          }))
+          .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        if (cancelled) return;
+        setCustomerOpenVisits(openOps);
+        // 🎯 auto-select إذا واحدة فقط
+        if (openOps.length === 1) {
+          setSelectedVisitId(openOps[0].id);
+          if (openOps[0].vehicleId) {
+            setVehicleId(openOps[0].vehicleId);
+            setVehicleRef(openOps[0].vehicleRef || '');
+          }
+        } else {
+          setSelectedVisitId('');
+        }
+      } catch (e) {
+        console.warn('load customer open visits failed:', e);
+        if (!cancelled) setCustomerOpenVisits([]);
+      } finally {
+        if (!cancelled) setVisitsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeTemplate?.key, partyId, apiBase]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -427,7 +493,37 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
     ? normalizeArray(recentEntries)
     : normalizeArray(localRecentEntries);
 
-  const partyOptions = activeTemplate?.partyRole === 'supplier' ? suppliers : customers;
+  // 🆕 P0: حساب العملاء النشطين (لديهم زيارات/عمليات آجلة) لفرزهم أولاً في collect_customer
+  const dashboardCustomerIds = useMemo(() => {
+    if (activeTemplate?.key !== 'collect_customer') return new Set();
+    const ids = new Set();
+    normalizeArray(vehicles).forEach((v) => {
+      const status = String(v?.status || '').toLowerCase();
+      // أي مركبة ليست مسلّمة = زيارة نشطة في الورشة
+      if (status && !['delivered', 'closed', 'cancelled'].includes(status)) {
+        const cid = String(v?.customerId || v?.customer_id || '').trim();
+        if (cid) ids.add(cid);
+      }
+    });
+    return ids;
+  }, [activeTemplate?.key, vehicles]);
+
+  const partyOptions = useMemo(() => {
+    const base = activeTemplate?.partyRole === 'supplier' ? suppliers : customers;
+    const arr = normalizeArray(base);
+    if (activeTemplate?.key !== 'collect_customer' || dashboardCustomerIds.size === 0) {
+      return arr;
+    }
+    // عملاء dashboard (لديهم زيارات نشطة) في الأعلى، ثم الباقي
+    const active = [];
+    const rest = [];
+    arr.forEach((c) => {
+      const cid = String(c?.id || '').trim();
+      if (dashboardCustomerIds.has(cid)) active.push({ ...c, _isActive: true });
+      else rest.push(c);
+    });
+    return [...active, ...rest];
+  }, [activeTemplate?.partyRole, activeTemplate?.key, customers, suppliers, dashboardCustomerIds]);
 
   const filteredVehicles = useMemo(() => {
     if (activeTemplate?.partyRole !== 'customer') return [];
@@ -621,11 +717,25 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
     setPartyId('');
     setVehicleRef('');
     setVehicleId('');
+    setSelectedVisitId('');
+    setCustomerOpenVisits([]);
     setItems([]);
     setItemDraft({ name: '', price: '', qty: 1, itemType: 'service' });
   };
 
   const findOpenVehicleOperationForCollection = async () => {
+    // 🆕 P0: إذا تم اختيار زيارة محددة، استخدمها مباشرة (تربط التحصيل برصيد العميل دقيقاً)
+    if (selectedVisitId) {
+      const fromCache = customerOpenVisits.find((op) => op.id === selectedVisitId);
+      if (fromCache) {
+        return { id: fromCache.id, ...fromCache, _balance: fromCache.balance };
+      }
+      // fallback: اجلبها من API
+      try {
+        const res = await axios.get(`${apiBase}/operations/${selectedVisitId}`);
+        return res?.data || null;
+      } catch (e) { /* fallthrough */ }
+    }
     if (!vehicleId) return null;
     const response = await axios.get(`${apiBase}/operations`, {
       params: { vehicle_id: vehicleId, limit: 50 },
@@ -736,10 +846,10 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
     setSavedToast(null);
 
     try {
-      if (activeTemplate?.key === 'collect_customer' && vehicleId) {
+      if (activeTemplate?.key === 'collect_customer' && (vehicleId || selectedVisitId)) {
         const targetOperation = await findOpenVehicleOperationForCollection();
         if (!targetOperation?.id) {
-          setSavedToast({ ok: false, error: 'لا توجد عملية آجل مفتوحة لهذه المركبة. لن يتم إنشاء عملية تحصيل منفصلة حتى لا يتكرر السعر.' });
+          setSavedToast({ ok: false, error: 'لا توجد عملية آجل مفتوحة للعميل/المركبة. اختر زيارة من القائمة.' });
           return;
         }
 
@@ -1019,10 +1129,61 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
                     />
                     <datalist id={`pos-party-options-${activeTemplate?.partyRole || 'open'}`}>
                       {partyOptions.map((party, index) => (
-                        <option key={party?.id || `party-${index}`} value={party?.name || ''} />
+                        <option
+                          key={party?.id || `party-${index}`}
+                          value={party?.name || ''}
+                          label={party?._isActive ? '⭐ لديه زيارة نشطة' : undefined}
+                        />
                       ))}
                     </datalist>
                   </div>
+                  {activeTemplate?.key === 'collect_customer' && dashboardCustomerIds.size > 0 && !partyId ? (
+                    <p className="mt-1 text-[10px] text-amber-300" data-testid="pos-party-dashboard-hint">
+                      ⭐ العملاء الذين لديهم زيارات نشطة معروضون أولاً في القائمة ({dashboardCustomerIds.size})
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {/* 🆕 P0: حقل اختيار الزيارة عند تحصيل من عميل */}
+              {activeTemplate?.key === 'collect_customer' && partyId ? (
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm text-slate-200">
+                    الزيارة المراد التحصيل منها
+                    {visitsLoading ? <span className="ms-2 text-xs text-cyan-300">جاري التحميل...</span> : null}
+                    {!visitsLoading && customerOpenVisits.length === 0 ? (
+                      <span className="ms-2 text-xs text-amber-300">لا توجد زيارات آجلة لهذا العميل</span>
+                    ) : null}
+                    {!visitsLoading && customerOpenVisits.length === 1 ? (
+                      <span className="ms-2 text-xs text-emerald-300">✓ تم الاختيار التلقائي (زيارة واحدة فقط)</span>
+                    ) : null}
+                  </label>
+                  {customerOpenVisits.length > 0 ? (
+                    <select
+                      data-testid="pos-visit-select"
+                      value={selectedVisitId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setSelectedVisitId(id);
+                        const visit = customerOpenVisits.find((v) => v.id === id);
+                        if (visit) {
+                          if (visit.vehicleId) setVehicleId(visit.vehicleId);
+                          if (visit.vehicleRef) setVehicleRef(visit.vehicleRef);
+                          if (visit.balance > 0) setAmount(String(visit.balance.toFixed(2)));
+                        }
+                      }}
+                      className="w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-slate-100 outline-none focus:border-cyan-400/50"
+                    >
+                      <option value="">— اختر زيارة من القائمة —</option>
+                      {customerOpenVisits.map((v) => (
+                        <option key={v.id} value={v.id} data-testid={`pos-visit-option-${v.id}`}>
+                          {v.invoiceNumber ? `${v.invoiceNumber} • ` : ''}
+                          {v.vehicleRef || '—'} • متبقي {Number(v.balance).toFixed(2)} ر.س
+                          {v.date ? ` (${String(v.date).slice(0, 10)})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
                 </div>
               ) : null}
 

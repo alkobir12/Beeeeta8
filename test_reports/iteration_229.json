@@ -1,0 +1,44 @@
+{
+  "summary": "Verified P0 POS 'تحصيل من عميل' workflow and P1 OperationCard split (regression). Both features pass. All required data-testids and behaviors confirmed on production preview URL. Auto-select for single visit (d) verified by code (customerOpenVisits.length===1) but couldn't exercise with current data (test customer had 4 open visits).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots_iter229_pos_full.png",
+    "/app/test_reports/screenshots_iter229_ops.png",
+    "/app/test_reports/screenshots_iter229_template.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "P0 confirmed working: POST /api/operations/{visitId}/confirm-payment fires with selectedVisitId in URL; body includes amount=2300, payment_method, workshopId, date, notes.",
+    "P1 OperationCard split: 1119 → 1001 lines; new sub-components OperationCardHeader/Meta + AccountingBadge/StatusBadge + operationCardHelpers.js. All 13 child testids render correctly (total, pills, payment-status-pill, movement-pill, origin-pill, meta, meta-date/method/vehicle/type, journal-entry, account-name/class). Expanded view and actions buttons preserved.",
+    "Minor: smart-pos-journal route is /accounting/journal-entries with viewMode='pos' (not a standalone route). Documentation in review_request mentioned /smart-pos-journal which doesn't exist — clarify if intentional.",
+    "Auto-select (d) couldn't be exercised via UI because no available customer with exactly 1 open visit was found; code path looks correct (set when customerOpenVisits.length === 1). Consider seeding a single-visit customer for full end-to-end coverage."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only)", "frontend": "100% (12/12 verifications passed; d verified via code only)"},
+  "test_credentials": "Login: 'مدير' (no password) via /login",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "POS template 'تحصيل من عميل' is at /accounting/journal-entries → click data-testid='journal-mode-pos-button' → click button text 'تحصيل من عميل'. To verify (d) auto-select, seed a customer with exactly 1 open operation (status='قيد التنفيذ' or open visit) and re-run. P1 OperationCard testids fully verified on op 99970dc5-5e16-481f-a925-65cce2d374f7.",
+  "p0_verification_details": {
+    "a_hint_visible": "PASS - 'العملاء الذين لديهم زيارات نشطة معروضون أولاً في القائمة (9)'",
+    "b_datalist_active_marked": "PASS - 157 total options, 5 marked with ⭐ active label, sorted first",
+    "c_visit_select_appears": "PASS - data-testid='pos-visit-select' with 5 options (4 visits + placeholder)",
+    "d_auto_select_single_visit": "NOT_EXERCISED - test customer had 4 visits; logic in code is correct (length===1)",
+    "e_amount_auto_fills": "PASS - selecting visit auto-fills 2300.00 from balance",
+    "f_confirm_payment_api": "PASS - POST /api/operations/99970dc5-.../confirm-payment with body {amount:2300, payment_method:'cash', workshopId, date, notes}",
+    "g_finance_updated_event": "PASS - window.dispatchEvent(finance:updated) fired after save"
+  },
+  "p1_verification_details": {
+    "cards_render_with_design": "PASS",
+    "all_required_testids": "PASS (13/13: total, pills, payment-status-pill, movement-pill, origin-pill, meta, meta-date, meta-method, meta-vehicle, meta-type, journal-entry, account-name, account-class)",
+    "expanded_view": "PASS",
+    "actions_buttons": "PASS (تعديل / طباعة / عرض / حذف visible)",
+    "new_components_present": "PASS (OperationCardHeader.jsx, OperationCardMeta.jsx, AccountingBadge.jsx, StatusBadge.jsx, operationCardHelpers.js all exist at /app/frontend/src/components/operation/ and /utils/)"
+  }
+}
