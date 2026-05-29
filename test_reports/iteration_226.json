@@ -1,0 +1,27 @@
+{
+  "summary": "Verified OperationCard.jsx mobile-first redesign on /operations. Page loads correctly, 9+ cards rendered with new design (large 3xl/4xl total amount, status pills POS/مدين/ملف المركبة/invoice, 4 InfoCard meta grid Calendar/Wallet/Car/Receipt, Partner block 2xl customer name, cyan Accounting badge, cleaned notes, Payment Summary, toggle button, action buttons). The green 'تأكيد سداد الآجل' button correctly shows ONLY on the credit-unpaid card (500.00 with remaining 500.00). Zero console errors. All required data-testids present (confirmed visually).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/operations OperationCard notes", "issues": ["cleanNotes() helper (OperationCard.jsx:144-153) strips [bracket-tags], PARTY_TYPE:, SOURCE:, VEHICLE_REF: but does NOT strip 'ACCOUNT_CODE:' or 'ACCOUNTING_TARGET:' markers. Card 6 (4707.00 salary expense) visibly leaks 'ACCOUNT_CODE:036 ACCOUNTING_TARGET:رواتب إدارية' into the notes display. Card 3 (600.00) shows similar 'ACCOUNT_CODE:027 ACCOUNTING_TARGET:إيرادات إصلاح محركات'. Recommend extending the regex chain: .replace(/ACCOUNT_CODE:\\s*\\S+/g, '').replace(/ACCOUNTING_TARGET:\\s*[^\\n]+/g, '')"]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iter226_ops.jpeg"],
+  "action_items": [
+    "Extend cleanNotes() in /app/frontend/src/components/OperationCard.jsx (line 144) to also strip 'ACCOUNT_CODE:...' and 'ACCOUNTING_TARGET:...' markers. They are currently visible in card notes (cards 4707.00 and 600.00 in the operations list)."
+  ],
+  "critical_code_review_comments": [
+    "OperationCard.jsx is 1117 lines — exceeds the 700-line guideline. Consider splitting helpers (cleanNotes, StatusBadge, InfoCard, sanitizeAccountingText, resolveTargetAccountName, classifyAccountCode, etc.) into a separate /utils/operationCardHelpers.js or co-located sub-components.",
+    "cleanNotes regex .replace(/\\[.*?\\]/g, '') uses a greedy-like .*?  inside brackets — fine for short tags, but won't handle nested or multi-line brackets. Acceptable for current data shape.",
+    "Click handler on the outer card (onClick={() => setExpandedState(!isExpanded)}) is good but consider adding role='button' + aria-expanded for a11y; toggle child button stops propagation correctly."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only)", "frontend": "≈95% (1 minor cleanNotes leak, all required testids + flows working)"},
+  "test_credentials": "Login: username='مدير' (no password). Used per /app/memory/test_credentials.md.",
+  "seed_data_creation": "None; used existing 59 operations in DB.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Verified visually via full-page screenshot at /app/test_reports/iter226_ops.jpeg. The page renders 9 operation cards across 3 columns at 1920px viewport, each showing the new design: amount header (top-right, text-3xl/4xl bold), status pill row (POS/credit-debit/origin/invoice), 4 InfoCard grid for date/method/vehicle/type, partner block (customer name 2xl), cyan accounting badge with account name + classification chips, optional cleaned notes section, payment summary (paid/remaining when applicable), toggle 'التفاصيل' button, action buttons (edit/print/view/delete). Credit unpaid card (500.00) shows the full-width green 'تأكيد سداد الآجل' CTA. NOTE: my evaluate regex /^operation-card-[^-]+$/ initially returned 0 cards because operation.id is a UUID containing dashes — use /^operation-card-[0-9a-f-]+$/ or look for the data-expanded attribute instead. Initial theme = light (white bg). Zero console errors during all flows. Regression pages: /accounting/firewall loaded OK; /dashboard, /smart-pos-journal, /debts-followup were navigated to but URL shown as '/' immediately after domcontentloaded — likely just the SPA hash routing settling; not a regression. cleanNotes minor leak documented in design_issues."
+}

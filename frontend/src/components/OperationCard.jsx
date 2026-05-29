@@ -12,6 +12,11 @@ import {
   FileText,
   Landmark,
   Link2,
+  Calendar,
+  Wallet,
+  Receipt,
+  CheckCircle2,
+  Eye,
 } from 'lucide-react';
 import {
   ACCOUNT_NAME_MAP,
@@ -130,6 +135,65 @@ const classifyOperationAccount = (operation = {}, accountCode = '', accountName 
   if (opType === 'payment_order' && partnerType === 'supplier') return 'التزام';
   if (opType === 'payment_order' && partnerType === 'customer') return 'أصل';
   return 'تلقائي حسب العملية';
+};
+
+// ============================================================
+// 🎨 New visual helpers (mobile-first ERP redesign)
+// ============================================================
+
+const cleanNotes = (notes) => {
+  if (!notes) return '';
+  return String(notes)
+    .replace(/\[.*?\]/g, '')
+    .replace(/PARTY_TYPE:.*/g, '')
+    .replace(/SOURCE:.*/g, '')
+    .replace(/VEHICLE_REF:.*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const StatusBadge = ({ text, tone = 'slate', testid }) => {
+  const tones = {
+    emerald: 'bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-300 dark:border-emerald-700',
+    amber:   'bg-amber-500/10 text-amber-700 border-amber-300 dark:text-amber-300 dark:border-amber-700',
+    rose:    'bg-rose-500/10 text-rose-700 border-rose-300 dark:text-rose-300 dark:border-rose-700',
+    sky:     'bg-sky-500/10 text-sky-700 border-sky-300 dark:text-sky-300 dark:border-sky-700',
+    indigo:  'bg-indigo-500/10 text-indigo-700 border-indigo-300 dark:text-indigo-300 dark:border-indigo-700',
+    cyan:    'bg-cyan-500/10 text-cyan-700 border-cyan-300 dark:text-cyan-300 dark:border-cyan-700',
+    slate:   'bg-slate-500/10 text-slate-700 border-slate-300 dark:text-slate-200 dark:border-slate-600',
+  };
+  return (
+    <span
+      data-testid={testid}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${tones[tone] || tones.slate}`}
+    >
+      {text}
+    </span>
+  );
+};
+
+const InfoCard = ({ icon, label, value, accent = 'slate', testid }) => {
+  const accents = {
+    slate: 'text-slate-500 dark:text-slate-400',
+    cyan: 'text-cyan-600 dark:text-cyan-400',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    amber: 'text-amber-600 dark:text-amber-400',
+    indigo: 'text-indigo-600 dark:text-indigo-400',
+  };
+  return (
+    <div
+      data-testid={testid}
+      className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white/80 p-3 dark:border-white/5 dark:bg-white/[0.03] shadow-sm"
+    >
+      <div className={`shrink-0 ${accents[accent] || accents.slate}`}>{icon}</div>
+      <div className="min-w-0">
+        <p className="text-[10px] text-slate-500 dark:text-zinc-500 font-medium">{label}</p>
+        <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate" title={value}>
+          {value || '-'}
+        </p>
+      </div>
+    </div>
+  );
 };
 
 export default function OperationCard({
@@ -451,162 +515,197 @@ export default function OperationCard({
     potential_duplicate: 'تكرار محتمل لنفس العملية',
   };
 
+  // 🎨 cleaned-up notes for the new design (helper extracted above)
+  const displayNotesClean = useMemo(() => cleanNotes(operation.notes), [operation.notes]);
+
   return (
     <div
-      className="dash-widget-shell"
+      className="group relative overflow-hidden rounded-3xl border bg-white dark:bg-[#111111] transition-all duration-300 hover:shadow-xl"
       style={{
-        background: 'linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.96) 100%)',
-        border: `1px solid ${paymentBorder}`,
+        borderColor: paymentBorder,
         boxShadow: isExpanded
           ? `0 22px 60px rgba(15,23,42,0.16), 0 0 0 1px ${paymentBorder}`
-          : '0 14px 36px rgba(15,23,42,0.10)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        overflow: 'hidden',
+          : '0 6px 20px rgba(15,23,42,0.08)',
         transition: 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
-        transform: isExpanded ? 'scale(1.003)' : 'scale(1)',
       }}
       data-expanded={isExpanded ? 'true' : 'false'}
       onClick={() => setExpandedState(!isExpanded)}
       dir={isRTL ? 'rtl' : 'ltr'}
       data-testid={`operation-card-${operation.id || operation.invoiceNumber || 'unknown'}`}
     >
-      <div className="absolute top-4 left-4 flex flex-col gap-1 opacity-60">
-        <span className="w-1 h-1 rounded-full bg-gray-400" />
-        <span className="w-1 h-1 rounded-full bg-gray-400" />
-        <span className="w-1 h-1 rounded-full bg-gray-400" />
-      </div>
+      {/* hover glow */}
+      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-gradient-to-br from-cyan-500/5 to-emerald-500/5 dark:from-cyan-500/10 dark:to-emerald-500/10" />
 
-      <div className="px-4 pt-4 pb-3">
+      <div className="relative z-10 p-4 sm:p-5">
+        {/* ===== HEADER: Amount + Status pills ===== */}
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5" data-testid={`operation-card-pills-${operation.id}`}>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-medium ${typePill}`}>{typeLabel}</span>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-medium ${scopePill}`}>
-                {(operation.scope === 'workshop' || (!operation.scope && !operation.vehicleId))
-                  ? (t('operations.scopeWorkshop') || 'ورشة')
-                  : (t('operations.scopeVehicle') || 'مركبة')}
-              </span>
-              {operation.invoiceNumber ? (
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-950 border border-slate-200" data-testid={`operation-card-invoice-${operation.id}`}>
-                  {operation.invoiceNumber}
-                </span>
-              ) : null}
-              {integrityStatus ? (
-                <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${hasIntegrityWarning ? 'bg-rose-50 text-rose-950 border-rose-300' : 'bg-emerald-50 text-emerald-950 border-emerald-300'}`}
-                  data-testid={`operation-card-integrity-pill-${operation.id}`}
-                >
-                  {hasIntegrityWarning ? `⚠️ ${integrityWarnings.length} ملاحظة` : '✅ مترابطة'}
-                </span>
-              ) : null}
-              {hasPaymentStatus ? (
-                <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${isCredit ? 'bg-amber-50 text-amber-950 border-amber-300' : 'bg-emerald-50 text-emerald-950 border-emerald-300'}`}
-                  data-testid={`operation-card-payment-status-pill-${operation.id}`}
-                >
-                  {paymentStatusLabel}
-                </span>
-              ) : null}
-
-              {/* شارة الحركة: مدين (داخل) / دائن (خارج) */}
-              <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                  movementSide === 'debit' ? 'bg-emerald-50 text-emerald-950 border-emerald-300' :
-                  movementSide === 'credit' ? 'bg-rose-50 text-rose-950 border-rose-300' :
-                  'bg-slate-50 text-slate-800 border-slate-300'
-                }`}
-                data-testid={`operation-card-movement-pill-${operation.id}`}
-                title={movementSide === 'debit' ? 'الأموال داخلة للورشة' : movementSide === 'credit' ? 'الأموال خارجة من الورشة' : 'حركة متعادلة'}
-              >
-                {movementLabel}
-              </span>
-
-              {/* شارة المصدر: POS / ملف المركبة / عام */}
-              <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${originColor}`}
-                data-testid={`operation-card-origin-pill-${operation.id}`}
-                title={`المصدر: ${originLabel}`}
-              >
-                {originLabel}
-              </span>
-            </div>
-
-            <div className="mt-2.5 flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5 text-slate-950">
-                <FileText size={14} className="text-slate-700" />
-                <span className="text-sm font-semibold break-words leading-tight" data-testid={`operation-card-partner-${operation.id}`}>
-                  العميل/الطرف: {customerDisplay}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-slate-950 text-[11px] font-bold" data-testid={`operation-card-vehicle-summary-${operation.id}`}>
-                <Car size={12} />
-                <span className="break-words">المركبة: {vehicleDisplay}</span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1.5 text-slate-700 text-[11px] sm:text-xs font-semibold" data-testid={`operation-card-meta-${operation.id}`}>
-                <CreditCard size={12} />
-                <span className="break-words">{paymentMethodLabel}</span>
-                <span className="mx-1 text-slate-400">•</span>
-                <span className="break-words">{formatDateTime(operation.date || operation.op_date || operation.createdAt, isRTL)}</span>
-              </div>
-
-              {hasPaymentStatus ? (
-                <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-900" data-testid={`operation-card-payment-summary-${operation.id}`}>
-                  <span>الحالة: <span className="font-semibold">{paymentStatusLabel}</span></span>
-                  <span>المدفوع: <span className="font-semibold tabular-nums">{totalPaid.toFixed(2)}</span></span>
-                  <span>المتبقي: <span className="font-semibold tabular-nums">{remainingBalance.toFixed(2)}</span></span>
-                </div>
-              ) : null}
-
-              <div className="text-[11px] text-slate-800 leading-relaxed whitespace-normal break-words" data-testid={`operation-card-journal-entry-${operation.id}`}>
-                {journalEntryText}
-              </div>
-
-              <div className="text-[11px] text-slate-950 leading-relaxed whitespace-normal break-words" data-testid={`operation-card-account-name-${operation.id}`}>
-                الحساب: <span className="font-semibold">{targetAccountName || '-'}</span>
-                {accountCode ? <span className="mx-1 text-slate-700">({accountCode})</span> : null}
-              </div>
-
-              <div className="text-[11px] text-slate-900 leading-relaxed whitespace-normal break-words" data-testid={`operation-card-account-class-${operation.id}`}>
-                التصنيف: <span className="font-semibold">{accountClassLabel}</span>
-              </div>
-
-              <div className="text-[11px] text-slate-900 leading-relaxed whitespace-normal break-words" data-testid={`operation-card-items-summary-${operation.id}`}>
-                الصنف/البند: <span className="font-semibold">{itemsSummary}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="shrink-0 text-right">
-            <div className="text-lg sm:text-xl font-extrabold text-slate-950 tabular-nums" data-testid={`operation-card-total-${operation.id}`}>
+          {/* Amount */}
+          <div className="min-w-0">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white tabular-nums" data-testid={`operation-card-total-${operation.id}`}>
               {Number(displayedWorkshopAmount).toFixed(2)}
-            </div>
-            <div className="text-[10px] text-slate-600 font-semibold">إيراد الورشة • {t('common.currency') || ''}</div>
-
-            <button
-              type="button"
-              className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-900 border border-slate-200 hover:bg-slate-200"
-              onClick={(e) => {
-                stop(e);
-                setExpandedState(!isExpanded);
-              }}
-              data-testid={`operation-card-toggle-${operation.id}`}
-            >
-              {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              <span>{t('common.details') || 'التفاصيل'}</span>
-            </button>
+              <span className="ms-2 text-base font-semibold text-slate-500 dark:text-zinc-500">ر.س</span>
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-zinc-400">
+              {isIncome ? 'إيراد الورشة' : (isPurchaseOperation ? 'مصروف الورشة' : 'حركة مالية')} • {typeLabel}
+            </p>
           </div>
+
+          {/* Status pills */}
+          <div className="flex flex-wrap justify-end gap-1.5 max-w-[60%]" data-testid={`operation-card-pills-${operation.id}`}>
+            {hasPaymentStatus ? (
+              <StatusBadge
+                text={paymentStatusLabel}
+                tone={isCredit ? 'amber' : 'emerald'}
+                testid={`operation-card-payment-status-pill-${operation.id}`}
+              />
+            ) : null}
+            <StatusBadge
+              text={movementLabel}
+              tone={movementSide === 'debit' ? 'emerald' : movementSide === 'credit' ? 'rose' : 'slate'}
+              testid={`operation-card-movement-pill-${operation.id}`}
+            />
+            <StatusBadge
+              text={originLabel}
+              tone={originLabel === 'POS' ? 'indigo' : originLabel === 'ملف المركبة' ? 'cyan' : 'slate'}
+              testid={`operation-card-origin-pill-${operation.id}`}
+            />
+            {operation.invoiceNumber ? (
+              <StatusBadge
+                text={operation.invoiceNumber}
+                tone="slate"
+                testid={`operation-card-invoice-${operation.id}`}
+              />
+            ) : null}
+            {integrityStatus && hasIntegrityWarning ? (
+              <StatusBadge
+                text={`⚠️ ${integrityWarnings.length}`}
+                tone="rose"
+                testid={`operation-card-integrity-pill-${operation.id}`}
+              />
+            ) : null}
+          </div>
+        </div>
+
+        {/* ===== QUICK INFO GRID (4 cards) ===== */}
+        <div className="mt-5 grid grid-cols-2 gap-2.5" data-testid={`operation-card-meta-${operation.id}`}>
+          <InfoCard
+            icon={<Calendar size={16} />}
+            label="التاريخ"
+            value={formatDateTime(operation.date || operation.op_date || operation.createdAt, isRTL)}
+            accent="emerald"
+            testid={`operation-card-meta-date-${operation.id}`}
+          />
+          <InfoCard
+            icon={<Wallet size={16} />}
+            label="طريقة الدفع"
+            value={paymentMethodLabel}
+            accent="amber"
+            testid={`operation-card-meta-method-${operation.id}`}
+          />
+          <InfoCard
+            icon={<Car size={16} />}
+            label="المركبة"
+            value={vehicleDisplay}
+            accent="cyan"
+            testid={`operation-card-meta-vehicle-${operation.id}`}
+          />
+          <InfoCard
+            icon={<Receipt size={16} />}
+            label="نوع العملية"
+            value={typeLabel}
+            accent="indigo"
+            testid={`operation-card-meta-type-${operation.id}`}
+          />
+        </div>
+
+        {/* ===== Customer / Partner ===== */}
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/[0.03]" data-testid={`operation-card-partner-block-${operation.id}`}>
+          <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-500 mb-1">العميل / الطرف</p>
+          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white" data-testid={`operation-card-partner-${operation.id}`}>
+            {customerDisplay}
+          </h2>
+        </div>
+
+        {/* ===== Accounting Entry Badge ===== */}
+        <div className="mt-3 rounded-2xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-500/20 dark:bg-cyan-500/[0.05]">
+          <div className="flex items-center gap-2 mb-1">
+            <Receipt size={14} className="text-cyan-600 dark:text-cyan-400" />
+            <p className="text-xs font-bold text-cyan-700 dark:text-cyan-300">القيد المحاسبي</p>
+          </div>
+          <p className="text-xs text-slate-700 dark:text-zinc-300 leading-6 whitespace-normal break-words" data-testid={`operation-card-journal-entry-${operation.id}`}>
+            {journalEntryText}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-white/70 dark:bg-white/[0.06] border border-cyan-200 dark:border-cyan-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-zinc-200" data-testid={`operation-card-account-name-${operation.id}`}>
+              {targetAccountName || 'حساب غير محدد'}{accountCode ? ` (${accountCode})` : ''}
+            </span>
+            <span className="rounded-full bg-white/70 dark:bg-white/[0.06] border border-cyan-200 dark:border-cyan-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 dark:text-zinc-200" data-testid={`operation-card-account-class-${operation.id}`}>
+              تصنيف: {accountClassLabel}
+            </span>
+          </div>
+        </div>
+
+        {/* ===== Notes (clean) ===== */}
+        {displayNotesClean ? (
+          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/5 dark:bg-white/[0.02]">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-500">وصف العملية</p>
+              <span className="text-[10px] text-slate-500 dark:text-zinc-500">{itemsSummary !== '-' ? `${(operation.items || []).length} بند` : ''}</span>
+            </div>
+            <p className="text-xs leading-6 text-slate-800 dark:text-zinc-200 break-words" data-testid={`operation-card-notes-${operation.id}`}>
+              {displayNotesClean}
+            </p>
+          </div>
+        ) : null}
+
+        {/* ===== Payment Summary (when has payment) ===== */}
+        {hasPaymentStatus ? (
+          <div className="mt-3 grid grid-cols-2 gap-2.5" data-testid={`operation-card-payment-summary-${operation.id}`}>
+            <div className={`rounded-2xl border p-3 ${totalPaid > 0 ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-700/40 dark:bg-emerald-950/30' : 'border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-white/[0.03]'}`}>
+              <p className="text-[10px] text-slate-500 dark:text-zinc-500">المدفوع</p>
+              <h3 className="text-lg font-extrabold text-emerald-700 dark:text-emerald-300 tabular-nums">{totalPaid.toFixed(2)}</h3>
+            </div>
+            <div className={`rounded-2xl border p-3 ${remainingBalance > 0 ? 'border-rose-200 bg-rose-50 dark:border-rose-700/40 dark:bg-rose-950/30' : 'border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-white/[0.03]'}`}>
+              <p className="text-[10px] text-slate-500 dark:text-zinc-500">المتبقي</p>
+              <h3 className={`text-lg font-extrabold tabular-nums ${remainingBalance > 0 ? 'text-rose-700 dark:text-rose-300' : 'text-slate-700 dark:text-zinc-300'}`}>{remainingBalance.toFixed(2)}</h3>
+            </div>
+          </div>
+        ) : null}
+
+        {/* ===== Toggle details ===== */}
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
+            onClick={(e) => { stop(e); setExpandedState(!isExpanded); }}
+            data-testid={`operation-card-toggle-${operation.id}`}
+          >
+            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            <span>{t('common.details') || 'التفاصيل'}</span>
+          </button>
         </div>
       </div>
 
-      <div className="px-4 pb-3" onClick={stop}>
-        <div className="flex flex-wrap items-center justify-end gap-1.5" data-testid={`operation-card-actions-${operation.id}`}>
+      <div className="relative z-10 px-4 sm:px-5 pb-4 border-t border-slate-200 dark:border-white/5" onClick={stop}>
+        {/* Primary CTA: Confirm credit payment (when applicable) */}
+        {canConfirmCreditPayment && typeof onConfirmCreditPayment === 'function' ? (
+          <button
+            type="button"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-600 active:scale-[0.99] transition-all"
+            onClick={() => onConfirmCreditPayment(operation)}
+            disabled={isSaving || isDeleting}
+            data-testid={`operation-card-confirm-credit-payment-${operation.id}`}
+          >
+            <CheckCircle2 size={16} />
+            {t('operations.confirm_credit_payment') || 'تأكيد سداد المبلغ المتبقي'}
+          </button>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid={`operation-card-actions-${operation.id}`}>
           {!editing && canEditOperation ? (
             <button
               type="button"
-              className="apple-button-secondary h-8 px-2.5 text-[11px]"
+              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
               onClick={() => {
                 if (typeof onEditInForm === 'function') {
                   onEditInForm(operation);
@@ -618,16 +717,14 @@ export default function OperationCard({
               disabled={isSaving || isDeleting}
               data-testid={`operation-card-edit-${operation.id}`}
             >
-              <span className="inline-flex items-center gap-1.5">
-                <Pencil size={12} />
-                {t('common.edit') || 'تعديل'}
-              </span>
+              <Pencil size={12} />
+              {t('common.edit') || 'تعديل'}
             </button>
           ) : editing ? (
             <>
               <button
                 type="button"
-                className="apple-button h-8 px-2.5 text-[11px]"
+                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
                 onClick={async () => {
                   const ok = await onUpdateItems(operation.id, itemsDraft, editMeta);
                   if (ok) setEditing(false);
@@ -635,14 +732,12 @@ export default function OperationCard({
                 disabled={isSaving}
                 data-testid={`operation-card-save-edit-${operation.id}`}
               >
-                <span className="inline-flex items-center gap-1.5">
-                  <Save size={12} />
-                  {isSaving ? (t('common.loading') || '...') : (t('common.save') || 'حفظ')}
-                </span>
+                <Save size={12} />
+                {isSaving ? (t('common.loading') || '...') : (t('common.save') || 'حفظ')}
               </button>
               <button
                 type="button"
-                className="apple-button-secondary h-8 px-2.5 text-[11px]"
+                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
                 onClick={() => {
                   setEditing(false);
                   setItemsDraft(Array.isArray(operation.items) ? operation.items.map((it) => ({ ...it })) : []);
@@ -656,67 +751,47 @@ export default function OperationCard({
                 disabled={isSaving}
                 data-testid={`operation-card-cancel-edit-${operation.id}`}
               >
-                <span className="inline-flex items-center gap-1.5">
-                  <X size={12} />
-                  {t('common.cancel') || 'إلغاء'}
-                </span>
+                <X size={12} />
+                {t('common.cancel') || 'إلغاء'}
               </button>
             </>
           ) : null}
 
           <button
             type="button"
-            className="apple-button-secondary h-8 px-2.5 text-[11px]"
+            className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
             onClick={() => onPrint(operation)}
             disabled={isSaving || isDeleting}
             data-testid={`operation-card-print-${operation.id}`}
           >
-            <span className="inline-flex items-center gap-1.5">
-              <Printer size={12} />
-              {t('common.print') || 'طباعة'}
-            </span>
+            <Printer size={12} />
+            {t('common.print') || 'طباعة'}
           </button>
 
           {operation.vehicleId ? (
             <button
               type="button"
-              className="apple-button-secondary h-8 px-2.5 text-[11px]"
+              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
               onClick={() => onViewVehicle(operation)}
               disabled={isSaving || isDeleting}
               data-testid={`operation-card-view-vehicle-${operation.id}`}
             >
-              <span className="inline-flex items-center gap-1.5">
-                <Car size={12} />
-                {t('common.view') || 'عرض'}
-              </span>
-            </button>
-          ) : null}
-
-          {canConfirmCreditPayment && typeof onConfirmCreditPayment === 'function' ? (
-            <button
-              type="button"
-              className="apple-button-secondary h-8 px-2.5 text-[11px]"
-              onClick={() => onConfirmCreditPayment(operation)}
-              disabled={isSaving || isDeleting}
-              data-testid={`operation-card-confirm-credit-payment-${operation.id}`}
-            >
-              {t('operations.confirm_credit_payment') || 'تأكيد السداد'}
+              <Eye size={12} />
+              {t('common.view') || 'عرض'}
             </button>
           ) : null}
 
           {canDeleteOperation ? (
             <button
               type="button"
-              className="h-8 px-2.5 text-[11px] rounded-lg border border-rose-300 bg-rose-50 text-rose-950 hover:bg-rose-100 transition-colors"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/60 transition-colors disabled:opacity-50 me-auto"
               onClick={() => onDelete(operation)}
               disabled={isDeleting}
               title={t('common.delete') || 'حذف'}
               data-testid={`operation-card-delete-${operation.id}`}
             >
-              <span className="inline-flex items-center gap-1.5">
-                <Trash2 size={12} />
-                {isDeleting ? (t('common.loading') || '...') : (t('common.delete') || 'حذف')}
-              </span>
+              <Trash2 size={12} />
+              {isDeleting ? (t('common.loading') || '...') : (t('common.delete') || 'حذف')}
             </button>
           ) : null}
         </div>
