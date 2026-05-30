@@ -20,9 +20,28 @@
 - ThemeContext (Light/Dark/DashPro)
 - Emergent Universal LLM Key
 
-## Recent Work — All 4 Sessions Summary (Feb 2026)
+## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 5 (Feb 11 — current)
+### Session 6 (Feb 11 — current)
+- ✅ **P0: Operation Card "details don't show" بصرياً (FIXED)**:
+  - Root cause #1: index.css global rule at line 154 (`body.light-mode div { color: var(--text-secondary) !important }`) was overriding every Tailwind `text-slate-950/900/700/600` etc. inside `[data-testid^="operation-card-expanded-"]`, making text appear washed-out gray on light-gray backgrounds.
+  - Root cause #2: expanded section had no `onClick={stop}` → clicking any inner content bubbled up to the outer card and collapsed the card mid-interaction.
+  - Root cause #3: expanded section was rendered AFTER the actions section in JSX, so logically the expanded content appeared below the action buttons (confusing UX).
+  - Fix #1 (`index.css` lines 159-189): added targeted overrides for `body.light-mode [data-testid^="operation-card-expanded-"] .text-slate-950/900/700/600` etc. + same for `body[data-theme="dashPro"]` — restored proper Tailwind colors.
+  - Fix #2 (`OperationCard.jsx` lines 574-579): added `onClick={stop}` (e.stopPropagation) on the expanded section wrapper.
+  - Fix #3 (`OperationCard.jsx`): swapped the expanded and actions blocks in JSX so the expanded content renders BETWEEN the toggle and the actions (more conventional UX).
+  - Fix #4 (`OperationCard.jsx` line 475): removed `overflow-hidden` and replaced `transition: all` with `transition: box-shadow` only.
+  - **Verified by testing agent iter 230**: 18 `.text-slate-950` elements with computed color `rgb(15, 23, 42)`, expanded section has 677 chars of rich content, stopPropagation works.
+- ✅ **P0: SmartPOSJournal "تحصيل من عميل" sort + auto-select (VERIFIED)**:
+  - `dashboardCustomerIds` (line 496-509): Set of customer IDs whose vehicles are NOT yet delivered/closed (active dashboard visits).
+  - `partyOptions` (line 511-526): customers with active visits ranked first with `_isActive: true` and `⭐ لديه زيارة نشطة` label in the datalist.
+  - `pos-party-dashboard-hint` UI: `⭐ العملاء الذين لديهم زيارات نشطة معروضون أولاً في القائمة (N)`.
+  - `useEffect` (line 364-424): when a customer is selected, fetch `/api/operations?partner_id=...` and filter for `sale/service/instant_sale` with `balance > 0`.
+  - `setSelectedVisitId` auto-set when `openOps.length === 1` (auto-select single-visit behavior).
+  - `findOpenVehicleOperationForCollection` (line 726-755): when `selectedVisitId` is set, use it directly; otherwise fall back to vehicle-based lookup.
+  - **Verified by testing agent iter 230**: 9 ⭐ active customers at top, multi-visit dropdown shows without auto-select (correct), single-visit auto-select code-reviewed as structurally correct.
+
+### Session 5 (Feb 11)
 - ✅ **Fixed faded "Quick Actions" dialog** (`VehicleQuickActions.jsx`): translucent classes removed, dark-mode `/40 → /70`, structural Dialog nesting bug resolved.
 - ✅ **OTP feature verified + Mongo legacy branch mirrored**.
 - ✅ **Quick Actions print buttons (invoice/receipt) now work**: `buildVehiclePayload` is async and fetches the latest visit's operations dynamically (was using empty `approvalItems` array).
