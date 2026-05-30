@@ -29,6 +29,15 @@ from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from bulk_delete_audit import record_bulk_delete_event
 from supabase_service import SupabaseService
 import firewall_state
+import perf_cache as _perf_cache
+
+
+def _invalidate_ops_caches() -> None:
+    """Drop all caches that depend on operations data, called after any operation mutation."""
+    _perf_cache.invalidate("ops_list")
+    _perf_cache.invalidate("ops_for_partner_fin")
+    _perf_cache.invalidate("op_payment_map")
+    _perf_cache.invalidate("partner_fin_map")
 
 from visit_sync import _sync_visit_to_operation
 router = APIRouter(prefix="/api")
@@ -1642,6 +1651,12 @@ async def list_operations(
     offset: int = Query(default=0, ge=0),
 ):
     try:
+        # 🚀 TTL cache (10s) — operations list is the heaviest GET on most pages
+        cache_key = f"{workshop_id or '_'}|{account_id or '_'}|{type or '_'}|{vehicle_id or '_'}|{limit or '_'}|{offset}"
+        cached = _perf_cache.get_cached("ops_list", cache_key, ttl=10.0)
+        if cached is not None:
+            return cached
+
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         if provider == "supabase":
             supa = SupabaseService()
@@ -1653,6 +1668,7 @@ async def list_operations(
                 limit=limit,
                 offset=offset,
             )
+            _perf_cache.set_cached("ops_list", ops, cache_key)
             return ops
 
         if provider == "memory" or db is None:
@@ -1679,6 +1695,7 @@ async def list_operations(
             for o in ops:
                 if not o.get("scope"):
                     o["scope"] = "vehicle" if o.get("vehicleId") else "workshop"
+            _perf_cache.set_cached("ops_list", ops, cache_key)
             return ops
 
         q: Dict[str, Any] = {}
@@ -1722,6 +1739,7 @@ async def list_operations(
             if o.get("date") and hasattr(o["date"], "isoformat"):
                 o["date"] = o["date"].isoformat()
             o["scope"] = o.get("scope") or ("vehicle" if o.get("vehicleId") else "workshop")
+        _perf_cache.set_cached("ops_list", ops, cache_key)
         return ops
     except HTTPException:
         raise
@@ -2213,7 +2231,9 @@ async def update_operation(op_id: str, payload: Dict[str, Any] = Body(...)):
             existing = supa.operations_get(op_id)
             if not existing:
                 raise HTTPException(status_code=404, detail="not found")
-            return supa.operations_update(op_id, payload)
+            result = supa.operations_update(op_id, payload)
+            _invalidate_ops_caches()
+            return result
 
         if provider == "memory" or db is None:
             ops = _mem_read("operations")
@@ -2225,6 +2245,7 @@ async def update_operation(op_id: str, payload: Dict[str, Any] = Body(...)):
                         "updatedAt": datetime.utcnow().isoformat(),
                     }
                     _mem_write("operations", ops)
+                    _invalidate_ops_caches()
                     return ops[i]
             raise HTTPException(status_code=404, detail="not found")
 
@@ -2237,6 +2258,7 @@ async def update_operation(op_id: str, payload: Dict[str, Any] = Body(...)):
         o.pop("_id", None)
         if o.get("date") and hasattr(o["date"], "isoformat"):
             o["date"] = o["date"].isoformat()
+        _invalidate_ops_caches()
         return o
     except HTTPException:
         raise
@@ -2263,15 +2285,18 @@ async def delete_operation(op_id: str):
 
             # 2) delete operation
             supa.operations_delete(op_id)
+            _invalidate_ops_caches()
             return {"success": True}
 
         if provider == "memory" or db is None:
             ops = _mem_read("operations")
             ops = [o for o in ops if o.get("id") != op_id]
             _mem_write("operations", ops)
+            _invalidate_ops_caches()
             return {"success": True}
 
         await db.operations.delete_one({"id": op_id})
+        _invalidate_ops_caches()
         return {"success": True}
     except HTTPException:
         raise
@@ -2308,6 +2333,7 @@ async def delete_all_operations(request: Request):
                     items={"operations_deleted": deleted_count},
                     meta={"provider": provider},
                 )
+                _invalidate_ops_caches()
                 return {
                     "success": True,
                     "message": f"Deleted {len(all_ops)} operations",
@@ -2339,6 +2365,7 @@ async def delete_all_operations(request: Request):
                 items={"operations_deleted": "all"},
                 meta={"provider": provider},
             )
+            _invalidate_ops_caches()
             return {"success": True, "message": "All operations deleted", "audit_event": audit_event}
 
         result = await db.operations.delete_many({})
@@ -2350,6 +2377,7 @@ async def delete_all_operations(request: Request):
             items={"operations_deleted": result.deleted_count},
             meta={"provider": provider},
         )
+        _invalidate_ops_caches()
         return {
             "success": True,
             "message": f"Deleted {result.deleted_count} operations",
@@ -2898,6 +2926,7 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             store_response(_idem_key, result)
         except Exception:
             pass
+        _invalidate_ops_caches()
         return result
 
     except HTTPException:
@@ -3336,6 +3365,7 @@ async def create_operation(payload: Dict[str, Any] = Body(...)):
             except Exception as je_error:
                 print(f"Failed to create journal entry for operation: {je_error}")
             await _append_operation_to_visit(payload, op, provider, db, visit_data)
+            _invalidate_ops_caches()
             return op
 
         if provider == "memory" or db is None:
@@ -3369,6 +3399,7 @@ async def create_operation(payload: Dict[str, Any] = Body(...)):
             rows.append(doc)
             _mem_write("operations", rows)
             await _append_operation_to_visit(payload, doc, provider, db, visit_data)
+            _invalidate_ops_caches()
             return doc
 
         items = payload.get("items", [])
@@ -3433,6 +3464,7 @@ async def create_operation(payload: Dict[str, Any] = Body(...)):
         if hasattr(op["date"], "isoformat"):
             op["date"] = op["date"].isoformat()
         await _append_operation_to_visit(payload, op, provider, db, visit_data)
+        _invalidate_ops_caches()
         return op
     except HTTPException:
         raise

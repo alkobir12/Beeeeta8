@@ -1,0 +1,38 @@
+{
+  "summary": "Backend perf-cache validation (iteration 231). 12/12 tests passed. Verified cache speedup, data integrity, and cache invalidation across POST/PUT/DELETE on /api/operations. No regressions on /api/health, /api/vehicles, /api/stats.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/dashboard/stats", "issue": "Returns 404 — endpoint mentioned in review_request does not exist. /api/stats exists instead. Verify which is the intended path for the dashboard."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_perf_cache_iter231.py",
+    "/app/test_reports/pytest/iter231_perf_cache.xml"
+  ],
+  "action_items": [
+    "Clarify whether /api/dashboard/stats should be wired (currently 404) or if frontend uses /api/stats. Not blocking the perf-cache change."
+  ],
+  "critical_code_review_comments": [
+    "perf_cache.py uses module-level in-process dict — correct for single-instance deployment but will not work if backend is scaled horizontally (each pod has its own cache). Acceptable given current k8s setup but document this assumption.",
+    "_CACHE has no max-size bound — for high-cardinality cache keys (ops_list keyed by combined filters) this could grow indefinitely if many distinct filter combinations are queried. Consider an LRU cap or per-namespace size limit.",
+    "_invalidate_ops_caches() in routes_extended.py drops 4 namespaces but does NOT drop 'vehicle_customer_lookup' — if operation create/update changes vehicle linkage, vehicle_customer_lookup stays stale up to 15s. Review whether ops mutations affect vehicle->customer mapping (likely no, but worth confirming).",
+    "TTL of 10s for /operations vs 15s for partner_fin_map — a customer creating an op and refreshing /customers within ~15s may see stale balances because partner_fin_map is invalidated correctly only if ops mutation paths call _invalidate_ops_caches. Confirmed this is wired in POST/PUT/DELETE/bulk-delete/confirm-payment.",
+    "Cache invalidation depends on every mutation route calling _invalidate_ops_caches(). Any future endpoint that writes to operations or journal_entries must remember to invalidate. Consider centralising in a service layer or using a DB-trigger / version-counter approach."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_perf_cache_iter231.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested"},
+  "test_credentials": "Not needed — public backend APIs tested directly.",
+  "seed_data_creation": "Created 2 transient test operations with notes prefix 'TEST_perf_*' — both deleted in test teardown / by delete test. No residual data expected.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Perf-cache backend behaviour validated. Cache speedup measured: /customers 5.7x, /suppliers 2.7x. Cache invalidation verified for POST/PUT/DELETE on /api/operations. Note: operation entity uses 'notes' (not 'description') as the free-text field. /api/dashboard/stats returns 404 — use /api/stats. Next testing agent can focus on frontend perf validation if requested.",
+  "rca of the issue": "N/A — no bugs found in the perf-cache implementation. Initial test failure on PUT was a test-script issue (wrong field name 'description' instead of 'notes'); fixed in same iteration."
+}

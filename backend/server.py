@@ -48,6 +48,7 @@ from routes_technicians import router as technicians_router
 from routes_services import router as services_router
 from routes_parts import router as parts_router
 import app_state as _app_state
+import perf_cache as _perf_cache
 from routes_advanced import router as advanced_router, set_db as set_db_advanced
 
 # Import Import Routes
@@ -1256,6 +1257,20 @@ def _append_partner_movement(summary: Dict[str, Any], movement: Dict[str, Any]):
 async def _fetch_operations_for_partner_financials(
     workshop_id: Optional[str],
 ) -> List[Dict[str, Any]]:
+    # 🚀 TTL cache (15s) — partner financials are read-heavy & expensive
+    cache_key = workshop_id or "_"
+    cached = _perf_cache.get_cached("ops_for_partner_fin", cache_key)
+    if cached is not None:
+        return cached
+
+    rows = await _fetch_operations_for_partner_financials_uncached(workshop_id)
+    _perf_cache.set_cached("ops_for_partner_fin", rows, cache_key)
+    return rows
+
+
+async def _fetch_operations_for_partner_financials_uncached(
+    workshop_id: Optional[str],
+) -> List[Dict[str, Any]]:
     if DB_PROVIDER == "supabase":
         if not (supabase_service.client and not supabase_service.mock_mode):
             return []
@@ -1347,6 +1362,19 @@ async def _fetch_operations_for_partner_financials(
 async def _fetch_operation_payment_map(
     workshop_id: Optional[str],
 ) -> Dict[str, List[Dict[str, Any]]]:
+    # 🚀 TTL cache (15s) — journal_entries scan is expensive
+    cache_key = workshop_id or "_"
+    cached = _perf_cache.get_cached("op_payment_map", cache_key)
+    if cached is not None:
+        return cached
+    result = await _fetch_operation_payment_map_uncached(workshop_id)
+    _perf_cache.set_cached("op_payment_map", result, cache_key)
+    return result
+
+
+async def _fetch_operation_payment_map_uncached(
+    workshop_id: Optional[str],
+) -> Dict[str, List[Dict[str, Any]]]:
     rows: List[Dict[str, Any]] = []
 
     if DB_PROVIDER == "supabase":
@@ -1401,6 +1429,17 @@ async def _fetch_operation_payment_map(
 
 
 async def _fetch_vehicle_customer_lookup(workshop_id: Optional[str]) -> Dict[str, str]:
+    # 🚀 TTL cache (15s) — vehicles list is read-heavy
+    cache_key = workshop_id or "_"
+    cached = _perf_cache.get_cached("vehicle_customer_lookup", cache_key)
+    if cached is not None:
+        return cached
+    result = await _fetch_vehicle_customer_lookup_uncached(workshop_id)
+    _perf_cache.set_cached("vehicle_customer_lookup", result, cache_key)
+    return result
+
+
+async def _fetch_vehicle_customer_lookup_uncached(workshop_id: Optional[str]) -> Dict[str, str]:
     rows: List[Dict[str, Any]] = []
 
     if DB_PROVIDER == "supabase":
@@ -1513,6 +1552,27 @@ def _round_partner_summary(summary: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def _build_partner_financial_map(
+    partner_type: str,
+    entities: List[Dict[str, Any]],
+    workshop_id: Optional[str],
+) -> Dict[str, Dict[str, Any]]:
+    p_type = str(partner_type or "").strip().lower()
+
+    # 🚀 TTL cache (15s) — financial map computation iterates ALL operations × ALL entities
+    # Cache key includes entity count + first/last IDs to detect when caller passes different sets.
+    entity_ids = sorted(str(e.get("id") or "") for e in (entities or []) if str(e.get("id") or ""))
+    cache_signature = f"{len(entity_ids)}:{entity_ids[0] if entity_ids else ''}:{entity_ids[-1] if entity_ids else ''}"
+    cache_key = f"{p_type}|{workshop_id or '_'}|{cache_signature}"
+    cached = _perf_cache.get_cached("partner_fin_map", cache_key)
+    if cached is not None:
+        return cached
+
+    result = await _build_partner_financial_map_uncached(partner_type, entities, workshop_id)
+    _perf_cache.set_cached("partner_fin_map", result, cache_key)
+    return result
+
+
+async def _build_partner_financial_map_uncached(
     partner_type: str,
     entities: List[Dict[str, Any]],
     workshop_id: Optional[str],
