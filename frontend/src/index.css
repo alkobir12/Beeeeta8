@@ -156,6 +156,36 @@ body.light-mode label, body.light-mode a {
   color: var(--text-secondary) !important;
 }
 
+/* 🛡️ Allow Tailwind text-* utilities to take precedence inside operation card EXPANDED area.
+ * The global override above was killing all dark text inside the expanded grid → reverted them here. */
+body.light-mode [data-testid^="operation-card-expanded-"] .text-slate-950,
+body.light-mode [data-testid^="operation-card-expanded-"] .text-slate-900,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-slate-950,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-slate-900 { color: #0f172a !important; }
+
+body.light-mode [data-testid^="operation-card-expanded-"] .text-slate-700,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-slate-700 { color: #334155 !important; }
+
+body.light-mode [data-testid^="operation-card-expanded-"] .text-slate-600,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-slate-600 { color: #475569 !important; }
+
+body.light-mode [data-testid^="operation-card-expanded-"] .text-emerald-800,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-emerald-800 { color: #065f46 !important; }
+
+body.light-mode [data-testid^="operation-card-expanded-"] .text-rose-800,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-rose-800 { color: #9f1239 !important; }
+
+body.light-mode [data-testid^="operation-card-expanded-"] .text-amber-900,
+body.light-mode [data-testid^="operation-card-expanded-"] .text-amber-950,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-amber-900,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-amber-950 { color: #78350f !important; }
+
+body.light-mode [data-testid^="operation-card-expanded-"] .text-blue-900,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-blue-900 { color: #1e3a8a !important; }
+
+body.light-mode [data-testid^="operation-card-expanded-"] .text-sky-900,
+body[data-theme="dashPro"] [data-testid^="operation-card-expanded-"] .text-sky-900 { color: #0c4a6e !important; }
+
 body.light-mode {
   background-color: var(--bg-primary) !important;
 }

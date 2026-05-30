@@ -472,13 +472,13 @@ export default function OperationCard({
 
   return (
     <div
-      className="group relative overflow-hidden rounded-3xl border bg-white dark:bg-[#111111] transition-all duration-300 hover:shadow-xl"
+      className="group relative rounded-3xl border bg-white dark:bg-[#111111] hover:shadow-xl cursor-pointer"
       style={{
         borderColor: paymentBorder,
         boxShadow: isExpanded
           ? `0 22px 60px rgba(15,23,42,0.16), 0 0 0 1px ${paymentBorder}`
           : '0 6px 20px rgba(15,23,42,0.08)',
-        transition: 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
       data-expanded={isExpanded ? 'true' : 'false'}
       onClick={() => setExpandedState(!isExpanded)}
@@ -571,119 +571,12 @@ export default function OperationCard({
         </div>
       </div>
 
-      <div className="relative z-10 px-4 sm:px-5 pb-4 border-t border-slate-200 dark:border-white/5" onClick={stop}>
-        {/* Primary CTA: Confirm credit payment (when applicable) */}
-        {canConfirmCreditPayment && typeof onConfirmCreditPayment === 'function' ? (
-          <button
-            type="button"
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-600 active:scale-[0.99] transition-all"
-            onClick={() => onConfirmCreditPayment(operation)}
-            disabled={isSaving || isDeleting}
-            data-testid={`operation-card-confirm-credit-payment-${operation.id}`}
-          >
-            <CheckCircle2 size={16} />
-            {t('operations.confirm_credit_payment') || 'تأكيد سداد المبلغ المتبقي'}
-          </button>
-        ) : null}
-
-        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid={`operation-card-actions-${operation.id}`}>
-          {!editing && canEditOperation ? (
-            <button
-              type="button"
-              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-              onClick={() => {
-                if (typeof onEditInForm === 'function') {
-                  onEditInForm(operation);
-                  return;
-                }
-                setExpandedState(true);
-                setEditing(true);
-              }}
-              disabled={isSaving || isDeleting}
-              data-testid={`operation-card-edit-${operation.id}`}
-            >
-              <Pencil size={12} />
-              {t('common.edit') || 'تعديل'}
-            </button>
-          ) : editing ? (
-            <>
-              <button
-                type="button"
-                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                onClick={async () => {
-                  const ok = await onUpdateItems(operation.id, itemsDraft, editMeta);
-                  if (ok) setEditing(false);
-                }}
-                disabled={isSaving}
-                data-testid={`operation-card-save-edit-${operation.id}`}
-              >
-                <Save size={12} />
-                {isSaving ? (t('common.loading') || '...') : (t('common.save') || 'حفظ')}
-              </button>
-              <button
-                type="button"
-                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-                onClick={() => {
-                  setEditing(false);
-                  setItemsDraft(Array.isArray(operation.items) ? operation.items.map((it) => ({ ...it })) : []);
-                  setEditMeta({
-                    partnerName: operation.partnerName || operation.customerName || operation.supplierName || '',
-                    partnerId: operation.partnerId || operation.customerId || operation.supplierId || '',
-                    accountCode: operation.accountCode || operation.account || '',
-                    accountName: operation.accountName || operation.account_name || '',
-                  });
-                }}
-                disabled={isSaving}
-                data-testid={`operation-card-cancel-edit-${operation.id}`}
-              >
-                <X size={12} />
-                {t('common.cancel') || 'إلغاء'}
-              </button>
-            </>
-          ) : null}
-
-          <button
-            type="button"
-            className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-            onClick={() => onPrint(operation)}
-            disabled={isSaving || isDeleting}
-            data-testid={`operation-card-print-${operation.id}`}
-          >
-            <Printer size={12} />
-            {t('common.print') || 'طباعة'}
-          </button>
-
-          {operation.vehicleId ? (
-            <button
-              type="button"
-              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-              onClick={() => onViewVehicle(operation)}
-              disabled={isSaving || isDeleting}
-              data-testid={`operation-card-view-vehicle-${operation.id}`}
-            >
-              <Eye size={12} />
-              {t('common.view') || 'عرض'}
-            </button>
-          ) : null}
-
-          {canDeleteOperation ? (
-            <button
-              type="button"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/60 transition-colors disabled:opacity-50 me-auto"
-              onClick={() => onDelete(operation)}
-              disabled={isDeleting}
-              title={t('common.delete') || 'حذف'}
-              data-testid={`operation-card-delete-${operation.id}`}
-            >
-              <Trash2 size={12} />
-              {isDeleting ? (t('common.loading') || '...') : (t('common.delete') || 'حذف')}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
       {isExpanded ? (
-        <div className="px-4 pb-4" data-testid={`operation-card-expanded-${operation.id}`}>
+        <div
+          className="px-4 pb-4 pt-1 border-t border-slate-200 dark:border-white/5"
+          data-testid={`operation-card-expanded-${operation.id}`}
+          onClick={stop}
+        >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mb-3">
             <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
               <div className="text-[10px] text-slate-600 font-bold mb-1">{t('operations.customerName') || t('operations.partner_name') || 'العميل'}</div>
@@ -996,6 +889,117 @@ export default function OperationCard({
           </div>
         </div>
       ) : null}
+      <div className="relative z-10 px-4 sm:px-5 pb-4" onClick={stop}>
+        {/* Primary CTA: Confirm credit payment (when applicable) */}
+        {canConfirmCreditPayment && typeof onConfirmCreditPayment === 'function' ? (
+          <button
+            type="button"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-600 active:scale-[0.99] transition-all"
+            onClick={() => onConfirmCreditPayment(operation)}
+            disabled={isSaving || isDeleting}
+            data-testid={`operation-card-confirm-credit-payment-${operation.id}`}
+          >
+            <CheckCircle2 size={16} />
+            {t('operations.confirm_credit_payment') || 'تأكيد سداد المبلغ المتبقي'}
+          </button>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid={`operation-card-actions-${operation.id}`}>
+          {!editing && canEditOperation ? (
+            <button
+              type="button"
+              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
+              onClick={() => {
+                if (typeof onEditInForm === 'function') {
+                  onEditInForm(operation);
+                  return;
+                }
+                setExpandedState(true);
+                setEditing(true);
+              }}
+              disabled={isSaving || isDeleting}
+              data-testid={`operation-card-edit-${operation.id}`}
+            >
+              <Pencil size={12} />
+              {t('common.edit') || 'تعديل'}
+            </button>
+          ) : editing ? (
+            <>
+              <button
+                type="button"
+                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                onClick={async () => {
+                  const ok = await onUpdateItems(operation.id, itemsDraft, editMeta);
+                  if (ok) setEditing(false);
+                }}
+                disabled={isSaving}
+                data-testid={`operation-card-save-edit-${operation.id}`}
+              >
+                <Save size={12} />
+                {isSaving ? (t('common.loading') || '...') : (t('common.save') || 'حفظ')}
+              </button>
+              <button
+                type="button"
+                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
+                onClick={() => {
+                  setEditing(false);
+                  setItemsDraft(Array.isArray(operation.items) ? operation.items.map((it) => ({ ...it })) : []);
+                  setEditMeta({
+                    partnerName: operation.partnerName || operation.customerName || operation.supplierName || '',
+                    partnerId: operation.partnerId || operation.customerId || operation.supplierId || '',
+                    accountCode: operation.accountCode || operation.account || '',
+                    accountName: operation.accountName || operation.account_name || '',
+                  });
+                }}
+                disabled={isSaving}
+                data-testid={`operation-card-cancel-edit-${operation.id}`}
+              >
+                <X size={12} />
+                {t('common.cancel') || 'إلغاء'}
+              </button>
+            </>
+          ) : null}
+
+          <button
+            type="button"
+            className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
+            onClick={() => onPrint(operation)}
+            disabled={isSaving || isDeleting}
+            data-testid={`operation-card-print-${operation.id}`}
+          >
+            <Printer size={12} />
+            {t('common.print') || 'طباعة'}
+          </button>
+
+          {operation.vehicleId ? (
+            <button
+              type="button"
+              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
+              onClick={() => onViewVehicle(operation)}
+              disabled={isSaving || isDeleting}
+              data-testid={`operation-card-view-vehicle-${operation.id}`}
+            >
+              <Eye size={12} />
+              {t('common.view') || 'عرض'}
+            </button>
+          ) : null}
+
+          {canDeleteOperation ? (
+            <button
+              type="button"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/60 transition-colors disabled:opacity-50 me-auto"
+              onClick={() => onDelete(operation)}
+              disabled={isDeleting}
+              title={t('common.delete') || 'حذف'}
+              data-testid={`operation-card-delete-${operation.id}`}
+            >
+              <Trash2 size={12} />
+              {isDeleting ? (t('common.loading') || '...') : (t('common.delete') || 'حذف')}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
     </div>
   );
 }
