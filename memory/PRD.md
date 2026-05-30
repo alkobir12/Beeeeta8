@@ -23,6 +23,22 @@
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
 ### Session 6 (Feb 11 — current)
+- ✅ **PERF: Operations + Dashboard pages caching layer (NEW)**:
+  - Created `/app/backend/perf_cache.py` — module-level TTL cache utility with 500-entry LRU cap and pluggable TTL (default 15s).
+  - Wrapped 4 expensive backend reads in `server.py`:
+    * `_fetch_operations_for_partner_financials` — was reading ALL operations on every `/api/customers` and `/api/suppliers` call.
+    * `_fetch_operation_payment_map` — was scanning ALL journal_entries every call.
+    * `_fetch_vehicle_customer_lookup` — was reading ALL vehicles every call.
+    * `_build_partner_financial_map` — full computed result now cached per (type, workshop, entity-set-signature).
+  - Wrapped `/api/operations` GET in `routes_extended.py` with 10s TTL (keyed by all filters).
+  - Added cache invalidation helper `_invalidate_ops_caches()` and wired it into 5 mutation endpoints (POST/PUT/DELETE/{id}, DELETE bulk, POST confirm-payment).
+  - **Measured improvements** (testing agent iter 231 — 12/12 tests PASSED with data integrity verified):
+    * `/api/operations` cold 2.3s → warm **0.11s (17-21x faster)**
+    * `/api/customers` cold 1.8s → warm **0.42s (5.7x faster)**
+    * `/api/suppliers` cold 1.0s → warm **0.37s (2.7x faster)**
+    * `/operations` page (full browser): previously ~12-22s cold → **1.12s first load, 0.94s second load**
+  - Cache invalidates within the same second after any mutation — verified via testing agent.
+
 - ✅ **P0: Operation Card "details don't show" بصرياً (FIXED)**:
   - Root cause #1: index.css global rule at line 154 (`body.light-mode div { color: var(--text-secondary) !important }`) was overriding every Tailwind `text-slate-950/900/700/600` etc. inside `[data-testid^="operation-card-expanded-"]`, making text appear washed-out gray on light-gray backgrounds.
   - Root cause #2: expanded section had no `onClick={stop}` → clicking any inner content bubbled up to the outer card and collapsed the card mid-interaction.
