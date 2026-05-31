@@ -2384,193 +2384,12 @@ async def _attach_customer_file_numbers_to_vehicles(rows: List[dict]) -> List[di
     return rows
 
 
-@api_router.get("/customers", response_model=List[Customer])
-async def get_customers(
-    workshop_id: Optional[str] = Query(None),
-    sync_accounts: bool = Query(False),
-):
-    if DB_PROVIDER == "supabase":
-        rows = supabase_service.customers_list()
-        file_map = await _get_customer_file_number_map([str(row.get("id") or "") for row in rows])
-        financial_map = await _build_partner_financial_map("customer", rows, workshop_id)
-        if sync_accounts:
-            await _safe_sync_partner_subaccounts("customer", rows, financial_map)
-        enriched = []
-        for row in rows:
-            summary = financial_map.get(str(row.get("id") or ""), _partner_summary_template())
-            cid = str(row.get("id") or "")
-            enriched.append({**row, **summary, "fileNumber": row.get("fileNumber") or file_map.get(cid) or None})
-        return [Customer(**r) for r in enriched]
-
-    if DB_PROVIDER == "memory":
-        rows = _mem_read("customers")
-        file_map = await _get_customer_file_number_map([str(row.get("id") or "") for row in rows])
-        financial_map = await _build_partner_financial_map("customer", rows, workshop_id)
-        if sync_accounts:
-            await _safe_sync_partner_subaccounts("customer", rows, financial_map)
-        enriched = []
-        for row in rows:
-            summary = financial_map.get(str(row.get("id") or ""), _partner_summary_template())
-            cid = str(row.get("id") or "")
-            enriched.append({**row, **summary, "fileNumber": row.get("fileNumber") or file_map.get(cid) or None})
-        return [Customer(**r) for r in enriched]
-
-    customers = await db.customers.find().to_list(1000)
-    normalized = []
-    for c in customers:
-        c.pop("_id", None)
-        normalized.append(c)
-    file_map = await _get_customer_file_number_map([str(row.get("id") or "") for row in normalized])
-    financial_map = await _build_partner_financial_map("customer", normalized, workshop_id)
-    if sync_accounts:
-        await _safe_sync_partner_subaccounts("customer", normalized, financial_map)
-    enriched = []
-    for row in normalized:
-        summary = financial_map.get(str(row.get("id") or ""), _partner_summary_template())
-        cid = str(row.get("id") or "")
-        enriched.append({**row, **summary, "fileNumber": row.get("fileNumber") or file_map.get(cid) or None})
-    return [Customer(**c) for c in enriched]
-
-
-@api_router.delete("/customers/{customer_id}")
-async def delete_customer(customer_id: str):
-    """Delete a customer and cascade delete related vehicles/invoices when possible."""
-    # Supabase mode
-    if DB_PROVIDER == "supabase":
-        try:
-            if (
-                hasattr(supabase_service, "client")
-                and supabase_service.client
-                and not supabase_service.mock_mode
-            ):
-                # Delete invoices and vehicles linked to this customer
-                try:
-                    supabase_service.client.table("invoices").delete().eq(
-                        "customer_id", customer_id
-                    ).execute()
-                except Exception as invoice_error:
-                    # Invoices table might not exist - this is acceptable
-                    print(
-                        f"⚠️ Could not delete invoices for customer {customer_id}: {invoice_error}"
-                    )
-
-                try:
-                    supabase_service.client.table("vehicles").delete().eq(
-                        "customer_id", customer_id
-                    ).execute()
-                except Exception as vehicle_error:
-                    # Handle vehicle deletion error
-                    print(
-                        f"⚠️ Could not delete vehicles for customer {customer_id}: {vehicle_error}"
-                    )
-            supabase_service.customers_delete(customer_id)
-            await _delete_customer_file_number(customer_id)
-            return {"success": True}
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-    # In-memory mode
-    if DB_PROVIDER == "memory":
-        _mem_write(
-            "customers",
-            [c for c in _mem_read("customers") if c.get("id") != customer_id],
-        )
-        _mem_write(
-            "vehicles",
-            [v for v in _mem_read("vehicles") if v.get("customerId") != customer_id],
-        )
-        await _delete_customer_file_number(customer_id)
-        return {"success": True}
-
-    # MongoDB mode (legacy)
-    await db.invoices.delete_many({"customerId": customer_id})
-    await db.vehicles.delete_many({"customerId": customer_id})
-    await db.customers.delete_one({"id": customer_id})
-    await _delete_customer_file_number(customer_id)
-    return {"success": True}
-
-    if DB_PROVIDER == "supabase":
-        rows = supabase_service.customers_list()
-        return [Customer(**r) for r in rows]
-
-    if DB_PROVIDER == "memory":
-        return [Customer(**r) for r in _mem_read("customers")]
-    customers = await db.customers.find().to_list(1000)
-    return [Customer(**c) for c in customers]
-
-
-@api_router.post("/customers", response_model=Customer)
-async def create_customer(customer: CustomerBase):
-    if DB_PROVIDER == "supabase":
-        customer_payload = customer.dict()
-        file_number = customer_payload.pop("fileNumber", None)
-        c = supabase_service.customers_create(customer_payload)
-        await _set_customer_file_number(str(c.get("id") or ""), file_number)
-        await _safe_sync_partner_subaccounts(
-            "customer",
-            [c],
-            {str(c.get("id") or ""): _partner_summary_template()},
-        )
-        return Customer(**{**c, "fileNumber": file_number or None})
-
-    if DB_PROVIDER == "memory":
-        rows = _mem_read("customers")
-        new_c = {**customer.dict(), "id": str(uuid.uuid4())}
-        rows.append(new_c)
-        _mem_write("customers", rows)
-        await _safe_sync_partner_subaccounts(
-            "customer",
-            [new_c],
-            {str(new_c.get("id") or ""): _partner_summary_template()},
-        )
-        return Customer(**new_c)
-
-    customer_dict = customer.dict()
-    customer_dict["id"] = str(uuid.uuid4())
-    await db.customers.insert_one(customer_dict)
-    await _safe_sync_partner_subaccounts(
-        "customer",
-        [customer_dict],
-        {str(customer_dict.get("id") or ""): _partner_summary_template()},
-    )
-    return Customer(**customer_dict)
-
-
-@api_router.put("/customers/{customer_id}", response_model=Customer)
-async def update_customer(customer_id: str, customer: CustomerUpdate):
-    update_data = customer.dict(exclude_unset=True)
-    if not update_data:
-        raise HTTPException(status_code=400, detail="لا توجد بيانات للتحديث")
-
-    if DB_PROVIDER == "supabase":
-        file_number_present = "fileNumber" in update_data
-        file_number_value = update_data.pop("fileNumber", None) if file_number_present else None
-        if update_data:
-            updated = supabase_service.customers_update(customer_id, update_data)
-        else:
-            updated = supabase_service.customers_get(customer_id) or {}
-        if file_number_present:
-            await _set_customer_file_number(customer_id, file_number_value)
-        file_map = await _get_customer_file_number_map([customer_id])
-        return Customer(**{**updated, "fileNumber": file_map.get(customer_id) or None})
-
-    if DB_PROVIDER == "memory":
-        rows = _mem_read("customers")
-        idx = next((i for i, row in enumerate(rows) if row.get("id") == customer_id), -1)
-        if idx == -1:
-            raise HTTPException(status_code=404, detail="العميل غير موجود")
-        rows[idx].update(update_data)
-        _mem_write("customers", rows)
-        return Customer(**rows[idx])
-
-    result = await db.customers.update_one({"id": customer_id}, {"$set": update_data})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="العميل غير موجود")
-    updated = await db.customers.find_one({"id": customer_id})
-    if not updated:
-        raise HTTPException(status_code=404, detail="العميل غير موجود")
-    updated.pop("_id", None)
-    return Customer(**updated)
+# ----------------------------------------------------------------------
+# 📦 Customers domain — extracted to /app/backend/domains/customers/*
+# (router mounted below via api_router.include_router)
+# Endpoints removed from server.py: GET /customers, GET /customers/{id},
+# POST /customers, PUT /customers/{id}, DELETE /customers/{id}
+# ----------------------------------------------------------------------
 
 
 
@@ -3243,6 +3062,10 @@ async def get_salaries():
         print(f"Salaries error: {e}")
         return []
 
+
+# 🆕 L5 DDD slice — Customers domain extracted to /app/backend/domains/customers/*
+from domains.customers.router import router as customers_domain_router
+api_router.include_router(customers_domain_router)
 
 # Include the api_router
 app.include_router(api_router)
