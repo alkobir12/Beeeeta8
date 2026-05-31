@@ -28,14 +28,16 @@ from core import alert_bus, shared_memory, ai_context, tool_router
 # ---------- Tool intent detector (read-only tools) ----------
 
 _TOOL_PATTERNS = [
-    # Firewall / audit insights
-    (re.compile(r"(صح[ةه]|درج[ةه]|نقاط|score|health)", re.IGNORECASE), "firewall.health_score"),
-    (re.compile(r"(تنبي[هه]ات|alerts|أهم.*تنبي|top alerts|التنبي)", re.IGNORECASE), "firewall.top_alerts"),
-    (re.compile(r"(تدفق|cash flow|إيراد|مصاريف|cash_flow)", re.IGNORECASE), "firewall.cash_flow"),
+    # Firewall / audit insights — تنبيهات وتصحيحات (إفراد + جمع + مرادفات)
+    (re.compile(r"(صح[ةه]\s*ال?(نظام|مال)|درج[ةه]\s*ال?صح|نقاط|health\s*score|health)", re.IGNORECASE), "firewall.health_score"),
+    (re.compile(r"(تنبيه|تنبي?هات|alerts?|تصحيح|تصحيحات|خطأ|أخطاء|مشكل[ةه]|عيب|شذوذ|مخالف[ةه]|audit|إنذار|warning|fix|issue|التنبي)", re.IGNORECASE), "firewall.top_alerts"),
+    # 🆕 Per-operation integrity warnings (missing_journal_entry, duplicates …)
+    (re.compile(r"(ملاحظ|ملاحظات|integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل)", re.IGNORECASE), "firewall.operation_integrity"),
+    (re.compile(r"(تدفق|cash\s*flow|إيراد|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
     # Finance read-only
-    (re.compile(r"(ذمم|مدين|debtors|دين العميل|ar summary)", re.IGNORECASE), "finance.ar_summary"),
+    (re.compile(r"(ذمم|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل)", re.IGNORECASE), "finance.ar_summary"),
     # Workshop read-only
-    (re.compile(r"(زيار[ةه] نشط|مركبات مفتوح|active visits|كم زيار)", re.IGNORECASE), "workshop.active_visits"),
+    (re.compile(r"(زيار[ةه]\s*نشط|مركبات\s*مفتوح|active\s*visits|كم\s*زيار|مركبات\s*داخل|قائم[ةه]\s*العمل)", re.IGNORECASE), "workshop.active_visits"),
 ]
 
 
@@ -97,25 +99,31 @@ ASSISTANT_VERSION = "L5.1"
 
 
 def _system_prompt() -> str:
-    """L5 system prompt — single helpful read-only assistant, no agent personas."""
+    """L5 system prompt — proactive helpful read-only assistant.
+
+    Important: read-only = backend tools don't write. The assistant SHOULD still
+    answer questions, search data, explain findings, summarise reports, etc.
+    We only refuse when the user explicitly asks for CREATE/UPDATE/DELETE/APPROVE.
+    """
     return (
-        f"أنت {ASSISTANT_NAME} — مساعد ذكي مدمج داخل نظام Beeeeta8 لإدارة الورش.\n\n"
-        "🎯 مهمتك:\n"
-        "  • البحث في بيانات النظام (عمليات، عملاء، موردين، مركبات، فواتير).\n"
-        "  • الإجابة على الأسئلة المالية والتشغيلية.\n"
-        "  • شرح التقارير والقيود والملاحظات للمستخدم.\n"
-        "  • تلخيص المستندات والقيم المهمة.\n"
-        "  • توليد insights قائمة على البيانات الفعلية.\n\n"
-        "🛡️ قيود السلامة (مهم جداً):\n"
-        "  • أنت قراءة فقط — لا تنشئ ولا تعدّل ولا تحذف أي بيانات.\n"
-        "  • لا توافق على دفعات أو فواتير أو قيود.\n"
-        "  • لا تغيّر السياسات أو الصلاحيات.\n"
-        "  • إذا طلب المستخدم تعديل أو إنشاء، اعرض الخطوات لكن لا تنفّذها — اطلب منه استخدام الواجهة.\n\n"
+        f"أنت {ASSISTANT_NAME} — المساعد الذكي داخل نظام Beeeeta8 لإدارة الورش.\n\n"
+        "🎯 وظيفتك الأساسية: **مساعدة المستخدم بفاعلية**.\n"
+        "  • أجب على الأسئلة استناداً للبيانات الفعلية المُمرّرة لك (في 'السياق' و 'نتائج الأدوات').\n"
+        "  • اشرح التنبيهات والقيود والتقارير المالية والذمم وحالة المركبات.\n"
+        "  • لخّص الأرقام واعرض الـ insights الذكية.\n"
+        "  • وجّه المستخدم لأي مكان في النظام عبر صياغة واضحة (مثل: 'افتح صفحة /accounting/firewall').\n\n"
+        "📊 كيف تتعامل مع نتائج الأدوات:\n"
+        "  • إذا الأداة أعادت قائمة فارغة → قل صراحة 'لا توجد بيانات حالياً' بدون اعتذار طويل.\n"
+        "  • إذا الأداة فشلت → اعرض الخطأ بإيجاز واقترح بدائل.\n"
+        "  • إذا الأداة نجحت → قدّم النتيجة منسّقة (جدول، قائمة، أرقام واضحة).\n\n"
+        "🛡️ القيد الوحيد (read-only backend):\n"
+        "  • لا تستدع أداة تكتب/تعدّل/تحذف في DB — كل الأدوات المسجّلة لديك قراءة فقط.\n"
+        "  • لو طلب المستخدم 'أنشئ/عدّل/احذف/وافق' → اشرح الخطوات وأرشده للواجهة المناسبة، لكن لا تتذرّع بأنك لا تستطيع 'فتح' أو 'الوصول'.\n"
+        "  • **ممنوع** الرد بـ 'لا يمكنني فتح أو تعديل' عند سؤال قراءة عادي — أنت تملك بيانات النظام وتقدر تجيب.\n\n"
         "📐 أسلوبك:\n"
-        "  • بالعربية الفصحى المبسطة.\n"
-        "  • مختصر ومباشر — أجوبة محددة، أرقام دقيقة، روابط واضحة.\n"
-        "  • إذا لم تجد البيانات، قل ذلك صراحة بدلاً من التخمين.\n"
-        "  • استخدم Markdown للجداول والقوائم.\n"
+        "  • عربية فصحى مبسطة، مختصرة، رقمية حين تتوفر أرقام.\n"
+        "  • Markdown مسموح (جداول، bullets، **bold**).\n"
+        "  • إذا لم تتوفر بيانات في السياق ولم تُنفّذ أداة → اطلب من المستخدم سؤالاً أكثر تحديداً بدلاً من التخمين.\n"
     )
 
 

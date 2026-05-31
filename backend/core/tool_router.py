@@ -140,6 +140,41 @@ async def _workshop_active_visits(workshop_id: str = "finmodule-sync") -> Dict[s
     return {"active_visits": len(active), "total_visits": len(rows)}
 
 
+async def _firewall_operation_integrity(workshop_id: Optional[str] = None, limit: int = 20) -> Dict[str, Any]:
+    """🆕 يفحص العمليات ويُرجع التي بها مشاكل ربط/تنبيهات (per-card warnings)."""
+    try:
+        import os
+        import httpx
+        base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.post(f"{base}/api/operations/integrity/check", json={})
+            result = r.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+    data = result.get("data", result) if isinstance(result, dict) else {}
+    items = data.get("items") or []
+    flagged = [i for i in items if i.get("warnings")]
+    summary = data.get("summary") or {}
+    sample = []
+    for f in flagged[:limit]:
+        sample.append({
+            "operation_id": (f.get("op_id") or f.get("id") or "")[:8],
+            "invoice_number": f.get("invoice_number") or "",
+            "label": f.get("display_label"),
+            "warnings": f.get("warnings"),
+            "status": f.get("status"),
+            "duplicate_group_size": f.get("duplicate_group_size"),
+        })
+    return {
+        "total_operations": summary.get("total") or len(items),
+        "ok": summary.get("ok"),
+        "with_warnings": summary.get("warnings") or len(flagged),
+        "duplicates": summary.get("duplicates"),
+        "sample": sample,
+    }
+
+
 # Register built-ins (يُستدعى مرة واحدة عند الاستيراد)
 def _bootstrap() -> None:
     if _TOOLS:
@@ -164,6 +199,13 @@ def _bootstrap() -> None:
         description="تدفق نقدي خلال 30 يوماً (الإيرادات vs المصاريف).",
         handler=_firewall_cash_flow,
         params={"workshop_id": "string?"},
+    )
+    register_tool(
+        "firewall.operation_integrity",
+        agent="FirewallAgent",
+        description="🆕 يفحص جميع العمليات ويرجع التي بها مشاكل ربط/تنبيهات (missing journal, duplicates, mismatch).",
+        handler=_firewall_operation_integrity,
+        params={"workshop_id": "string?", "limit": "int?"},
     )
     register_tool(
         "finance.ar_summary",
