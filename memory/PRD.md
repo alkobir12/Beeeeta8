@@ -23,6 +23,26 @@
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
 ### Session 6 (Feb 11 — current)
+- ✅ **P0: Operation Card Expansion البصري — FIXED PROPERLY**:
+  - **Root cause الحقيقي**: القسم الموسّع كان `position: static` (default) بدون z-index. الـ glow div داخل الكارت `pointer-events-none absolute inset-0` يقع في نفس stacking context. عناصر absolute-positioned تظهر فوق static في نفس المستوى → الـ glow كان يغطي expanded section بصرياً (حتى مع opacity-0، لأنه يفرض stacking).
+  - **Fix**: إضافة `relative z-10` للقسم الموسّع → الآن يقع في طبقة z=10 فوق الـ glow.
+  - **Verified**: بعد الإصلاح ظهرت كل المحتويات (اسم العميل، نوع العملية، التاريخ، المركبة، طريقة الدفع، حالة السداد، المدفوع/المتبقي، الحساب، إيراد الورشة، القيد المحاسبي، البنود، بنود الموردين).
+
+- ✅ **P0: Integrity Warning Pill (⚠️) قابلة للنقر**:
+  - عدّلت `StatusBadge.jsx` لقبول `onClick` prop مع stopPropagation داخلي.
+  - عدّلت `OperationCardHeader.jsx` لتمرير `integrityWarnings` array + `integrityLabelMap` + `onIntegrityClick`.
+  - أضفت modal كامل في `OperationCard.jsx` (`operation-card-integrity-modal-*`) يعرض كل التنبيهات في شكل قائمة مع زر "فهمت" + X للإغلاق + backdrop blur.
+
+- ✅ **UX: نقل صفحات Profile/Users/Import داخل /settings كتبويبات**:
+  - أضفت 4 tabs في `Settings.jsx`: عام / الملف الشخصي / المستخدمون / استيراد البيانات (مع URL sync `?tab=...`).
+  - أنشأت `/app/frontend/src/components/settings/SettingsImportBlock.jsx` كـ block مدمج للاستيراد (بدلاً من الصفحة الكاملة).
+  - أضفت redirects تلقائية في `App.js`: `/profile`, `/users`, `/import` → `/settings?tab=...`.
+  - حذفت الروابط القديمة من `Sidebar.jsx`.
+
+- ✅ **UX: إعادة هيكلة Sidebar**:
+  - دمج Customers + Technicians في group موحد "العملاء والفنيون".
+  - نقل صفحة "الخدمات" داخل group "المخزون" بجانب القطع/الموردين.
+
 - ✅ **PERF: Operations + Dashboard pages caching layer (NEW)**:
   - Created `/app/backend/perf_cache.py` — module-level TTL cache utility with 500-entry LRU cap and pluggable TTL (default 15s).
   - Wrapped 4 expensive backend reads in `server.py`:

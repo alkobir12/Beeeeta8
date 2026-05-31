@@ -212,13 +212,13 @@ function App() {
                   <Route path="services" element={<ServicesManagement />} />
                   <Route path="invoice-templates" element={<InvoiceDesignerStudio />} />
                   <Route path="settings" element={<Settings />} />
-                  <Route path="profile" element={<WorkshopProfile />} />
+                  <Route path="profile" element={<Navigate to="/settings?tab=profile" replace />} />
                   <Route path="archive" element={<VehicleArchive />} />
                   <Route path="database-setup" element={<DatabaseSetup />} />
                   <Route path="setup" element={<DatabaseSetup />} />
                   <Route path="operations" element={<Operations />} />
-                  <Route path="import" element={<ImportPage />} />
-                  <Route path="users" element={<Users />} />
+                  <Route path="import" element={<Navigate to="/settings?tab=import" replace />} />
+                  <Route path="users" element={<Navigate to="/settings?tab=users" replace />} />
                   <Route path="quotations" element={<QuotationGenerator />} />
                   <Route path="print" element={<DocumentPrint />} />
                   <Route path="templates" element={<TemplatesManager />} />

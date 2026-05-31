@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * 🎨 StatusBadge — small color-coded pill used in operation card headers and meta sections.
  */
-export const StatusBadge = ({ text, tone = 'slate', testid, title }) => {
+export const StatusBadge = ({ text, tone = 'slate', testid, title, onClick }) => {
   const tones = {
     emerald: 'bg-emerald-500/10 text-emerald-700 border-emerald-300 dark:text-emerald-300 dark:border-emerald-700',
     amber:   'bg-amber-500/10 text-amber-700 border-amber-300 dark:text-amber-300 dark:border-amber-700',
@@ -13,11 +13,16 @@ export const StatusBadge = ({ text, tone = 'slate', testid, title }) => {
     cyan:    'bg-cyan-500/10 text-cyan-700 border-cyan-300 dark:text-cyan-300 dark:border-cyan-700',
     slate:   'bg-slate-500/10 text-slate-700 border-slate-300 dark:text-slate-200 dark:border-slate-600',
   };
+  const clickable = typeof onClick === 'function';
   return (
     <span
       data-testid={testid}
       title={title}
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${tones[tone] || tones.slate}`}
+      onClick={clickable ? (e) => { e.stopPropagation(); onClick(e); } : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onClick(e); } } : undefined}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${tones[tone] || tones.slate} ${clickable ? 'cursor-pointer hover:opacity-80 hover:scale-105 active:scale-95 transition-all' : ''}`}
     >
       {text}
     </span>

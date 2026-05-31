@@ -14,12 +14,19 @@ import {
   Moon,
   Monitor,
   Check,
-  Sparkles
+  Sparkles,
+  Settings as SettingsIcon,
+  Users as UsersIcon,
+  Upload,
+  User
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useStitch from '../hooks/useStitch';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveBackendBase } from '../utils/backendBase';
+import WorkshopProfile from './WorkshopProfile';
+import UsersManagement from './UsersManagement';
+import SettingsImportBlock from '../components/settings/SettingsImportBlock';
 
 const API_URL = (
   process.env.NODE_ENV === 'production'
@@ -34,6 +41,22 @@ const Settings = () => {
   const navigate = useNavigate();
   const { themeName, changeTheme, isDark } = useTheme();
   const { loading: stitchLoading, error: stitchError, result: stitchResult, generateUI, getHistory, resetError } = useStitch();
+
+  // 🧭 Tabs: general | profile | users | import — settable via ?tab=... in URL
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'general';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const switchTab = (next) => {
+    setActiveTab(next);
+    setSearchParams(next === 'general' ? {} : { tab: next });
+  };
+  const TABS = [
+    { id: 'general', label: 'عام', icon: SettingsIcon, testid: 'settings-tab-general' },
+    { id: 'profile', label: 'الملف الشخصي', icon: User, testid: 'settings-tab-profile' },
+    { id: 'users', label: 'المستخدمون', icon: UsersIcon, testid: 'settings-tab-users' },
+    { id: 'import', label: 'استيراد البيانات', icon: Upload, testid: 'settings-tab-import' },
+  ];
+
   const [loading, setLoading] = useState(true);
   const [sidebarPrefs, setSidebarPrefs] = useState({
     collapsed: false,
@@ -327,29 +350,88 @@ const Settings = () => {
 
   return (
     <div 
-      className={`max-w-3xl mx-auto pb-20 ${isRTL ? 'rtl' : 'ltr'}`} 
+      className={`max-w-4xl mx-auto pb-20 ${isRTL ? 'rtl' : 'ltr'}`} 
       dir={isRTL ? 'rtl' : 'ltr'}
       style={{ minHeight: '100vh' }}
     >
-      <div className="flex items-center justify-between mb-8 pt-4">
+      <div className="flex items-center justify-between mb-6 pt-4 flex-wrap gap-3">
         <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
           {t('settings.title')}
         </h1>
-        <button 
-          onClick={saveSettings}
-          data-testid="settings-save-button"
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all"
-          style={{ 
-            backgroundColor: 'var(--accent-primary)', 
-            color: '#ffffff'
-          }}
-        >
-          <Save size={18} />
-          <span>{loading ? t('settings.saving') : t('settings.save_changes')}</span>
-        </button>
+        {activeTab === 'general' ? (
+          <button 
+            onClick={saveSettings}
+            data-testid="settings-save-button"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all"
+            style={{ 
+              backgroundColor: 'var(--accent-primary)', 
+              color: '#ffffff'
+            }}
+          >
+            <Save size={18} />
+            <span>{loading ? t('settings.saving') : t('settings.save_changes')}</span>
+          </button>
+        ) : null}
       </div>
 
+      {/* 🧭 Tabs navigation */}
+      <div
+        className="mb-6 flex flex-wrap gap-1 rounded-2xl p-1.5 border"
+        style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+        data-testid="settings-tabs-bar"
+      >
+        {TABS.map(({ id, label, icon: Icon, testid }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => switchTab(id)}
+            data-testid={testid}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all flex-1 min-w-[120px] justify-center ${
+              activeTab === id
+                ? 'shadow-md'
+                : 'opacity-70 hover:opacity-100'
+            }`}
+            style={
+              activeTab === id
+                ? { backgroundColor: 'var(--accent-primary)', color: '#ffffff' }
+                : { color: 'var(--text-primary)' }
+            }
+          >
+            <Icon size={16} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* 🪟 Tab panels */}
+      {activeTab === 'profile' ? (
+        <div data-testid="settings-panel-profile">
+          <WorkshopProfile />
+        </div>
+      ) : null}
+
+      {activeTab === 'users' ? (
+        <div data-testid="settings-panel-users">
+          <UsersManagement />
+        </div>
+      ) : null}
+
+      {activeTab === 'import' ? (
+        <div data-testid="settings-panel-import" className="rounded-2xl border p-4" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+          <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+            <Upload size={18} className="inline mb-0.5 ml-1" />
+            استيراد البيانات
+          </h2>
+          <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
+            ارفع ملفات CSV أو XLSX للعملاء أو الخدمات أو قطع الغيار. سيتم التحقق من البيانات قبل الإدراج.
+          </p>
+          <SettingsImportBlock />
+        </div>
+      ) : null}
+
+      {activeTab !== 'general' ? null : (
+      <>
       {/* Theme Selection Section */}
       <Section title="المظهر والثيم" icon={Palette}>
         <div className="p-4">
@@ -692,6 +774,8 @@ const Settings = () => {
           </button>
         </Row>
       </Section>
+      </>
+      )}
     </div>
   );
 };

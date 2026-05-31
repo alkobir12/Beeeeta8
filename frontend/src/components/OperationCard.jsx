@@ -17,6 +17,7 @@ import {
   Receipt,
   CheckCircle2,
   Eye,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   ACCOUNT_NAME_MAP,
@@ -456,6 +457,9 @@ export default function OperationCard({
     : 'rgba(15,23,42,0.10)';
   const stop = (e) => e.stopPropagation();
 
+  // 🔔 Integrity warning modal — toggled by clicking the ⚠️ pill
+  const [showIntegrityModal, setShowIntegrityModal] = useState(false);
+
   const integrityWarnings = Array.isArray(integrityStatus?.warnings) ? integrityStatus.warnings : [];
   const hasIntegrityWarning = integrityWarnings.length > 0;
   const integrityLabelMap = {
@@ -502,6 +506,9 @@ export default function OperationCard({
           originLabel={originLabel}
           invoiceNumber={operation.invoiceNumber}
           integrityWarningsCount={integrityStatus && hasIntegrityWarning ? integrityWarnings.length : 0}
+          integrityWarnings={integrityWarnings}
+          integrityLabelMap={integrityLabelMap}
+          onIntegrityClick={() => setShowIntegrityModal(true)}
         />
 
         {/* ===== QUICK INFO GRID ===== */}
@@ -573,7 +580,7 @@ export default function OperationCard({
 
       {isExpanded ? (
         <div
-          className="px-4 pb-4 pt-1 border-t border-slate-200 dark:border-white/5"
+          className="relative z-10 px-4 pb-4 pt-1 border-t border-slate-200 dark:border-white/5"
           data-testid={`operation-card-expanded-${operation.id}`}
           onClick={stop}
         >
@@ -999,6 +1006,64 @@ export default function OperationCard({
           ) : null}
         </div>
       </div>
+
+      {/* ===== INTEGRITY WARNING MODAL ===== */}
+      {showIntegrityModal && hasIntegrityWarning ? (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          onClick={(e) => { e.stopPropagation(); setShowIntegrityModal(false); }}
+          data-testid={`operation-card-integrity-modal-${operation.id}`}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-2xl border border-rose-200 dark:border-rose-900 p-5"
+            onClick={(e) => e.stopPropagation()}
+            dir={isRTL ? 'rtl' : 'ltr'}
+          >
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-lg font-extrabold text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                <AlertTriangle size={20} />
+                تنبيهات الربط والسلامة
+              </h3>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowIntegrityModal(false); }}
+                className="rounded-lg p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                data-testid={`operation-card-integrity-modal-close-${operation.id}`}
+                aria-label="إغلاق"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">
+              ⚠️ تم اكتشاف {integrityWarnings.length} مشكلة في ربط هذه العملية. يُنصح بمراجعتها أو تعديلها لضمان سلامة السجلات المحاسبية:
+            </p>
+            <ul className="space-y-2">
+              {integrityWarnings.map((w, idx) => (
+                <li
+                  key={`${operation.id}-modal-warning-${idx}`}
+                  className="flex items-start gap-2 rounded-lg border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30 px-3 py-2.5"
+                  data-testid={`operation-card-integrity-modal-warning-${operation.id}-${idx}`}
+                >
+                  <span className="text-rose-600 font-bold mt-0.5">•</span>
+                  <span className="text-sm font-semibold text-rose-900 dark:text-rose-200 break-words">
+                    {integrityLabelMap[w] || w}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowIntegrityModal(false); }}
+                className="rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 text-sm font-bold hover:opacity-90 transition-opacity"
+                data-testid={`operation-card-integrity-modal-ok-${operation.id}`}
+              >
+                فهمت
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
     </div>
   );

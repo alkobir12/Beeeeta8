@@ -18,7 +18,13 @@ export const OperationCardHeader = ({
   originLabel,
   invoiceNumber,
   integrityWarningsCount,
+  integrityWarnings,
+  integrityLabelMap,
+  onIntegrityClick,
 }) => {
+  const warningTitle = Array.isArray(integrityWarnings) && integrityWarnings.length
+    ? integrityWarnings.map((w) => (integrityLabelMap && integrityLabelMap[w]) || w).join(' • ')
+    : 'انقر لعرض تفاصيل التنبيه';
   return (
     <div className="flex items-start justify-between gap-3">
       {/* Amount */}
@@ -64,6 +70,8 @@ export const OperationCardHeader = ({
             text={`⚠️ ${integrityWarningsCount}`}
             tone="rose"
             testid={`operation-card-integrity-pill-${operationId}`}
+            title={warningTitle}
+            onClick={typeof onIntegrityClick === 'function' ? onIntegrityClick : undefined}
           />
         ) : null}
       </div>

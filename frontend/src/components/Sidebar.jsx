@@ -66,8 +66,17 @@ const Sidebar = ({
     { path: '/operations', label: t('nav.operations'), icon: Receipt, enabled: true, permission: { module: 'operations', action: 'view' } },
     { path: '/debts-followup', label: '📲 متابعة الذمم والتحصيل', icon: DollarSign, enabled: true, permission: { module: 'debts', action: 'view' } },
     { path: '/archive', label: t('nav.archive'), icon: Archive, enabled: true, permission: { module: 'archive', action: 'view' } },
-    { path: '/customers', label: t('nav.customers'), icon: Users, enabled: true, permission: { module: 'customers', action: 'view' } },
-    { path: '/technicians', label: t('nav.technicians'), icon: Users, enabled: true, permission: { module: 'users', action: 'view' } },
+    {
+      group: true,
+      label: i18n.language === 'ar' ? 'العملاء والفنيون' : 'Customers & Technicians',
+      icon: Users,
+      enabled: true,
+      permission: { module: 'customers', action: 'view' },
+      children: [
+        { path: '/customers', label: t('nav.customers'), enabled: true, permission: { module: 'customers', action: 'view' } },
+        { path: '/technicians', label: t('nav.technicians'), enabled: true, permission: { module: 'users', action: 'view' } },
+      ],
+    },
     {
       group: true,
       label: t('nav.inventory'),
@@ -77,10 +86,10 @@ const Sidebar = ({
       children: [
         { path: '/parts-dashboard', label: t('inventory.parts_dashboard') || 'لوحة تحكم القطع', enabled: true, permission: { module: 'inventory', action: 'view' } },
         { path: '/parts', label: t('inventory.inventory'), enabled: true, permission: { module: 'inventory', action: 'view' } },
+        { path: '/services', label: t('nav.services'), enabled: true, permission: { module: 'work_orders', action: 'view' } },
         { path: '/suppliers', label: t('nav.suppliers'), enabled: true, permission: { module: 'inventory', action: 'view' } },
       ]
     },
-    { path: '/services', label: t('nav.services'), icon: Wrench, enabled: true, permission: { module: 'work_orders', action: 'view' } },
     {
       group: true,
       label: `💰 ${t('nav.finance_accounting')}`,
@@ -93,9 +102,6 @@ const Sidebar = ({
         { path: '/accounting/journal-entries', label: `📖 ${t('nav.journal')}`, enabled: true, permission: { module: 'journal_entries', action: 'view' } },
         { path: '/accounting/firewall', label: `🛡️ ${i18n.language === 'ar' ? 'جدار حماية المحاسبة' : 'Accounting Firewall'}`, enabled: true, permission: { module: 'reports', action: 'view' } },
         { path: '/finance/taxes', label: t('nav.taxes'), enabled: true, permission: { module: 'reports', action: 'view' } },
-        // المساعد الذكي متاح عبر البوت العائم — أُزيل من القائمة لتخفيف الموقع
-        // تم دمج تدقيق النظام داخل صفحة التحليل، لذلك لا نعرض مدخل منفصل له في القائمة
-        // { path: '/system-audit', label: i18n.language === 'ar' ? '🛡️ تدقيق النظام' : '🛡️ System Audit', enabled: true },
       ]
     },
     { path: '/fault-knowledge', label: `📚 ${t('nav.fault_knowledge')}`, icon: Archive, enabled: true, permission: { module: 'vehicles', action: 'view' } },
@@ -111,10 +117,6 @@ const Sidebar = ({
         { path: '/templates', label: `🎨 ${t('nav.templates_manager')}`, enabled: true, permission: { module: 'invoices', action: 'view' } },
       ]
     },
- 
-    { path: '/import', label: t('nav.import'), icon: Upload, enabled: true, permission: { module: 'inventory', action: 'create' } },
-    { path: '/users', label: t('nav.users'), icon: UserCircle, enabled: true, permission: { module: 'users', action: 'view' } },
-    { path: '/profile', label: t('nav.profile'), icon: Building2, enabled: true, permission: { module: 'settings', action: 'view' } },
     { path: '/settings', label: t('nav.settings'), icon: Settings, enabled: true, permission: { module: 'settings', action: 'view' } },
     { path: '/moltbot', label: `🤖 ${t('nav.moltbot')}`, icon: Bot, enabled: true, allowedRoles: ['manager', 'admin'], permission: { module: 'reports', action: 'view' } },
   ];
