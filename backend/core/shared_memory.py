@@ -40,11 +40,14 @@ def get_or_create(session_id: str) -> Dict[str, Any]:
                 "messages": [],
                 "alerts_seen": set(),
                 "context": {},
+                "actions": [],   # 🆕 L5: recent ERP searches/reports/queries (read-only)
                 "created_at": _now(),
                 "last_seen": _now(),
             }
         else:
             _sessions[session_id]["last_seen"] = _now()
+            # Backward-compat: ensure new keys exist on old sessions
+            _sessions[session_id].setdefault("actions", [])
         return _sessions[session_id]
 
 
@@ -93,6 +96,35 @@ def get_context(session_id: str, key: str, default: Any = None) -> Any:
 def clear_session(session_id: str) -> None:
     with _lock:
         _sessions.pop(session_id, None)
+
+
+def track_action(session_id: str, action_type: str, payload: Optional[Dict[str, Any]] = None) -> None:
+    """🆕 L5: tracks Recent Actions (searches/reports/explanations) for session memory.
+
+    action_type: one of {"search", "report", "explain", "summarize", "tool_call"}
+    """
+    with _lock:
+        sess = get_or_create(session_id)
+        sess["actions"].append({
+            "type": action_type,
+            "payload": payload or {},
+            "ts": _now(),
+        })
+        # حد أقصى 30 إجراء لكل جلسة
+        if len(sess["actions"]) > 30:
+            sess["actions"] = sess["actions"][-30:]
+
+
+def get_recent_actions(session_id: str, limit: int = 20, action_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Get session's recent actions, optionally filtered by type."""
+    with _lock:
+        sess = _sessions.get(session_id)
+        if not sess:
+            return []
+        actions = sess.get("actions", [])
+        if action_type:
+            actions = [a for a in actions if a.get("type") == action_type]
+        return actions[-limit:]
 
 
 def stats() -> Dict[str, Any]:
