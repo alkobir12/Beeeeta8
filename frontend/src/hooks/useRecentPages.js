@@ -31,7 +31,7 @@ const PATH_LABELS = {
   '/accounting/journal-entries': '📖 دفتر اليومية',
   '/accounting/firewall': '🛡️ جدار الحماية',
   '/accounting/comprehensive': '💎 المؤشرات المالية',
-  '/ai-financial': '🤖 المساعد المالي',
+  '/ai-financial': '🛡️ مركز جدار حماية المحاسبة',
   '/invoice-templates': '🧾 قوالب الفواتير',
   '/analytics': '📈 التحليلات',
   '/settings': '⚙️ الإعدادات',

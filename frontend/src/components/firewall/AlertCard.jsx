@@ -1,6 +1,7 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle, AlertOctagon, Info, Shield, Wrench, Eye, X, Check, Sparkles,
+  AlertTriangle, AlertOctagon, Info, Shield, Wrench, Eye, X, Check, Sparkles, ExternalLink,
 } from 'lucide-react';
 
 /**
@@ -69,10 +70,34 @@ const formatSar = (v) => {
 };
 
 export const AlertCard = ({ alert, onDetails, onAutoFix, onDismiss, onResolve, busy }) => {
+  const navigate = useNavigate();
   const sev = SEVERITY_STYLES[alert.severity] || SEVERITY_STYLES.info;
   const Icon = sev.icon;
   const canAutoFix = alert.auto_fix === 'auto';
   const canGuidedFix = alert.auto_fix === 'guided';
+
+  // 🎯 "Go to source" — same logic as in AlertDetailsDrawer; pinpoints the offending record.
+  const buildSourceUrl = () => {
+    if (alert.action_url) return alert.action_url;
+    const cat = String(alert.category || alert.type || '').toLowerCase();
+    const refId = Array.isArray(alert.related_entries) && alert.related_entries.length
+      ? String(alert.related_entries[0])
+      : (alert.reference_id || alert.entity_id || '');
+    if (cat.includes('ledger') || cat.includes('journal') || cat.includes('orphan')) {
+      return refId ? `/accounting/journal-entries?ref=${encodeURIComponent(refId)}` : '/accounting/journal-entries';
+    }
+    if (cat.includes('operation') || cat.includes('duplicate') || cat.includes('mismatch') || cat.includes('visit')) {
+      return refId ? `/operations?ref=${encodeURIComponent(refId)}` : '/operations';
+    }
+    if (cat.includes('account') || cat.includes('chart') || cat.includes('balance')) {
+      return '/accounting/chart-of-accounts';
+    }
+    if (cat.includes('debt') || cat.includes('ar_') || cat.includes('ap_') || cat.includes('overdue')) {
+      return '/debts-followup';
+    }
+    return refId ? `/operations?ref=${encodeURIComponent(refId)}` : '/accounting/comprehensive';
+  };
+  const goToSource = () => navigate(buildSourceUrl());
 
   return (
     <div
@@ -122,6 +147,14 @@ export const AlertCard = ({ alert, onDetails, onAutoFix, onDismiss, onResolve, b
 
       {/* actions */}
       <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          data-testid={`alert-action-source-${alert.id}`}
+          onClick={goToSource}
+          className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold inline-flex items-center gap-1 transition-colors"
+          title="انتقل إلى مكان المشكلة بالضبط"
+        >
+          <ExternalLink size={12} /> اذهب إلى المصدر
+        </button>
         <button
           data-testid={`alert-action-details-${alert.id}`}
           onClick={() => onDetails?.(alert)}

@@ -1,11 +1,48 @@
 import React from 'react';
-import { X, Wrench, Check, AlertCircle, Database, Calendar, Hash } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Wrench, Check, AlertCircle, Database, Calendar, Hash, ExternalLink } from 'lucide-react';
 
 const formatSar = (v) => new Intl.NumberFormat('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(v || 0)) + ' ر.س';
 
 export const AlertDetailsDrawer = ({ alert, onClose, onAutoFix, onResolve, busy }) => {
+  const navigate = useNavigate();
   if (!alert) return null;
   const canAutoFix = alert.auto_fix === 'auto';
+
+  // 🎯 Determine the best landing page for the source-link button.
+  // Priority: explicit alert.action_url > category-based mapping > related_entries fallback.
+  const buildSourceUrl = () => {
+    if (alert.action_url) return alert.action_url;
+    const cat = String(alert.category || alert.type || '').toLowerCase();
+    const refId = Array.isArray(alert.related_entries) && alert.related_entries.length
+      ? String(alert.related_entries[0])
+      : (alert.reference_id || alert.entity_id || '');
+
+    // Journal-entry-related alerts
+    if (cat.includes('ledger') || cat.includes('journal') || cat.includes('orphan')) {
+      return refId ? `/accounting/journal-entries?ref=${encodeURIComponent(refId)}` : '/accounting/journal-entries';
+    }
+    // Operation-related alerts
+    if (cat.includes('operation') || cat.includes('duplicate') || cat.includes('mismatch') || cat.includes('visit')) {
+      return refId ? `/operations?ref=${encodeURIComponent(refId)}` : '/operations';
+    }
+    // Account / chart issues
+    if (cat.includes('account') || cat.includes('chart') || cat.includes('balance')) {
+      return '/accounting/chart-of-accounts';
+    }
+    // AR / AP issues
+    if (cat.includes('debt') || cat.includes('ar_') || cat.includes('ap_') || cat.includes('overdue')) {
+      return '/debts-followup';
+    }
+    // Generic fallback — comprehensive financial statements
+    return refId ? `/operations?ref=${encodeURIComponent(refId)}` : '/accounting/comprehensive';
+  };
+
+  const goToSource = () => {
+    const url = buildSourceUrl();
+    onClose?.();
+    navigate(url);
+  };
 
   return (
     <div
@@ -126,6 +163,15 @@ export const AlertDetailsDrawer = ({ alert, onClose, onAutoFix, onResolve, busy 
 
         {/* footer actions */}
         <div className="sticky bottom-0 bg-slate-100 dark:bg-slate-800 px-5 py-3 border-t-2 border-slate-300 dark:border-slate-600 flex flex-wrap gap-2 justify-end">
+          <button
+            data-testid="alert-details-source"
+            onClick={goToSource}
+            disabled={busy}
+            className="text-sm px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold inline-flex items-center gap-1 disabled:opacity-50 transition-colors"
+            title="انتقل إلى مكان المشكلة بالضبط"
+          >
+            <ExternalLink size={14} /> اذهب إلى المصدر
+          </button>
           {canAutoFix && (
             <button
               data-testid="alert-details-autofix"

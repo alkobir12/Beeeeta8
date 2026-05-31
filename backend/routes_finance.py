@@ -2152,7 +2152,7 @@ async def get_finance_alerts(
                     "title": "ذمم مدينة مفتوحة",
                     "message": f"يوجد آجل (غير محصل) بقيمة {ar_amt:,.2f} على حساب الذمم المدينة 1103.",
                     "action": "تابع التحصيل أو اربطها بفاتورة/سداد.",
-                    "route": "/debt-follow-up",
+                    "route": "/debts-followup",
                     "route_label": "متابعة الذمم",
                 }
             )
@@ -2233,9 +2233,9 @@ async def get_finance_alerts(
                         "severity": "high",
                         "title": "انخفاض درجة صحة النظام المحاسبي",
                         "message": f"درجة الصحة {score}/100",
-                        "action": "شغّل صفحة التدقيق وراجع خطة التصحيح.",
-                        "route": "/ai-financial",
-                        "route_label": "فتح المدقق المالي",
+                        "action": "افتح مركز جدار الحماية وراجع خطة التصحيح.",
+                        "route": "/accounting/firewall",
+                        "route_label": "فتح مركز جدار الحماية",
                     }
                 )
             corrections = data.get("corrections_needed") or []
@@ -2246,9 +2246,9 @@ async def get_finance_alerts(
                         "severity": "medium",
                         "title": "تصحيحات محاسبية مطلوبة",
                         "message": f"عدد التصحيحات المقترحة: {len(corrections)}",
-                        "action": "راجع تفاصيل التدقيق لتطبيق التصحيحات.",
-                        "route": "/ai-financial",
-                        "route_label": "فتح المدقق المالي",
+                        "action": "افتح مركز جدار الحماية لمراجعة التصحيحات.",
+                        "route": "/accounting/firewall",
+                        "route_label": "فتح مركز جدار الحماية",
                     }
                 )
     except Exception:

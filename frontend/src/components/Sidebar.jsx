@@ -118,7 +118,8 @@ const Sidebar = ({
       ]
     },
     { path: '/settings', label: t('nav.settings'), icon: Settings, enabled: true, permission: { module: 'settings', action: 'view' } },
-    { path: '/moltbot', label: `🤖 ${t('nav.moltbot')}`, icon: Bot, enabled: true, allowedRoles: ['manager', 'admin'], permission: { module: 'reports', action: 'view' } },
+    // 🤖 Moltbot Studio أُزيل من القائمة الجانبية — البوتات أصبحت موحدة في UnifiedAssistantDrawer العائم.
+    // إذا احتاج المدير الوصول للـ Studio، المسار /moltbot لا يزال متاحاً مباشرة.
   ];
 
   const loadSettings = async () => {

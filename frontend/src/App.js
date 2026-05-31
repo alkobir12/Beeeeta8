@@ -234,7 +234,7 @@ function App() {
                   <Route path="accounting/journal-entries" element={<JournalEntries />} />
                   <Route path="accounting/firewall" element={<FirewallPanel />} />
 
-                  <Route path="ai-financial" element={<AIFinancial />} />
+                  <Route path="ai-financial" element={<Navigate to="/accounting/firewall" replace />} />
                   <Route path="system-audit" element={<SystemAudit />} />
                   <Route path="moltbot" element={<MoltBot />} />
 
