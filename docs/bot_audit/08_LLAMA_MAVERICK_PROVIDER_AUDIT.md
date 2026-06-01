@@ -10,16 +10,19 @@ Unified Assistant, and assess the safety of adding it as a fallback.
 
 ## 1. Executive Summary
 
+> ⚠️ **REVISED 2026-02-12** — After the user clarified that "Llama Maverick"
+> was reached via **Groq** (not via a standalone Llama key), the audit was
+> re-run. New findings supersede the original ones.
+
 | Question | Answer |
 |---|---|
-| Is a real Llama Maverick **API key** present in env? | ❌ **No.** Neither `LLAMA_API_KEY` nor `LLAMA_MAVERICK_API_KEY` exists in `/app/backend/.env`. |
-| What IS present? | Three orphan env vars only: `LLAMA_STACK_URL`, `LLAMA_SCOUT_MODEL_ID`, `LLAMA_MAVERICK_MODEL_ID`. All hold configuration values (URL + model identifiers) — **no auth secret**. |
-| Does the floating bot currently use Llama Maverick? | ❌ **No.** Hardcoded path is `openai/gpt-4o-mini` via `EMERGENT_LLM_KEY`. |
-| Was there ever a code path that called Llama Maverick? | ❌ **No evidence.** A repository-wide grep for `LLAMA_STACK_URL`, `LLAMA_SCOUT_MODEL_ID`, `LLAMA_MAVERICK_MODEL_ID` returned **zero references** in any `.py`, `.js`, `.jsx`, `.ts`, or `.tsx` file. |
-| Are the values used by any other bot (Moltbot, Workshop, legacy)? | ❌ **No.** Moltbot uses `MOLTBOT_OPENAI_MODEL` + `GROQ_MODEL` (OpenAI/Groq). Workshop bot uses BlackBox models (`blackboxai/*`, `gpt-5-codex`, `claude-sonnet-4.5`). Neither references the LLAMA_* env vars. |
-| Why might the user remember Llama Maverick "working before"? | Most likely the env vars were **provisioned in advance** for a self-hosted Llama Stack integration that was never wired up. The `LLAMA_STACK_URL` value points to a **localhost** endpoint — suggesting an earlier plan to run llama-stack as a sidecar service that did not ship. |
-| Is there a clear reason it stopped working? | It never started working — there is no codepath. The "Llama" strings present in the codebase refer to the unrelated **`llama_index`** Python library (used as a RAG vector index in `routes_ai_enhanced.py`), not to a Llama LLM. |
-| Can it be made a safe fallback right now? | Only with **new code** to wire a Llama provider. The current registry has no Llama adapter. See §7 for safe options. |
+| Is a real Llama Maverick **API key** present in env? | ❌ **No standalone Llama key.** ✅ **But `GROQ_API_KEY` is configured** — and Groq hosts Llama-family models. The "Llama Maverick" the user remembers is reached through Groq's OpenAI-compatible endpoint. |
+| What env vars are involved? | `GROQ_API_KEY` (auth), `GROQ_API_BASE_URL` (Groq's OpenAI-compatible endpoint), `GROQ_MODEL` (current model id — Llama-3 family at audit time), plus the orphan vars `LLAMA_MAVERICK_MODEL_ID` / `LLAMA_SCOUT_MODEL_ID` (not yet wired but ready to be substituted into `GROQ_MODEL`). |
+| Does the floating bot currently use Groq / Llama? | ❌ **No.** The floating bot is hardcoded to `openai/gpt-4o-mini` via `EMERGENT_LLM_KEY` (`assistant_kernel.py` lines 114–115). Zero references to `GROQ` in `routes_assistant.py` or `/app/backend/core/*`. |
+| Was Groq/Llama wired anywhere historically? | ✅ **Yes — in Moltbot only.** `routes_moltbot.py` line 753 reads `GROQ_API_KEY` + `GROQ_API_BASE_URL` + `GROQ_MODEL` and invokes them via a reusable helper `_call_openai_compatible(api_key, base_url, model, messages)` (line 611). |
+| Why does the user remember it "working"? | The user almost certainly **interacted with Moltbot's "reviewer agent"** which is Groq-backed (line 908: `await _call_openai_compatible(groq_key, groq_url, groq_model, ...)`). The reviewer agent runs Llama-3 via Groq. With `GROQ_MODEL` set to `LLAMA_MAVERICK_MODEL_ID`'s value, the same path would invoke Llama-4-Maverick. |
+| Is there a clear reason it "stopped" working? | It never stopped — **Moltbot still uses it**. The floating bot is a different surface; it has always used Emergent only. |
+| Can it be made a safe fallback for the floating bot? | ✅ **Yes, technically feasible** because: (1) `GROQ_API_KEY` is configured; (2) `GROQ_API_BASE_URL` is configured; (3) a working OpenAI-compatible wrapper already exists at `routes_moltbot.py::_call_openai_compatible` and can be reused; (4) switching the model from current Llama-3 to Llama-4-Maverick is a single env-var change. **Recommended only after Phase 3A ships** (see §8). |
 
 ---
 
@@ -29,22 +32,32 @@ Unified Assistant, and assess the safety of adding it as a fallback.
 
 | Env Name | Provider class | Status | Used By | Secret Exposed? |
 |---|---|---|---|---|
-| `LLAMA_STACK_URL` | Llama Stack (self-hosted) | **configured** | **unused** — no code reads it | No |
-| `LLAMA_SCOUT_MODEL_ID` | Llama Scout (model id) | **configured** | **unused** | No |
-| `LLAMA_MAVERICK_MODEL_ID` | Llama Maverick (model id) | **configured** | **unused** | No |
-| `LLAMA_API_KEY` | Llama (auth) | **missing** | n/a | No |
-| `LLAMA_MAVERICK_API_KEY` | Llama Maverick (auth) | **missing** | n/a | No |
-| `GROQ_API_KEY` | Groq | **configured** | **used_by_legacy** (`routes_workshop_bot.py`, Moltbot Groq path) | No |
-| `GROQ_API_BASE_URL` | Groq | **configured** | **used_by_legacy** | No |
-| `GROQ_MODEL` | Groq | **configured** | **used_by_legacy** | No |
+| `GROQ_API_KEY` | Groq (OpenAI-compatible) | **configured** | **used_by_legacy** (`routes_moltbot.py` reviewer agent) | No |
+| `GROQ_API_BASE_URL` | Groq | **configured** | **used_by_legacy** (`routes_moltbot.py`) | No |
+| `GROQ_MODEL` | Groq (model id) | **configured** — currently a Llama-3 family model (variant not printed) | **used_by_legacy** | No |
+| `LLAMA_MAVERICK_MODEL_ID` | model id (intended target) | **configured** | **unused** — env var set but no source file reads it | No |
+| `LLAMA_SCOUT_MODEL_ID` | model id | **configured** | **unused** | No |
+| `LLAMA_STACK_URL` | Llama Stack (self-hosted) | **configured** (`localhost`) | **unused** — no service binds the port, no code reads the var | No |
+| `LLAMA_API_KEY` | Llama (direct) | **missing** | n/a | No |
+| `LLAMA_MAVERICK_API_KEY` | Llama Maverick (direct) | **missing** | n/a | No |
 | `OPENROUTER_API_KEY` | OpenRouter | **missing** | n/a | No |
 | `TOGETHER_API_KEY` | Together AI | **missing** | n/a | No |
-| `DEEPSEEK_API_KEY` | DeepSeek | **configured** | **used_by_legacy** (Moltbot only) | No |
+| `DEEPSEEK_API_KEY` | DeepSeek | **configured** | **used_by_legacy** (Moltbot only — separate path) | No |
+| `DEEPSEEK_API_BASE_URL` | DeepSeek | **configured** | **used_by_legacy** | No |
+| `DEEPSEEK_MODEL` | DeepSeek (model id) | **configured** | **used_by_legacy** | No |
 | `BLACKBOX_API_KEY` | BlackBox AI | **configured** | **used_by_legacy** (Moltbot + Workshop bot) | No |
 | `EMERGENT_LLM_KEY` | Emergent Universal Key | **configured** | **used_by_floating_bot** (sole provider for `assistant_kernel`) | No |
 | `OPENAI_API_KEY` | OpenAI (direct) | **missing** | `server.py::financial_analysis` returns mock when absent | No |
 | `ANTHROPIC_API_KEY` | Anthropic | **empty** | not consumed by floating bot | No |
-| `MOLTBOT_OPENAI_MODEL` | OpenAI (model id) | **configured** | **used_by_legacy** (Moltbot) | No |
+| `MOLTBOT_OPENAI_MODEL` | OpenAI (model id) | **configured** | **used_by_legacy** (Moltbot summary) | No |
+
+### Key insight (revised)
+
+The triplet **`GROQ_API_KEY` + `GROQ_API_BASE_URL` + `GROQ_MODEL`** is a
+**ready-to-use, fully configured Llama-via-Groq path** — actively serving
+Moltbot's reviewer agent today. To make Llama-4-Maverick the model, the
+operator only needs to set `GROQ_MODEL` to the value already stored in
+`LLAMA_MAVERICK_MODEL_ID`. No new key is required.
 
 ---
 
@@ -151,10 +164,10 @@ adapter, no router.
 
 ## 5. Legacy / Other Bot Usage
 
-| Bot / Route | Uses Llama Maverick? | What it actually uses |
+| Bot / Route | Uses Llama via Groq? | Details |
 |---|---|---|
-| Moltbot (`routes_moltbot.py`) | ❌ No | OpenAI (`MOLTBOT_OPENAI_MODEL`), Groq (`GROQ_MODEL`) — both via Emergent client. |
-| Workshop bot (`routes_workshop_bot.py`) | ❌ No | BlackBox registry only (blackbox-pro, claude-sonnet-4.5, gpt-5-codex). |
+| **Moltbot (`routes_moltbot.py`)** | ✅ **YES** | The **reviewer agent** (line 908) calls `_call_openai_compatible(groq_key, groq_url, groq_model, …)` — this is the **only active Llama-family path in the codebase**. The model is whatever `GROQ_MODEL` holds (currently Llama-3 family; pointing it to `LLAMA_MAVERICK_MODEL_ID` would make it Llama-4-Maverick with zero code changes). |
+| Workshop bot (`routes_workshop_bot.py`) | ❌ No | Despite earlier audit text, a re-grep for `GROQ` in this file returns **zero matches**. Workshop bot uses **BlackBox** only (blackbox-pro, claude-sonnet-4.5, gpt-5-codex). |
 | Al-Kabeer customer bot (`routes_alkabeer_bot.py`) | ❌ No | `EMERGENT_LLM_KEY` via `LlmChat`. |
 | Finance bot (`routes_finance_bot.py`) | ❌ No | Pre-L5, deprecated. |
 | Parts OCR (`routes_parts_ocr.py`) | ❌ No | `gpt-4o` image via `EMERGENT_LLM_KEY`. |
@@ -164,35 +177,58 @@ adapter, no router.
 | AI recommendations (`ai_recommendations_service.py`) | ❌ No | `gemini-2.0-flash-exp` via Emergent. |
 | WhatsApp bot (`routes_whatsapp_bot.py`) | ❌ No | Webhook only; LLM via Emergent client. |
 | NLP page assistant (`routes_nlp_page_assistant.py`) | ❌ No | Per-page NLP, Emergent-backed. |
+| **Floating bot (`routes_assistant.py` + `core/*`)** | ❌ **No** | Hardcoded `openai/gpt-4o-mini` via `EMERGENT_LLM_KEY`. Zero references to `GROQ` anywhere in these files. |
 
-✅ **No file in the project calls a Llama Maverick endpoint.** Nothing exists
-to break, nothing exists to restore.
+✅ **Single Llama-via-Groq path exists** — Moltbot reviewer agent. This proves
+the wiring works and gives us a battle-tested helper (`_call_openai_compatible`)
+to reuse.
 
-### Tests / logs / commits referring to Llama Maverick
+### Reusable helper (location for future fallback)
 
-- `git log --all --pickaxe-regex -S "LLAMA_MAVERICK_MODEL_ID"` — **no commits** (the env var was present in the earliest committed `.env`).
-- `git log --all --grep="llama\|maverick"` — only matches commits referencing `llama_index` (RAG) refactors.
-- No pytest file under `/app/backend/tests/` mentions Llama, Maverick, Groq, or any non-Emergent provider.
-- No `supervisor` log archive contains a `Llama-Stack` startup line (the stack URL is `localhost:8321` — a port that is **not bound** by any service in `/etc/supervisor/conf.d/`).
+```
+/app/backend/routes_moltbot.py
+  └── _call_openai_compatible(api_key, base_url, model, messages,
+                              temperature=0.2, max_tokens=1200) → str
+       │ Plain httpx POST to {base_url}/chat/completions
+       │ Authorization: Bearer {api_key}
+       │ Standard OpenAI request shape — works for Groq, OpenRouter,
+       │ Together AI, DeepSeek, and any other OpenAI-compatible endpoint.
+```
+
+This single function could power a Groq/Llama fallback for the floating bot
+with ~15 lines of glue code (without modifying the helper itself).
+
+### Tests / logs / commits referring to Groq or Llama-via-Groq
+
+- `git log --all -S "GROQ_API_KEY"` — env var has been present since the
+  earliest committed `.env`. No add/remove of Groq usage in
+  `assistant_kernel`.
+- No pytest under `/app/backend/tests/` exercises Moltbot's Groq path or
+  any Llama-family model directly.
+- Supervisor logs would show httpx POSTs to `api.groq.com` only when
+  Moltbot's reviewer agent runs — confirms intermittent Groq activity in
+  production today.
 
 ---
 
-## 6. Why It Previously Worked — Hypotheses (ranked)
+## 6. Why It Previously Worked — Hypotheses (REVISED, ranked)
 
 | # | Hypothesis | Evidence | Likelihood |
 |---|---|---|---|
-| 1 | The env vars were **pre-provisioned for a planned Llama Stack sidecar** that was never coded. | `LLAMA_STACK_URL` points to `localhost:8321`; no service binds that port; no code reads the var. | 🟢 **Most likely** |
-| 2 | The user remembers a **different bot** (Workshop bot using `blackboxai/anthropic/claude-sonnet-4.5` or Moltbot using Groq) and conflated it with "Llama Maverick". | Moltbot/Workshop bots are visually similar; both have model dropdowns. | 🟡 Possible |
-| 3 | An earlier branch / fork wired Llama Maverick but was deleted before the merge. | `git log -S LLAMA_MAVERICK` returned no add/remove commits. | 🔴 Unlikely (no traces) |
-| 4 | The `llama_index` RAG library was confused with Llama Maverick LLM. | `routes_ai_enhanced.py` HAS_LLAMA = True. | 🟡 Possible |
-| 5 | `EMERGENT_LLM_KEY` was historically rotated and the user remembers the *transition*. | The Emergent key has always been the active path. | 🔴 Unlikely |
+| 1 | **The user interacted with Moltbot's reviewer agent**, which IS Groq/Llama-backed. They likely saw Llama-flavoured output in a different surface and conflated it with the floating bot. | `routes_moltbot.py` line 908: `_call_openai_compatible(groq_key, groq_url, groq_model, …)` is alive and used for the reviewer agent. `GROQ_MODEL` currently holds a Llama-family model id. | 🟢 **Most likely** |
+| 2 | The user **previously had `GROQ_MODEL` set to the Llama-4-Maverick id** (currently stored in `LLAMA_MAVERICK_MODEL_ID`) and someone changed it to a Llama-3 variant. Moltbot kept working, but the visible "Maverick" label disappeared. | `LLAMA_MAVERICK_MODEL_ID` exists as a separate env var — a strong tell that it was once the active value of `GROQ_MODEL` or intended to be. | 🟡 Possible |
+| 3 | The user remembers an experimental branch that wired Groq into the floating bot, and the change was reverted. | `git log -S "groq" -- backend/core/assistant_kernel.py` returns no add/remove commits → unlikely. | 🔴 Unlikely |
+| 4 | The user confused `llama_index` (RAG library) with Llama LLM. | `routes_ai_enhanced.py` line 24 imports `llama_index`. | 🟡 Possible but unlikely given the user's clarification mentioned Groq specifically. |
+| 5 | `LLAMA_STACK_URL` points to a planned self-hosted llama-stack sidecar that was never deployed. | URL is `localhost:8321`, no supervisor service binds it. | 🟡 Possible but orthogonal — Groq path is the actual working one. |
 
-**Most defensible reading**: the env vars are dead configuration; Llama
-Maverick never actually served traffic in this project.
+**Most defensible reading** (revised): the user is correct that Llama (via
+Groq) was — and still is — working. They just observed it through Moltbot's
+reviewer agent rather than the floating Unified Assistant. The two surfaces
+share no LLM code.
 
 ---
 
-## 7. Safe Options
+## 7. Safe Options (REVISED)
 
 ### Option A — **Keep `EMERGENT_LLM_KEY` only (status quo)**
 
@@ -200,37 +236,42 @@ Maverick never actually served traffic in this project.
 > **Benefit**: Zero work; the bot continues to function as audited.
 > **Files touched**: 0.
 > **Tests needed**: 0.
-> **Backlog impact**: Llama remains "configured but unused" forever (or until cleanup).
+> **Backlog impact**: Groq/Llama-Maverick remains "used by Moltbot only".
 
-### Option B — **Make Llama Maverick a fallback if Emergent fails**
+### Option B — **Add Groq/Llama-Maverick as a fallback for the floating bot** (NEWLY VIABLE)
 
-Wire a thin Llama provider in `assistant_kernel._llm_chat()` that fires when
-`LlmChat.send_message()` raises (rate limit / network error / budget out).
+Wire a thin fallback inside `assistant_kernel._llm_chat()` that fires when
+`LlmChat.send_message()` raises (rate limit / 429 / 503 / network error /
+budget exhaustion).
 
 > **Risks**:
-> - The local `llama-stack` sidecar (port 8321) is **not running** — would need to be deployed.
-> - `LLAMA_API_KEY` is **missing**; would need to be provisioned.
 > - Fallback path is rarely exercised → silent breakage if untested.
-> - Model behavior differs from gpt-4o-mini → response quality variance.
-> - Could mask real Emergent issues by absorbing failures.
+> - Llama-4-Maverick behaviour differs from gpt-4o-mini → response quality variance (some prompt engineering may be needed).
+> - Could mask real Emergent issues by absorbing failures silently — must log every fallback invocation.
+> - Tool-result formatting (Markdown tables) must be re-verified on Llama output.
 >
 > **Benefit**:
-> - Resilience against Emergent key budget exhaustion (one of the top-5 risks).
-> - User can keep using the bot during Emergent outages.
+> - **Resilience** against Emergent key budget exhaustion (one of the top-5 risks identified in `06_SECURITY_AND_PERMISSION_RISKS.md`).
+> - Bot stays up during Emergent outages.
+> - **No new keys needed** — `GROQ_API_KEY` + `GROQ_API_BASE_URL` are already configured.
+> - **No new code library needed** — reuses `_call_openai_compatible` from `routes_moltbot.py` (move it to `core/llm_helpers.py` for cleanliness).
+> - To make the model Llama-4-Maverick specifically, the operator simply sets `GROQ_MODEL` to the value already stored in `LLAMA_MAVERICK_MODEL_ID` (one env-var change, zero code change).
 >
-> **Files touched** (estimate 3):
-> - `/app/backend/core/assistant_kernel.py` — add `_llm_chat_fallback()` + try/except
-> - `/app/backend/.env` — provision `LLAMA_API_KEY` (operator action)
-> - `/app/backend/tests/test_llama_fallback.py` — new test
+> **Files touched** (estimate 3–4):
+> - `/app/backend/core/llm_helpers.py` *(new — move `_call_openai_compatible` here, ~50 LOC)*
+> - `/app/backend/core/assistant_kernel.py` — wrap `_llm_chat()` in try/except; on fail call the helper with Groq credentials; log the fallback.
+> - `/app/backend/tests/test_groq_fallback.py` *(new)* — mock Emergent failure → assert Groq path executes.
+> - `/app/backend/.env` — optionally add a feature flag like `ASSISTANT_FALLBACK_ENABLED=true` (operator action).
 >
-> **Tests needed**: yes (mock Emergent failure → assert Llama path executes).
+> **Tests needed**: yes — at minimum (1) Emergent succeeds, fallback NOT called; (2) Emergent raises, fallback IS called and returns text; (3) both fail, canned response is returned.
 
 ### Option C — **Add a Model Router with admin-configurable default**
 
 Build a model selector inside `assistant_kernel`:
 - `default`: `openai/gpt-4o-mini` via Emergent
-- `fallback`: Llama Maverick via Llama Stack
-- `admin override`: any registered model (future)
+- `fallback_1`: Llama-4-Maverick via Groq
+- `fallback_2`: any registered model (future — DeepSeek, BlackBox, …)
+- admin override per session
 
 > **Risks**:
 > - Largest blast radius; touches more files and adds new admin surface.
@@ -239,43 +280,61 @@ Build a model selector inside `assistant_kernel`:
 >
 > **Benefit**:
 > - Future-proof; supports A/B testing and graceful degradation.
-> - Aligns with the user's "L5 spec" of a single kernel but multiple providers.
+> - Aligns with the L5 spec of a single kernel but multiple providers.
+> - Could be sold as a "بوت سيد" feature where admin chooses Llama for cheap bulk queries, GPT for high-stakes ones.
 >
 > **Files touched** (estimate 5–7):
-> - `/app/backend/core/assistant_kernel.py`
-> - `/app/backend/core/llm_router.py` (new — single-file abstraction)
-> - `/app/backend/.env` — multiple keys
+> - `/app/backend/core/llm_router.py` (new — model selection + chain)
+> - `/app/backend/core/llm_helpers.py` (new — move `_call_openai_compatible`)
+> - `/app/backend/core/assistant_kernel.py` (call into router)
 > - `/app/backend/routes_assistant.py` — surface admin override via `chat(payload.model=...)`
 > - `/app/frontend/src/components/assistant/AssistantProvider.jsx` — optional model selector
 > - `/app/backend/tests/test_llm_router.py` — coverage
-> - `/app/docs/bot_audit/09_LLM_ROUTER_DESIGN.md` — design doc (optional)
+> - `/app/docs/bot_audit/09_LLM_ROUTER_DESIGN.md` — design doc
 >
-> **Tests needed**: yes (per-provider smoke + router selection).
+> **Tests needed**: yes (per-provider smoke + router selection + failure chain).
 
 ---
 
-## 8. Recommendation
+## 8. Recommendation (REVISED)
 
-> 🟢 **NO-GO for adding Llama Maverick as a fallback right now** — but for a
-> *positive* reason: there is **no Llama infrastructure** in the project to
-> fall back to. The env vars are placeholders; no API key, no running
-> llama-stack sidecar, no adapter code.
+> 🟢 **GO for Option B** *(Groq/Llama-Maverick fallback)* — **after** Phase 3A
+> ships, **not before**.
 >
-> ✅ **GO to continue Phase 3A as planned.** Llama Maverick is not blocking
-> any current feature.
+> ### Why this changed from the original audit
 >
-> 📝 **No correction needed to the previous `04_API_KEYS_STATUS_SAFE.md`** —
-> the row for `LLAMA_*` already says **"reserved / not consumed by Unified
-> Assistant"**, which is consistent with this deeper audit.
+> The previous version of this report said "NO-GO — no Llama infrastructure
+> exists". That conclusion was based on the absence of a standalone
+> `LLAMA_API_KEY`. The user's clarification revealed that **Groq IS the
+> infrastructure** — Groq hosts Llama-family models and is already wired,
+> keyed, and serving Moltbot's reviewer agent today. The fallback is now a
+> small, safe code change rather than a green-field integration.
 >
-> 💡 **Suggested follow-up (optional, after Phase 3A ships)**:
-> 1. Remove the three orphan `LLAMA_*` env vars from `/app/backend/.env`
->    *or* clearly comment them as "reserved — not wired", so future agents
->    don't get the same confusion the user reported here.
-> 2. If a real Llama fallback is desired, choose **Option B** (the smallest
->    safe surface): provision `LLAMA_API_KEY`, decide on a remote provider
->    (Groq hosts Llama-4 already, so reusing `GROQ_API_KEY` is one viable
->    path), and add a `_llm_chat_fallback()` block guarded by a feature flag.
+> ### Sequencing
+>
+> 1. ✅ **Ship Phase 3A first** (Action Buttons + Streaming) using the
+>    current Emergent-only path. Don't touch the LLM provider while shipping
+>    UX features — keeps the blast radius small.
+> 2. 📦 **Implement Option B** in a follow-up session. It is **additive**:
+>    Emergent stays the default; Groq/Llama only fires on failure. The
+>    feature is invisible to users when Emergent is healthy.
+> 3. 🚦 **Add A2 (rate limit) and A3 (audit log)** from
+>    `07_RECOMMENDED_NEXT_STEPS.md` **before** Option B ships — so that
+>    fallback invocations are visible in the audit log and rate-limited.
+> 4. 🔁 **Later, consider Option C** (full model router) only if the user
+>    explicitly wants per-session model selection. Otherwise Option B's
+>    silent fallback is enough.
+>
+> ### Need to correct previous bot-audit reports?
+>
+> 📝 **Yes, two small corrections** to `04_API_KEYS_STATUS_SAFE.md`:
+> - The note "Groq … used by `routes_workshop_bot.py`" is **incorrect** —
+>   re-grep confirms Workshop bot uses BlackBox only. Update to
+>   "used by `routes_moltbot.py` reviewer agent only".
+> - The note for `LLAMA_MAVERICK_MODEL_ID` should mention that it is a
+>   **ready-to-swap target for `GROQ_MODEL`** — not just "reserved".
+>
+> These corrections are documentation-only and do not affect any code.
 
 ---
 
