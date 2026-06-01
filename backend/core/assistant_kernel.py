@@ -29,16 +29,59 @@ from core import alert_bus, shared_memory, ai_context, tool_router
 
 _TOOL_PATTERNS = [
     # Firewall / audit insights — تنبيهات وتصحيحات (إفراد + جمع + مرادفات)
-    (re.compile(r"(صح[ةه]\s*ال?(نظام|مال)|درج[ةه]\s*ال?صح|نقاط|health\s*score|health)", re.IGNORECASE), "firewall.health_score"),
+    (re.compile(r"(صح[ةه]\s*(?:ال)?(نظام|مال)|درج[ةه]\s*(?:ال)?صح|نقاط|health\s*score|health)", re.IGNORECASE), "firewall.health_score"),
     (re.compile(r"(تنبيه|تنبي?هات|alerts?|تصحيح|تصحيحات|خطأ|أخطاء|مشكل[ةه]|عيب|شذوذ|مخالف[ةه]|audit|إنذار|warning|fix|issue|التنبي)", re.IGNORECASE), "firewall.top_alerts"),
     # 🆕 Per-operation integrity warnings (missing_journal_entry, duplicates …)
     (re.compile(r"(ملاحظ|ملاحظات|integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل)", re.IGNORECASE), "firewall.operation_integrity"),
     (re.compile(r"(تدفق|cash\s*flow|إيراد|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
     # Finance read-only
-    (re.compile(r"(ذمم|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل)", re.IGNORECASE), "finance.ar_summary"),
+    (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين)", re.IGNORECASE), "finance.ar_summary"),
+    # 🆕 Suppliers AP
+    (re.compile(r"(ذمم\s*(?:ال)?مورد|دائن|دائنين|payables?|ap\s*summary|نستحق|نحن\s*مدين|للمورد|ذمم\s*ال?ورش[ةه])", re.IGNORECASE), "finance.payables_summary"),
+    # 🆕 Inventory low stock
+    (re.compile(r"((?:ال)?قطع\s*(?:ال)?ناقص|مخزون\s*منخفض|low\s*stock|(?:ال)?قطع\s*انتهت|قطع\s*أوشكت|نفاد|نفذت\s*(?:ال)?قطع|(?:ل?ل?)?(?:ال)?حد\s*(?:ال)?أدنى|قطع.*ناقص|نواقص\s*المخزون|تنبيه.*مخزون|تنبيهات\s*المخزون)", re.IGNORECASE), "inventory.low_stock"),
+    # 🆕 Recent operations
+    (re.compile(r"(آخر\s*(?:ال)?عمليات|أحدث\s*(?:ال)?عمليات|آخر\s*(?:ال)?مبيعات|recent\s*operations?|عمليات\s*اليوم|أخر\s*(?:ال)?عمليات)", re.IGNORECASE), "operations.recent"),
+    # 🆕 Customer search (intent: "ابحث عن العميل X" / "كم رصيد X")
+    (re.compile(r"(ابحث\s*عن\s*(?:ال)?عميل|أبحث\s*عن\s*(?:ال)?عميل|اعرض\s*(?:ال)?عميل|عرض\s*(?:ال)?عميل|بيانات\s*(?:ال)?عميل|رصيد\s*(?:ال)?عميل|كم\s*رصيد|كم\s*يستحق\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل\s+|ابحث\s*(?:ال)?عميل)", re.IGNORECASE), "customers.search"),
+    # 🆕 Vehicle search (intent: "ابحث عن المركبة" / "أين مركبة X")
+    (re.compile(r"(ابحث\s*عن\s*(?:ال)?مركب|أبحث\s*عن\s*(?:ال)?مركب|بيانات\s*(?:ال)?مركب|أين\s*(?:ال)?مركب|اعرض\s*(?:ال)?مركب|لوحة\s*(?:ال)?مركب|رقم\s*(?:ال)?لوحة|ابحث\s*(?:ال)?مركب|ابحث\s*(?:ال)?سيار|بيانات\s*(?:ال)?سيار)", re.IGNORECASE), "vehicles.search"),
     # Workshop read-only
     (re.compile(r"(زيار[ةه]\s*نشط|مركبات\s*مفتوح|active\s*visits|كم\s*زيار|مركبات\s*داخل|قائم[ةه]\s*العمل)", re.IGNORECASE), "workshop.active_visits"),
 ]
+
+
+# Tools that accept a `query` parameter parsed from the user's free text
+_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search"}
+
+
+def _extract_query(text: str, tool_name: str) -> str:
+    """Pull a likely search term out of the message for query-aware tools.
+
+    Strategy:
+      • strip the leading verb/keyword (ابحث عن، رصيد، بيانات، ...).
+      • drop common Arabic stop-words.
+      • keep only the noun/proper-noun portion.
+    """
+    if not text:
+        return ""
+    raw = text.strip()
+    # Remove leading question words / verbs commonly preceding a search term
+    raw = re.sub(
+        r"^(?:كم\s+رصيد|ابحث\s*عن|أبحث\s*عن|اعرض|عرض|بيانات|أين|أرني|ارني|لوحة|رقم\s*لوحة|رقم\s*(?:ال)?لوحة|رصيد\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل)\s*",
+        "",
+        raw,
+        flags=re.IGNORECASE,
+    )
+    # Drop entity nouns ("العميل" / "المركبة")
+    if tool_name == "customers.search":
+        raw = re.sub(r"(?:ال)?عميل[ةه]?|(?:ال)?زبون[ةه]?", "", raw, flags=re.IGNORECASE)
+    elif tool_name == "vehicles.search":
+        raw = re.sub(r"(?:ال)?مركب[ةه]?|(?:ال)?سيار[ةه]?", "", raw, flags=re.IGNORECASE)
+    # Drop common particles
+    raw = re.sub(r"\b(عن|في|من|إلى|الى|على|ل|لـ|ب|بـ|ك|كـ|و|أو|او|هل|كم|ما)\b", " ", raw)
+    raw = re.sub(r"[?\.,!؟،]", " ", raw)
+    return " ".join(raw.split()).strip()
 
 
 def detect_tools(text: str) -> List[str]:
@@ -112,17 +155,30 @@ def _system_prompt() -> str:
         "  • اشرح التنبيهات والقيود والتقارير المالية والذمم وحالة المركبات.\n"
         "  • لخّص الأرقام واعرض الـ insights الذكية.\n"
         "  • وجّه المستخدم لأي مكان في النظام عبر صياغة واضحة (مثل: 'افتح صفحة /accounting/firewall').\n\n"
+        "🧰 الأدوات المتاحة لك (تُستدعى تلقائياً حسب نية السؤال):\n"
+        "  • firewall.health_score — درجة الصحة المالية للنظام.\n"
+        "  • firewall.top_alerts — أهم 5 تنبيهات نشطة.\n"
+        "  • firewall.cash_flow — تدفق نقدي 30 يوماً.\n"
+        "  • firewall.operation_integrity — العمليات بها قيود/مشاكل ربط.\n"
+        "  • finance.ar_summary — ذمم العملاء + أعلى المدينين.\n"
+        "  • finance.payables_summary — ذمم الموردين + أعلى الدائنين.\n"
+        "  • workshop.active_visits — عدد الزيارات المفتوحة.\n"
+        "  • inventory.low_stock — قطع المخزون التي وصلت للحد الأدنى.\n"
+        "  • operations.recent — آخر العمليات (بيع/شراء/مصروف).\n"
+        "  • customers.search — بحث عميل بالاسم/الهاتف.\n"
+        "  • vehicles.search — بحث مركبة باللوحة/الماركة/المالك.\n\n"
         "📊 كيف تتعامل مع نتائج الأدوات:\n"
         "  • إذا الأداة أعادت قائمة فارغة → قل صراحة 'لا توجد بيانات حالياً' بدون اعتذار طويل.\n"
         "  • إذا الأداة فشلت → اعرض الخطأ بإيجاز واقترح بدائل.\n"
-        "  • إذا الأداة نجحت → قدّم النتيجة منسّقة (جدول، قائمة، أرقام واضحة).\n\n"
+        "  • إذا الأداة نجحت → قدّم النتيجة منسّقة (جدول Markdown أو قائمة أو أرقام واضحة).\n"
+        "  • إذا الأرقام كبيرة → نسّقها بفواصل الآلاف عند الكتابة.\n\n"
         "🛡️ القيد الوحيد (read-only backend):\n"
         "  • لا تستدع أداة تكتب/تعدّل/تحذف في DB — كل الأدوات المسجّلة لديك قراءة فقط.\n"
         "  • لو طلب المستخدم 'أنشئ/عدّل/احذف/وافق' → اشرح الخطوات وأرشده للواجهة المناسبة، لكن لا تتذرّع بأنك لا تستطيع 'فتح' أو 'الوصول'.\n"
         "  • **ممنوع** الرد بـ 'لا يمكنني فتح أو تعديل' عند سؤال قراءة عادي — أنت تملك بيانات النظام وتقدر تجيب.\n\n"
         "📐 أسلوبك:\n"
         "  • عربية فصحى مبسطة، مختصرة، رقمية حين تتوفر أرقام.\n"
-        "  • Markdown مسموح (جداول، bullets، **bold**).\n"
+        "  • Markdown مسموح ومفضّل (جداول | bullets | **bold**) — الواجهة تعرضه بشكل صحيح.\n"
         "  • إذا لم تتوفر بيانات في السياق ولم تُنفّذ أداة → اطلب من المستخدم سؤالاً أكثر تحديداً بدلاً من التخمين.\n"
     )
 
@@ -146,7 +202,12 @@ async def chat(
     tool_names = detect_tools(message)
     tool_results: List[Dict[str, Any]] = []
     for tn in tool_names:
-        result = await tool_router.call_tool(tn, workshop_id=workshop_id or "finmodule-sync")
+        kwargs: Dict[str, Any] = {"workshop_id": workshop_id or "finmodule-sync"}
+        if tn in _QUERY_AWARE_TOOLS:
+            q = _extract_query(message, tn)
+            if q:
+                kwargs["query"] = q
+        result = await tool_router.call_tool(tn, **kwargs)
         tool_results.append(result)
         # Track tool call in session memory
         shared_memory.track_action(sid, "tool_call", {

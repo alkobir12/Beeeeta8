@@ -1,5 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bot, X, Send, Sparkles, AlertTriangle, RefreshCw, Settings, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useLocation } from 'react-router-dom';
 import { useAssistant } from './AssistantProvider';
 
 /**
@@ -15,13 +18,51 @@ const AGENT_LABELS = {
   WorkshopAgent: { name: 'وكيل الورشة', icon: '🔧', color: 'from-blue-600 to-indigo-600' },
 };
 
-const SUGGESTIONS = [
+// 💡 Page-aware suggestions: different starter prompts depending on the route the user is currently on.
+const SUGGESTIONS_DEFAULT = [
   'كم درجة الصحة المالية؟',
   'أعطني أهم التنبيهات',
   'كم ذمم العملاء؟',
   'كم زيارة نشطة الآن؟',
   'كيف التدفق النقدي؟',
 ];
+const SUGGESTIONS_BY_PATH = {
+  '/customers': ['كم ذمم العملاء؟', 'من هم أعلى المدينين؟', 'آخر العمليات', 'كم ذمم الموردين؟'],
+  '/suppliers': ['كم ذمم الموردين؟', 'من أعلى الموردين دائنية؟', 'أهم التنبيهات', 'كيف التدفق النقدي؟'],
+  '/parts': ['ما هي القطع الناقصة؟', 'قطع وصلت للحد الأدنى', 'أهم تنبيهات المخزون', 'آخر العمليات'],
+  '/operations': ['آخر العمليات', 'عمليات بها قيد مفقود', 'كم درجة الصحة المالية؟', 'أهم التنبيهات'],
+  '/accounting/firewall': ['أعطني أهم التنبيهات', 'كم درجة الصحة المالية؟', 'عمليات بها قيد مفقود', 'كيف التدفق النقدي؟'],
+};
+
+function getSuggestionsForPath(pathname) {
+  for (const [prefix, list] of Object.entries(SUGGESTIONS_BY_PATH)) {
+    if (pathname?.startsWith(prefix)) return list;
+  }
+  return SUGGESTIONS_DEFAULT;
+}
+
+// 📐 Lightweight markdown renderer config — keeps things readable inside chat bubbles.
+const MD_COMPONENTS = {
+  p: ({ node, ...props }) => <p className="mb-1.5 last:mb-0 leading-relaxed" {...props} />,
+  strong: ({ node, ...props }) => <strong className="font-extrabold" {...props} />,
+  em: ({ node, ...props }) => <em className="italic" {...props} />,
+  ul: ({ node, ...props }) => <ul className="list-disc pr-5 mb-1.5 space-y-0.5" {...props} />,
+  ol: ({ node, ...props }) => <ol className="list-decimal pr-5 mb-1.5 space-y-0.5" {...props} />,
+  li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
+  code: ({ node, inline, className, children, ...props }) => (
+    inline
+      ? <code className="px-1 py-0.5 rounded bg-slate-200/70 dark:bg-slate-700 text-[12px] font-mono" {...props}>{children}</code>
+      : <pre className="rounded bg-slate-900 text-slate-100 text-[11px] p-2 my-1 overflow-auto" {...props}><code>{children}</code></pre>
+  ),
+  table: ({ node, ...props }) => (
+    <div className="overflow-auto my-1">
+      <table className="text-[11px] border-collapse border border-slate-300 dark:border-slate-700" {...props} />
+    </div>
+  ),
+  th: ({ node, ...props }) => <th className="border border-slate-300 dark:border-slate-700 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 font-bold" {...props} />,
+  td: ({ node, ...props }) => <td className="border border-slate-300 dark:border-slate-700 px-1.5 py-0.5" {...props} />,
+  a: ({ node, ...props }) => <a className="text-indigo-600 dark:text-indigo-300 underline" target="_blank" rel="noopener noreferrer" {...props} />,
+};
 
 export const UnifiedAssistantDrawer = () => {
   const {
@@ -34,6 +75,8 @@ export const UnifiedAssistantDrawer = () => {
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
+  const location = useLocation();
+  const pageSuggestions = useMemo(() => getSuggestionsForPath(location?.pathname || '/'), [location?.pathname]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -62,8 +105,9 @@ export const UnifiedAssistantDrawer = () => {
   };
 
   const handleSuggestion = (s) => {
-    setInput(s);
-    setTimeout(() => sendMessage(s), 60);
+    if (busy) return;
+    setInput('');
+    sendMessage(s);
   };
 
   const criticalCount = (alerts || []).filter((a) => a.severity === 'critical').length;
@@ -160,7 +204,7 @@ export const UnifiedAssistantDrawer = () => {
             <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">مرحباً! كيف أساعدك اليوم؟</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">جرّب أحد الاقتراحات:</p>
             <div className="flex flex-wrap gap-1.5 justify-center">
-              {SUGGESTIONS.map((s, i) => (
+              {pageSuggestions.map((s, i) => (
                 <button
                   key={i}
                   data-testid={`assistant-suggestion-${i}`}
@@ -175,14 +219,22 @@ export const UnifiedAssistantDrawer = () => {
         ) : (
           messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`} data-testid={`assistant-msg-${i}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words ${
+              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words ${
                 m.role === 'user'
-                  ? 'bg-indigo-600 text-white rounded-br-sm'
+                  ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
                   : m.meta?.error
-                  ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100 border border-rose-300 dark:border-rose-700 rounded-bl-sm'
+                  ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100 border border-rose-300 dark:border-rose-700 rounded-bl-sm whitespace-pre-wrap'
                   : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-bl-sm'
               }`}>
-                {m.content}
+                {m.role === 'assistant' && !m.meta?.error ? (
+                  <div data-testid={`assistant-msg-body-${i}`} className="assistant-md text-[13px]">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                      {m.content || ''}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  m.content
+                )}
                 {m.role === 'assistant' && m.meta?.agent && (
                   <div className="text-[9px] mt-1 opacity-70 flex gap-1 items-center">
                     {m.meta.ai_used ? <><Sparkles size={8} />AI</> : '⚙️قواعد'}

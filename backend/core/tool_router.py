@@ -140,6 +140,171 @@ async def _workshop_active_visits(workshop_id: str = "finmodule-sync") -> Dict[s
     return {"active_visits": len(active), "total_visits": len(rows)}
 
 
+async def _customers_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 5) -> Dict[str, Any]:
+    """🔍 بحث ذكي عن عميل بالاسم أو الهاتف (يرجع أعلى المطابقات + رصيد الذمم)."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            params = {"search": query} if query else {}
+            r = await client.get(f"{base}/api/customers", params=params)
+            customers = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if not isinstance(customers, list):
+        customers = []
+    # filter additionally if query did not propagate
+    if query:
+        q = query.lower().strip()
+        customers = [
+            c for c in customers
+            if q in str(c.get("name") or "").lower()
+            or q in str(c.get("phone") or "").lower()
+        ]
+    customers = customers[:limit]
+    return {
+        "query": query,
+        "matches": [{
+            "id": (c.get("id") or "")[:8],
+            "name": c.get("name"),
+            "phone": c.get("phone"),
+            "ajel_balance": float(c.get("ajelBalance") or 0),
+            "total_visits": c.get("totalVisits") or 0,
+            "vehicle_plate": c.get("vehiclePlate"),
+        } for c in customers],
+        "count": len(customers),
+    }
+
+
+async def _vehicles_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 5) -> Dict[str, Any]:
+    """🚗 بحث عن مركبة برقم اللوحة/الموديل/الماركة."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(f"{base}/api/vehicles")
+            vehicles = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if not isinstance(vehicles, list):
+        vehicles = []
+    q = (query or "").lower().strip()
+    if q:
+        vehicles = [
+            v for v in vehicles
+            if q in str(v.get("plateNumber") or "").lower()
+            or q in str(v.get("plate") or "").lower()
+            or q in str(v.get("model") or "").lower()
+            or q in str(v.get("brand") or "").lower()
+            or q in str(v.get("customerName") or v.get("ownerName") or "").lower()
+        ]
+    vehicles = vehicles[:limit]
+    return {
+        "query": query,
+        "matches": [{
+            "id": (v.get("id") or "")[:8],
+            "plate": v.get("plateNumber") or v.get("plate"),
+            "brand": v.get("brand"),
+            "model": v.get("model"),
+            "year": v.get("year"),
+            "status": v.get("status") or v.get("visitStatus"),
+            "owner": v.get("customerName") or v.get("ownerName"),
+        } for v in vehicles],
+        "count": len(vehicles),
+    }
+
+
+async def _inventory_low_stock(workshop_id: str = "finmodule-sync", limit: int = 10) -> Dict[str, Any]:
+    """📦 القطع التي مخزونها أقل من الحد الأدنى (low-stock alert)."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(f"{base}/api/parts")
+            parts = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if not isinstance(parts, list):
+        parts = []
+    low = []
+    for p in parts:
+        qty = float(p.get("quantity") or p.get("stock") or 0)
+        minq = float(p.get("minQuantity") or p.get("minStock") or 0)
+        if minq > 0 and qty <= minq:
+            low.append({
+                "name": p.get("name") or p.get("partName"),
+                "sku": p.get("sku") or p.get("partNumber"),
+                "quantity": qty,
+                "min_quantity": minq,
+                "shortage": round(minq - qty, 2),
+            })
+    low.sort(key=lambda x: x["shortage"], reverse=True)
+    return {
+        "total_parts": len(parts),
+        "low_stock_count": len(low),
+        "items": low[:limit],
+    }
+
+
+async def _finance_payables_summary(workshop_id: str = "finmodule-sync", limit: int = 5) -> Dict[str, Any]:
+    """💼 ملخص ذمم الموردين (Accounts Payable) + أعلى الموردين دائنية."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(f"{base}/api/suppliers")
+            suppliers = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if not isinstance(suppliers, list):
+        suppliers = []
+    creditors = [s for s in suppliers if float(s.get("ajelBalance") or s.get("balance") or 0) > 0]
+    total = sum(float(s.get("ajelBalance") or s.get("balance") or 0) for s in creditors)
+    top = sorted(creditors, key=lambda x: float(x.get("ajelBalance") or x.get("balance") or 0), reverse=True)[:limit]
+    return {
+        "total_suppliers_with_balance": len(creditors),
+        "total_ap": round(total, 2),
+        "top_creditors": [{
+            "name": s.get("name"),
+            "balance": float(s.get("ajelBalance") or s.get("balance") or 0),
+        } for s in top],
+    }
+
+
+async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5) -> Dict[str, Any]:
+    """🧾 آخر العمليات (sales/purchases/expenses) مع المبلغ والعميل/المورد."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(f"{base}/api/operations", params={"limit": max(limit, 5)})
+            ops = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if isinstance(ops, dict):
+        ops = ops.get("data") or ops.get("items") or []
+    if not isinstance(ops, list):
+        ops = []
+    ops = ops[:limit]
+    return {
+        "count": len(ops),
+        "items": [{
+            "id": (o.get("id") or "")[:8],
+            "type": o.get("type"),
+            "total": float(o.get("total") or 0),
+            "payment_method": o.get("paymentMethod") or o.get("payment_method"),
+            "payment_status": o.get("paymentStatus") or o.get("payment_status"),
+            "partner": o.get("partnerName") or o.get("customerName") or o.get("supplierName"),
+            "date": o.get("createdAt") or o.get("created_at") or o.get("date"),
+        } for o in ops],
+    }
+
+
 async def _firewall_operation_integrity(workshop_id: Optional[str] = None, limit: int = 20) -> Dict[str, Any]:
     """🆕 يفحص العمليات ويُرجع التي بها مشاكل ربط/تنبيهات (per-card warnings)."""
     try:
@@ -220,6 +385,41 @@ def _bootstrap() -> None:
         description="عدد الزيارات المفتوحة حالياً في الورشة.",
         handler=_workshop_active_visits,
         params={"workshop_id": "string?"},
+    )
+    register_tool(
+        "customers.search",
+        agent="FinanceAgent",
+        description="🔍 بحث عن عميل بالاسم أو الهاتف — يرجع المطابقات + رصيد الذمم لكل عميل.",
+        handler=_customers_search,
+        params={"workshop_id": "string?", "query": "string", "limit": "int?"},
+    )
+    register_tool(
+        "vehicles.search",
+        agent="WorkshopAgent",
+        description="🚗 بحث عن مركبة برقم اللوحة / الماركة / الموديل / اسم المالك.",
+        handler=_vehicles_search,
+        params={"workshop_id": "string?", "query": "string", "limit": "int?"},
+    )
+    register_tool(
+        "inventory.low_stock",
+        agent="WorkshopAgent",
+        description="📦 يرجع قائمة بقطع الغيار التي مخزونها أقل من الحد الأدنى المُحدّد لها.",
+        handler=_inventory_low_stock,
+        params={"workshop_id": "string?", "limit": "int?"},
+    )
+    register_tool(
+        "finance.payables_summary",
+        agent="FinanceAgent",
+        description="💼 ملخص ذمم الموردين (الأرصدة الدائنة) + أعلى 5 موردين مدينين للورشة.",
+        handler=_finance_payables_summary,
+        params={"workshop_id": "string?", "limit": "int?"},
+    )
+    register_tool(
+        "operations.recent",
+        agent="WorkshopAgent",
+        description="🧾 آخر N عمليات (بيع/شراء/مصاريف/تحصيل) مع المبلغ وحالة السداد.",
+        handler=_operations_recent,
+        params={"workshop_id": "string?", "limit": "int?"},
     )
 
 

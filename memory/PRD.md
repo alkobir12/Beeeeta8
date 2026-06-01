@@ -22,7 +22,26 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 6 (Feb 11 — current)
+### Session 7 (Feb 12 — current) — Bot Upgrade Phase 1
+- ✅ **🤖 Bot: +5 new read-only tools (now 11 total)**:
+  * `customers.search` — fuzzy search by name/phone + AR balance per match
+  * `vehicles.search` — by plate/brand/model/owner
+  * `inventory.low_stock` — parts at or below min quantity
+  * `finance.payables_summary` — supplier AP totals + top 5 creditors
+  * `operations.recent` — last N operations with totals + status
+- ✅ **🐛 Bot: Fixed Arabic regex bug** — `ال?` actually means "ا required + ل optional" → switched all intent patterns to `(?:ال)?` so prefixed/non-prefixed forms BOTH match (vehicles.search and customers.search were previously silent on "ابحث عن مركبة X").
+- ✅ **🧠 Bot: Query extraction** (`_extract_query`) — pulls the noun/search-term out of natural questions ("ابحث عن العميل ابراهيم" → query="ابراهيم") and passes it as `query` kwarg to query-aware tools.
+- ✅ **🎨 Bot UI: Markdown rendering** — switched the assistant message bubble to `react-markdown` + `remark-gfm`. Bot can now answer with **bold**, lists, GFM tables, and inline code. Previously rendered literal `**100/100**` asterisks; now renders properly bold.
+- ✅ **🎨 Bot UI: Page-aware starter suggestions** — `useLocation()` selects starter prompts per route: `/parts` → inventory prompts, `/operations` → ops prompts, `/customers` → AR prompts, etc.
+- ✅ **🎨 Bot UI: Suggestion click clears input + sends immediately** — previously left the suggestion text in the input field.
+- ✅ **📝 System prompt v2** — explicitly lists all 11 tools so the LLM picks the right phrasing and chooses Markdown tables for tabular results.
+- ✅ **🧪 Regression test** — `/app/backend/tests/test_bot_tools_iter232.py` (8 tests, all passing) — covers intent detection for each new tool + Arabic prefix variations + ensures AR/AP don't double-fire.
+- 🔬 **Verified E2E** (Playwright screenshot on `/parts`):
+  * Page-aware suggestions render: ['ما هي القطع الناقصة؟', 'قطع وصلت للحد الأدنى', 'أهم تنبيهات المخزون', 'آخر العمليات']
+  * Response time ~9s with AI on; rendered as full GFM **table** in the drawer.
+  * Footer "يوجد لديك **137 قطعة** في حالة نقص" rendered with bold.
+
+### Session 6 (Feb 11)
 - ✅ **P0: Operation Card Expansion البصري — FIXED PROPERLY**:
   - **Root cause الحقيقي**: القسم الموسّع كان `position: static` (default) بدون z-index. الـ glow div داخل الكارت `pointer-events-none absolute inset-0` يقع في نفس stacking context. عناصر absolute-positioned تظهر فوق static في نفس المستوى → الـ glow كان يغطي expanded section بصرياً (حتى مع opacity-0، لأنه يفرض stacking).
   - **Fix**: إضافة `relative z-10` للقسم الموسّع → الآن يقع في طبقة z=10 فوق الـ glow.
