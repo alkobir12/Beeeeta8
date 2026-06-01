@@ -48,6 +48,14 @@
   * `/api/suppliers` GET يرجع 49 مورد مع التخصيب المالي الكامل.
   * Create/Update/Delete يعمل (HTTP 200/200/200) + 404 بعد الحذف.
   * صفحة `/suppliers` في الواجهة تعرض 50 بطاقة مورد بدون أخطاء.
+- 🧪 **Pre-Deploy Smoke Test (6/6 queries passed)**:
+  * ما هي القطع الناقصة؟ → inventory.low_stock (137 items) ✅
+  * بيع قطع غيار → parts.search (8 items) ✅
+  * ابحث عن العميل ابراهيم → customers.search (5 matches) ✅
+  * ابحث عن مركبة 9935 → vehicles.search (2 matches) ✅
+  * كم ذمم الموردين؟ → finance.payables_summary ✅
+  * أعطني آخر العمليات → operations.recent (5 ops) ✅
+- 🔗 **Bot integration check**: FAB يظهر على /customers، /suppliers، /parts، /accounting/firewall، الـDashboard. مستثنى فقط `/moltbot` (legacy editor) كما هو مصمم.
 
 ### Session 6 (Feb 11)
 - ✅ **P0: Operation Card Expansion البصري — FIXED PROPERLY**:
