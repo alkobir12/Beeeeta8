@@ -216,6 +216,65 @@ async def _vehicles_search(workshop_id: str = "finmodule-sync", query: str = "",
     }
 
 
+async def _parts_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 8, in_stock_only: bool = False) -> Dict[str, Any]:
+    """🔧 بحث ذكي في المخزون بكلمات اسم/تصنيف القطعة — يرجع السعر+الكمية مرتبة (المتوفر أولاً)."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(f"{base}/api/parts")
+            parts = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if not isinstance(parts, list):
+        parts = []
+
+    q = (query or "").lower().strip()
+    matches: List[tuple] = []  # (score, qty>0 flag, part)
+
+    if q:
+        # Tokenize the query so multi-word searches still hit ("فلتر زيت" → ["فلتر","زيت"])
+        tokens = [t for t in q.split() if len(t) >= 2]
+        for p in parts:
+            name = str(p.get("name") or "").lower()
+            sku = str(p.get("partNumber") or "").lower()
+            cat = str(p.get("category") or "").lower()
+            haystack = f"{name} ## {sku} ## {cat}"
+            score = sum(1 for t in tokens if t in haystack)
+            if score > 0:
+                qty_flag = 1 if float(p.get("quantity") or 0) > 0 else 0
+                matches.append((score, qty_flag, p))
+        # in-stock first within the same score
+        matches.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        ranked = [m[2] for m in matches]
+    else:
+        # No keyword → highest-stock items
+        ranked = sorted(parts, key=lambda x: float(x.get("quantity") or 0), reverse=True)
+
+    if in_stock_only:
+        ranked = [p for p in ranked if float(p.get("quantity") or 0) > 0]
+
+    ranked = ranked[:max(limit, 1)]
+    in_stock = [p for p in ranked if float(p.get("quantity") or 0) > 0]
+
+    return {
+        "query": query,
+        "total_inventory": len(parts),
+        "matches_count": len(ranked),
+        "in_stock_count": len(in_stock),
+        "items": [{
+            "name": p.get("name"),
+            "sku": p.get("partNumber"),
+            "category": p.get("category"),
+            "selling_price": float(p.get("sellingPrice") or 0),
+            "quantity": float(p.get("quantity") or 0),
+            "in_stock": float(p.get("quantity") or 0) > 0,
+        } for p in ranked],
+        "next_action_hint": "لإصدار فاتورة بيع → افتح /operations ثم 'نقطة بيع'.",
+    }
+
+
 async def _inventory_low_stock(workshop_id: str = "finmodule-sync", limit: int = 10) -> Dict[str, Any]:
     """📦 القطع التي مخزونها أقل من الحد الأدنى (low-stock alert)."""
     import os
@@ -399,6 +458,13 @@ def _bootstrap() -> None:
         description="🚗 بحث عن مركبة برقم اللوحة / الماركة / الموديل / اسم المالك.",
         handler=_vehicles_search,
         params={"workshop_id": "string?", "query": "string", "limit": "int?"},
+    )
+    register_tool(
+        "parts.search",
+        agent="WorkshopAgent",
+        description="🔧 بحث ذكي في المخزون عن قطعة (بالاسم/التصنيف) — يرجع السعر+الكمية المتاحة. مفيد للأسئلة 'بيع X' و 'سعر X' و 'كم عندي X'.",
+        handler=_parts_search,
+        params={"workshop_id": "string?", "query": "string", "limit": "int?", "in_stock_only": "bool?"},
     )
     register_tool(
         "inventory.low_stock",

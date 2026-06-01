@@ -42,6 +42,15 @@ class SupplierService:
 
     async def create_supplier(self, data: Dict[str, Any]) -> Dict[str, Any]:
         result = await self.repo.create(data)
+        # Sync partner subaccount in the chart of accounts (best-effort)
+        try:
+            await _pf.safe_sync_partner_subaccounts(
+                "supplier",
+                [result],
+                {str(result.get("id") or ""): _pf.partner_summary_template()},
+            )
+        except Exception:
+            pass
         self._invalidate_caches()
         return result
 
@@ -55,6 +64,10 @@ class SupplierService:
         if ok:
             self._invalidate_caches()
         return ok
+
+    async def migrate_local_to_supabase(self) -> Dict[str, Any]:
+        """Migrate in-memory suppliers into Supabase (admin tool)."""
+        return await self.repo.migrate_local_to_supabase()
 
     @staticmethod
     def _invalidate_caches() -> None:

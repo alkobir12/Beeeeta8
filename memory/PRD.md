@@ -22,24 +22,32 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 7 (Feb 12 — current) — Bot Upgrade Phase 1
-- ✅ **🤖 Bot: +5 new read-only tools (now 11 total)**:
-  * `customers.search` — fuzzy search by name/phone + AR balance per match
-  * `vehicles.search` — by plate/brand/model/owner
-  * `inventory.low_stock` — parts at or below min quantity
-  * `finance.payables_summary` — supplier AP totals + top 5 creditors
-  * `operations.recent` — last N operations with totals + status
-- ✅ **🐛 Bot: Fixed Arabic regex bug** — `ال?` actually means "ا required + ل optional" → switched all intent patterns to `(?:ال)?` so prefixed/non-prefixed forms BOTH match (vehicles.search and customers.search were previously silent on "ابحث عن مركبة X").
-- ✅ **🧠 Bot: Query extraction** (`_extract_query`) — pulls the noun/search-term out of natural questions ("ابحث عن العميل ابراهيم" → query="ابراهيم") and passes it as `query` kwarg to query-aware tools.
-- ✅ **🎨 Bot UI: Markdown rendering** — switched the assistant message bubble to `react-markdown` + `remark-gfm`. Bot can now answer with **bold**, lists, GFM tables, and inline code. Previously rendered literal `**100/100**` asterisks; now renders properly bold.
-- ✅ **🎨 Bot UI: Page-aware starter suggestions** — `useLocation()` selects starter prompts per route: `/parts` → inventory prompts, `/operations` → ops prompts, `/customers` → AR prompts, etc.
-- ✅ **🎨 Bot UI: Suggestion click clears input + sends immediately** — previously left the suggestion text in the input field.
-- ✅ **📝 System prompt v2** — explicitly lists all 11 tools so the LLM picks the right phrasing and chooses Markdown tables for tabular results.
-- ✅ **🧪 Regression test** — `/app/backend/tests/test_bot_tools_iter232.py` (8 tests, all passing) — covers intent detection for each new tool + Arabic prefix variations + ensures AR/AP don't double-fire.
-- 🔬 **Verified E2E** (Playwright screenshot on `/parts`):
-  * Page-aware suggestions render: ['ما هي القطع الناقصة؟', 'قطع وصلت للحد الأدنى', 'أهم تنبيهات المخزون', 'آخر العمليات']
-  * Response time ~9s with AI on; rendered as full GFM **table** in the drawer.
-  * Footer "يوجد لديك **137 قطعة** في حالة نقص" rendered with bold.
+### Session 7 (Feb 12 — current) — Bot Phase 1 + DDD Suppliers
+- ✅ **🤖 Bot Phase 1 — Smart Sale Search (DONE)**:
+  * 🆕 أداة `parts.search` ذكية — بحث في المخزون بالاسم/التصنيف، يرجع جدول بالأسعار+الكمية المتاحة مرتبة (المتوفر أولاً)، مع `next_action_hint` يوجّه لـ /operations.
+  * أنماط intent جديدة: "بيع X" / "أبيع X" / "كم سعر X" / "كم عندي X" / "هل عندنا X".
+  * `_extract_query()` يستخرج اسم المنتج بعد إزالة أفعال البيع/الشراء/التسعير.
+  * `parts.search` لا يتعارض مع `inventory.low_stock` — تم اختبار ذلك.
+  * Verified E2E: استعلام "أبيع زيت" يرجع 5 قطع زيت بأسعارها (134/251/120/15/35 ر.س).
+- ✅ **🤖 Bot Phase 1 — السابق (Iter 232)**:
+  * +5 أدوات قراءة (customers.search، vehicles.search، inventory.low_stock، finance.payables_summary، operations.recent).
+  * إصلاح bug `ال?` → `(?:ال)?` في كل الـregex.
+  * Markdown rendering (react-markdown + remark-gfm) في الواجهة.
+  * Page-aware suggestions حسب الـ route.
+- ✅ **🏛️ DDD Phase 2 — Suppliers Domain extracted**:
+  * `/app/backend/domains/suppliers/{router,service,repository,schemas}.py` متكامل.
+  * 5 endpoints انتقلت: GET list، GET single، POST، PUT، DELETE، POST /migrate.
+  * `server.py` انخفض من 3191 → 2927 سطر (-267 سطر = **-8.4%**).
+  * Helpers `_derive_suppliers_from_parts`, `_enrich_suppliers_from_accounts`, `SUPPLIERS_TABLE_AVAILABLE` بقيت في server.py وتُستهلك من الـrepository.
+  * Schema يطابق `SupplierBase` (contactPerson/city/category/rating included).
+  * Service يستدعي `_safe_sync_partner_subaccounts` تلقائياً عند create (سلوك حافظ على التطابق مع القديم).
+- 🧪 **Regression tests**:
+  * `/app/backend/tests/test_bot_tools_iter232.py` — 10/10 ✅ (شمل parts.search test).
+  * `/app/backend/tests/test_suppliers_ddd_iter233.py` — 5/5 ✅ (CRUD كامل + 404).
+- 🔬 **Verified E2E**:
+  * `/api/suppliers` GET يرجع 49 مورد مع التخصيب المالي الكامل.
+  * Create/Update/Delete يعمل (HTTP 200/200/200) + 404 بعد الحذف.
+  * صفحة `/suppliers` في الواجهة تعرض 50 بطاقة مورد بدون أخطاء.
 
 ### Session 6 (Feb 11)
 - ✅ **P0: Operation Card Expansion البصري — FIXED PROPERLY**:

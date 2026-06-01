@@ -66,3 +66,14 @@ async def delete_supplier(supplier_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/migrate")
+async def migrate_suppliers():
+    """Admin: push in-memory suppliers into Supabase (one-shot migration)."""
+    try:
+        return await _service.migrate_local_to_supabase()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

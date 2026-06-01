@@ -40,6 +40,8 @@ _TOOL_PATTERNS = [
     (re.compile(r"(ذمم\s*(?:ال)?مورد|دائن|دائنين|payables?|ap\s*summary|نستحق|نحن\s*مدين|للمورد|ذمم\s*ال?ورش[ةه])", re.IGNORECASE), "finance.payables_summary"),
     # 🆕 Inventory low stock
     (re.compile(r"((?:ال)?قطع\s*(?:ال)?ناقص|مخزون\s*منخفض|low\s*stock|(?:ال)?قطع\s*انتهت|قطع\s*أوشكت|نفاد|نفذت\s*(?:ال)?قطع|(?:ل?ل?)?(?:ال)?حد\s*(?:ال)?أدنى|قطع.*ناقص|نواقص\s*المخزون|تنبيه.*مخزون|تنبيهات\s*المخزون)", re.IGNORECASE), "inventory.low_stock"),
+    # 🆕 Parts search — "بيع X" / "أبيع X" / "سعر X" / "كم سعر X" / "كم عندي X" / "هل عندنا X"
+    (re.compile(r"(\bبيع\b|\bأبيع\b|\bابيع\b|اشتري|شراء\s+قطع|كم\s*سعر|سعر\s+(?:ال)?(?:قطع|فلتر|زيت|بطار|طرمب|ربلات|مساحات|بواجي|بلف|كبسول|كمبيوتر|مكيف|ايرباغ|دبري|كبائن|سلندر|طقم|كرنك|كومة|كوب|كولر|سير|تيل|قرص|دريم|قار|بوش|طبه)|تكلفة\s+قطع|كم\s+ع?ندي|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|أبحث\s+عن\s+قطع|ابحث\s+عن\s+قطع|بحث\s+عن\s+قطع|كم\s+مخزون|كم\s+ع?ندك\s+من|أحتاج\s+قطع|احتاج\s+قطع)", re.IGNORECASE), "parts.search"),
     # 🆕 Recent operations
     (re.compile(r"(آخر\s*(?:ال)?عمليات|أحدث\s*(?:ال)?عمليات|آخر\s*(?:ال)?مبيعات|recent\s*operations?|عمليات\s*اليوم|أخر\s*(?:ال)?عمليات)", re.IGNORECASE), "operations.recent"),
     # 🆕 Customer search (intent: "ابحث عن العميل X" / "كم رصيد X")
@@ -52,14 +54,14 @@ _TOOL_PATTERNS = [
 
 
 # Tools that accept a `query` parameter parsed from the user's free text
-_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search"}
+_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search"}
 
 
 def _extract_query(text: str, tool_name: str) -> str:
     """Pull a likely search term out of the message for query-aware tools.
 
     Strategy:
-      • strip the leading verb/keyword (ابحث عن، رصيد، بيانات، ...).
+      • strip the leading verb/keyword (ابحث عن، رصيد، بيانات، بيع، سعر، ...).
       • drop common Arabic stop-words.
       • keep only the noun/proper-noun portion.
     """
@@ -68,16 +70,18 @@ def _extract_query(text: str, tool_name: str) -> str:
     raw = text.strip()
     # Remove leading question words / verbs commonly preceding a search term
     raw = re.sub(
-        r"^(?:كم\s+رصيد|ابحث\s*عن|أبحث\s*عن|اعرض|عرض|بيانات|أين|أرني|ارني|لوحة|رقم\s*لوحة|رقم\s*(?:ال)?لوحة|رصيد\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل)\s*",
+        r"^(?:كم\s+رصيد|كم\s+سعر|سعر|تكلفة|كم\s+ع?ندي|كم\s+ع?ندك\s*من|كم\s+مخزون|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|ابحث\s*عن|أبحث\s*عن|بحث\s*عن|اعرض|عرض|بيانات|أين|أرني|ارني|لوحة|رقم\s*لوحة|رقم\s*(?:ال)?لوحة|رصيد\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل|أبيع|ابيع|بيع|اشتري|شراء|أحتاج|احتاج)\s*",
         "",
         raw,
         flags=re.IGNORECASE,
     )
-    # Drop entity nouns ("العميل" / "المركبة")
+    # Drop entity nouns ("العميل" / "المركبة" / "القطعة")
     if tool_name == "customers.search":
         raw = re.sub(r"(?:ال)?عميل[ةه]?|(?:ال)?زبون[ةه]?", "", raw, flags=re.IGNORECASE)
     elif tool_name == "vehicles.search":
         raw = re.sub(r"(?:ال)?مركب[ةه]?|(?:ال)?سيار[ةه]?", "", raw, flags=re.IGNORECASE)
+    elif tool_name == "parts.search":
+        raw = re.sub(r"(?:ال)?قطع[ةه]?(?:\s*غيار)?|(?:ال)?مخزون", " ", raw, flags=re.IGNORECASE)
     # Drop common particles
     raw = re.sub(r"\b(عن|في|من|إلى|الى|على|ل|لـ|ب|بـ|ك|كـ|و|أو|او|هل|كم|ما)\b", " ", raw)
     raw = re.sub(r"[?\.,!؟،]", " ", raw)
@@ -164,6 +168,7 @@ def _system_prompt() -> str:
         "  • finance.payables_summary — ذمم الموردين + أعلى الدائنين.\n"
         "  • workshop.active_visits — عدد الزيارات المفتوحة.\n"
         "  • inventory.low_stock — قطع المخزون التي وصلت للحد الأدنى.\n"
+        "  • parts.search — 🔧 بحث ذكي عن قطعة في المخزون (الاسم/التصنيف) + يرجع السعر والكمية المتاحة. استخدمها عند 'بيع X' و 'سعر X' و 'كم عندي X'.\n"
         "  • operations.recent — آخر العمليات (بيع/شراء/مصروف).\n"
         "  • customers.search — بحث عميل بالاسم/الهاتف.\n"
         "  • vehicles.search — بحث مركبة باللوحة/الماركة/المالك.\n\n"

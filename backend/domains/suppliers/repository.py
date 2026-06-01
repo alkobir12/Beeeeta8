@@ -184,3 +184,29 @@ class SupplierRepository:
         from server import db
         res = await db.suppliers.delete_one({"id": supplier_id})
         return bool(res.deleted_count)
+
+    # ---- ADMIN ----
+
+    async def migrate_local_to_supabase(self) -> Dict[str, Any]:
+        """Push in-memory suppliers into a Supabase `suppliers` table."""
+        if _provider() != "supabase":
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Migration requires DB_PROVIDER=supabase")
+        from server import _mem_read, supabase_service
+        if not supabase_service.client or supabase_service.mock_mode:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Supabase client not configured")
+        local = _mem_read("suppliers") or []
+        if not local:
+            return {"migrated": 0, "message": "No local suppliers to migrate"}
+        prepared = []
+        for row in local:
+            if isinstance(row.get("createdAt"), datetime):
+                row = {**row, "createdAt": row["createdAt"].isoformat()}
+            prepared.append(row)
+        try:
+            res = supabase_service.client.table("suppliers").insert(prepared).execute()
+            return {"migrated": len(res.data or [])}
+        except Exception as e:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail=str(e))
