@@ -22,7 +22,21 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 7 (Feb 12 — current) — Bot Phase 1 + DDD Suppliers
+### Session 8 (Feb 12 — current) — Phase 3A Foundation (L16 prep)
+- ✅ **🛡️ A1 — write contract**: `register_tool(write=False)` default + `BOT_ALLOW_WRITES` env flag + runtime guard in `call_tool()`. Trying to register a write tool without the flag raises `WriteToolBlockedError`. Read-only contract is now **code-enforced**, not just convention.
+- ✅ **⏱️ A2 — rate limit**: `slowapi` integrated. `POST /api/assistant/chat` is capped at **30/minute/IP** (override via `ASSISTANT_CHAT_RATE` env). `SlowAPIMiddleware` + exception handler registered in `server.py`. Verified: 35 rapid requests → 30 OK + 5 × 429.
+- ✅ **📜 A3 — audit log**: new domain `domains/bot_audit/` (repository + service + SQL migration). Every `/chat` call writes one row with metadata (intent, tools_called, ai_used, fallback_used, tokens, request_hash, client_ip). **Never stores raw user content** — only sha256[:16] hash. Falls back to bounded in-memory ring buffer (500 rows) when the Supabase table is absent. New endpoint `GET /api/assistant/audit/recent` exposes the rows.
+- ✅ **📝 A4 — structured logging + redaction**: new `core/log_utils.py` with `get_logger()` (`assistant.*` namespace) and `redact()` that strips Bearer/JWT/sk-/provider tokens, masks email local parts, and masks phone numbers (keeping last 4). Replaced all `print(...)` calls in `assistant_kernel.py` and `routes_assistant.py` with structured logging.
+- ✅ **🧪 A5 — regression tests**: `tests/test_phase_3a_foundation.py` (10 tests, all pass) covers: registration blocked, runtime guard, rate limit attached, audit row recorded, request_hash one-way, redact strips Bearer/sk/JWT, masks emails/phones, truncation.
+- ✅ **📁 SQL migration**: `domains/bot_audit/MIGRATION.sql` — operator runs once in Supabase. Includes RLS placeholder.
+- 📝 **Audit corrections**: `04_API_KEYS_STATUS_SAFE.md` updated — Groq is `used_by_legacy (routes_moltbot.py)` not workshop_bot; `LLAMA_MAVERICK_MODEL_ID` is now flagged as "ready-to-swap target for `GROQ_MODEL`".
+- 📊 **Final scoreboard**:
+  * Total tests: 25/25 passing (10 Phase 3A + 10 bot tools + 5 DDD suppliers)
+  * Tools registered: 12, all write=False
+  * Rate limit verified live: ✅
+  * Audit rows landing in memory buffer (will switch to Supabase after operator runs MIGRATION.sql)
+
+### Session 7 (Feb 12) — Bot Phase 1 + DDD Suppliers
 - ✅ **🤖 Bot Phase 1 — Smart Sale Search (DONE)**:
   * 🆕 أداة `parts.search` ذكية — بحث في المخزون بالاسم/التصنيف، يرجع جدول بالأسعار+الكمية المتاحة مرتبة (المتوفر أولاً)، مع `next_action_hint` يوجّه لـ /operations.
   * أنماط intent جديدة: "بيع X" / "أبيع X" / "كم سعر X" / "كم عندي X" / "هل عندنا X".

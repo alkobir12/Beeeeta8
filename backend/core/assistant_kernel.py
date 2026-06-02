@@ -23,6 +23,10 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from core import alert_bus, shared_memory, ai_context, tool_router
+from core.log_utils import get_logger, redact
+
+# Phase 3A — structured logger replaces ad-hoc print() calls.
+_log = get_logger("kernel")
 
 
 # ---------- Tool intent detector (read-only tools) ----------
@@ -135,7 +139,8 @@ async def _llm_chat(
         response = await chat.send_message(UserMessage(text=msg_text))
         return str(response or "").strip()
     except Exception as e:
-        print(f"[AssistantKernel] LLM call failed: {e}")
+        # Phase 3A: replace `print` with structured logger; never leak raw user content.
+        _log.warning("LLM call failed: %s", redact(str(e), max_len=160))
         return ""
 
 
@@ -277,6 +282,21 @@ async def chat(
         "tools": [t.get("tool") for t in tool_results],
     })
 
+    # 🆕 Phase 3A — persistent audit log (best-effort, never breaks chat).
+    ai_used_flag = bool(use_ai and _emergent_llm_key() and response_text)
+    try:
+        from domains.bot_audit import audit_service
+        await audit_service.log_chat(
+            session_id=sid,
+            user_message=message,
+            intent=intent,
+            tools_called=[t.get("tool") for t in tool_results if t.get("tool")],
+            ai_used=ai_used_flag,
+            fallback_used=False,  # wired in Phase 3B with Groq fallback
+        )
+    except Exception as e:
+        _log.warning("audit log dispatch failed (non-fatal): %s", redact(str(e), max_len=120))
+
     return {
         "session_id": sid,
         # Backward compatibility: include "agent" key but always set to single assistant
@@ -288,7 +308,7 @@ async def chat(
         "response": response_text,
         "context_snapshot": snapshot,
         "recent_actions": shared_memory.get_recent_actions(sid, limit=10),
-        "ai_used": bool(use_ai and _emergent_llm_key()),
+        "ai_used": ai_used_flag,
         "read_only": True,
     }
 

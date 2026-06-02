@@ -21,6 +21,24 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional
 _TOOLS: Dict[str, Dict[str, Any]] = {}
 
 
+# 🛡️ Phase 3A — Write contract
+#
+# Every tool registered into the floating bot is read-only by default. To
+# register a write-capable tool the operator MUST set BOT_ALLOW_WRITES=1 in
+# the environment. The flag is read at call-time (not import-time) so tests
+# can flip it cleanly.
+import os as _os
+
+
+def _writes_allowed() -> bool:
+    """Returns True iff write tools are allowed to be registered AND invoked."""
+    return _os.environ.get("BOT_ALLOW_WRITES", "0").lower() in ("1", "true", "yes", "on")
+
+
+class WriteToolBlockedError(RuntimeError):
+    """Raised when a write tool is registered or invoked while the flag is off."""
+
+
 def register_tool(
     name: str,
     *,
@@ -28,14 +46,27 @@ def register_tool(
     description: str,
     handler: Callable[..., Awaitable[Any]],
     params: Optional[Dict[str, Any]] = None,
+    write: bool = False,
 ) -> None:
-    """يسجل أداة في الـ Router."""
+    """Registers a tool in the router.
+
+    Phase 3A contract:
+      • `write=False` (default) — read-only, always allowed.
+      • `write=True` — must also have `BOT_ALLOW_WRITES=1` in env, otherwise
+        `WriteToolBlockedError` is raised at registration time.
+    """
+    if write and not _writes_allowed():
+        raise WriteToolBlockedError(
+            f"Cannot register write-capable tool '{name}' while "
+            "BOT_ALLOW_WRITES != '1'. This is a Phase 3A safety contract."
+        )
     _TOOLS[name] = {
         "name": name,
         "agent": agent,
         "description": description,
         "handler": handler,
         "params": params or {},
+        "write": bool(write),
     }
 
 
@@ -49,17 +80,35 @@ def list_tools(agent: Optional[str] = None) -> List[Dict[str, Any]]:
             "agent": t["agent"],
             "description": t["description"],
             "params": t["params"],
+            "write": t.get("write", False),
         })
     return out
+
+
+def is_write_tool(name: str) -> bool:
+    """Returns True iff the named tool is registered with `write=True`."""
+    t = _TOOLS.get(name)
+    return bool(t and t.get("write"))
 
 
 async def call_tool(name: str, **kwargs) -> Dict[str, Any]:
     tool = _TOOLS.get(name)
     if not tool:
         return {"success": False, "error": f"tool not found: {name}"}
+    # 🛡️ Phase 3A — runtime guard. Even if a write tool slipped past
+    # registration (shouldn't happen), block the invocation here too.
+    if tool.get("write") and not _writes_allowed():
+        return {
+            "success": False,
+            "tool": name,
+            "error": (
+                "write tool invocation blocked: BOT_ALLOW_WRITES != '1' "
+                "(Phase 3A read-only contract)"
+            ),
+        }
     try:
         result = await tool["handler"](**kwargs)
-        return {"success": True, "tool": name, "agent": tool["agent"], "result": result}
+        return {"success": True, "tool": name, "agent": tool["agent"], "result": result, "write": tool.get("write", False)}
     except Exception as e:
         import traceback
         return {"success": False, "tool": name, "error": str(e), "trace": traceback.format_exc()[-400:]}

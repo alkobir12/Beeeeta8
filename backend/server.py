@@ -563,8 +563,16 @@ app.include_router(moltbot_router)
 app.include_router(nlp_page_assistant_router)
 from routes_firewall import router as firewall_router
 app.include_router(firewall_router)
-from routes_assistant import router as assistant_router
+from routes_assistant import router as assistant_router, limiter as assistant_limiter
 app.include_router(assistant_router)
+
+# 🆕 Phase 3A — register slowapi limiter so @limiter.limit() actually fires.
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
+app.state.limiter = assistant_limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")

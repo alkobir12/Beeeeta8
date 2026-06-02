@@ -2,25 +2,44 @@
 🤖 Unified Assistant API — نقطة دخول واحدة لكل بوتات النظام
 
 Endpoints:
-  • POST /api/assistant/chat            — محادثة موحدة
+  • POST /api/assistant/chat            — محادثة موحدة (rate-limited: 30/min/IP)
   • GET  /api/assistant/session/{id}    — استعلام سجل جلسة
   • GET  /api/assistant/tools           — قائمة الأدوات المتاحة
   • POST /api/assistant/tool/{name}     — استدعاء أداة مباشرة (للاختبار)
   • GET  /api/assistant/alerts          — التنبيهات النشطة من alert_bus
   • GET  /api/assistant/stats           — إحصائيات النواة
+  • GET  /api/assistant/audit/recent    — آخر سجل تدقيق (Phase 3A)
 """
 
+import os
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Body, HTTPException, Query
 
-from core import assistant_kernel, alert_bus, tool_router, shared_memory
+from fastapi import APIRouter, Body, HTTPException, Query, Request
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+
+from core import alert_bus, assistant_kernel, shared_memory, tool_router
+from core.log_utils import get_logger, redact
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
+_log = get_logger("routes.assistant")
+
+# Phase 3A — Per-IP rate limit (default 30/min). Override via env.
+_CHAT_RATE = os.environ.get("ASSISTANT_CHAT_RATE", "30/minute")
+
+# Limiter exposed at module level so server.py can register the global handler.
+limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/chat")
-async def assistant_chat(payload: Dict[str, Any] = Body(...)):
-    """محادثة موحدة. Body: {message, session_id?, workshop_id?, force_agent?, use_ai?}"""
+@limiter.limit(_CHAT_RATE)
+async def assistant_chat(request: Request, payload: Dict[str, Any] = Body(...)):
+    """محادثة موحدة. Body: {message, session_id?, workshop_id?, force_agent?, use_ai?}.
+
+    Rate-limited (Phase 3A): 30 requests/minute per IP by default.
+    """
     msg = (payload.get("message") or "").strip()
     if not msg:
         raise HTTPException(status_code=400, detail="message required")
@@ -34,9 +53,8 @@ async def assistant_chat(payload: Dict[str, Any] = Body(...)):
         )
         return {"success": True, "data": result}
     except Exception as e:
-        import traceback
-        print(f"[assistant_chat] err: {e}\n{traceback.format_exc()}")
-        return {"success": False, "error": str(e)}
+        _log.exception("assistant_chat failed: %s", redact(str(e), max_len=200))
+        return {"success": False, "error": redact(str(e), max_len=200)}
 
 
 @router.get("/session/{session_id}")
@@ -71,3 +89,14 @@ async def assistant_alerts(
 @router.get("/stats")
 async def assistant_stats():
     return {"success": True, "data": assistant_kernel.kernel_stats()}
+
+
+@router.get("/audit/recent")
+async def assistant_audit_recent(limit: int = Query(default=50, le=200)):
+    """🆕 Phase 3A — آخر N سجلات تدقيق (metadata فقط، بدون محتوى الرسائل)."""
+    try:
+        from domains.bot_audit import audit_service
+        rows = await audit_service.recent(limit=limit)
+        return {"success": True, "data": rows, "count": len(rows)}
+    except Exception as e:
+        return {"success": False, "error": redact(str(e), max_len=200), "data": []}

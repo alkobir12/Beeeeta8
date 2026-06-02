@@ -13,9 +13,9 @@
 | `DEEPSEEK_API_KEY` | LLM | **configured** | `routes_moltbot.py` (editor only) | Used by Moltbot editor, **not** by floating bot | **No** |
 | `DEEPSEEK_API_BASE_URL` | LLM endpoint | **configured** | `routes_moltbot.py` | same as above | **No** |
 | `DEEPSEEK_MODEL` | model id | **configured** | `routes_moltbot.py` | same as above | **No** |
-| `GROQ_API_KEY` | LLM | **configured** | `routes_workshop_bot.py` (legacy) | Workshop bot legacy path, **not** floating bot | **No** |
-| `GROQ_API_BASE_URL` | LLM endpoint | **configured** | `routes_workshop_bot.py` | same | **No** |
-| `GROQ_MODEL` | model id | **configured** | `routes_workshop_bot.py` | same | **No** |
+| `GROQ_API_KEY` | LLM | **configured** | `routes_moltbot.py` (reviewer agent only) | Used by Moltbot via OpenAI-compatible HTTP; **not** by floating bot | **No** |
+| `GROQ_API_BASE_URL` | LLM endpoint | **configured** | `routes_moltbot.py` | same as above | **No** |
+| `GROQ_MODEL` | model id | **configured** (Llama-family model id) | `routes_moltbot.py` | same as above. Swap to `LLAMA_MAVERICK_MODEL_ID` value to activate Llama-4-Maverick. | **No** |
 | `BLACKBOX_API_KEY` | LLM | **configured** | `routes_moltbot.py` (code analysis) | Code editor only, **not** floating bot | **No** |
 | `BLACKBOX_API_URL` | LLM endpoint | **configured** | `routes_moltbot.py` | same | **No** |
 | `BLACKBOX_REPO_URL` | git | **configured** | `routes_moltbot.py` | code editor repository pointer | **No** |
@@ -23,8 +23,8 @@
 | `MOLTBOT_OPENAI_MODEL` | model id | **configured** | `routes_moltbot.py` | code editor model | **No** |
 | `MOLTBOT_PROJECT_ROOT` | path | **configured** | `routes_moltbot.py` | code editor workspace | **No** |
 | `LLAMA_STACK_URL` | LLM endpoint | **configured** | not currently consumed by Unified Assistant | reserved | **No** |
-| `LLAMA_SCOUT_MODEL_ID` | model id | **configured** | not consumed by Unified Assistant | reserved | **No** |
-| `LLAMA_MAVERICK_MODEL_ID` | model id | **configured** | not consumed by Unified Assistant | reserved | **No** |
+| `LLAMA_SCOUT_MODEL_ID` | model id | **configured** | not consumed by Unified Assistant | reserved — ready-to-swap target for `GROQ_MODEL` (Llama-4-Scout) | **No** |
+| `LLAMA_MAVERICK_MODEL_ID` | model id | **configured** | not consumed by Unified Assistant | **ready-to-swap target for `GROQ_MODEL`** (Llama-4-Maverick). See `08_LLAMA_MAVERICK_PROVIDER_AUDIT.md` §1. | **No** |
 | `SUPABASE_URL` | DB | **configured** | `supabase_service.SupabaseService.__init__` | Primary DB for all read-only tools | **No** |
 | `SUPABASE_SERVICE_ROLE_KEY` | DB | **configured** | `supabase_service.SupabaseService` | Service-role write/read auth (used by tool handlers indirectly via /api/* internal calls) | **No** |
 | `DB_PROVIDER` | flag | **configured** (value=`supabase`) | every domain repository | Selects supabase / memory / mongo | **No** |
