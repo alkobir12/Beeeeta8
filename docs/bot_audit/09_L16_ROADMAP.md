@@ -23,11 +23,12 @@ technicians, Qassimi-friendly for customers), and never exposes secrets.
 
 | Phase | Title | Effort | Risk | Status |
 |---|---|---|---|---|
-| **3A** | Foundation: contract, rate limit, audit log, logging | ~2h | 🟢 LOW (additive, no behaviour change) | ⏳ READY TO START |
-| **3B** | Interactive Cards + Action Buttons + Entity Resolution | ~4–6h | 🟡 MEDIUM (new UI surface) | locked behind 3A |
+| **3A** | Foundation: contract, rate limit, audit log, logging | ~2h | 🟢 LOW (additive, no behaviour change) | ✅ **DONE (Session 8)** — 25/25 tests, rate limit live, audit log writing to memory buffer until SQL migration runs |
+| **3B** | Interactive Cards + Action Buttons + Entity Resolution | ~4–6h | 🟡 MEDIUM (new UI surface) | ⏳ READY TO START |
 | **3C** | ERP Execution Runtime (write tools + Approval + Idempotency + Rollback) | ~8–12h | 🔴 HIGH (accounting impact) | locked behind 3B |
 | **3D** | WhatsApp send-invoice / send-receipt / send-PDF from cards | ~4–6h | 🟡 MEDIUM (needs WhatsApp Cloud API credentials) | locked behind 3C |
 | **3E** | Mobile UX polish + Streaming responses | ~3–4h | 🟢 LOW | parallel-safe with 3D |
+| **3F** | Vehicles / Inventory DDD (extracted from monolith) | TBD | 🟠 MEDIUM (accounting touch) | independent — schedule after 3E |
 
 ---
 
