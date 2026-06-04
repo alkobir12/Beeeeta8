@@ -32,6 +32,20 @@ export const AssistantProvider = ({ children }) => {
   const [activeAgent, setActiveAgent] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState(null);
+  // 🆕 Model selector — persisted across reloads
+  const MODEL_KEY = 'assistant.model';
+  const [model, setModelState] = useState(() => {
+    try { return localStorage.getItem(MODEL_KEY) || 'gpt'; } catch (e) { return 'gpt'; }
+  });
+  const setModel = useCallback((m) => {
+    setModelState(m);
+    try { localStorage.setItem(MODEL_KEY, m); } catch (e) { /* noop */ }
+  }, []);
+  const [availableModels, setAvailableModels] = useState([
+    // Default fallback list so the selector shows even before /models lands
+    { id: 'gpt', label: 'GPT (Emergent)', provider: 'openai', model: 'gpt-4o-mini', available: true, description: 'سريع وعالي الجودة (cloud)' },
+    { id: 'ollama', label: 'Ollama (محلي)', provider: 'ollama', model: 'llama3.2:3b', available: true, description: 'خصوصية تامة (يعمل بدون إنترنت)' },
+  ]);
   const lastFetchRef = useRef(0);
   const skipNextSessionReloadRef = useRef(false);
   const initialSessionLoadedRef = useRef(false);
@@ -120,7 +134,8 @@ export const AssistantProvider = ({ children }) => {
         workshop_id: WORKSHOP_ID,
         force_agent: forceAgent || undefined,
         use_ai: useAi,
-      }, { timeout: 60000 });
+        model: model || 'gpt',  // 🆕 forward selected model
+      }, { timeout: 120000 });
 
       if (!res.data?.success) {
         throw new Error(res.data?.error || 'assistant_failed');
@@ -137,7 +152,7 @@ export const AssistantProvider = ({ children }) => {
       const assistantMsg = {
         role: 'assistant',
         content: data.response,
-        meta: { agent: data.agent, tool_results: data.tool_results, ai_used: data.ai_used },
+        meta: { agent: data.agent, tool_results: data.tool_results, ai_used: data.ai_used, model_used: data.model_used },
         ts: Date.now() / 1000,
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -154,7 +169,23 @@ export const AssistantProvider = ({ children }) => {
     } finally {
       setBusy(false);
     }
-  }, [busy, sessionId]);
+  }, [busy, sessionId, model]);
+
+  // 🆕 Fetch available models on mount + retry once after 2s in case of race
+  const fetchModels = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/assistant/models`);
+      if (res.data?.success) {
+        setAvailableModels(res.data.data?.models || []);
+      }
+    } catch (e) { /* noop */ }
+  }, []);
+
+  useEffect(() => {
+    fetchModels();
+    const t = setTimeout(fetchModels, 2500);  // retry once
+    return () => clearTimeout(t);
+  }, [fetchModels]);
 
   const callTool = useCallback(async (toolName, args = {}) => {
     try {
@@ -181,12 +212,13 @@ export const AssistantProvider = ({ children }) => {
     messages, busy,
     activeAgent,
     alerts, stats,
+    model, setModel, availableModels,  // 🆕 model selector state
     sendMessage,
     callTool,
     refreshAlerts,
     refreshStats,
     resetSession,
-  }), [open, sessionId, messages, busy, activeAgent, alerts, stats, sendMessage, callTool, refreshAlerts, refreshStats, resetSession]);
+  }), [open, sessionId, messages, busy, activeAgent, alerts, stats, model, setModel, availableModels, sendMessage, callTool, refreshAlerts, refreshStats, resetSession]);
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>;
 };
@@ -200,6 +232,7 @@ export const useAssistant = () => {
       sessionId: '', setSessionId: () => {},
       messages: [], busy: false, activeAgent: null,
       alerts: [], stats: null,
+      model: 'gpt', setModel: () => {}, availableModels: [],
       sendMessage: async () => null,
       callTool: async () => ({ success: false }),
       refreshAlerts: async () => {},

@@ -200,10 +200,16 @@ async def chat(
     workshop_id: Optional[str] = None,
     force_agent: Optional[str] = None,  # kept for backward-compat; ignored in L5
     use_ai: bool = True,
+    model: Optional[str] = None,  # 🆕 'gpt' (Emergent default) | 'ollama' (local)
 ) -> Dict[str, Any]:
     """Main entry point for the assistant.
 
-    Returns: {session_id, response, tool_results, recent_actions, context_snapshot, ai_used}
+    Args:
+      model: 'gpt' → Emergent gpt-4o-mini (default), 'ollama' → local llama3.2:3b.
+             Any other value falls back to 'gpt'.
+
+    Returns: {session_id, response, tool_results, recent_actions,
+              context_snapshot, ai_used, model_used}
     """
     sid = session_id or f"session-{uuid.uuid4().hex[:10]}"
     shared_memory.append_message(sid, "user", message)
@@ -246,15 +252,34 @@ async def chat(
     # 5) Get conversation history
     history = ai_context.get_conversation_history(sid, limit=10)
 
-    # 6) Call LLM
+    # 6) Call LLM — choose provider per `model` param
     response_text = ""
+    model_used: Optional[str] = None
+    selected = (model or "gpt").lower()
     if use_ai:
-        response_text = await _llm_chat(
-            session_id=sid,
-            system_message=system_msg,
-            user_message=message,
-            history=history[:-1],
-        )
+        if selected == "ollama":
+            # Local Ollama path (Phase 3B kickoff)
+            from core import llm_helpers
+            if await llm_helpers.is_ollama_alive():
+                response_text = await llm_helpers.call_ollama(
+                    system_prompt=system_msg,
+                    user_message=message,
+                    history=history[:-1],
+                )
+                if response_text:
+                    model_used = f"ollama/{llm_helpers.OLLAMA_DEFAULT_MODEL}"
+            else:
+                _log.info("ollama not reachable; falling back to Emergent gpt-4o-mini")
+        # Emergent path (default + fallback when Ollama is offline)
+        if not response_text:
+            response_text = await _llm_chat(
+                session_id=sid,
+                system_message=system_msg,
+                user_message=message,
+                history=history[:-1],
+            )
+            if response_text:
+                model_used = "emergent/gpt-4o-mini"
 
     # Fallback: aggregated tool output + canned message
     if not response_text:
@@ -309,6 +334,7 @@ async def chat(
         "context_snapshot": snapshot,
         "recent_actions": shared_memory.get_recent_actions(sid, limit=10),
         "ai_used": ai_used_flag,
+        "model_used": model_used,  # 🆕 reflects which provider actually answered
         "read_only": True,
     }
 

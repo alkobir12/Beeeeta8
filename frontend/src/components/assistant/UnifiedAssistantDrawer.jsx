@@ -69,6 +69,7 @@ export const UnifiedAssistantDrawer = () => {
     open, setOpen,
     messages, busy, activeAgent,
     alerts, stats,
+    model, setModel, availableModels,
     sendMessage, resetSession,
   } = useAssistant();
 
@@ -154,6 +155,10 @@ export const UnifiedAssistantDrawer = () => {
             <h3 className="font-extrabold text-sm truncate">{agentMeta?.name || 'المساعد الذكي'}</h3>
             <p className="text-[10px] opacity-90">
               {stats?.ai_enabled ? <><Sparkles size={9} className="inline ml-0.5" /> AI نشط</> : 'محرك قواعد'}
+              <span className="mx-1 opacity-60">·</span>
+              <span data-testid="assistant-model-badge" className="font-bold">
+                {model === 'ollama' ? '🦙 Ollama' : '⚡ GPT'}
+              </span>
               {alerts.length > 0 && (
                 <span className="mr-2"><AlertTriangle size={9} className="inline ml-0.5" />{alerts.length} تنبيه</span>
               )}
@@ -182,17 +187,54 @@ export const UnifiedAssistantDrawer = () => {
 
       {/* Settings panel */}
       {showSettings && (
-        <div className="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 p-2 flex justify-between items-center" data-testid="assistant-settings-panel">
-          <span className="text-[11px] text-slate-600 dark:text-slate-300">
-            {messages.length} رسالة في الجلسة
-          </span>
-          <button
-            data-testid="assistant-reset-btn"
-            onClick={() => { resetSession(); setShowSettings(false); }}
-            className="text-[11px] px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold inline-flex items-center gap-1"
-          >
-            <Trash2 size={10} /> مسح المحادثة
-          </button>
+        <div className="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 p-2 space-y-2" data-testid="assistant-settings-panel">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] text-slate-600 dark:text-slate-300">
+              {messages.length} رسالة في الجلسة
+            </span>
+            <button
+              data-testid="assistant-reset-btn"
+              onClick={() => { resetSession(); setShowSettings(false); }}
+              className="text-[11px] px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold inline-flex items-center gap-1"
+            >
+              <Trash2 size={10} /> مسح المحادثة
+            </button>
+          </div>
+          {/* 🆕 Model selector */}
+          {availableModels && availableModels.length > 0 && (
+            <div data-testid="assistant-model-selector" className="space-y-1">
+              <div className="text-[10px] font-bold text-slate-700 dark:text-slate-300">النموذج الذكي:</div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {availableModels.map((m) => {
+                  const selected = model === m.id;
+                  const disabled = !m.available;
+                  return (
+                    <button
+                      key={m.id}
+                      data-testid={`assistant-model-${m.id}`}
+                      onClick={() => !disabled && setModel(m.id)}
+                      disabled={disabled}
+                      title={disabled ? `${m.label} غير متاح حالياً` : m.description}
+                      className={`text-right text-[11px] p-2 rounded border transition-colors ${
+                        selected
+                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-200'
+                          : disabled
+                            ? 'border-slate-300 dark:border-slate-700 bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
+                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-indigo-400'
+                      }`}
+                    >
+                      <div className="font-bold flex items-center gap-1 justify-end">
+                        {selected && <span>✓</span>}
+                        {m.label}
+                      </div>
+                      <div className="text-[9px] opacity-70 mt-0.5">{m.model}</div>
+                      {disabled && <div className="text-[9px] text-rose-500 mt-0.5">غير متاح</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

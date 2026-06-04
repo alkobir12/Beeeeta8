@@ -22,7 +22,22 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 8 (Feb 12 — current) — Phase 3A Foundation (L16 prep)
+### Session 9 (Feb 12 — current) — Ollama Local LLM + Model Selector
+- ✅ **🦙 Ollama installed (ARM64 binary)**: `/usr/local/bin/ollama` v0.30.4, supervisor-managed (`/etc/supervisor/conf.d/ollama.conf`), bound to `127.0.0.1:11434`.
+- ✅ **Model pulled**: `llama3.2:3b` (2.0 GB, Arabic-capable). First query latency ~5-10s, sustained ~9 tok/s.
+- ✅ **`core/llm_helpers.py`**: new abstraction with `is_ollama_alive()`, `ollama_list_models()`, `call_ollama()` — uses `OLLAMA_HOST` / `OLLAMA_DEFAULT_MODEL` env (with sensible defaults), full system+history+user message support.
+- ✅ **`assistant_kernel.chat()` accepts `model` param**: `'gpt'` (default, Emergent gpt-4o-mini) or `'ollama'` (local llama3.2:3b). When Ollama is unreachable, gracefully falls back to GPT. Returns new `model_used` field showing which provider answered.
+- ✅ **New `GET /api/assistant/models`**: lists both providers + availability flag + installed Ollama models. Frontend uses this to render the selector dynamically.
+- ✅ **Frontend selector** (`AssistantProvider` + `UnifiedAssistantDrawer`):
+  * Selected model persisted in `localStorage.assistant.model`.
+  * Default fallback list prevents empty UI during initial fetch.
+  * `data-testid="assistant-model-selector"` panel inside settings shows 2-button grid.
+  * Header `data-testid="assistant-model-badge"` shows ⚡ GPT or 🦙 Ollama live.
+- ✅ **Verified E2E**: visual screenshot shows GPT + Ollama buttons rendered; clicking Ollama updates header badge to 🦙. Backend confirms `model_used: "ollama/llama3.2:3b"` when selected.
+- 🧪 **Regression**: 25/25 tests still passing (no breakage).
+- ⚠️ **Disk note**: `/root` at 79% after model pull (Ollama models = 2.0 GB). Room for one more 1-2 GB model if needed; bigger pulls would need a cleanup.
+
+### Session 8 (Feb 12) — Phase 3A Foundation (L16 prep)
 - ✅ **🛡️ A1 — write contract**: `register_tool(write=False)` default + `BOT_ALLOW_WRITES` env flag + runtime guard in `call_tool()`. Trying to register a write tool without the flag raises `WriteToolBlockedError`. Read-only contract is now **code-enforced**, not just convention.
 - ✅ **⏱️ A2 — rate limit**: `slowapi` integrated. `POST /api/assistant/chat` is capped at **30/minute/IP** (override via `ASSISTANT_CHAT_RATE` env). `SlowAPIMiddleware` + exception handler registered in `server.py`. Verified: 35 rapid requests → 30 OK + 5 × 429.
 - ✅ **📜 A3 — audit log**: new domain `domains/bot_audit/` (repository + service + SQL migration). Every `/chat` call writes one row with metadata (intent, tools_called, ai_used, fallback_used, tokens, request_hash, client_ip). **Never stores raw user content** — only sha256[:16] hash. Falls back to bounded in-memory ring buffer (500 rows) when the Supabase table is absent. New endpoint `GET /api/assistant/audit/recent` exposes the rows.

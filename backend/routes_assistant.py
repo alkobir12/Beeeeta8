@@ -36,7 +36,10 @@ limiter = Limiter(key_func=get_remote_address)
 @router.post("/chat")
 @limiter.limit(_CHAT_RATE)
 async def assistant_chat(request: Request, payload: Dict[str, Any] = Body(...)):
-    """محادثة موحدة. Body: {message, session_id?, workshop_id?, force_agent?, use_ai?}.
+    """محادثة موحدة. Body: {message, session_id?, workshop_id?, use_ai?, model?}.
+
+    Args:
+      model: "gpt" (default — Emergent gpt-4o-mini) أو "ollama" (محلي llama3.2:3b).
 
     Rate-limited (Phase 3A): 30 requests/minute per IP by default.
     """
@@ -50,11 +53,45 @@ async def assistant_chat(request: Request, payload: Dict[str, Any] = Body(...)):
             workshop_id=payload.get("workshop_id"),
             force_agent=payload.get("force_agent"),
             use_ai=bool(payload.get("use_ai", True)),
+            model=payload.get("model"),
         )
         return {"success": True, "data": result}
     except Exception as e:
         _log.exception("assistant_chat failed: %s", redact(str(e), max_len=200))
         return {"success": False, "error": redact(str(e), max_len=200)}
+
+
+@router.get("/models")
+async def assistant_models():
+    """🆕 يرجع قائمة النماذج المتاحة للاختيار داخل الواجهة."""
+    from core import llm_helpers
+    ollama_alive = await llm_helpers.is_ollama_alive()
+    ollama_models = await llm_helpers.ollama_list_models() if ollama_alive else []
+    return {
+        "success": True,
+        "data": {
+            "default": "gpt",
+            "models": [
+                {
+                    "id": "gpt",
+                    "label": "GPT (Emergent)",
+                    "provider": "openai",
+                    "model": "gpt-4o-mini",
+                    "available": bool(os.environ.get("EMERGENT_LLM_KEY")),
+                    "description": "سريع وعالي الجودة (cloud)",
+                },
+                {
+                    "id": "ollama",
+                    "label": "Ollama (محلي)",
+                    "provider": "ollama",
+                    "model": llm_helpers.OLLAMA_DEFAULT_MODEL,
+                    "available": ollama_alive and (llm_helpers.OLLAMA_DEFAULT_MODEL in ollama_models),
+                    "description": "خصوصية تامة (يعمل بدون إنترنت)",
+                    "installed_models": ollama_models,
+                },
+            ],
+        },
+    }
 
 
 @router.get("/session/{session_id}")
