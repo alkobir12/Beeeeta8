@@ -217,6 +217,7 @@ async def chat(
     # 1) Detect which read-only tools to invoke
     tool_names = detect_tools(message)
     tool_results: List[Dict[str, Any]] = []
+    cards: List[Dict[str, Any]] = []  # 🆕 collected from each tool result
     for tn in tool_names:
         kwargs: Dict[str, Any] = {"workshop_id": workshop_id or "finmodule-sync"}
         if tn in _QUERY_AWARE_TOOLS:
@@ -225,6 +226,11 @@ async def chat(
                 kwargs["query"] = q
         result = await tool_router.call_tool(tn, **kwargs)
         tool_results.append(result)
+        # Pull any cards the tool emitted
+        if isinstance(result, dict) and result.get("success"):
+            tool_cards = (result.get("result") or {}).get("cards") if isinstance(result.get("result"), dict) else None
+            if tool_cards and isinstance(tool_cards, list):
+                cards.extend(tool_cards)
         # Track tool call in session memory
         shared_memory.track_action(sid, "tool_call", {
             "tool": tn,
@@ -322,6 +328,27 @@ async def chat(
     except Exception as e:
         _log.warning("audit log dispatch failed (non-fatal): %s", redact(str(e), max_len=120))
 
+    # 🆕 Phase 3B — Conversation memory: remember the first entity of each kind
+    for c in cards:
+        ctype = c.get("type") or ""
+        key = {
+            "CustomerCard": "last_customer",
+            "VehicleCard": "last_vehicle",
+            "InvoiceCard": "last_invoice",
+            "OperationCard": "last_operation",
+            "SupplierCard": "last_supplier",
+            "InventoryCard": "last_part",
+        }.get(ctype)
+        if key:
+            # Persist only the first card of each kind from this exchange
+            existing = shared_memory.get_context(sid, key)
+            if not existing or existing.get("id") != c.get("id"):
+                shared_memory.set_context(sid, key, {
+                    "id": c.get("id"),
+                    "title": c.get("title"),
+                    "type": ctype,
+                })
+
     return {
         "session_id": sid,
         # Backward compatibility: include "agent" key but always set to single assistant
@@ -331,10 +358,11 @@ async def chat(
         "intent": intent,
         "tool_results": tool_results,
         "response": response_text,
+        "cards": cards,  # 🆕 flat list of cards for the drawer to render
         "context_snapshot": snapshot,
         "recent_actions": shared_memory.get_recent_actions(sid, limit=10),
         "ai_used": ai_used_flag,
-        "model_used": model_used,  # 🆕 reflects which provider actually answered
+        "model_used": model_used,
         "read_only": True,
     }
 

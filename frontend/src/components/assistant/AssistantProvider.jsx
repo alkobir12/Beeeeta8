@@ -118,8 +118,11 @@ export const AssistantProvider = ({ children }) => {
     return () => window.removeEventListener('finance:updated', handler);
   }, [refreshAlerts]);
 
-  // ----- core: send a message -----
-  const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true } = {}) => {
+  // 🆕 streamingPhase: shown as "thinking/tools/rendering" stages during /chat/stream.
+  const [streamingPhase, setStreamingPhase] = useState(null);
+
+  // ----- core: send a message (with optional SSE streaming) -----
+  const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true, stream = true } = {}) => {
     const trimmed = (text || '').trim();
     if (!trimmed || busy) return null;
 
@@ -127,21 +130,68 @@ export const AssistantProvider = ({ children }) => {
     const userMsg = { role: 'user', content: trimmed, ts: Date.now() / 1000 };
     setMessages((prev) => [...prev, userMsg]);
     setBusy(true);
+    setStreamingPhase(stream ? 'thinking' : null);
     try {
-      const res = await axios.post(`${API_URL}/assistant/chat`, {
-        message: trimmed,
-        session_id: sessionId || undefined,
-        workshop_id: WORKSHOP_ID,
-        force_agent: forceAgent || undefined,
-        use_ai: useAi,
-        model: model || 'gpt',  // 🆕 forward selected model
-      }, { timeout: 120000 });
+      let data = null;
 
-      if (!res.data?.success) {
-        throw new Error(res.data?.error || 'assistant_failed');
+      if (stream && typeof fetch !== 'undefined') {
+        // ----- SSE path -----
+        const resp = await fetch(`${API_URL}/assistant/chat/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: trimmed,
+            session_id: sessionId || undefined,
+            workshop_id: WORKSHOP_ID,
+            force_agent: forceAgent || undefined,
+            use_ai: useAi,
+            model: model || 'gpt',
+          }),
+        });
+        if (!resp.ok || !resp.body) throw new Error(`stream ${resp.status}`);
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          // SSE messages are separated by blank lines
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() || '';
+          for (const block of parts) {
+            const evMatch = block.match(/^event:\s*(\w+)/m);
+            const dataMatch = block.match(/^data:\s*(.*)$/m);
+            if (!evMatch || !dataMatch) continue;
+            const event = evMatch[1];
+            let payload = null;
+            try { payload = JSON.parse(dataMatch[1]); } catch (e) { /* keep null */ }
+            if (event === 'progress' && payload?.label) {
+              setStreamingPhase(payload.label);
+            } else if (event === 'done') {
+              data = payload;
+            } else if (event === 'error') {
+              throw new Error(payload?.error || 'stream_error');
+            }
+          }
+        }
+        if (!data) throw new Error('stream ended without done event');
+      } else {
+        // ----- Non-streaming fallback -----
+        const res = await axios.post(`${API_URL}/assistant/chat`, {
+          message: trimmed,
+          session_id: sessionId || undefined,
+          workshop_id: WORKSHOP_ID,
+          force_agent: forceAgent || undefined,
+          use_ai: useAi,
+          model: model || 'gpt',
+        }, { timeout: 120000 });
+        if (!res.data?.success) {
+          throw new Error(res.data?.error || 'assistant_failed');
+        }
+        data = res.data.data;
       }
 
-      const data = res.data.data;
       if (data.session_id && data.session_id !== sessionId) {
         // skip the session-reload effect to prevent overwriting optimistic state
         skipNextSessionReloadRef.current = true;
@@ -152,7 +202,7 @@ export const AssistantProvider = ({ children }) => {
       const assistantMsg = {
         role: 'assistant',
         content: data.response,
-        meta: { agent: data.agent, tool_results: data.tool_results, ai_used: data.ai_used, model_used: data.model_used },
+        meta: { agent: data.agent, tool_results: data.tool_results, ai_used: data.ai_used, model_used: data.model_used, cards: data.cards || [] },
         ts: Date.now() / 1000,
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -168,6 +218,7 @@ export const AssistantProvider = ({ children }) => {
       return null;
     } finally {
       setBusy(false);
+      setStreamingPhase(null);
     }
   }, [busy, sessionId, model]);
 
@@ -210,15 +261,16 @@ export const AssistantProvider = ({ children }) => {
     open, setOpen,
     sessionId, setSessionId,
     messages, busy,
+    streamingPhase,  // 🆕 'thinking' | 'يفهم سؤالك…' | etc — for granular UI
     activeAgent,
     alerts, stats,
-    model, setModel, availableModels,  // 🆕 model selector state
+    model, setModel, availableModels,
     sendMessage,
     callTool,
     refreshAlerts,
     refreshStats,
     resetSession,
-  }), [open, sessionId, messages, busy, activeAgent, alerts, stats, model, setModel, availableModels, sendMessage, callTool, refreshAlerts, refreshStats, resetSession]);
+  }), [open, sessionId, messages, busy, streamingPhase, activeAgent, alerts, stats, model, setModel, availableModels, sendMessage, callTool, refreshAlerts, refreshStats, resetSession]);
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>;
 };
@@ -226,11 +278,11 @@ export const AssistantProvider = ({ children }) => {
 export const useAssistant = () => {
   const ctx = useContext(AssistantContext);
   if (!ctx) {
-    // Fallback safe shape — لو استُخدم خارج Provider
     return {
       open: false, setOpen: () => {},
       sessionId: '', setSessionId: () => {},
       messages: [], busy: false, activeAgent: null,
+      streamingPhase: null,
       alerts: [], stats: null,
       model: 'gpt', setModel: () => {}, availableModels: [],
       sendMessage: async () => null,

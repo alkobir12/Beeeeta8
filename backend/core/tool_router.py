@@ -212,6 +212,7 @@ async def _customers_search(workshop_id: str = "finmodule-sync", query: str = ""
             or q in str(c.get("phone") or "").lower()
         ]
     customers = customers[:limit]
+    from core.card_builder import cards_from_customers
     return {
         "query": query,
         "matches": [{
@@ -223,6 +224,7 @@ async def _customers_search(workshop_id: str = "finmodule-sync", query: str = ""
             "vehicle_plate": c.get("vehiclePlate"),
         } for c in customers],
         "count": len(customers),
+        "cards": cards_from_customers(customers, limit=limit),
     }
 
 
@@ -250,6 +252,7 @@ async def _vehicles_search(workshop_id: str = "finmodule-sync", query: str = "",
             or q in str(v.get("customerName") or v.get("ownerName") or "").lower()
         ]
     vehicles = vehicles[:limit]
+    from core.card_builder import cards_from_vehicles
     return {
         "query": query,
         "matches": [{
@@ -262,6 +265,7 @@ async def _vehicles_search(workshop_id: str = "finmodule-sync", query: str = "",
             "owner": v.get("customerName") or v.get("ownerName"),
         } for v in vehicles],
         "count": len(vehicles),
+        "cards": cards_from_vehicles(vehicles, limit=limit),
     }
 
 
@@ -307,6 +311,7 @@ async def _parts_search(workshop_id: str = "finmodule-sync", query: str = "", li
     ranked = ranked[:max(limit, 1)]
     in_stock = [p for p in ranked if float(p.get("quantity") or 0) > 0]
 
+    from core.card_builder import cards_from_parts
     return {
         "query": query,
         "total_inventory": len(parts),
@@ -321,6 +326,7 @@ async def _parts_search(workshop_id: str = "finmodule-sync", query: str = "", li
             "in_stock": float(p.get("quantity") or 0) > 0,
         } for p in ranked],
         "next_action_hint": "لإصدار فاتورة بيع → افتح /operations ثم 'نقطة بيع'.",
+        "cards": cards_from_parts(ranked, limit=limit),
     }
 
 
@@ -350,10 +356,12 @@ async def _inventory_low_stock(workshop_id: str = "finmodule-sync", limit: int =
                 "shortage": round(minq - qty, 2),
             })
     low.sort(key=lambda x: x["shortage"], reverse=True)
+    from core.card_builder import cards_from_parts
     return {
         "total_parts": len(parts),
         "low_stock_count": len(low),
         "items": low[:limit],
+        "cards": cards_from_parts(low, limit=limit),
     }
 
 
@@ -373,6 +381,7 @@ async def _finance_payables_summary(workshop_id: str = "finmodule-sync", limit: 
     creditors = [s for s in suppliers if float(s.get("ajelBalance") or s.get("balance") or 0) > 0]
     total = sum(float(s.get("ajelBalance") or s.get("balance") or 0) for s in creditors)
     top = sorted(creditors, key=lambda x: float(x.get("ajelBalance") or x.get("balance") or 0), reverse=True)[:limit]
+    from core.card_builder import cards_from_suppliers
     return {
         "total_suppliers_with_balance": len(creditors),
         "total_ap": round(total, 2),
@@ -380,6 +389,7 @@ async def _finance_payables_summary(workshop_id: str = "finmodule-sync", limit: 
             "name": s.get("name"),
             "balance": float(s.get("ajelBalance") or s.get("balance") or 0),
         } for s in top],
+        "cards": cards_from_suppliers(top, limit=limit),
     }
 
 
@@ -399,6 +409,7 @@ async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5
     if not isinstance(ops, list):
         ops = []
     ops = ops[:limit]
+    from core.card_builder import cards_from_operations
     return {
         "count": len(ops),
         "items": [{
@@ -410,6 +421,7 @@ async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5
             "partner": o.get("partnerName") or o.get("customerName") or o.get("supplierName"),
             "date": o.get("createdAt") or o.get("created_at") or o.get("date"),
         } for o in ops],
+        "cards": cards_from_operations(ops, limit=limit),
     }
 
 

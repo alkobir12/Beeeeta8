@@ -22,7 +22,32 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 9 (Feb 12 — current) — Ollama Local LLM + Model Selector
+### Session 10 (Feb 12 — current) — Phase 3B Round 1 (Streaming + Cards + Mobile + Dashboard)
+- ✅ **🌊 SSE Streaming**: `POST /api/assistant/chat/stream` يبثّ 5 أنواع events (`progress` × 3 phases + `tool` لكل أداة + `done` بالـpayload الكامل + `error`). الواجهة تستهلكها عبر `fetch + ReadableStream + TextDecoder` بدون مكتبة خارجية. خاصية `streamingPhase` في `useAssistant()` تعرض الـ label الحالي ("يفهم سؤالك…"، "جارٍ تشغيل الأدوات…"، "يصيغ الردّ…"). Fallback تلقائي لـ `/chat` العادي لو الـstream فشل.
+- ✅ **📱 Mobile Bottom-Sheet**: `useIsMobile()` يكتشف `< 768px` ويبدّل الـDrawer لـ bottom sheet كامل العرض 95vh مع safe-area + drag handle (`data-testid="assistant-mobile-handle"`). على الديسكتوب يظل 420×640 كما هو.
+- ✅ **🎴 6 Interactive Cards** عبر `core/card_builder.py`:
+  * `CustomerCard`، `VehicleCard`، `InvoiceCard` (sale)، `OperationCard` (purchase/expense)، `SupplierCard`، `InventoryCard`
+  * كل أداة قراءة الآن ترفق `cards: [...]` بنتيجتها — الكيرنل يجمعها في `data.cards` بالـ root level.
+  * Frontend `AssistantCard.jsx` يرسم بطاقة بـ header gradient + fields + action chips. لكل بطاقة 3 actions: navigate / tool / deferred (with phase hint).
+- ✅ **📊 Assistant Dashboard** — `GET /api/assistant/dashboard` يجمع 8 KPIs بمكالمات parallel (visits/health/AR/AP/cash flow/critical/low stock/integrity). يظهر تلقائياً في الـempty state للـDrawer مع loading skeleton لطيف.
+- ✅ **🧠 Long-Term Memory (basic)**: عند كل ردّ يحتوي card، يُحفظ `last_customer` / `last_vehicle` / `last_invoice` / `last_operation` / `last_supplier` / `last_part` في `shared_memory`. يُكشف عبر `GET /api/assistant/memory/{sid}` — جاهز لسؤال "اعرض العميل السابق" في الجولة القادمة.
+- ✅ **🔍 Card Actions** — chips تحت كل بطاقة: `navigate` يستدعي react-router-dom، `tool` يعيد إرسال سؤال البحث، `deferred` يُعرض معطّلاً مع tooltip "متاح في Phase 3X".
+- ✅ **🧪 Regression**: 25/25 ✅ (10 bot tools + 5 DDD + 10 Phase 3A).
+- 🔬 **Verified E2E**:
+  * SSE events: thinking → tools → tool:success → rendering → done (all 5 fired live)
+  * 5 CustomerCards rendered with phone/balance/visits + 3 action chips each
+  * OperationCards rendered with partner name + amount + payment status + date + 2 actions
+  * Dashboard empty-state shows 8 skeleton tiles → populates with KPIs
+
+**Pending for Round 2:**
+- 7 cards باقية (Visit/Payment/Approval/Audit/WhatsApp/Report/Finding)
+- Entity Resolution (regex/NLP عربي → cards بدل نص فقط)
+- Natural Language Search ("أكثر العملاء مديونية"، "الفواتير المتأخرة")
+- Long-term memory: postgres-backed (weekly/monthly rollups)
+- Dialect support (قصيمي/يمني) في system prompt
+- Action Runtime + Approval (Phase 3C — جلسة مستقلة)
+
+### Session 9 (Feb 12) — Ollama Local LLM + Model Selector
 - ✅ **🦙 Ollama installed (ARM64 binary)**: `/usr/local/bin/ollama` v0.30.4, supervisor-managed (`/etc/supervisor/conf.d/ollama.conf`), bound to `127.0.0.1:11434`.
 - ✅ **Model pulled**: `llama3.2:3b` (2.0 GB, Arabic-capable). First query latency ~5-10s, sustained ~9 tok/s.
 - ✅ **`core/llm_helpers.py`**: new abstraction with `is_ollama_alive()`, `ollama_list_models()`, `call_ollama()` — uses `OLLAMA_HOST` / `OLLAMA_DEFAULT_MODEL` env (with sensible defaults), full system+history+user message support.

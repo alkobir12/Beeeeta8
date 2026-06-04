@@ -4,6 +4,21 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLocation } from 'react-router-dom';
 import { useAssistant } from './AssistantProvider';
+import { AssistantCard } from './AssistantCard';
+import { AssistantDashboard } from './AssistantDashboard';
+
+// 📱 Detect mobile breakpoint reactively
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() => {
+    try { return window.innerWidth < breakpoint; } catch (e) { return false; }
+  });
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [breakpoint]);
+  return isMobile;
+}
 
 /**
  * 🤖 UnifiedAssistantDrawer — مساعد عائم موحّد (drawer من اليسار/يمين).
@@ -67,7 +82,7 @@ const MD_COMPONENTS = {
 export const UnifiedAssistantDrawer = () => {
   const {
     open, setOpen,
-    messages, busy, activeAgent,
+    messages, busy, activeAgent, streamingPhase,
     alerts, stats,
     model, setModel, availableModels,
     sendMessage, resetSession,
@@ -113,6 +128,22 @@ export const UnifiedAssistantDrawer = () => {
 
   const criticalCount = (alerts || []).filter((a) => a.severity === 'critical').length;
   const agentMeta = activeAgent ? AGENT_LABELS[activeAgent] : null;
+  const isMobile = useIsMobile();
+
+  // Helper: dispatch a "tool" action chip → re-trigger the assistant with the tool's intent.
+  const handleCardAction = (action /*, card */) => {
+    if (action?.intent === 'navigate') {
+      // close drawer on navigation so user sees the target page (mobile especially)
+      if (isMobile) setOpen(false);
+      return;
+    }
+    if (action?.intent === 'tool' && action?.tool) {
+      const queryHint = action.args?.query;
+      const phrase = queryHint ? `ابحث عن ${queryHint}` : `شغّل ${action.label || action.tool}`;
+      setInput('');
+      sendMessage(phrase);
+    }
+  };
 
   // FAB (Floating Action Button)
   if (!open) {
@@ -142,9 +173,20 @@ export const UnifiedAssistantDrawer = () => {
   return (
     <div
       data-testid="unified-assistant-drawer"
-      className="fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-[80] w-full sm:w-[420px] h-[85vh] sm:h-[640px] bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl border-2 border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden"
+      className={
+        isMobile
+          ? 'fixed bottom-0 inset-x-0 z-[80] w-full bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl border-t-2 border-x border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden'
+          : 'fixed bottom-6 right-6 z-[80] w-[420px] h-[640px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border-2 border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden'
+      }
+      style={isMobile ? { height: '95vh', paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}
       dir="rtl"
     >
+      {/* Mobile drag handle */}
+      {isMobile && (
+        <div className="flex justify-center py-2" data-testid="assistant-mobile-handle">
+          <div className="w-10 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
+        </div>
+      )}
       {/* Header */}
       <div className={`bg-gradient-to-r ${agentMeta?.color || 'from-indigo-600 to-purple-700'} text-white px-4 py-3 flex items-center justify-between`}>
         <div className="flex items-center gap-2 min-w-0">
@@ -241,10 +283,11 @@ export const UnifiedAssistantDrawer = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50 dark:bg-slate-950" data-testid="assistant-messages">
         {messages.length === 0 ? (
-          <div className="text-center py-6">
-            <Bot className="mx-auto mb-2 text-indigo-500" size={36} />
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">مرحباً! كيف أساعدك اليوم؟</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">جرّب أحد الاقتراحات:</p>
+          <div className="text-center py-3">
+            <Bot className="mx-auto mb-2 text-indigo-500" size={32} />
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">مرحباً! كيف أساعدك اليوم؟</p>
+            <AssistantDashboard onAskMore={(p) => sendMessage(`تفاصيل ${p.label}`)} />
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-3 mb-1.5">أو جرّب:</p>
             <div className="flex flex-wrap gap-1.5 justify-center">
               {pageSuggestions.map((s, i) => (
                 <button
@@ -260,22 +303,23 @@ export const UnifiedAssistantDrawer = () => {
           </div>
         ) : (
           messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`} data-testid={`assistant-msg-${i}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words ${
-                m.role === 'user'
-                  ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
-                  : m.meta?.error
-                  ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100 border border-rose-300 dark:border-rose-700 rounded-bl-sm whitespace-pre-wrap'
-                  : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-bl-sm'
-              }`}>
-                {m.role === 'assistant' && !m.meta?.error ? (
-                  <div data-testid={`assistant-msg-body-${i}`} className="assistant-md text-[13px]">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
-                      {m.content || ''}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  m.content
+            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} flex-col`} data-testid={`assistant-msg-${i}`}>
+              <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words ${
+                  m.role === 'user'
+                    ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
+                    : m.meta?.error
+                    ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100 border border-rose-300 dark:border-rose-700 rounded-bl-sm whitespace-pre-wrap'
+                    : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-bl-sm'
+                }`}>
+                  {m.role === 'assistant' && !m.meta?.error ? (
+                    <div data-testid={`assistant-msg-body-${i}`} className="assistant-md text-[13px]">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                        {m.content || ''}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    m.content
                 )}
                 {m.role === 'assistant' && m.meta?.agent && (
                   <div className="text-[9px] mt-1 opacity-70 flex gap-1 items-center">
@@ -288,13 +332,23 @@ export const UnifiedAssistantDrawer = () => {
                   </div>
                 )}
               </div>
+              </div>
+              {/* 🎴 Cards rendered just below the assistant bubble (Phase 3B) */}
+              {m.role === 'assistant' && Array.isArray(m.meta?.cards) && m.meta.cards.length > 0 && (
+                <div className="w-full mt-1.5 space-y-1.5" data-testid={`assistant-msg-cards-${i}`}>
+                  {m.meta.cards.map((c, j) => (
+                    <AssistantCard key={`${c.type}-${c.id}-${j}`} card={c} onAction={handleCardAction} />
+                  ))}
+                </div>
+              )}
             </div>
           ))
         )}
         {busy && (
           <div className="flex justify-start" data-testid="assistant-typing">
             <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl rounded-bl-sm px-3 py-2 text-sm">
-              <RefreshCw className="inline animate-spin ml-1" size={12} /> يفكّر...
+              <RefreshCw className="inline animate-spin ml-1" size={12} />
+              <span data-testid="assistant-typing-phase">{streamingPhase || 'يفكّر...'}</span>
             </div>
           </div>
         )}
