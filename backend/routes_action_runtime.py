@@ -300,3 +300,94 @@ async def runtime_alias_report():
         "mode": "summary",
         **s,
     }
+
+
+# ============================================================================
+# 🧠 Phase 3C.3 — LLM Intent Parser (text → Action → draft+approval)
+# ============================================================================
+
+
+@router.post("/intent/parse")
+async def runtime_parse_intent(payload: Dict[str, Any] = Body(...)):
+    """POST /api/runtime/intent/parse
+
+    Body: {"text": "...", "session_id": "..."}
+    Uses Emergent LLM (gpt-4o-mini) to extract a strict Action JSON. Does NOT
+    create a draft — pure parsing. Useful for "preview" UX.
+    """
+    from core.llm_intent_parser import parse_intent_with_llm
+    text = (payload.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text required")
+    action = await parse_intent_with_llm(text, session_id=payload.get("session_id"))
+    return {"success": True, "data": action.model_dump()}
+
+
+@router.post("/intent/execute")
+async def runtime_execute_intent(payload: Dict[str, Any] = Body(...)):
+    """POST /api/runtime/intent/execute
+
+    Pipeline: text → LLM-parsed Action → register as Action Runtime draft →
+    auto request_approval → return {draft, approval, action} so the caller
+    can continue with /approve → /commit.
+
+    Read-only intents (`get_active_visits`) short-circuit and return live data
+    without creating a draft.
+    """
+    from core.llm_intent_parser import parse_intent_with_llm
+    text = (payload.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text required")
+    proposer = payload.get("proposer") or "bot_tester"
+
+    action = await parse_intent_with_llm(text, session_id=payload.get("session_id"))
+    action_name = action.action
+
+    # ── Read-only path: get_active_visits — never a draft ──
+    if action_name == "get_active_visits":
+        return {
+            "success": True,
+            "data": {
+                "action": action.model_dump(),
+                "mode": "read_only",
+                "result": action_runtime.get_active_visits(limit=int(payload.get("limit") or 50)),
+            },
+        }
+
+    # ── Map LLM action_name → runtime action token ──
+    runtime_action = {
+        "create_customer": "customer",
+        "create_vehicle": "vehicle",
+        "create_visit": "visit",
+        "close_visits": "close_visits",
+    }.get(action_name)
+
+    if not runtime_action:
+        return {
+            "success": False,
+            "data": {"action": action.model_dump(), "mode": "unknown", "hint": "could_not_parse_intent"},
+        }
+
+    # Register as a draft + auto request_approval
+    draft = action_runtime.create_draft(
+        action=runtime_action,
+        payload=action.payload,
+        proposer=proposer,
+        session_id=payload.get("session_id"),
+    )
+    approval = action_runtime.request_approval(draft_id=draft["id"], requester=proposer)
+    return {
+        "success": True,
+        "data": {
+            "action": action.model_dump(),
+            "mode": "draft",
+            "draft": draft,
+            "approval": approval,
+        },
+    }
+
+
+@router.get("/visits/active")
+async def runtime_get_active_visits(limit: int = Query(default=50, le=200)):
+    """Read-only — current active visits (vehicles with status != مُسلَّمة)."""
+    return {"success": True, "data": action_runtime.get_active_visits(limit=limit)}

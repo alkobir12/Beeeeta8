@@ -68,7 +68,7 @@ STATE: Dict[str, Dict[str, Any]] = {
 # 2) State machine constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-VALID_ACTIONS = {"customer", "vehicle", "visit"}
+VALID_ACTIONS = {"customer", "vehicle", "visit", "close_visits"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -374,6 +374,53 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
         if action not in VALID_ACTIONS:
             return {"error": "unknown_action", "action": action}
 
+        # ── close_visits is a bulk update, not a per-row upsert ──
+        if action == "close_visits":
+            try:
+                client = _supabase_client()
+                closed_ids = []
+                closed_statuses = ["مُسلَّمة", "مسلمة", "delivered", "closed", "مكتملة", "archived", "مؤرشف"]
+                if client:
+                    # In this schema we treat "active visit" = vehicle whose
+                    # status is NOT in the closed set. Closing flips → target_status.
+                    open_status = (payload.get("from_status") or None)
+                    target_status = (payload.get("to_status") or "delivered")
+                    q = client.table("vehicles").select("id, status")
+                    if open_status:
+                        q = q.eq("status", open_status)
+                    else:
+                        q = q.not_.in_("status", closed_statuses)
+                    open_rows = q.execute().data or []
+                    for row in open_rows[: int(payload.get("limit") or 50)]:
+                        client.table("vehicles").update(
+                            {"status": target_status}
+                        ).eq("id", row["id"]).execute()
+                        closed_ids.append(row["id"])
+                # Also mark anything in the staging visits dict as "closed"
+                for vid, v in list(DB.get("visits", {}).items()):
+                    if v.get("status") != "closed":
+                        v["status"] = "closed"
+                        v["closed_at"] = time.time()
+                        closed_ids.append(vid)
+
+                execution_id = uuid.uuid4().hex[:12]
+                STATE["executions"][execution_id] = {
+                    "id": execution_id,
+                    "draft_id": draft_id,
+                    "result": {"closed_ids": closed_ids, "count": len(closed_ids)},
+                    "status": "executed",
+                    "committer": committer or "anonymous",
+                    "committed_at": time.time(),
+                }
+                draft["status"] = "committed"
+                draft["execution_id"] = execution_id
+                _audit("COMMIT_BULK_CLOSE", draft_id=draft_id, execution_id=execution_id,
+                       count=len(closed_ids), committer=committer)
+                return {"execution_id": execution_id, "result": {"closed_ids": closed_ids, "count": len(closed_ids)}}
+            except Exception as e:
+                _log.exception("close_visits commit failed: %s", redact(str(e), max_len=120))
+                return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
+
         # Map action → table
         table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}[action]
         try:
@@ -464,6 +511,32 @@ def list_executions(status: Optional[str] = None, limit: int = 50) -> List[Dict[
 def get_audit_trail(limit: int = 100) -> List[Dict[str, Any]]:
     with _LOCK:
         return list(STATE["audit"][-limit:])
+
+
+def get_active_visits(limit: int = 50) -> List[Dict[str, Any]]:
+    """Read-only — returns vehicles whose status is NOT in the 'delivered'
+    set (Arabic + English variants) as 'active visits'.
+
+    This mirrors the L16 spec's `get_active_visits` action. NO write, NO
+    approval required — pure query.
+    """
+    client = _supabase_client()
+    rows: List[Dict[str, Any]] = []
+    # Statuses that mean "closed / delivered" — exclude these
+    closed_statuses = ["مُسلَّمة", "مسلمة", "delivered", "closed", "مكتملة", "archived", "مؤرشف"]
+    if client:
+        try:
+            res = client.table("vehicles").select(
+                "id, plate_number, status, customer_name, brand, model"
+            ).not_.in_("status", closed_statuses).limit(limit).execute()
+            rows = list(res.data or [])
+        except Exception as e:
+            _log.debug("get_active_visits supabase miss: %s", redact(str(e), max_len=80))
+    # Append staging visits dict too
+    for vid, v in DB.get("visits", {}).items():
+        if v.get("status") != "closed":
+            rows.append({**v, "id": vid, "_staging": True})
+    return rows[:limit]
 
 
 def stats() -> Dict[str, Any]:

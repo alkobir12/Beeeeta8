@@ -1,0 +1,189 @@
+"""
+🧠 LLM Intent Parser — Phase 3C.3
+
+Uses the Emergent LLM (gpt-4o-mini) to convert free-form Arabic text into a
+strict, validated Action JSON. The output is then routed through the existing
+Action Runtime so Four-Eyes / Approval / Audit still apply — i.e. the LLM
+proposes, the human disposes.
+
+⚠️  This module NEVER writes to the DB directly. Every parsed action is
+returned as a Pydantic `Action` plus a draft id (created via action_runtime).
+Phase 3C state machine still owns commits.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+from typing import Any, Dict, Optional
+
+from pydantic import BaseModel, Field
+
+from core.log_utils import get_logger, redact
+
+_log = get_logger("llm_intent")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1) Pydantic schema — what the LLM is allowed to produce
+# ─────────────────────────────────────────────────────────────────────────────
+
+# The set of actions the LLM can route through the runtime. NEW actions must
+# also be implemented inside core.action_runtime.commit() before being added
+# here — otherwise commits will return `unknown_action`.
+ALLOWED_ACTIONS = {
+    "create_customer",
+    "create_vehicle",
+    "create_visit",          # staging only (no visits table in Supabase yet)
+    "close_visits",          # bulk close — implemented as a vehicles status flip
+    "get_active_visits",     # read-only query, returns immediately
+}
+
+
+class Action(BaseModel):
+    action: str = Field(..., description="One of ALLOWED_ACTIONS or 'unknown'")
+    entity: Optional[str] = Field(default=None, description="Target entity name (informational)")
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2) Strict JSON system prompt
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+_SYSTEM_PROMPT = (
+    "أنت محرك تحليل النوايا لنظام ERP لورش السيارات. وظيفتك الوحيدة: "
+    "تحويل نصّ المستخدم العربي إلى كائن JSON واحد فقط بدون أي شرح أو ماركداون.\n\n"
+    "Actions المسموح بها:\n"
+    "  • create_customer  — payload: {name, phone, email?, address?, vehicle_plate?}\n"
+    "  • create_vehicle   — payload: {plate, brand?, model?, year?, customer_name?}\n"
+    "  • create_visit     — payload: {reason?, plate?}\n"
+    "  • close_visits     — payload: {} (يُغلق كل الزيارات النشطة)\n"
+    "  • get_active_visits — payload: {}\n\n"
+    "قواعد الإخراج:\n"
+    "  1. أرجع JSON واحد بدون ```\n"
+    "  2. الشكل المطلوب: {\"action\":\"...\", \"entity\":\"...\", \"payload\":{...}}\n"
+    "  3. لو غير واضح: action=\"unknown\" و payload={}\n"
+    "  4. لا تخترع حقولاً غير الموجودة في الـ payload المسموح به أعلاه.\n"
+    "  5. الأسماء العربية تُحفظ كما هي (UTF-8).\n"
+    "  6. أرقام الهواتف بصيغة 05xxxxxxxx فقط.\n"
+)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3) JSON extraction — handles fenced ```json blocks and trailing prose
+# ─────────────────────────────────────────────────────────────────────────────
+
+_JSON_BLOCK_RE = re.compile(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", re.DOTALL)
+
+
+def _extract_json(text: str) -> Optional[Dict[str, Any]]:
+    """Pull the first balanced JSON object out of a string."""
+    if not text:
+        return None
+    s = text.strip()
+    # Strip markdown fences if the LLM ignored "no markdown"
+    s = re.sub(r"^```(?:json)?\s*|\s*```$", "", s, flags=re.IGNORECASE).strip()
+    # Try direct parse first
+    try:
+        return json.loads(s)
+    except Exception:
+        pass
+    # Greedy fallback — grab the first {...} that parses
+    for match in _JSON_BLOCK_RE.findall(s):
+        try:
+            return json.loads(match)
+        except Exception:
+            continue
+    return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4) Public API — async LLM call + validation
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def parse_intent_with_llm(text: str, *, session_id: Optional[str] = None) -> Action:
+    """Parse free-text into an Action using the Emergent LLM key.
+
+    Returns an Action(action="unknown", ...) when the LLM key is missing or
+    when the response is unparseable — the caller can then choose to fall
+    back to regex (`core.power_mode.detect_intent_kind`).
+    """
+    if not text or not text.strip():
+        return Action(action="unknown", payload={})
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        _log.info("EMERGENT_LLM_KEY missing — returning unknown intent")
+        return Action(action="unknown", payload={})
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    except Exception as e:
+        _log.warning("emergentintegrations import failed: %s", redact(str(e), max_len=80))
+        return Action(action="unknown", payload={})
+
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=session_id or "intent-parser",
+            system_message=_SYSTEM_PROMPT,
+        ).with_model("openai", "gpt-4o-mini")
+        msg = UserMessage(text=text.strip())
+        raw = await chat.send_message(msg)
+        raw = str(raw or "").strip()
+    except Exception as e:
+        _log.warning("LLM call failed: %s", redact(str(e), max_len=120))
+        return Action(action="unknown", payload={})
+
+    parsed = _extract_json(raw)
+    if not parsed:
+        _log.info("intent_parser: unparseable LLM output (%d chars)", len(raw))
+        return Action(action="unknown", payload={})
+
+    # Validate against allowed actions; downgrade to 'unknown' if disallowed
+    action_name = str(parsed.get("action") or "").strip()
+    if action_name not in ALLOWED_ACTIONS:
+        return Action(
+            action="unknown",
+            entity=parsed.get("entity"),
+            payload={"hint": "rejected_action", "raw": action_name},
+        )
+
+    return Action(
+        action=action_name,
+        entity=(parsed.get("entity") or None),
+        payload=dict(parsed.get("payload") or {}),
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5) Synchronous wrapper for tests / debugging
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def parse_intent_sync(text: str, llm_client) -> Action:
+    """Synchronous variant — accepts a pluggable llm_client (callable str→str).
+
+    Used by tests so we don't have to spin up Emergent for unit testing.
+    """
+    if not text or not text.strip():
+        return Action(action="unknown")
+    try:
+        raw = llm_client(text.strip())
+    except Exception as e:
+        _log.warning("sync llm_client failed: %s", redact(str(e), max_len=80))
+        return Action(action="unknown")
+    parsed = _extract_json(str(raw or ""))
+    if not parsed:
+        return Action(action="unknown")
+    action_name = str(parsed.get("action") or "").strip()
+    if action_name not in ALLOWED_ACTIONS:
+        return Action(action="unknown", entity=parsed.get("entity"),
+                      payload={"hint": "rejected_action", "raw": action_name})
+    return Action(
+        action=action_name,
+        entity=parsed.get("entity") or None,
+        payload=dict(parsed.get("payload") or {}),
+    )
