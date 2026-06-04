@@ -98,38 +98,137 @@ def _audit(event: str, **kwargs) -> Dict[str, Any]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4) DB / entity helpers (the "real" write layer — staging)
+# 4) DB / entity helpers — pluggable: Supabase (real) ↔ in-memory (staging fallback)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def resolve_entity(table: str, field: str, value: str) -> Optional[Dict[str, Any]]:
-    """Return the first row in `table` whose `field` matches `value`."""
-    if table not in DB:
+def _supabase_client():
+    """Lazy-load the SupabaseService client. Returns None if unavailable."""
+    try:
+        from supabase_service import SupabaseService
+        svc = SupabaseService()
+        if svc.client is None:
+            return None
+        return svc.client
+    except Exception as e:
+        _log.warning("supabase client init failed: %s", redact(str(e), max_len=80))
         return None
-    for _id, item in DB[table].items():
-        if str(item.get(field, "")).lower() == str(value or "").lower():
-            return item
+
+
+def _payload_to_customers_row(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Map a Power Mode draft payload to the Supabase `customers` schema."""
+    return {
+        "name": (data.get("name") or data.get("raw") or "بدون اسم")[:120],
+        "phone": (data.get("phone") or "")[:32],
+        "email": data.get("email") or None,
+        "address": (data.get("address") or "")[:255] or None,
+        "vehicle_plate": data.get("plate") or None,
+    }
+
+
+def _payload_to_vehicles_row(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Map a draft payload to the Supabase `vehicles` schema."""
+    return {
+        "plate_number": (data.get("plate") or "")[:32],
+        "brand": data.get("brand") or None,
+        "model": data.get("model") or None,
+        "year": int(data.get("year")) if str(data.get("year") or "").isdigit() else None,
+        "status": data.get("status") or "تشخيص",
+        "customer_name": data.get("name") or data.get("customer_name") or None,
+        "customer_phone": data.get("phone") or None,
+    }
+
+
+def resolve_entity(table: str, field: str, value: str) -> Optional[Dict[str, Any]]:
+    """Return the first row in `table` whose `field` matches `value`.
+
+    Tries Supabase first; falls back to the staging dict.
+    """
+    if not value:
+        return None
+    client = _supabase_client()
+    if client and table in ("customers", "vehicles"):
+        try:
+            res = client.table(table).select("*").eq(field, value).limit(1).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            _log.debug("resolve_entity supabase miss: %s", redact(str(e), max_len=80))
+    if table in DB:
+        for _id, item in DB[table].items():
+            if str(item.get(field, "")).lower() == str(value).lower():
+                return item
     return None
 
 
 def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Create or update an entity in the staging DB layer."""
+    """Insert or update an entity. Routes:
+
+      • customers / vehicles → Supabase (REAL write)
+      • visits / unknown     → in-memory staging dict
+    """
     if table not in DB:
         raise ValueError(f"unknown_table:{table}")
-    # If an existing record matches by `id`, update it; else create.
+    client = _supabase_client()
+
+    # ── Real Supabase write for customers ──
+    if client and table == "customers":
+        row = _payload_to_customers_row(data)
+        try:
+            res = client.table("customers").insert(row).execute()
+            if res.data:
+                created = res.data[0]
+                # Mirror into staging dict for quick lookups + rollback
+                DB[table][created["id"]] = created
+                _audit("DB_WRITE_SUPABASE", table=table, entity_id=created.get("id"))
+                return created
+        except Exception as e:
+            _log.exception("supabase customers insert failed: %s", redact(str(e), max_len=120))
+            # Fall through to staging so the draft still completes
+            _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
+
+    # ── Real Supabase write for vehicles ──
+    if client and table == "vehicles":
+        row = _payload_to_vehicles_row(data)
+        try:
+            res = client.table("vehicles").insert(row).execute()
+            if res.data:
+                created = res.data[0]
+                DB[table][created["id"]] = created
+                _audit("DB_WRITE_SUPABASE", table=table, entity_id=created.get("id"))
+                return created
+        except Exception as e:
+            _log.exception("supabase vehicles insert failed: %s", redact(str(e), max_len=120))
+            _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
+
+    # ── Staging fallback (visits or DB-unavailable) ──
     eid = data.get("id") or uuid.uuid4().hex
     existing = DB[table].get(eid)
     if existing:
         merged = {**existing, **data, "id": eid, "updated_at": time.time()}
         DB[table][eid] = merged
         return merged
-    entity = {
-        "id": eid,
-        **data,
-        "created_at": time.time(),
-    }
+    entity = {"id": eid, **data, "created_at": time.time(), "_staging": True}
     DB[table][eid] = entity
+    _audit("DB_WRITE_STAGING", table=table, entity_id=eid)
     return entity
+
+
+def _delete_entity(table: str, entity_id: str) -> bool:
+    """Best-effort delete used by rollback. Returns True if anything was removed."""
+    removed = False
+    client = _supabase_client()
+    if client and table in ("customers", "vehicles"):
+        try:
+            res = client.table(table).delete().eq("id", entity_id).execute()
+            if res.data:
+                removed = True
+        except Exception as e:
+            _log.warning("supabase delete failed for %s/%s: %s", table, entity_id, redact(str(e), max_len=80))
+    if table in DB and entity_id in DB[table]:
+        DB[table].pop(entity_id, None)
+        removed = True
+    return removed
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -316,9 +415,9 @@ def rollback(*, execution_id: str, rollbacker: Optional[str] = None) -> Dict[str
         if draft:
             table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}.get(draft["action"])
             entity_id = (exe.get("result") or {}).get("id")
-            if table and entity_id and entity_id in DB.get(table, {}):
-                # Best-effort delete from staging DB
-                DB[table].pop(entity_id, None)
+            if table and entity_id:
+                # Best-effort delete from both Supabase AND staging
+                _delete_entity(table, entity_id)
         exe["status"] = "rolled_back"
         exe["rolled_back_at"] = time.time()
         exe["rollbacker"] = rollbacker or "anonymous"
