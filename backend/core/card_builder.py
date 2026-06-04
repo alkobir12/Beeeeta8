@@ -218,6 +218,177 @@ def report_card(report: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 🆕 Phase 3C.5 — 7 new card types (Visit / Payment / Approval / Audit /
+#                                  WhatsApp / Report-detail / Finding)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def visit_card(visit: Dict[str, Any]) -> Dict[str, Any]:
+    """Visit = vehicle that is currently active (not delivered)."""
+    vid = visit.get("id") or "v"
+    return {
+        "type": "VisitCard",
+        "id": str(vid),
+        "title": f"زيارة — {visit.get('plate_number') or visit.get('plate') or '?'}",
+        "data": {
+            "plate": visit.get("plate_number") or visit.get("plate"),
+            "status": visit.get("status"),
+            "customer_name": visit.get("customer_name"),
+            "brand": visit.get("brand"),
+            "model": visit.get("model"),
+            "entry_date": visit.get("entry_date"),
+        },
+        "actions": [
+            {"id": "open", "label": "فتح", "intent": "navigate", "target": f"/vehicles/{vid}"},
+            {"id": "close", "label": "إغلاق الزيارة", "intent": "runtime",
+             "endpoint": "/api/runtime/execute", "method": "POST",
+             "body": {"text": f"أغلق الزيارة {vid}"}},
+        ],
+    }
+
+
+def payment_card(payment: Dict[str, Any]) -> Dict[str, Any]:
+    """Payment = a single ledger movement (سند قبض/صرف)."""
+    pid = payment.get("id") or "p"
+    direction = (payment.get("direction") or payment.get("type") or "").lower()
+    return {
+        "type": "PaymentCard",
+        "id": str(pid),
+        "title": f"{'سند قبض' if direction in ('in','receipt','collection') else 'سند صرف'} — {_sar(payment.get('amount'))}",
+        "data": {
+            "amount": payment.get("amount"),
+            "amount_formatted": _sar(payment.get("amount")),
+            "direction": direction,
+            "party": payment.get("party_name") or payment.get("customer_name") or payment.get("supplier_name"),
+            "date": payment.get("date") or payment.get("created_at"),
+            "method": payment.get("method"),
+            "reference": payment.get("reference"),
+        },
+        "actions": [
+            {"id": "open", "label": "عرض", "intent": "navigate", "target": f"/operations/{pid}"},
+        ],
+    }
+
+
+def approval_card(approval: Dict[str, Any]) -> Dict[str, Any]:
+    """Approval = a runtime approval awaiting (or having received) a decision."""
+    aid = approval.get("id") or approval.get("approval_id") or "a"
+    status = approval.get("status") or "pending"
+    return {
+        "type": "ApprovalCard",
+        "id": str(aid),
+        "title": f"موافقة — {status}",
+        "status": status,
+        "data": {
+            "approval_id": aid,
+            "draft_id": approval.get("draft_id"),
+            "status": status,
+            "requester": approval.get("requester"),
+            "approver": approval.get("approver"),
+            "created_at": approval.get("created_at"),
+        },
+        "actions": [
+            {"id": "approve", "label": "اعتماد", "intent": "runtime",
+             "endpoint": f"/api/runtime/approvals/{aid}/approve", "method": "POST",
+             "disabled_when": ["approved", "rejected"]},
+            {"id": "reject", "label": "رفض", "intent": "runtime",
+             "endpoint": f"/api/runtime/approvals/{aid}/reject", "method": "POST",
+             "disabled_when": ["approved", "rejected"]},
+            {"id": "view_audit", "label": "تدقيق", "intent": "runtime",
+             "endpoint": "/api/runtime/audit", "method": "GET"},
+        ],
+    }
+
+
+def audit_card(audit_event: Dict[str, Any]) -> Dict[str, Any]:
+    """Audit event = one row from the audit trail."""
+    return {
+        "type": "AuditCard",
+        "id": f"audit-{int((audit_event.get('ts') or 0) * 1000)}",
+        "title": f"📜 {audit_event.get('event') or 'AUDIT'}",
+        "data": {
+            "event": audit_event.get("event"),
+            "ts": audit_event.get("ts"),
+            "draft_id": audit_event.get("draft_id"),
+            "execution_id": audit_event.get("execution_id"),
+            "approval_id": audit_event.get("approval_id"),
+            "approver": audit_event.get("approver"),
+            "proposer": audit_event.get("proposer"),
+            "table": audit_event.get("table"),
+            "entity_id": audit_event.get("entity_id"),
+        },
+        "actions": [],
+    }
+
+
+def whatsapp_card(message: Dict[str, Any]) -> Dict[str, Any]:
+    """WhatsApp message = preview of an outbound (or MOCKED) WhatsApp send."""
+    return {
+        "type": "WhatsAppCard",
+        "id": message.get("id") or "wa",
+        "title": f"📲 واتساب — {message.get('to') or 'غير محدد'}",
+        "status": message.get("status") or "queued",
+        "data": {
+            "to": message.get("to"),
+            "message": (message.get("message") or "")[:280],
+            "status": message.get("status"),
+            "channel": message.get("channel") or "whatsapp",
+            "provider": message.get("provider") or "infobip",
+            "sent_at": message.get("sent_at") or message.get("ts"),
+        },
+        "actions": [
+            {"id": "view", "label": "تفاصيل", "intent": "navigate", "target": "/notifications"},
+        ],
+    }
+
+
+def finding_card(finding: Dict[str, Any]) -> Dict[str, Any]:
+    """Finding = a single issue surfaced by the AI Auditor / Firewall."""
+    severity = (finding.get("severity") or "info").lower()
+    return {
+        "type": "FindingCard",
+        "id": finding.get("id") or f"f-{severity}",
+        "title": f"⚠️ {finding.get('title') or 'مشكلة'}",
+        "data": {
+            "severity": severity,
+            "title": finding.get("title"),
+            "detail": finding.get("detail") or finding.get("description"),
+            "entity_type": finding.get("entity_type"),
+            "entity_id": finding.get("entity_id"),
+            "suggested_action": finding.get("suggested_action"),
+            "discovered_at": finding.get("discovered_at") or finding.get("ts"),
+        },
+        "actions": (
+            [{"id": "view", "label": "فتح", "intent": "navigate",
+              "target": finding.get("link") or "/accounting/firewall"}]
+            if finding.get("link") or True else []
+        ),
+    }
+
+
+def detailed_report_card(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Rich version of report_card — for assistant-driven analyses."""
+    rows = report.get("rows") or []
+    return {
+        "type": "ReportDetailCard",
+        "id": report.get("id") or report.get("title") or "report-detail",
+        "title": report.get("title") or "تقرير تفصيلي",
+        "data": {
+            "title": report.get("title"),
+            "summary": report.get("summary"),
+            "rows": rows[:10],
+            "total_rows": len(rows),
+            "kpis": report.get("kpis") or [],
+            "period": report.get("period"),
+        },
+        "actions": [
+            {"id": "open", "label": "تقرير كامل", "intent": "navigate",
+             "target": report.get("link") or "/reports"},
+        ],
+    }
+
+
 # ---------- High-level helpers used by tool handlers ----------
 
 def cards_from_customers(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
@@ -244,3 +415,24 @@ def cards_from_parts(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[st
 
 def cards_from_suppliers(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
     return [supplier_card(r) for r in (rows or [])[:limit]]
+
+
+# 🆕 Phase 3C.5 — bulk helpers for the new card types
+def cards_from_visits(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    return [visit_card(r) for r in (rows or [])[:limit]]
+
+
+def cards_from_payments(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    return [payment_card(r) for r in (rows or [])[:limit]]
+
+
+def cards_from_approvals(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    return [approval_card(r) for r in (rows or [])[:limit]]
+
+
+def cards_from_audit(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    return [audit_card(r) for r in (rows or [])[:limit]]
+
+
+def cards_from_findings(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    return [finding_card(r) for r in (rows or [])[:limit]]

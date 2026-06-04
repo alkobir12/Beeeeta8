@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, FileText, Send, Car, Wrench, Package, AlertTriangle, ExternalLink, Building2, User, Receipt, Sparkles, ClipboardList } from 'lucide-react';
+import { Phone, FileText, Send, Car, Wrench, Package, AlertTriangle, ExternalLink, Building2, User, Receipt, Sparkles, ClipboardList, CalendarCheck, BadgeCheck, ShieldCheck, History, MessageCircle, BarChart3, Bug } from 'lucide-react';
 
 /**
  * 🎴 AssistantCard — renderer for interactive ERP cards embedded inside chat.
@@ -10,10 +10,11 @@ import { Phone, FileText, Send, Car, Wrench, Package, AlertTriangle, ExternalLin
  * card. Each action chip dispatches based on its `intent`:
  *   • navigate  → react-router push
  *   • tool      → re-trigger an assistant tool (read-only)
+ *   • runtime   → POST to /api/runtime/* (Phase 3C)
  *   • deferred  → display as disabled with a "Phase 3X" hint
  *
- * 🆕 Phase 3B Round 2: cards whose type ends with "DraftCard" are rendered
- * in a distinct "draft" style (dashed border + amber gradient + "مسوّدة" badge).
+ * 🆕 Phase 3B Round 2: DraftCard styling (dashed border + amber gradient).
+ * 🆕 Phase 3C.5:       7 new card types (Visit/Payment/Approval/Audit/WhatsApp/ReportDetail/Finding).
  */
 
 const TYPE_META = {
@@ -23,7 +24,15 @@ const TYPE_META = {
   OperationCard: { Icon: Wrench, color: 'from-slate-600 to-zinc-600', tone: 'border-slate-300 dark:border-slate-700' },
   SupplierCard: { Icon: Building2, color: 'from-fuchsia-600 to-purple-600', tone: 'border-fuchsia-300 dark:border-fuchsia-700' },
   InventoryCard: { Icon: Package, color: 'from-cyan-600 to-sky-600', tone: 'border-cyan-300 dark:border-cyan-700' },
-  AuditCard: { Icon: AlertTriangle, color: 'from-rose-600 to-red-600', tone: 'border-rose-300 dark:border-rose-700' },
+  AuditCard: { Icon: History, color: 'from-slate-500 to-stone-600', tone: 'border-slate-300 dark:border-slate-700' },
+  // 🆕 Phase 3C.5
+  VisitCard: { Icon: CalendarCheck, color: 'from-teal-600 to-cyan-600', tone: 'border-teal-300 dark:border-teal-700' },
+  PaymentCard: { Icon: Receipt, color: 'from-emerald-600 to-green-600', tone: 'border-emerald-300 dark:border-emerald-700' },
+  ApprovalCard: { Icon: BadgeCheck, color: 'from-violet-600 to-purple-600', tone: 'border-violet-300 dark:border-violet-700' },
+  WhatsAppCard: { Icon: MessageCircle, color: 'from-green-600 to-emerald-600', tone: 'border-green-300 dark:border-green-700' },
+  ReportDetailCard: { Icon: BarChart3, color: 'from-blue-600 to-indigo-600', tone: 'border-blue-300 dark:border-blue-700' },
+  FindingCard: { Icon: Bug, color: 'from-rose-600 to-red-600', tone: 'border-rose-300 dark:border-rose-700' },
+  ReportCard: { Icon: BarChart3, color: 'from-blue-500 to-indigo-500', tone: 'border-blue-200 dark:border-blue-700' },
 };
 
 // 🆕 Round 2 — Draft card styling per intent kind
@@ -50,6 +59,22 @@ const STATUS_LABEL = {
   open: 'مفتوحة',
   closed: 'مغلقة',
   in_progress: 'قيد العمل',
+  // 🆕 Phase 3C.5
+  approved: 'مُعتمدة',
+  rejected: 'مرفوضة',
+  rolled_back: 'مُلغاة',
+  committed: 'مُنفّذة',
+  sent: 'مُرسلة',
+  failed: 'فشلت',
+  queued: 'في الطابور',
+  MOCKED: 'محاكاة',
+  critical: '🔴 حرجة',
+  warning: '🟡 تنبيه',
+  info: '🔵 معلومة',
+  diagnosis: 'تشخيص',
+  repair: 'تحت الإصلاح',
+  ready: 'جاهزة للتسليم',
+  archived: 'مؤرشفة',
 };
 
 function chipClass(intent, disabled) {
@@ -128,6 +153,83 @@ function renderFields(card) {
           {d.category && <Row label="التصنيف" value={d.category} />}
         </>
       );
+    // 🆕 Phase 3C.5 — 7 new card renderers
+    case 'VisitCard':
+      return (
+        <>
+          {d.customer_name && <Row label="العميل" value={d.customer_name} />}
+          {d.plate && <Row label="اللوحة" value={d.plate} />}
+          {d.status && <Row label="الحالة" value={STATUS_LABEL[d.status] || d.status} highlight="teal" />}
+          {d.brand && <Row label="الماركة" value={`${d.brand}${d.model ? ' ' + d.model : ''}`} />}
+          {d.entry_date && <Row label="تاريخ الدخول" value={String(d.entry_date).slice(0, 10)} />}
+        </>
+      );
+    case 'PaymentCard':
+      return (
+        <>
+          {d.party && <Row label="الطرف" value={d.party} />}
+          {d.amount_formatted && <Row label="المبلغ" value={d.amount_formatted} highlight={d.direction === 'in' ? 'emerald' : 'rose'} />}
+          {d.method && <Row label="الطريقة" value={d.method} />}
+          {d.reference && <Row label="مرجع" value={d.reference} />}
+          {d.date && <Row label="التاريخ" value={String(d.date).slice(0, 10)} />}
+        </>
+      );
+    case 'ApprovalCard':
+      return (
+        <>
+          {d.status && <Row label="الحالة" value={STATUS_LABEL[d.status] || d.status} highlight={d.status === 'approved' ? 'emerald' : d.status === 'rejected' ? 'rose' : 'indigo'} />}
+          {d.requester && <Row label="مقدّم الطلب" value={d.requester} />}
+          {d.approver && <Row label="المعتمد" value={d.approver} />}
+          {d.draft_id && <Row label="مسوّدة" value={String(d.draft_id).slice(0, 12)} />}
+        </>
+      );
+    case 'AuditCard':
+      return (
+        <>
+          {d.event && <Row label="حدث" value={d.event} highlight="indigo" />}
+          {d.proposer && <Row label="المُنشئ" value={d.proposer} />}
+          {d.approver && <Row label="المعتمد" value={d.approver} />}
+          {d.table && <Row label="الجدول" value={d.table} />}
+          {d.draft_id && <Row label="مسوّدة" value={String(d.draft_id).slice(0, 10)} />}
+        </>
+      );
+    case 'WhatsAppCard':
+      return (
+        <>
+          {d.to && <Row label="إلى" value={d.to} />}
+          {d.message && <Row label="نص" value={String(d.message).slice(0, 80)} />}
+          {d.status && <Row label="الحالة" value={STATUS_LABEL[d.status] || d.status} highlight={d.status === 'sent' ? 'emerald' : d.status === 'failed' ? 'rose' : 'amber'} />}
+          {d.provider && <Row label="المزوّد" value={d.provider} />}
+        </>
+      );
+    case 'ReportDetailCard':
+      return (
+        <>
+          {d.summary && <Row label="خلاصة" value={d.summary} />}
+          {d.period && <Row label="الفترة" value={d.period} />}
+          {typeof d.total_rows === 'number' && <Row label="عدد" value={`${d.total_rows} سطر`} highlight="indigo" />}
+          {Array.isArray(d.kpis) && d.kpis.slice(0, 3).map((k, i) => (
+            <Row key={i} label={k.label || k.name} value={k.value_formatted || k.value} highlight="emerald" />
+          ))}
+        </>
+      );
+    case 'FindingCard':
+      return (
+        <>
+          {d.severity && <Row label="الخطورة" value={STATUS_LABEL[d.severity] || d.severity} highlight={d.severity === 'critical' ? 'rose' : d.severity === 'warning' ? 'amber' : 'indigo'} />}
+          {d.detail && <Row label="التفاصيل" value={String(d.detail).slice(0, 100)} />}
+          {d.entity_type && <Row label="النوع" value={d.entity_type} />}
+          {d.suggested_action && <Row label="مقترح" value={String(d.suggested_action).slice(0, 80)} highlight="emerald" />}
+        </>
+      );
+    case 'ReportCard':
+      return (
+        <>
+          {Object.entries(d).filter(([k]) => !['id', 'title'].includes(k)).slice(0, 4).map(([k, v]) => (
+            <Row key={k} label={k} value={typeof v === 'object' ? JSON.stringify(v).slice(0, 30) : String(v).slice(0, 50)} />
+          ))}
+        </>
+      );
     default:
       // 🆕 Round 2 — Draft cards (e.g. CustomerDraftCard, VehicleDraftCard, ...)
       if (typeof t === 'string' && t.endsWith('DraftCard')) {
@@ -156,6 +258,8 @@ function Row({ label, value, highlight = 'slate' }) {
     indigo: 'text-indigo-600 dark:text-indigo-300 font-bold',
     emerald: 'text-emerald-600 dark:text-emerald-300 font-bold',
     rose: 'text-rose-600 dark:text-rose-300 font-bold',
+    teal: 'text-teal-600 dark:text-teal-300 font-bold',
+    amber: 'text-amber-600 dark:text-amber-300 font-bold',
   };
   return (
     <div className="flex justify-between items-center gap-2 text-[11px]">

@@ -460,6 +460,201 @@ async def _firewall_operation_integrity(workshop_id: Optional[str] = None, limit
     }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 🆕 Phase 3C.5 — Natural Language Search + Approval / Audit / WhatsApp tools
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def _nl_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 5) -> Dict[str, Any]:
+    """🧠 Natural Language Search — يفهم استعلامات معقدة بالعربية ويُرجع البطاقات المناسبة.
+
+    أمثلة:
+      • "أكثر العملاء مديونية"          → top debtors → CustomerCards
+      • "الفواتير المتأخرة"            → overdue invoices → InvoiceCards
+      • "أقل المركبات نشاطاً"          → idle vehicles → VehicleCards
+      • "آخر العمليات الكبيرة"          → biggest recent ops → InvoiceCards
+    """
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    q = (query or "").strip()
+    # Arabic normalization: unify hamza alef variants, yeh, teh marbuta
+    qn = q
+    for src, dst in (("أ", "ا"), ("إ", "ا"), ("آ", "ا"), ("ى", "ي"), ("ة", "ه"), ("ؤ", "و"), ("ئ", "ي")):
+        qn = qn.replace(src, dst)
+
+    # 1) Top debtors
+    if any(k in qn for k in ("اكثر العملاء مديونيه", "اعلي المدينين", "اعلى مدين", "اكبر مدينين", "كبار المدينين")):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                r = await client.get(f"{base}/api/customers")
+                customers = r.json() if r.status_code == 200 else []
+        except Exception as e:
+            return {"error": str(e)}
+        debtors = sorted(
+            [c for c in customers if isinstance(c, dict)],
+            key=lambda c: float(c.get("ajelBalance") or 0),
+            reverse=True,
+        )[:limit]
+        from core.card_builder import cards_from_customers
+        return {
+            "query": query,
+            "kind": "top_debtors",
+            "cards": cards_from_customers(debtors, limit=limit),
+            "count": len(debtors),
+            "summary": f"أعلى {len(debtors)} عملاء مديونية بإجمالي {sum(float(c.get('ajelBalance') or 0) for c in debtors):,.2f} ر.س",
+        }
+
+    # 2) Overdue invoices
+    if any(k in qn for k in ("الفواتير المتاخره", "فواتير متاخره", "اجل متاخر", "متاخره")):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                r = await client.get(f"{base}/api/operations?type=sale&limit=200")
+                ops = r.json() if r.status_code == 200 else []
+        except Exception as e:
+            return {"error": str(e)}
+        if isinstance(ops, dict):
+            ops = ops.get("data") or ops.get("items") or []
+        overdue = [
+            o for o in ops if isinstance(o, dict) and (
+                (o.get("paymentStatus") or "").lower() in ("unpaid", "partial", "overdue")
+                or float(o.get("remainingBalance") or 0) > 0
+            )
+        ][:limit]
+        from core.card_builder import cards_from_operations
+        return {
+            "query": query,
+            "kind": "overdue_invoices",
+            "cards": cards_from_operations(overdue, limit=limit),
+            "count": len(overdue),
+            "summary": f"{len(overdue)} فاتورة متأخرة بإجمالي مبالغ متبقية {sum(float(o.get('remainingBalance') or 0) for o in overdue):,.2f} ر.س",
+        }
+
+    # 3) Idle vehicles
+    if any(k in qn for k in ("اقل المركبات نشاطا", "مركبات راكده", "مركبات بدون زيارات")):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                r = await client.get(f"{base}/api/vehicles")
+                vehs = r.json() if r.status_code == 200 else []
+        except Exception as e:
+            return {"error": str(e)}
+        vehs = sorted(
+            [v for v in vehs if isinstance(v, dict)],
+            key=lambda v: int(v.get("totalVisits") or v.get("total_visits") or 0),
+        )[:limit]
+        from core.card_builder import cards_from_vehicles
+        return {
+            "query": query,
+            "kind": "idle_vehicles",
+            "cards": cards_from_vehicles(vehs, limit=limit),
+            "count": len(vehs),
+            "summary": f"{len(vehs)} مركبة قليلة النشاط",
+        }
+
+    # 4) Top recent biggest operations
+    if any(k in qn for k in ("اكبر العمليات", "اكبر صفقات", "اعلي مبيعات", "كبري العمليات")):
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                r = await client.get(f"{base}/api/operations?limit=100")
+                ops = r.json() if r.status_code == 200 else []
+        except Exception as e:
+            return {"error": str(e)}
+        if isinstance(ops, dict):
+            ops = ops.get("data") or ops.get("items") or []
+        biggest = sorted(
+            [o for o in ops if isinstance(o, dict)],
+            key=lambda o: float(o.get("total") or 0),
+            reverse=True,
+        )[:limit]
+        from core.card_builder import cards_from_operations
+        return {
+            "query": query,
+            "kind": "biggest_recent",
+            "cards": cards_from_operations(biggest, limit=limit),
+            "count": len(biggest),
+        }
+
+    return {"query": query, "kind": "unknown", "cards": [], "count": 0,
+            "hint": "جرّب: 'أكثر العملاء مديونية' / 'الفواتير المتأخرة' / 'أكبر العمليات'"}
+
+
+async def _runtime_pending_approvals(workshop_id: str = "finmodule-sync", limit: int = 10) -> Dict[str, Any]:
+    """⏳ يرجع المسوّدات بانتظار الاعتماد كـ ApprovalCards."""
+    from core import action_runtime
+    from core.card_builder import cards_from_approvals
+    pending = action_runtime.list_approvals(status="pending", limit=limit)
+    return {
+        "count": len(pending),
+        "cards": cards_from_approvals(pending, limit=limit),
+        "approvals": pending,
+    }
+
+
+async def _runtime_audit_recent(workshop_id: str = "finmodule-sync", limit: int = 10) -> Dict[str, Any]:
+    """📜 آخر N أحداث في الـ audit trail كـ AuditCards."""
+    from core import action_runtime
+    from core.card_builder import cards_from_audit
+    events = list(reversed(action_runtime.get_audit_trail(limit=limit)))
+    return {
+        "count": len(events),
+        "cards": cards_from_audit(events, limit=limit),
+        "events": events,
+    }
+
+
+async def _whatsapp_send_real(
+    workshop_id: str = "finmodule-sync",
+    to: str = "",
+    message: str = "",
+) -> Dict[str, Any]:
+    """📲 إرسال رسالة واتساب حقيقية عبر Infobip (read-only من ناحية DB).
+
+    READ-ONLY: لا يُعدّل أي بيانات داخلية — فقط يستدعي خدمة خارجية.
+    """
+    from core.card_builder import whatsapp_card
+    to_norm = (to or "").strip()
+    if not to_norm or not message:
+        return {"error": "to + message required", "cards": []}
+    # Normalize Saudi phone format
+    digits = "".join(c for c in to_norm if c.isdigit())
+    if digits.startswith("05"):
+        digits = "966" + digits[1:]
+    elif digits.startswith("5") and len(digits) == 9:
+        digits = "966" + digits
+    elif not digits.startswith("966"):
+        digits = "966" + digits
+
+    try:
+        from routes_whatsapp_bot import infobip
+        result = await infobip.send_text(digits, message)
+        success = bool(result.get("messages") or result.get("messageId"))
+        wa_entry = {
+            "id": (result.get("messages") or [{}])[0].get("messageId", "wa") if result.get("messages") else "wa",
+            "to": digits,
+            "message": message,
+            "status": "sent" if success else "failed",
+            "provider": "infobip",
+            "channel": "whatsapp",
+            "sent_at": __import__("time").time(),
+        }
+    except Exception as e:
+        wa_entry = {
+            "id": "wa-err",
+            "to": digits,
+            "message": message,
+            "status": "failed",
+            "provider": "infobip",
+            "channel": "whatsapp",
+            "error": str(e)[:120],
+        }
+    return {
+        "to": digits,
+        "status": wa_entry.get("status"),
+        "provider": "infobip",
+        "cards": [whatsapp_card(wa_entry)],
+    }
+
+
 # Register built-ins (يُستدعى مرة واحدة عند الاستيراد)
 def _bootstrap() -> None:
     if _TOOLS:
@@ -547,6 +742,35 @@ def _bootstrap() -> None:
         description="🧾 آخر N عمليات (بيع/شراء/مصاريف/تحصيل) مع المبلغ وحالة السداد.",
         handler=_operations_recent,
         params={"workshop_id": "string?", "limit": "int?"},
+    )
+    # 🆕 Phase 3C.5 — Natural Language Search + Approvals + Audit + WhatsApp
+    register_tool(
+        "nl.search",
+        agent="WorkshopAgent",
+        description="🧠 بحث بلغة طبيعية: 'أكثر العملاء مديونية'، 'الفواتير المتأخرة'، 'أكبر العمليات'.",
+        handler=_nl_search,
+        params={"workshop_id": "string?", "query": "string", "limit": "int?"},
+    )
+    register_tool(
+        "runtime.pending_approvals",
+        agent="WorkshopAgent",
+        description="⏳ المسوّدات بانتظار الاعتماد (بطاقات Approval).",
+        handler=_runtime_pending_approvals,
+        params={"workshop_id": "string?", "limit": "int?"},
+    )
+    register_tool(
+        "runtime.audit_recent",
+        agent="WorkshopAgent",
+        description="📜 آخر N أحداث في سجل التدقيق (بطاقات Audit).",
+        handler=_runtime_audit_recent,
+        params={"workshop_id": "string?", "limit": "int?"},
+    )
+    register_tool(
+        "whatsapp.send",
+        agent="WorkshopAgent",
+        description="📲 إرسال رسالة واتساب حقيقية عبر Infobip لرقم محدد.",
+        handler=_whatsapp_send_real,
+        params={"workshop_id": "string?", "to": "string", "message": "string"},
     )
 
 

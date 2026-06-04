@@ -271,6 +271,16 @@ export const AssistantProvider = ({ children }) => {
     setActiveAgent(null);
   }, []);
 
+  // 🆕 Phase 3C.5 — direct message injection (used by 🚀 Execute path)
+  const appendMessage = useCallback((msg) => {
+    if (!msg || !msg.role || !msg.text) return;
+    setMessages((prev) => [...prev, {
+      id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      ts: Date.now(),
+      ...msg,
+    }]);
+  }, []);
+
   // ----- public value -----
   const value = useMemo(() => ({
     open, setOpen,
@@ -285,7 +295,8 @@ export const AssistantProvider = ({ children }) => {
     refreshAlerts,
     refreshStats,
     resetSession,
-  }), [open, sessionId, messages, busy, streamingPhase, activeAgent, alerts, stats, model, setModel, availableModels, sendMessage, callTool, refreshAlerts, refreshStats, resetSession]);
+    appendMessage,  // 🆕 direct UI inject (no LLM call)
+  }), [open, sessionId, messages, busy, streamingPhase, activeAgent, alerts, stats, model, setModel, availableModels, sendMessage, callTool, refreshAlerts, refreshStats, resetSession, appendMessage]);
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>;
 };

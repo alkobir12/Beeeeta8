@@ -86,7 +86,7 @@ export const UnifiedAssistantDrawer = () => {
     messages, busy, activeAgent, streamingPhase,
     alerts, stats,
     model, setModel, availableModels,
-    sendMessage, resetSession,
+    sendMessage, resetSession, appendMessage,
   } = useAssistant();
 
   const [input, setInput] = useState('');
@@ -119,6 +119,66 @@ export const UnifiedAssistantDrawer = () => {
     const text = input.trim();
     setInput('');
     await sendMessage(text);
+  };
+
+  // 🆕 Phase 3C.5 — Smart Execute (POST /api/runtime/execute)
+  // Routes the text through LLM intent → policy → auto-commit (or pending_approval).
+  const handleExecute = async () => {
+    if (!input.trim() || busy) return;
+    const text = input.trim();
+    setInput('');
+    let proposer = null;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || 'null');
+      proposer = u?.name || u?.username || null;
+    } catch (e) { /* noop */ }
+
+    // 1) Push the user's request as a chat bubble
+    appendMessage?.({ role: 'user', text: `🚀 ${text}` });
+
+    try {
+      const url = `${process.env.REACT_APP_BACKEND_URL || ''}/api/runtime/execute`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, proposer }),
+      });
+      const data = await resp.json();
+      const d = data?.data || {};
+      const action = d.action?.action || 'unknown';
+      let summary;
+      let cards = [];
+
+      if (d.status === 'committed') {
+        summary = `✅ تم تنفيذ **${action}** مباشرة (auto-safe).\n• نتيجة: ${(d.result || {}).name || (d.result || {}).id || JSON.stringify(d.result || {}).slice(0, 120)}\n• Execution: ${d.execution_id}`;
+      } else if (d.status === 'pending_approval') {
+        summary = `⏳ **${action}** بانتظار اعتماد بشري.\n• Draft: ${d.draft?.id}\n• Approval: ${d.approval?.approval_id}`;
+        // Synthesize an ApprovalCard so the user can act on it inline
+        cards = [{
+          type: 'ApprovalCard',
+          id: d.approval?.approval_id,
+          title: `موافقة — ${action}`,
+          status: 'pending',
+          data: { approval_id: d.approval?.approval_id, draft_id: d.draft?.id, status: 'pending', requester: proposer },
+          actions: [
+            { id: 'approve', label: 'اعتماد', intent: 'runtime',
+              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/approve`, method: 'POST' },
+            { id: 'reject', label: 'رفض', intent: 'runtime',
+              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/reject`, method: 'POST' },
+          ],
+        }];
+      } else if (d.status === 'read_only') {
+        const n = Array.isArray(d.result) ? d.result.length : 0;
+        summary = `🔎 **${action}** — ${n} نتيجة.`;
+      } else if (d.status === 'rejected') {
+        summary = `🚫 لم أفهم: ${d.reason || 'unknown_action'}. جرّب صياغة أوضح.`;
+      } else {
+        summary = `⚠️ ${d.reason || JSON.stringify(d).slice(0, 200)}`;
+      }
+      appendMessage?.({ role: 'assistant', text: summary, cards });
+    } catch (e) {
+      appendMessage?.({ role: 'assistant', text: `⚠️ فشل التنفيذ الذكي: ${e.message}` });
+    }
   };
 
   const handleSuggestion = (s) => {
@@ -396,7 +456,7 @@ export const UnifiedAssistantDrawer = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          placeholder="اسأل عن أي شيء — أو ابدأ بـ /power لتنفيذ عدة أوامر..."
+          placeholder="اسأل أو نفّذ — مثل: 'سجل عميل احمد 0501234567'"
           disabled={busy}
           className="flex-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
         />
@@ -404,17 +464,26 @@ export const UnifiedAssistantDrawer = () => {
           data-testid="assistant-power-shortcut"
           onClick={() => setInput((v) => v.startsWith('/power') ? v : `/power ${v}`.trim())}
           disabled={busy}
-          title="تشغيل Power Mode (متعدد الأوامر)"
+          title="Power Mode (أوامر متعددة)"
           className="px-2.5 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[11px] font-bold"
         >
           ⚡
+        </button>
+        <button
+          data-testid="assistant-execute-btn"
+          onClick={handleExecute}
+          disabled={busy || !input.trim()}
+          title="تنفيذ ذكي عبر LLM (تنشئ تلقائياً بعد موافقة)"
+          className="px-2.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[12px] font-bold"
+        >
+          🚀
         </button>
         <button
           data-testid="assistant-send-btn"
           onClick={handleSend}
           disabled={busy || !input.trim()}
           className="px-3 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="إرسال"
+          title="إرسال (سؤال)"
         >
           <Send size={16} />
         </button>

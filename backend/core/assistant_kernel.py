@@ -54,11 +54,17 @@ _TOOL_PATTERNS = [
     (re.compile(r"(ابحث\s*عن\s*(?:ال)?مركب|أبحث\s*عن\s*(?:ال)?مركب|بيانات\s*(?:ال)?مركب|أين\s*(?:ال)?مركب|اعرض\s*(?:ال)?مركب|لوحة\s*(?:ال)?مركب|رقم\s*(?:ال)?لوحة|ابحث\s*(?:ال)?مركب|ابحث\s*(?:ال)?سيار|بيانات\s*(?:ال)?سيار)", re.IGNORECASE), "vehicles.search"),
     # Workshop read-only
     (re.compile(r"(زيار[ةه]\s*نشط|مركبات\s*مفتوح|active\s*visits|كم\s*زيار|مركبات\s*داخل|قائم[ةه]\s*العمل)", re.IGNORECASE), "workshop.active_visits"),
+    # 🆕 Phase 3C.5 — Natural Language Search (top debtors / overdue / biggest)
+    (re.compile(r"(اكثر\s*(?:ال)?عملاء\s*مديوني|أكثر\s*(?:ال)?عملاء\s*مديوني|اعلي\s*(?:ال)?مدينين|أعلى\s*(?:ال)?مدينين|اكبر\s*مدينين|أكبر\s*مدينين|كبار\s*(?:ال)?مدينين|الفواتير\s*المتأخر|فواتير\s*متأخر|آجل\s*متأخر|اكبر\s*(?:ال)?عمليات|أكبر\s*(?:ال)?عمليات|اعلي\s*مبيعات|أعلى\s*مبيعات|اقل\s*(?:ال)?مركبات\s*نشاط|أقل\s*(?:ال)?مركبات\s*نشاط|مركبات\s*راكد)", re.IGNORECASE), "nl.search"),
+    # 🆕 Phase 3C.5 — Pending approvals
+    (re.compile(r"(موافقات\s*معلق|اعتمادات\s*معلق|بانتظار\s*(?:ال)?اعتماد|pending\s*approvals?|تحت\s*المراجع|تنتظر\s*موافق)", re.IGNORECASE), "runtime.pending_approvals"),
+    # 🆕 Phase 3C.5 — Audit trail
+    (re.compile(r"(سجل\s*(?:ال)?تدقيق|audit\s*trail|آخر\s*(?:ال)?أحداث|أحداث\s*النظام|من\s*غيّر|تتبع\s*التغيير)", re.IGNORECASE), "runtime.audit_recent"),
 ]
 
 
 # Tools that accept a `query` parameter parsed from the user's free text
-_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search"}
+_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search", "nl.search"}
 
 
 def _extract_query(text: str, tool_name: str) -> str:
@@ -71,6 +77,9 @@ def _extract_query(text: str, tool_name: str) -> str:
     """
     if not text:
         return ""
+    # 🆕 nl.search uses the FULL message (the NL handler does its own matching)
+    if tool_name == "nl.search":
+        return text.strip()
     raw = text.strip()
     # Remove leading question words / verbs commonly preceding a search term
     raw = re.sub(
