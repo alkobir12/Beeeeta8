@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, FileText, Send, Car, Wrench, Package, AlertTriangle, ExternalLink, Building2, User, Receipt } from 'lucide-react';
+import { Phone, FileText, Send, Car, Wrench, Package, AlertTriangle, ExternalLink, Building2, User, Receipt, Sparkles, ClipboardList } from 'lucide-react';
 
 /**
  * 🎴 AssistantCard — renderer for interactive ERP cards embedded inside chat.
@@ -11,6 +11,9 @@ import { Phone, FileText, Send, Car, Wrench, Package, AlertTriangle, ExternalLin
  *   • navigate  → react-router push
  *   • tool      → re-trigger an assistant tool (read-only)
  *   • deferred  → display as disabled with a "Phase 3X" hint
+ *
+ * 🆕 Phase 3B Round 2: cards whose type ends with "DraftCard" are rendered
+ * in a distinct "draft" style (dashed border + amber gradient + "مسوّدة" badge).
  */
 
 const TYPE_META = {
@@ -21,6 +24,21 @@ const TYPE_META = {
   SupplierCard: { Icon: Building2, color: 'from-fuchsia-600 to-purple-600', tone: 'border-fuchsia-300 dark:border-fuchsia-700' },
   InventoryCard: { Icon: Package, color: 'from-cyan-600 to-sky-600', tone: 'border-cyan-300 dark:border-cyan-700' },
   AuditCard: { Icon: AlertTriangle, color: 'from-rose-600 to-red-600', tone: 'border-rose-300 dark:border-rose-700' },
+};
+
+// 🆕 Round 2 — Draft card styling per intent kind
+const DRAFT_META = {
+  customer: { Icon: User, color: 'from-amber-500 via-amber-600 to-orange-600' },
+  vehicle: { Icon: Car, color: 'from-amber-500 via-orange-500 to-rose-500' },
+  visit: { Icon: ClipboardList, color: 'from-amber-500 via-amber-600 to-amber-700' },
+  operation: { Icon: Wrench, color: 'from-amber-500 via-orange-600 to-red-600' },
+  invoice: { Icon: Receipt, color: 'from-amber-500 to-orange-600' },
+  collection: { Icon: Receipt, color: 'from-emerald-500 via-amber-500 to-orange-600' },
+  payment: { Icon: Receipt, color: 'from-rose-500 via-amber-500 to-orange-600' },
+  supplier: { Icon: Building2, color: 'from-amber-500 via-fuchsia-500 to-purple-600' },
+  inventory: { Icon: Package, color: 'from-amber-500 via-cyan-500 to-sky-600' },
+  part_search: { Icon: Package, color: 'from-amber-400 via-amber-500 to-orange-500' },
+  unknown: { Icon: Sparkles, color: 'from-amber-400 via-amber-500 to-amber-600' },
 };
 
 const STATUS_LABEL = {
@@ -110,6 +128,23 @@ function renderFields(card) {
         </>
       );
     default:
+      // 🆕 Round 2 — Draft cards (e.g. CustomerDraftCard, VehicleDraftCard, ...)
+      if (typeof t === 'string' && t.endsWith('DraftCard')) {
+        return (
+          <>
+            {d.name && <Row label="الاسم" value={d.name} />}
+            {d.plate && <Row label="اللوحة" value={d.plate} />}
+            {d.phone && <Row label="هاتف" value={d.phone} />}
+            {typeof d.amount === 'number' && (
+              <Row label="المبلغ" value={`${d.amount.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`} highlight="indigo" />
+            )}
+            {d._resolved_from && (
+              <Row label="مستند إلى" value={d._resolved_from.title || d._resolved_from.key} highlight="emerald" />
+            )}
+            {d.raw && <Row label="النص" value={String(d.raw).slice(0, 80)} />}
+          </>
+        );
+      }
       return null;
   }
 }
@@ -131,7 +166,11 @@ function Row({ label, value, highlight = 'slate' }) {
 
 export const AssistantCard = ({ card, onAction }) => {
   const navigate = useNavigate();
-  const meta = TYPE_META[card.type] || TYPE_META.OperationCard;
+  const isDraft = typeof card.type === 'string' && card.type.endsWith('DraftCard');
+  const draftKind = (card.intent_kind || (card.data && card.data.section) || 'unknown');
+  const meta = isDraft
+    ? (DRAFT_META[draftKind] || DRAFT_META.unknown)
+    : (TYPE_META[card.type] || TYPE_META.OperationCard);
   const Icon = meta.Icon;
 
   const handleAction = (action) => {
@@ -149,14 +188,28 @@ export const AssistantCard = ({ card, onAction }) => {
     onAction?.(action, card);
   };
 
+  // Draft cards get a dashed amber border to distinguish them visually from
+  // confirmed read results. Tone is overridden by the per-kind meta.
+  const containerClass = isDraft
+    ? 'rounded-xl border-2 border-dashed border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 shadow-sm overflow-hidden my-1.5'
+    : `rounded-xl border-2 ${meta.tone} bg-white dark:bg-slate-900 shadow-sm overflow-hidden my-1.5`;
+
   return (
     <div
       data-testid={`assistant-card-${card.type}-${card.id || 'x'}`}
-      className={`rounded-xl border-2 ${meta.tone} bg-white dark:bg-slate-900 shadow-sm overflow-hidden my-1.5`}
+      className={containerClass}
     >
       <div className={`bg-gradient-to-l ${meta.color} text-white px-3 py-1.5 flex items-center gap-2`}>
         <Icon size={14} />
         <div className="flex-1 truncate text-[12px] font-extrabold">{card.title || card.type}</div>
+        {isDraft && (
+          <span
+            data-testid={`draft-badge-${card.id || 'x'}`}
+            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-white/30 backdrop-blur-sm border border-white/40"
+          >
+            مسوّدة
+          </span>
+        )}
       </div>
       <div className="px-3 py-2 space-y-0.5">
         {renderFields(card)}

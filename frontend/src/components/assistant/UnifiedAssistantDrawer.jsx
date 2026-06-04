@@ -40,12 +40,13 @@ const SUGGESTIONS_DEFAULT = [
   'كم ذمم العملاء؟',
   'كم زيارة نشطة الآن؟',
   'كيف التدفق النقدي؟',
+  '/power سجل عميل احمد، أضف مركبة 9935',
 ];
 const SUGGESTIONS_BY_PATH = {
-  '/customers': ['كم ذمم العملاء؟', 'من هم أعلى المدينين؟', 'آخر العمليات', 'كم ذمم الموردين؟'],
-  '/suppliers': ['كم ذمم الموردين؟', 'من أعلى الموردين دائنية؟', 'أهم التنبيهات', 'كيف التدفق النقدي؟'],
-  '/parts': ['ما هي القطع الناقصة؟', 'قطع وصلت للحد الأدنى', 'أهم تنبيهات المخزون', 'آخر العمليات'],
-  '/operations': ['آخر العمليات', 'عمليات بها قيد مفقود', 'كم درجة الصحة المالية؟', 'أهم التنبيهات'],
+  '/customers': ['كم ذمم العملاء؟', 'من هم أعلى المدينين؟', 'آخر العمليات', '/power سجل عميل جديد ، افتح زيارة'],
+  '/suppliers': ['كم ذمم الموردين؟', 'من أعلى الموردين دائنية؟', 'أهم التنبيهات', '/power أضف مورد جديد'],
+  '/parts': ['ما هي القطع الناقصة؟', 'قطع وصلت للحد الأدنى', 'أهم تنبيهات المخزون', '/power كم سعر زيت ، كم عندي فلتر'],
+  '/operations': ['آخر العمليات', 'عمليات بها قيد مفقود', 'كم درجة الصحة المالية؟', '/power أضف عملية ، تحصيل 500'],
   '/accounting/firewall': ['أعطني أهم التنبيهات', 'كم درجة الصحة المالية؟', 'عمليات بها قيد مفقود', 'كيف التدفق النقدي؟'],
 };
 
@@ -363,10 +364,19 @@ export const UnifiedAssistantDrawer = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          placeholder="اسأل عن أي شيء..."
+          placeholder="اسأل عن أي شيء — أو ابدأ بـ /power لتنفيذ عدة أوامر..."
           disabled={busy}
           className="flex-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
         />
+        <button
+          data-testid="assistant-power-shortcut"
+          onClick={() => setInput((v) => v.startsWith('/power') ? v : `/power ${v}`.trim())}
+          disabled={busy}
+          title="تشغيل Power Mode (متعدد الأوامر)"
+          className="px-2.5 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[11px] font-bold"
+        >
+          ⚡
+        </button>
         <button
           data-testid="assistant-send-btn"
           onClick={handleSend}

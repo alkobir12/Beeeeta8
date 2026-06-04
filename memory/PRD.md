@@ -22,7 +22,29 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 10 (Feb 12 — current) — Phase 3B Round 1 (Streaming + Cards + Mobile + Dashboard)
+### Session 11 (Feb 12 — current) — Phase 3B Round 2 (Power Mode + Multi-Intent + Drafts)
+- ✅ **⚡ Power Mode**: `/power` prefix triggers multi-intent execution. Backend `core/power_mode.py` (~280 lines, fully tested) detects the prefix and bypasses the LLM path. Single round-trip handles N commands.
+- ✅ **🔀 Multi-Intent Parsing**: Splits on `\n`, `،`, `؛`, `.`, ` ثم `, ` and `, ` و `. Each sub-command goes through its own intent classifier (11 kinds: customer/vehicle/visit/operation/invoice/collection/payment/supplier/inventory/part_search/unknown).
+- ✅ **🎴 4 New Draft Cards** (CustomerDraftCard, VehicleDraftCard, VisitDraftCard, OperationDraftCard + 5 others) — rendered with dashed amber border + "مسوّدة" badge. **All 3 actions (review/discard/commit) are deferred to Phase 3C** (Approval Runtime) — strict read-only contract intact.
+- ✅ **🔍 Entity Extraction**: Pulls plate (`\d{3,5}` + Arabic suffix), Saudi phone (`05\d{8}`), amount (with comma + decimal + ر.س), Arabic name (1-4 words). Phone never confused with amount.
+- ✅ **🧠 Context Resolver (Explicit Mapping)**: When entities are missing, fills from session memory using per-intent field maps (`vehicle←last_vehicle.plate`, `invoice←last_customer.name`, …). Never bleeds customer name into vehicle drafts. Carries `_resolved_from` for transparency.
+- ✅ **🧠 `last_section` Memory**: Tracks which section the user is currently working in (customer/vehicle/visit/operation/…). Persists per-session for 1 hour.
+- ✅ **🔌 New Endpoints**:
+  * `POST /api/assistant/power/diagnose` — preview what Power Mode would parse without executing (test-friendly).
+  * `GET /api/assistant/memory/{sid}` — extended with `last_section`, `last_visit`, `last_collection`, `last_payment`, `last_inventory`.
+- ✅ **🎨 Frontend Updates**:
+  * `AssistantCard.jsx` — renders DraftCards with dashed amber border + status badge + per-intent gradient header.
+  * `UnifiedAssistantDrawer.jsx` — added ⚡ shortcut button next to send (data-testid `assistant-power-shortcut`) that prepends `/power` to current input. Placeholder updated to hint `/power`.
+  * Page-aware suggestions updated to include `/power` examples per route.
+- ✅ **🧪 Tests**: `tests/test_power_mode_iter234.py` — 35 tests covering mode detection, splitting, intent kinds, entity extraction, context resolution, draft shape, E2E power_process, memory side-effects, and the read-only contract.
+- 🛡️ **Read-Only Contract Verified**: `test_drafts_have_no_write_actions` asserts every action on every draft is `intent="deferred"` with a `phase` tag. Cannot accidentally commit.
+- 🧪 **Regression**: 60/60 ✅ (35 new + 10 bot tools + 5 DDD + 10 Phase 3A).
+- 🔬 **Verified E2E**:
+  * `POST /chat` with `/power سجل عميل احمد، أضف مركبة 9935` → 2 drafts, response includes summary + cards list.
+  * Round 2 with `/power أضف عملية صيانة` (no plate) → context_resolve filled plate=9935 and name=احمد from prior turn ✅.
+  * Browser preview screenshot shows drawer opened, `/power` message rendered, ⚡ button visible, "thinking" indicator working.
+
+
 - ✅ **🌊 SSE Streaming**: `POST /api/assistant/chat/stream` يبثّ 5 أنواع events (`progress` × 3 phases + `tool` لكل أداة + `done` بالـpayload الكامل + `error`). الواجهة تستهلكها عبر `fetch + ReadableStream + TextDecoder` بدون مكتبة خارجية. خاصية `streamingPhase` في `useAssistant()` تعرض الـ label الحالي ("يفهم سؤالك…"، "جارٍ تشغيل الأدوات…"، "يصيغ الردّ…"). Fallback تلقائي لـ `/chat` العادي لو الـstream فشل.
 - ✅ **📱 Mobile Bottom-Sheet**: `useIsMobile()` يكتشف `< 768px` ويبدّل الـDrawer لـ bottom sheet كامل العرض 95vh مع safe-area + drag handle (`data-testid="assistant-mobile-handle"`). على الديسكتوب يظل 420×640 كما هو.
 - ✅ **🎴 6 Interactive Cards** عبر `core/card_builder.py`:

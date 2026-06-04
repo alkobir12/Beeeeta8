@@ -22,7 +22,7 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional
 
-from core import alert_bus, shared_memory, ai_context, tool_router
+from core import alert_bus, shared_memory, ai_context, tool_router, power_mode
 from core.log_utils import get_logger, redact
 
 # Phase 3A — structured logger replaces ad-hoc print() calls.
@@ -214,6 +214,18 @@ async def chat(
     sid = session_id or f"session-{uuid.uuid4().hex[:10]}"
     shared_memory.append_message(sid, "user", message)
 
+    # 🆕 Phase 3B Round 2 — Power Mode (multi-intent + drafts).
+    # If the message starts with "/power", we bypass the LLM and instead return
+    # a batch of draft cards (read-only proposals — Phase 3C will commit).
+    power_block: Optional[Dict[str, Any]] = None
+    if power_mode.detect_mode(message) == "power":
+        power_block = await power_mode.power_process(session_id=sid, message=message)
+        # Record in shared_memory for the audit trail
+        shared_memory.track_action(sid, "power_mode", {
+            "executed": power_block.get("executed", 0),
+            "commands": power_block.get("commands", [])[:5],
+        })
+
     # 1) Detect which read-only tools to invoke
     tool_names = detect_tools(message)
     tool_results: List[Dict[str, Any]] = []
@@ -302,6 +314,37 @@ async def chat(
 
     # 7) Persist assistant message + classify the message intent
     intent = _classify_intent(message)
+    # 🆕 If we ran Power Mode, augment the assistant message with a summary
+    if power_block:
+        drafts = power_block.get("drafts") or []
+        kinds = [d.get("intent_kind") for d in drafts]
+        # Inject draft cards into the cards stream so the UI renders them
+        cards.extend(drafts)
+        # Prepend a short Markdown summary to make the chat reply useful
+        summary_lines = [
+            f"⚡ **Power Mode** — جهّزت {len(drafts)} مسوّدة (read-only):",
+        ]
+        for i, d in enumerate(drafts, 1):
+            kind = d.get("intent_kind") or "?"
+            label = (d.get("data") or {}).get("label") or kind
+            extra_bits = []
+            data = d.get("data") or {}
+            if data.get("name"):
+                extra_bits.append(data["name"])
+            if data.get("plate"):
+                extra_bits.append(f"لوحة {data['plate']}")
+            if data.get("amount"):
+                extra_bits.append(f"{data['amount']:,.2f} ر.س")
+            if data.get("_resolved_from"):
+                extra_bits.append(f"(من سياق: {data['_resolved_from'].get('title','')})")
+            extras = " — ".join([str(x) for x in extra_bits if x]) or "بدون تفاصيل"
+            summary_lines.append(f"  {i}. **{label}** — {extras}")
+        summary_lines.append("")
+        summary_lines.append("> 🛡️ المسوّدات للمراجعة فقط — التنفيذ الفعلي يحتاج موافقة (Phase 3C).")
+        power_summary = "\n".join(summary_lines)
+        response_text = f"{power_summary}\n\n{response_text}" if response_text else power_summary
+        intent = "power_mode"
+
     shared_memory.append_message(sid, "assistant", response_text, meta={
         "tools": [t.get("tool") for t in tool_results],
         "intent": intent,
@@ -348,6 +391,11 @@ async def chat(
                     "title": c.get("title"),
                     "type": ctype,
                 })
+        # 🆕 Round 2: also track section memory for draft cards
+        if ctype.endswith("DraftCard"):
+            section = (c.get("data") or {}).get("section")
+            if section:
+                shared_memory.set_context(sid, "last_section", section)
 
     return {
         "session_id": sid,
@@ -364,6 +412,11 @@ async def chat(
         "ai_used": ai_used_flag,
         "model_used": model_used,
         "read_only": True,
+        # 🆕 Round 2: expose power-mode metadata so the UI can render the
+        # "drafts" tray (count + per-command summary). When `mode == 'normal'`
+        # this block is null.
+        "mode": (power_block or {}).get("mode", "normal"),
+        "power": power_block,
     }
 
 

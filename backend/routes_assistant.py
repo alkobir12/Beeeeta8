@@ -280,8 +280,29 @@ async def assistant_dashboard(workshop_id: str = Query(default="finmodule-sync")
 @router.get("/memory/{session_id}")
 async def assistant_memory(session_id: str):
     """🆕 Phase 3B — يرجع conversation memory (last_customer/vehicle/...)."""
-    keys = ["last_customer", "last_vehicle", "last_invoice", "last_operation", "last_supplier", "last_part"]
+    keys = [
+        # Phase 3B Round 1
+        "last_customer", "last_vehicle", "last_invoice",
+        "last_operation", "last_supplier", "last_part",
+        # 🆕 Phase 3B Round 2 — section + visit + draft pointers
+        "last_section", "last_visit", "last_collection",
+        "last_payment", "last_inventory",
+    ]
     return {
         "success": True,
         "data": {k: shared_memory.get_context(session_id, k) for k in keys if shared_memory.get_context(session_id, k)},
     }
+
+
+@router.post("/power/diagnose")
+async def assistant_power_diagnose(payload: Dict[str, Any] = Body(...)):
+    """🆕 Phase 3B Round 2 — Diagnose what Power Mode WOULD do without running it.
+
+    Useful for tests + UX previews of `/power` parsing. NO writes happen.
+    Body: {"message": "/power سجل عميل احمد، أضف مركبة 9935"}
+    """
+    from core import power_mode
+    msg = (payload.get("message") or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="message required")
+    return {"success": True, "data": power_mode.diagnose(msg)}
