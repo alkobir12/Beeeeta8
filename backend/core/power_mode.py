@@ -343,6 +343,11 @@ async def execute_action(*, session_id: Optional[str], cmd: str, proposer: Optio
     Pure read-only. Optionally enriches via a read tool result in the future.
     Phase 3C: the draft is also registered in the Action Runtime so it can
     later be approved + committed.
+
+    🆕 Phase 3C.6: If intent is `unknown` OR no useful entity was extracted,
+    we return a "guidance card" instead of a draft. This prevents the bot
+    from spamming "مسوّدة غير محدد" for general questions like "ماذا تستطيع
+    فعله".
     """
     cmd = (cmd or "").strip()
     if not cmd:
@@ -352,6 +357,39 @@ async def execute_action(*, session_id: Optional[str], cmd: str, proposer: Optio
     entities = extract_entities(cmd, intent_kind)
     if session_id:
         entities = context_resolve(session_id, intent_kind, entities)
+
+    # 🆕 Guard: don't fabricate "غير محدد" drafts. If we couldn't classify a
+    # clear intent, return a guidance message — NOT a draft card.
+    has_useful_entity = any(entities.get(k) for k in ("name", "plate", "amount", "phone"))
+    if intent_kind == "unknown" or (intent_kind in {"customer", "vehicle", "visit", "supplier"} and not has_useful_entity):
+        # If the cmd is clearly a *question* (starts with استفهامية / كم / كيف / etc),
+        # signal the LLM path. Otherwise show a "what I can do" guide.
+        QUESTION_RE = re.compile(
+            r"^\s*(?:ما\s|ماذا|كم|كيف|متى|اين|أين|هل|من\s|لماذا|أي\s|اي\s|ابحث|اعطني|أعطني|اعرض|ارني|أرني)",
+            re.IGNORECASE,
+        )
+        is_question = bool(QUESTION_RE.search(cmd))
+        return {
+            "type": "GuidanceCard",
+            "id": f"guide-{uuid.uuid4().hex[:8]}",
+            "title": "أحتاج تفاصيل أكثر" if not is_question else "اسأل بصياغة أوضح",
+            "kind": "question" if is_question else "no_intent",
+            "data": {
+                "raw": cmd[:200],
+                "hint": (
+                    "لتسجيل عميل/مركبة/زيارة، أعطني تفاصيل: الاسم، الجوال، اللوحة، أو المبلغ."
+                    if not is_question else
+                    "تأكد من ذكر اسم العميل أو رقم اللوحة في سؤالك."
+                ),
+                "examples": [
+                    "سجل عميل احمد العتيبي 0501234567",
+                    "أضف مركبة 9935 تويوتا كامري",
+                    "أكثر العملاء مديونية",
+                    "أرسل واتساب للعميل آخر زيارة",
+                ],
+            },
+            "actions": [],
+        }
 
     draft = build_draft(intent_kind, entities)
     if session_id:
@@ -375,15 +413,11 @@ async def execute_action(*, session_id: Optional[str], cmd: str, proposer: Optio
                 session_id=session_id,
                 draft_id=draft.get("id"),
             )
-            # Promote the "review/discard/commit" actions to ACTIVE chips
-            # (they were deferred before). They will hit the new REST endpoints.
             draft["actions"] = [
                 {"id": "request_approval", "label": "طلب اعتماد", "intent": "runtime",
                  "endpoint": f"/api/runtime/drafts/{draft['id']}/request_approval", "method": "POST"},
                 {"id": "discard", "label": "تجاهل", "intent": "runtime",
                  "endpoint": f"/api/runtime/drafts/{draft['id']}/discard", "method": "POST"},
-                {"id": "view_audit", "label": "تدقيق", "intent": "runtime",
-                 "endpoint": "/api/runtime/audit", "method": "GET"},
             ]
             draft["runtime"] = {"enabled": True, "phase": "3C"}
         except Exception as e:  # never break the draft pipeline

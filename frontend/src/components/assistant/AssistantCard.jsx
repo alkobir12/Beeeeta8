@@ -25,6 +25,8 @@ const TYPE_META = {
   SupplierCard: { Icon: Building2, color: 'from-fuchsia-600 to-purple-600', tone: 'border-fuchsia-300 dark:border-fuchsia-700' },
   InventoryCard: { Icon: Package, color: 'from-cyan-600 to-sky-600', tone: 'border-cyan-300 dark:border-cyan-700' },
   AuditCard: { Icon: History, color: 'from-slate-500 to-stone-600', tone: 'border-slate-300 dark:border-slate-700' },
+  // 🆕 Phase 3C.6 — friendly guidance card (no draft)
+  GuidanceCard: { Icon: Sparkles, color: 'from-indigo-500 to-violet-600', tone: 'border-indigo-200 dark:border-indigo-800' },
   // 🆕 Phase 3C.5
   VisitCard: { Icon: CalendarCheck, color: 'from-teal-600 to-cyan-600', tone: 'border-teal-300 dark:border-teal-700' },
   PaymentCard: { Icon: Receipt, color: 'from-emerald-600 to-green-600', tone: 'border-emerald-300 dark:border-emerald-700' },
@@ -35,19 +37,19 @@ const TYPE_META = {
   ReportCard: { Icon: BarChart3, color: 'from-blue-500 to-indigo-500', tone: 'border-blue-200 dark:border-blue-700' },
 };
 
-// 🆕 Round 2 — Draft card styling per intent kind
+// 🆕 Round 2 — Draft card styling per intent kind (more polished, matches site theme)
 const DRAFT_META = {
-  customer: { Icon: User, color: 'from-amber-500 via-amber-600 to-orange-600' },
-  vehicle: { Icon: Car, color: 'from-amber-500 via-orange-500 to-rose-500' },
-  visit: { Icon: ClipboardList, color: 'from-amber-500 via-amber-600 to-amber-700' },
-  operation: { Icon: Wrench, color: 'from-amber-500 via-orange-600 to-red-600' },
-  invoice: { Icon: Receipt, color: 'from-amber-500 to-orange-600' },
-  collection: { Icon: Receipt, color: 'from-emerald-500 via-amber-500 to-orange-600' },
-  payment: { Icon: Receipt, color: 'from-rose-500 via-amber-500 to-orange-600' },
-  supplier: { Icon: Building2, color: 'from-amber-500 via-fuchsia-500 to-purple-600' },
-  inventory: { Icon: Package, color: 'from-amber-500 via-cyan-500 to-sky-600' },
-  part_search: { Icon: Package, color: 'from-amber-400 via-amber-500 to-orange-500' },
-  unknown: { Icon: Sparkles, color: 'from-amber-400 via-amber-500 to-amber-600' },
+  customer: { Icon: User, color: 'from-indigo-500 via-blue-500 to-cyan-500' },
+  vehicle: { Icon: Car, color: 'from-emerald-500 via-teal-500 to-cyan-500' },
+  visit: { Icon: ClipboardList, color: 'from-teal-500 via-cyan-500 to-sky-500' },
+  operation: { Icon: Wrench, color: 'from-slate-600 via-zinc-600 to-gray-600' },
+  invoice: { Icon: Receipt, color: 'from-amber-500 via-orange-500 to-rose-500' },
+  collection: { Icon: Receipt, color: 'from-emerald-500 to-green-600' },
+  payment: { Icon: Receipt, color: 'from-rose-500 to-red-600' },
+  supplier: { Icon: Building2, color: 'from-fuchsia-500 via-purple-500 to-violet-600' },
+  inventory: { Icon: Package, color: 'from-cyan-500 to-sky-600' },
+  part_search: { Icon: Package, color: 'from-cyan-400 via-cyan-500 to-sky-600' },
+  unknown: { Icon: Sparkles, color: 'from-slate-500 to-zinc-600' },
 };
 
 const STATUS_LABEL = {
@@ -230,6 +232,24 @@ function renderFields(card) {
           ))}
         </>
       );
+    case 'GuidanceCard':
+      return (
+        <div className="text-[12px] space-y-1.5 py-1">
+          {d.hint && (
+            <div className="text-slate-600 dark:text-slate-300">{d.hint}</div>
+          )}
+          {Array.isArray(d.examples) && d.examples.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">جرّب أمثلة:</div>
+              {d.examples.slice(0, 4).map((ex, i) => (
+                <div key={i} className="text-[11px] text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-1 rounded border border-indigo-200 dark:border-indigo-800">
+                  • {ex}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
     default:
       // 🆕 Round 2 — Draft cards (e.g. CustomerDraftCard, VehicleDraftCard, ...)
       if (typeof t === 'string' && t.endsWith('DraftCard')) {
@@ -304,8 +324,8 @@ export const AssistantCard = ({ card, onAction }) => {
   };
 
   const containerClass = isDraft
-    ? 'rounded-xl border-2 border-dashed border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 shadow-sm overflow-hidden my-1.5'
-    : `rounded-xl border-2 ${meta.tone} bg-white dark:bg-slate-900 shadow-sm overflow-hidden my-1.5`;
+    ? 'rounded-xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/60 dark:to-slate-900/80 shadow-md hover:shadow-lg transition-all overflow-hidden my-2'
+    : `rounded-xl border ${meta.tone} bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden my-1.5`;
 
   return (
     <div

@@ -121,8 +121,19 @@ export const UnifiedAssistantDrawer = () => {
     await sendMessage(text);
   };
 
-  // 🆕 Phase 3C.5 — Smart Execute (POST /api/runtime/execute)
-  // Routes the text through LLM intent → policy → auto-commit (or pending_approval).
+  // 🆕 Phase 3C.6 — Smart Execute (POST /api/runtime/execute)
+  //
+  // Auto-detects multi-intent: if the input contains separators (، . ثم)
+  // OR multiple action keywords, it falls back to /power for multi-intent
+  // drafting. Otherwise it uses /api/runtime/execute (single LLM intent).
+  const _isMultiIntent = (text) => {
+    if (/[،,؛]/.test(text)) return true;
+    if (/\sثم\s/.test(text)) return true;
+    if ((text.match(/[.]/g) || []).length >= 1 && text.length > 30) return true;
+    const verbs = (text.match(/(?:سجل|أضف|اضف|افتح|أنشئ|انشئ|اصدر|بيع|تحصيل|ادفع|اصرف)/g) || []).length;
+    return verbs >= 2;
+  };
+
   const handleExecute = async () => {
     if (!input.trim() || busy) return;
     const text = input.trim();
@@ -133,9 +144,17 @@ export const UnifiedAssistantDrawer = () => {
       proposer = u?.name || u?.username || null;
     } catch (e) { /* noop */ }
 
-    // 1) Push the user's request as a chat bubble
-    appendMessage?.({ role: 'user', text: `🚀 ${text}` });
+    // 1) Push the user's request as a chat bubble (no /power prefix shown)
+    appendMessage?.({ role: 'user', text });
 
+    // 2) Multi-intent → /power via the chat pipeline (uses kernel + drafts)
+    if (_isMultiIntent(text)) {
+      // sendMessage will route through /api/assistant/chat which handles /power
+      sendMessage(`/power ${text}`);
+      return;
+    }
+
+    // 3) Single-intent → /api/runtime/execute
     try {
       const url = `${process.env.REACT_APP_BACKEND_URL || ''}/api/runtime/execute`;
       const resp = await fetch(url, {
@@ -150,10 +169,10 @@ export const UnifiedAssistantDrawer = () => {
       let cards = [];
 
       if (d.status === 'committed') {
-        summary = `✅ تم تنفيذ **${action}** مباشرة (auto-safe).\n• نتيجة: ${(d.result || {}).name || (d.result || {}).id || JSON.stringify(d.result || {}).slice(0, 120)}\n• Execution: ${d.execution_id}`;
+        const r = d.result || {};
+        summary = `✅ **تم بنجاح** — ${r.name || r.id || action}\nتم الحفظ في قاعدة البيانات.`;
       } else if (d.status === 'pending_approval') {
-        summary = `⏳ **${action}** بانتظار اعتماد بشري.\n• Draft: ${d.draft?.id}\n• Approval: ${d.approval?.approval_id}`;
-        // Synthesize an ApprovalCard so the user can act on it inline
+        summary = `⏳ بانتظار اعتمادك — العملية حساسة وتحتاج تأكيد.`;
         cards = [{
           type: 'ApprovalCard',
           id: d.approval?.approval_id,
@@ -169,15 +188,15 @@ export const UnifiedAssistantDrawer = () => {
         }];
       } else if (d.status === 'read_only') {
         const n = Array.isArray(d.result) ? d.result.length : 0;
-        summary = `🔎 **${action}** — ${n} نتيجة.`;
+        summary = `🔎 **${n} نتيجة** للاستعلام.`;
       } else if (d.status === 'rejected') {
-        summary = `🚫 لم أفهم: ${d.reason || 'unknown_action'}. جرّب صياغة أوضح.`;
+        summary = `💡 لم أفهم تماماً ما تريد. جرّب:\n• "سجل عميل اسمه ورقمه"\n• "أضف مركبة بلوحة"\n• "أكثر العملاء مديونية"`;
       } else {
-        summary = `⚠️ ${d.reason || JSON.stringify(d).slice(0, 200)}`;
+        summary = `⚠️ ${d.reason || 'حدث خطأ غير متوقع'}`;
       }
       appendMessage?.({ role: 'assistant', text: summary, cards });
     } catch (e) {
-      appendMessage?.({ role: 'assistant', text: `⚠️ فشل التنفيذ الذكي: ${e.message}` });
+      appendMessage?.({ role: 'assistant', text: `⚠️ فشل التنفيذ: ${e.message}` });
     }
   };
 
@@ -396,23 +415,23 @@ export const UnifiedAssistantDrawer = () => {
           </div>
         ) : (
           messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} flex-col`} data-testid={`assistant-msg-${i}`}>
+            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} flex-col animate-fadeIn`} data-testid={`assistant-msg-${i}`}>
               <div className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
-                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words ${
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm break-words shadow-sm transition-all hover:shadow-md ${
                   m.role === 'user'
-                    ? 'bg-indigo-600 text-white rounded-br-sm whitespace-pre-wrap'
+                    ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-br-md whitespace-pre-wrap shadow-indigo-500/20'
                     : m.meta?.error
-                    ? 'bg-rose-100 dark:bg-rose-950 text-rose-900 dark:text-rose-100 border border-rose-300 dark:border-rose-700 rounded-bl-sm whitespace-pre-wrap'
-                    : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded-bl-sm'
+                    ? 'bg-rose-50 dark:bg-rose-950/70 text-rose-900 dark:text-rose-100 border border-rose-200 dark:border-rose-800 rounded-bl-md whitespace-pre-wrap'
+                    : 'bg-white dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-md backdrop-blur-sm'
                 }`}>
                   {m.role === 'assistant' && !m.meta?.error ? (
-                    <div data-testid={`assistant-msg-body-${i}`} className="assistant-md text-[13px]">
+                    <div data-testid={`assistant-msg-body-${i}`} className="assistant-md text-[13px] leading-relaxed">
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
-                        {m.content || ''}
+                        {m.content || m.text || ''}
                       </ReactMarkdown>
                     </div>
                   ) : (
-                    m.content
+                    m.content || m.text
                 )}
                 {m.role === 'assistant' && m.meta?.agent && (
                   <div className="text-[9px] mt-1 opacity-70 flex gap-1 items-center">
@@ -427,9 +446,9 @@ export const UnifiedAssistantDrawer = () => {
               </div>
               </div>
               {/* 🎴 Cards rendered just below the assistant bubble (Phase 3B) */}
-              {m.role === 'assistant' && Array.isArray(m.meta?.cards) && m.meta.cards.length > 0 && (
-                <div className="w-full mt-1.5 space-y-1.5" data-testid={`assistant-msg-cards-${i}`}>
-                  {m.meta.cards.map((c, j) => (
+              {m.role === 'assistant' && (Array.isArray(m.meta?.cards) || Array.isArray(m.cards)) && (m.meta?.cards || m.cards).length > 0 && (
+                <div className="w-full mt-2 space-y-2 animate-fadeIn" data-testid={`assistant-msg-cards-${i}`}>
+                  {(m.meta?.cards || m.cards).map((c, j) => (
                     <AssistantCard key={`${c.type}-${c.id}-${j}`} card={c} onAction={handleCardAction} />
                   ))}
                 </div>
@@ -448,33 +467,24 @@ export const UnifiedAssistantDrawer = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="border-t-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 flex gap-1">
+      {/* Input — Phase 3C.6: single smart Execute button (auto-detects /power) */}
+      <div className="border-t-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 flex gap-1.5">
         <input
           data-testid="assistant-input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          placeholder="اسأل أو نفّذ — مثل: 'سجل عميل احمد 0501234567'"
+          placeholder="اسأل أو نفّذ — مثال: سجل عميل احمد 0501234567"
           disabled={busy}
-          className="flex-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-full px-3 py-2 border-2 border-slate-300 dark:border-slate-600 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+          className="flex-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-full px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 focus:outline-none focus:border-indigo-500 disabled:opacity-50 transition-colors"
         />
-        <button
-          data-testid="assistant-power-shortcut"
-          onClick={() => setInput((v) => v.startsWith('/power') ? v : `/power ${v}`.trim())}
-          disabled={busy}
-          title="Power Mode (أوامر متعددة)"
-          className="px-2.5 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[11px] font-bold"
-        >
-          ⚡
-        </button>
         <button
           data-testid="assistant-execute-btn"
           onClick={handleExecute}
           disabled={busy || !input.trim()}
-          title="تنفيذ ذكي عبر LLM (تنشئ تلقائياً بعد موافقة)"
-          className="px-2.5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[12px] font-bold"
+          title="🚀 تنفيذ ذكي — يفهم الأوامر المتعددة تلقائياً"
+          className="px-3 py-2.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[13px] font-bold shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 active:scale-95"
         >
           🚀
         </button>
@@ -482,8 +492,8 @@ export const UnifiedAssistantDrawer = () => {
           data-testid="assistant-send-btn"
           onClick={handleSend}
           disabled={busy || !input.trim()}
-          className="px-3 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          title="إرسال (سؤال)"
+          className="px-3.5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95 shadow-md"
+          title="إرسال سؤال"
         >
           <Send size={16} />
         </button>

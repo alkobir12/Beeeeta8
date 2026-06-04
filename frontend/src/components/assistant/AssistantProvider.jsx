@@ -273,11 +273,15 @@ export const AssistantProvider = ({ children }) => {
 
   // 🆕 Phase 3C.5 — direct message injection (used by 🚀 Execute path)
   const appendMessage = useCallback((msg) => {
-    if (!msg || !msg.role || !msg.text) return;
+    if (!msg || !msg.role) return;
+    const content = msg.content || msg.text || '';
+    if (!content && !msg.cards) return;
     setMessages((prev) => [...prev, {
       id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      ts: Date.now(),
-      ...msg,
+      ts: Date.now() / 1000,
+      role: msg.role,
+      content,
+      meta: { ...(msg.meta || {}), cards: msg.cards || msg.meta?.cards },
     }]);
   }, []);
 
