@@ -306,3 +306,73 @@ async def assistant_power_diagnose(payload: Dict[str, Any] = Body(...)):
     if not msg:
         raise HTTPException(status_code=400, detail="message required")
     return {"success": True, "data": power_mode.diagnose(msg)}
+
+
+# ============================================================================
+# 🆕 Phase 3B Round 3 — Vector Memory + Brain + WhatsApp Outbox + Report
+# ============================================================================
+
+
+@router.post("/brain")
+async def assistant_brain(payload: Dict[str, Any] = Body(...)):
+    """🧠 Brain pipeline — composes Vector Memory + Power Mode + WhatsApp + Report.
+
+    Body: {"message": "...", "session_id": "..."}
+
+    Modes returned:
+      • memory_hit  → entity recalled from semantic memory (no LLM)
+      • power       → multi-intent drafts (read-only)
+      • whatsapp    → MOCKED outbox entry (Phase 3D)
+      • report      → session-scoped counts
+      • passthrough → caller should use /chat for the LLM path
+    """
+    from core import brain as _brain
+    msg = (payload.get("message") or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="message required")
+    sid = (payload.get("session_id") or "").strip() or f"brain-{int(__import__('time').time()*1000)}"
+    result = await _brain.brain(session_id=sid, message=msg)
+    return {"success": True, "data": result}
+
+
+@router.get("/report/{session_id}")
+async def assistant_report(session_id: str):
+    """🆕 Phase 3B Round 3 — Live per-session report.
+
+    Counts drafts, vector memory entries, last_* pointers, and outbox size.
+    100% read-only.
+    """
+    from core import brain as _brain
+    return {"success": True, "data": _brain.generate_report(session_id)}
+
+
+@router.get("/whatsapp/outbox/{session_id}")
+async def assistant_whatsapp_outbox(session_id: str):
+    """🚫 MOCKED — Returns the simulated WhatsApp outbox for this session.
+
+    Phase 3D will replace the mock with a real WhatsApp Cloud API call.
+    """
+    from core import brain as _brain
+    outbox = _brain.whatsapp_outbox(session_id)
+    return {
+        "success": True,
+        "mocked": True,
+        "phase_unlocked_in": "3D",
+        "data": list(outbox),
+        "count": len(outbox),
+    }
+
+
+@router.post("/memory/search")
+async def assistant_memory_search(payload: Dict[str, Any] = Body(...)):
+    """🧠 Search vector memory for a semantic hit. Read-only."""
+    from core import vector_memory
+    sid = (payload.get("session_id") or "").strip()
+    query = (payload.get("query") or "").strip()
+    entity_type = payload.get("entity_type")
+    if not sid or not query:
+        raise HTTPException(status_code=400, detail="session_id + query required")
+    hits = vector_memory.search_memory(
+        session_id=sid, query=query, entity_type=entity_type, limit=int(payload.get("limit", 5) or 5),
+    )
+    return {"success": True, "data": {"hits": hits, "count": len(hits)}}

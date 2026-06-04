@@ -22,7 +22,7 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional
 
-from core import alert_bus, shared_memory, ai_context, tool_router, power_mode
+from core import alert_bus, shared_memory, ai_context, tool_router, power_mode, vector_memory
 from core.log_utils import get_logger, redact
 
 # Phase 3A — structured logger replaces ad-hoc print() calls.
@@ -317,7 +317,6 @@ async def chat(
     # 🆕 If we ran Power Mode, augment the assistant message with a summary
     if power_block:
         drafts = power_block.get("drafts") or []
-        kinds = [d.get("intent_kind") for d in drafts]
         # Inject draft cards into the cards stream so the UI renders them
         cards.extend(drafts)
         # Prepend a short Markdown summary to make the chat reply useful
@@ -396,6 +395,24 @@ async def chat(
             section = (c.get("data") or {}).get("section")
             if section:
                 shared_memory.set_context(sid, "last_section", section)
+        # 🆕 Round 3: feed Vector Memory for semantic recall
+        try:
+            descriptor_bits = [c.get("title") or ""]
+            data = c.get("data") or {}
+            for v in data.values():
+                if isinstance(v, (str, int, float)) and str(v):
+                    descriptor_bits.append(str(v))
+            descriptor = " ".join(descriptor_bits)[:300]
+            if descriptor.strip():
+                vector_memory.store_memory(
+                    session_id=sid,
+                    text=descriptor,
+                    entity_type=ctype or "Card",
+                    entity_id=c.get("id"),
+                    payload={"draft": ctype.endswith("DraftCard")},
+                )
+        except Exception as e:
+            _log.debug("vector_memory store_memory skipped: %s", redact(str(e), max_len=100))
 
     return {
         "session_id": sid,
