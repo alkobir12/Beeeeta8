@@ -136,6 +136,14 @@ export const AssistantProvider = ({ children }) => {
 
       if (stream && typeof fetch !== 'undefined') {
         // ----- SSE path -----
+        // 🆕 Phase 3C — include the logged-in user as `proposer` so the
+        // Action Runtime can enforce Four-Eyes against the right identity.
+        let proposer = null;
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || 'null');
+          proposer = u?.name || u?.username || null;
+        } catch (e) { /* noop */ }
+
         const resp = await fetch(`${API_URL}/assistant/chat/stream`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -146,6 +154,7 @@ export const AssistantProvider = ({ children }) => {
             force_agent: forceAgent || undefined,
             use_ai: useAi,
             model: model || 'gpt',
+            proposer,
           }),
         });
         if (!resp.ok || !resp.body) throw new Error(`stream ${resp.status}`);
@@ -178,6 +187,11 @@ export const AssistantProvider = ({ children }) => {
         if (!data) throw new Error('stream ended without done event');
       } else {
         // ----- Non-streaming fallback -----
+        let proposer = null;
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || 'null');
+          proposer = u?.name || u?.username || null;
+        } catch (e) { /* noop */ }
         const res = await axios.post(`${API_URL}/assistant/chat`, {
           message: trimmed,
           session_id: sessionId || undefined,
@@ -185,6 +199,7 @@ export const AssistantProvider = ({ children }) => {
           force_agent: forceAgent || undefined,
           use_ai: useAi,
           model: model || 'gpt',
+          proposer,
         }, { timeout: 120000 });
         if (!res.data?.success) {
           throw new Error(res.data?.error || 'assistant_failed');

@@ -337,10 +337,12 @@ def build_draft(intent_kind: str, entities: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def execute_action(*, session_id: Optional[str], cmd: str) -> Dict[str, Any]:
+async def execute_action(*, session_id: Optional[str], cmd: str, proposer: Optional[str] = None) -> Dict[str, Any]:
     """Process a single sub-command → returns a draft card.
 
     Pure read-only. Optionally enriches via a read tool result in the future.
+    Phase 3C: the draft is also registered in the Action Runtime so it can
+    later be approved + committed.
     """
     cmd = (cmd or "").strip()
     if not cmd:
@@ -354,23 +356,52 @@ async def execute_action(*, session_id: Optional[str], cmd: str) -> Dict[str, An
     draft = build_draft(intent_kind, entities)
     if session_id:
         update_section_memory(session_id, intent_kind, draft)
-        # Also track for audit trail (already capped at 30 entries by shared_memory)
         shared_memory.track_action(session_id, "power_draft", {
             "intent_kind": intent_kind,
             "draft_id": draft.get("id"),
             "has_context_fallback": bool(entities.get("_resolved_from")),
         })
+
+    # 🆕 Phase 3C: register this draft in the Action Runtime so an approver
+    # can later request_approval → approve → commit. The runtime stores its
+    # own copy (decoupled from the UI card) under the same id.
+    if intent_kind in {"customer", "vehicle", "visit"}:
+        try:
+            from core import action_runtime
+            action_runtime.create_draft(
+                action=intent_kind,
+                payload=entities,
+                proposer=proposer,
+                session_id=session_id,
+                draft_id=draft.get("id"),
+            )
+            # Promote the "review/discard/commit" actions to ACTIVE chips
+            # (they were deferred before). They will hit the new REST endpoints.
+            draft["actions"] = [
+                {"id": "request_approval", "label": "طلب اعتماد", "intent": "runtime",
+                 "endpoint": f"/api/runtime/drafts/{draft['id']}/request_approval", "method": "POST"},
+                {"id": "discard", "label": "تجاهل", "intent": "runtime",
+                 "endpoint": f"/api/runtime/drafts/{draft['id']}/discard", "method": "POST"},
+                {"id": "view_audit", "label": "تدقيق", "intent": "runtime",
+                 "endpoint": "/api/runtime/audit", "method": "GET"},
+            ]
+            draft["runtime"] = {"enabled": True, "phase": "3C"}
+        except Exception as e:  # never break the draft pipeline
+            from core.log_utils import get_logger as _gl, redact as _r
+            _gl("power_mode").warning("action_runtime register failed: %s", _r(str(e), max_len=80))
+            draft["runtime"] = {"enabled": False, "error": "runtime_unavailable"}
+
     return draft
 
 
-async def power_process(*, session_id: Optional[str], message: str) -> Dict[str, Any]:
+async def power_process(*, session_id: Optional[str], message: str, proposer: Optional[str] = None) -> Dict[str, Any]:
     """Run Power Mode end-to-end. Returns drafts + metadata."""
     body = strip_power_prefix(message)
     commands = extract_commands(body)
 
     drafts: List[Dict[str, Any]] = []
     for cmd in commands:
-        draft = await execute_action(session_id=session_id, cmd=cmd)
+        draft = await execute_action(session_id=session_id, cmd=cmd, proposer=proposer)
         drafts.append(draft)
 
     return {

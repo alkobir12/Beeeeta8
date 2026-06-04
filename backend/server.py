@@ -566,6 +566,10 @@ app.include_router(firewall_router)
 from routes_assistant import router as assistant_router, limiter as assistant_limiter
 app.include_router(assistant_router)
 
+# 🆕 Phase 3C — Action Runtime (Approval Matrix + Commit + Rollback)
+from routes_action_runtime import router as action_runtime_router
+app.include_router(action_runtime_router)
+
 # 🆕 Phase 3A — register slowapi limiter so @limiter.limit() actually fires.
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler

@@ -132,7 +132,7 @@ export const UnifiedAssistantDrawer = () => {
   const isMobile = useIsMobile();
 
   // Helper: dispatch a "tool" action chip → re-trigger the assistant with the tool's intent.
-  const handleCardAction = (action /*, card */) => {
+  const handleCardAction = async (action, card) => {
     if (action?.intent === 'navigate') {
       // close drawer on navigation so user sees the target page (mobile especially)
       if (isMobile) setOpen(false);
@@ -143,6 +143,38 @@ export const UnifiedAssistantDrawer = () => {
       const phrase = queryHint ? `ابحث عن ${queryHint}` : `شغّل ${action.label || action.tool}`;
       setInput('');
       sendMessage(phrase);
+      return;
+    }
+    // 🆕 Phase 3C — runtime intent: call the runtime REST endpoint directly.
+    if (action?.intent === 'runtime' && action?.endpoint) {
+      try {
+        // Read the logged-in user once — used as requester/approver/committer
+        let me = 'anonymous';
+        try {
+          const u = JSON.parse(localStorage.getItem('user') || 'null');
+          me = u?.name || u?.username || 'anonymous';
+        } catch (e) { /* noop */ }
+
+        const url = `${(process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_BACKEND_URL || ''))}${action.endpoint}`;
+        const opts = {
+          method: action.method || 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        };
+        if ((action.method || 'POST') !== 'GET') {
+          opts.body = JSON.stringify({
+            requester: me, approver: me, committer: me, rollbacker: me, by: me,
+          });
+        }
+        const resp = await fetch(url, opts);
+        const data = await resp.json();
+        const ok = resp.ok && data?.success;
+        const summary = ok
+          ? `✅ تم: ${action.label} (draft: ${card.id})`
+          : `⚠️ فشل: ${action.label} — ${JSON.stringify(data?.detail || data?.error || data).slice(0, 120)}`;
+        sendMessage(summary);
+      } catch (e) {
+        sendMessage(`⚠️ خطأ في ${action.label}: ${e.message}`);
+      }
     }
   };
 

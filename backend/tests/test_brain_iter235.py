@@ -202,22 +202,30 @@ def test_generate_report_counts_pointers():
 # ─── Read-only contract guard ──────────────────────────────────────────────
 
 
-def test_no_real_db_writes_anywhere_in_brain():
-    """Every brain mode must keep the DB untouched."""
+def test_no_implicit_db_writes_anywhere_in_brain():
+    """Brain modes never auto-commit. Power drafts can have 'runtime' chips
+    (which call /api/runtime/... after explicit user click + approval), but
+    no chip directly mutates data without going through the approval matrix.
+    """
     sid = "ro-1"
     shared_memory.clear_session(sid)
 
-    # Power Mode — drafts only
+    # Power Mode — drafts only (no implicit commit)
     r1 = asyncio.run(brain.brain(session_id=sid, message="/power سجل عميل احمد"))
     for d in r1["drafts"]:
+        # Every draft is still 'draft' status — never auto-committed
         for a in d["actions"]:
-            assert a["intent"] == "deferred"
+            # Only acceptable intents at this stage
+            assert a["intent"] in ("deferred", "runtime"), f"unexpected intent {a['intent']}"
+            if a["intent"] == "runtime":
+                # Must hit the /api/runtime/ endpoint, NOT a raw DB write
+                assert "/api/runtime/" in a.get("endpoint", "")
 
     # WhatsApp — MOCKED
     r2 = asyncio.run(brain.brain(session_id=sid, message="أرسل واتساب"))
     assert r2["outbox_entry"]["status"] == "MOCKED"
 
-    # No matter what we send, the brain must never expose a write tool
+    # tool_router still has no write tools
     from core import tool_router
     for tool_meta in tool_router.list_tools():
         assert tool_meta.get("write") is False, f"Found write-capable tool: {tool_meta}"

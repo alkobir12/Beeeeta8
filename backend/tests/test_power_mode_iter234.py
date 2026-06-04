@@ -189,10 +189,12 @@ def test_power_process_produces_drafts():
     drafts = result["drafts"]
     kinds = [d["intent_kind"] for d in drafts]
     assert kinds == ["customer", "vehicle", "visit"]
-    # Each draft is read-only
+    # Each draft is a draft and runtime-enabled (Phase 3C)
     for d in drafts:
         assert d["status"] == "draft"
-        assert all(a["intent"] == "deferred" for a in d["actions"])
+        # Phase 3C: customer/vehicle/visit drafts get runtime actions
+        intents = [a["intent"] for a in d["actions"]]
+        assert "runtime" in intents, f"Expected runtime intent for {d['intent_kind']}, got {intents}"
 
 
 def test_power_process_updates_section_memory():
@@ -230,17 +232,31 @@ def test_power_process_uses_context_when_missing_entity():
 # ── 8. Read-only contract (cannot accidentally commit) ─────────────────────
 
 
-def test_drafts_have_no_write_actions():
-    """Even though Power Mode produces drafts, no action can mutate data."""
+def test_drafts_have_no_implicit_write_actions():
+    """Phase 3C: power-mode drafts NEVER auto-commit. The only writes go through
+    the Action Runtime which requires explicit approval first. Drafts that DO
+    register with the runtime have `intent='runtime'` (which calls a controlled
+    REST endpoint), and non-runtime drafts (collection/payment) still keep
+    `intent='deferred'`.
+    """
     result = asyncio.run(power_mode.power_process(
         session_id=None,
         message="/power سجل عميل، أضف مركبة، تحصيل 500",
     ))
     for d in result["drafts"]:
+        kind = d.get("intent_kind")
         for a in d["actions"]:
-            # No 'write' or 'commit' intent — all must be 'deferred' for now
-            assert a["intent"] == "deferred", f"Found non-deferred action: {a}"
-            assert a.get("phase"), "Deferred actions must declare which phase commits"
+            # Runtime actions: the FIRST chip is always "request_approval" —
+            # the user explicitly drives the workflow, the LLM doesn't.
+            if a["intent"] == "runtime":
+                # No raw write — must go through the runtime endpoint
+                assert "endpoint" in a and "/api/runtime/" in a["endpoint"]
+                # Must be a POST (no GET writes)
+                assert a.get("method", "POST") in ("POST", "GET")
+            else:
+                # Non-runtime intents must remain deferred for now
+                assert a["intent"] == "deferred", f"unexpected intent {a['intent']} on {kind}"
+                assert a.get("phase"), "deferred actions must declare phase"
 
 
 # ── 9. Diagnose endpoint helper ────────────────────────────────────────────

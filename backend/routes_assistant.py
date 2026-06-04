@@ -60,6 +60,7 @@ async def assistant_chat(request: Request, payload: Dict[str, Any] = Body(...)):
             force_agent=payload.get("force_agent"),
             use_ai=bool(payload.get("use_ai", True)),
             model=payload.get("model"),
+            proposer=payload.get("proposer"),  # 🆕 Phase 3C — Four-Eyes anchor
         )
         return {"success": True, "data": result}
     except Exception as e:
@@ -189,6 +190,7 @@ async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body
                 force_agent=payload.get("force_agent"),
                 use_ai=bool(payload.get("use_ai", True)),
                 model=payload.get("model"),
+                proposer=payload.get("proposer"),  # 🆕 Phase 3C
             )
 
             for tr in result.get("tool_results") or []:

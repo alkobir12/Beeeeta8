@@ -56,6 +56,7 @@ function chipClass(intent, disabled) {
   if (disabled) return 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed';
   if (intent === 'navigate') return 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 border-indigo-300 dark:border-indigo-700';
   if (intent === 'tool') return 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-800 border-emerald-300 dark:border-emerald-700';
+  if (intent === 'runtime') return 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-800 border-amber-400 dark:border-amber-700 font-bold';
   return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700';
 }
 
@@ -173,11 +174,15 @@ export const AssistantCard = ({ card, onAction }) => {
     : (TYPE_META[card.type] || TYPE_META.OperationCard);
   const Icon = meta.Icon;
 
+  // 🆕 Phase 3C — runtime-enabled drafts get an extra status pill
+  const runtimeEnabled = isDraft && card.runtime && card.runtime.enabled;
+  const cardStatus = card.status || (runtimeEnabled ? 'draft' : null);
+
   const handleAction = (action) => {
-    if (!action || action.intent === 'deferred') return;
+    if (!action) return;
+    if (action.intent === 'deferred') return;
     if (action.intent === 'navigate' && action.target) {
       navigate(action.target);
-      // Auto-close drawer parent will get the event via onAction
       onAction?.(action, card);
       return;
     }
@@ -185,11 +190,15 @@ export const AssistantCard = ({ card, onAction }) => {
       onAction?.(action, card);
       return;
     }
+    // 🆕 Phase 3C — runtime actions delegate to the parent (drawer) that knows
+    // how to POST to /api/runtime/*. The drawer then refreshes the card.
+    if (action.intent === 'runtime') {
+      onAction?.(action, card);
+      return;
+    }
     onAction?.(action, card);
   };
 
-  // Draft cards get a dashed amber border to distinguish them visually from
-  // confirmed read results. Tone is overridden by the per-kind meta.
   const containerClass = isDraft
     ? 'rounded-xl border-2 border-dashed border-amber-400 dark:border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 shadow-sm overflow-hidden my-1.5'
     : `rounded-xl border-2 ${meta.tone} bg-white dark:bg-slate-900 shadow-sm overflow-hidden my-1.5`;
@@ -207,12 +216,22 @@ export const AssistantCard = ({ card, onAction }) => {
             data-testid={`draft-badge-${card.id || 'x'}`}
             className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-white/30 backdrop-blur-sm border border-white/40"
           >
-            مسوّدة
+            {cardStatus === 'committed' ? 'مُنفّذة' :
+              cardStatus === 'approved' ? 'مُعتمدة' :
+                cardStatus === 'pending_approval' ? 'بانتظار اعتماد' :
+                  cardStatus === 'rejected' ? 'مرفوضة' :
+                    cardStatus === 'rolled_back' ? 'مُلغاة' : 'مسوّدة'}
           </span>
         )}
       </div>
       <div className="px-3 py-2 space-y-0.5">
         {renderFields(card)}
+        {runtimeEnabled && (
+          <div className="mt-1 text-[10px] text-amber-700 dark:text-amber-300 flex items-center gap-1">
+            <Sparkles size={9} />
+            <span>Phase 3C runtime: تعتمد → ثم تُنفّذ بقاعدة 4-Eyes</span>
+          </div>
+        )}
       </div>
       {card.actions && card.actions.length > 0 && (
         <div className="px-2 pb-2 pt-1 flex flex-wrap gap-1.5 border-t border-slate-200 dark:border-slate-700">

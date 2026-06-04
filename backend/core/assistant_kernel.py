@@ -201,6 +201,7 @@ async def chat(
     force_agent: Optional[str] = None,  # kept for backward-compat; ignored in L5
     use_ai: bool = True,
     model: Optional[str] = None,  # 🆕 'gpt' (Emergent default) | 'ollama' (local)
+    proposer: Optional[str] = None,  # 🆕 Phase 3C — Four-Eyes anchor (current user)
 ) -> Dict[str, Any]:
     """Main entry point for the assistant.
 
@@ -219,7 +220,12 @@ async def chat(
     # a batch of draft cards (read-only proposals — Phase 3C will commit).
     power_block: Optional[Dict[str, Any]] = None
     if power_mode.detect_mode(message) == "power":
-        power_block = await power_mode.power_process(session_id=sid, message=message)
+        power_block = await power_mode.power_process(
+            session_id=sid,
+            message=message,
+            # 🆕 Phase 3C: thread the user identity through so Four-Eyes works.
+            proposer=proposer,
+        )
         # Record in shared_memory for the audit trail
         shared_memory.track_action(sid, "power_mode", {
             "executed": power_block.get("executed", 0),

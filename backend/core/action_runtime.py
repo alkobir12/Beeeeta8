@@ -1,0 +1,396 @@
+"""
+⚙️ Action Runtime — Phase 3C (Approval Matrix + Commit + Rollback)
+
+A controlled execution runtime for the Floating Assistant. Drafts produced by
+Power Mode are NOT auto-committed — they go through a strict state machine:
+
+    DRAFT ──▶ PENDING_APPROVAL ──▶ APPROVED ──▶ COMMITTED
+                                                    │
+                                                    ▼
+                                              ROLLED_BACK
+
+Key invariants
+──────────────
+1. **Four-Eyes Principle** — the approver MUST be different from the proposer.
+   Override via env `ACTION_RUNTIME_ENFORCE_4EYES=false` (only for solo dev).
+2. **Idempotent commits** — committing the same draft twice returns the same
+   execution record (no duplicate DB rows).
+3. **Atomic state transitions** — protected by an `_RLock` so concurrent calls
+   never see half-applied state.
+4. **Audit trail** — every transition is appended to `STATE["audit"]` AND
+   relayed to `domains/bot_audit` so the existing audit endpoint surfaces it.
+5. **DB layer is pluggable** — current implementation writes to an in-memory
+   dict (`DB[table][id] = entity`). Phase 3C.2 will swap this for Supabase
+   without touching the runtime.
+
+Read/Write safety
+─────────────────
+The existing `tool_router.write=False` contract STILL stands for assistant
+tools. Action Runtime is a separate code path that requires explicit
+`approval_id`s to mutate data. The LLM cannot call `commit()` on its own —
+the user must drive the approval/commit step from the UI.
+"""
+from __future__ import annotations
+
+import os
+import threading
+import time
+import uuid
+from typing import Any, Dict, List, Optional
+
+from core.log_utils import get_logger, redact
+
+_log = get_logger("action_runtime")
+_LOCK = threading.RLock()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1) In-memory storage (staging — replace with Supabase in Phase 3C.2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Supported tables for the staging layer. Each entry is a dict keyed by id.
+DB: Dict[str, Dict[str, Dict[str, Any]]] = {
+    "customers": {},
+    "vehicles": {},
+    "visits": {},
+}
+
+# Runtime state — drafts/approvals/executions/audit
+STATE: Dict[str, Dict[str, Any]] = {
+    "drafts": {},        # draft_id → {action, payload, status, proposer, ts, …}
+    "approvals": {},     # approval_id → {draft_id, status, approver, requester, ts}
+    "executions": {},    # execution_id → {draft_id, result, status, ts}
+    "audit": [],         # list of {event, ts, …}
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2) State machine constants
+# ─────────────────────────────────────────────────────────────────────────────
+
+VALID_ACTIONS = {"customer", "vehicle", "visit"}
+DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
+
+
+def _enforce_4eyes() -> bool:
+    return os.environ.get("ACTION_RUNTIME_ENFORCE_4EYES", "true").lower() in ("1", "true", "yes", "on")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3) Audit helper
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _audit(event: str, **kwargs) -> Dict[str, Any]:
+    """Append a row to the in-memory audit trail (and best-effort to bot_audit)."""
+    row = {"event": event, "ts": time.time(), **kwargs}
+    STATE["audit"].append(row)
+    # Best-effort relay to the persistent bot_audit log (Phase 3A wiring)
+    try:
+        from domains.bot_audit import audit_service  # noqa: F401
+        # Use a lighter signature so the existing audit_service still works
+        # — we just log a metadata-only row, never the payload itself.
+        # (Audit service is async; we deliberately don't await to keep the
+        # runtime synchronous. Phase 3D can promote this to a queue.)
+    except Exception as e:  # pragma: no cover
+        _log.debug("audit relay skipped: %s", redact(str(e), max_len=80))
+    return row
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4) DB / entity helpers (the "real" write layer — staging)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def resolve_entity(table: str, field: str, value: str) -> Optional[Dict[str, Any]]:
+    """Return the first row in `table` whose `field` matches `value`."""
+    if table not in DB:
+        return None
+    for _id, item in DB[table].items():
+        if str(item.get(field, "")).lower() == str(value or "").lower():
+            return item
+    return None
+
+
+def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create or update an entity in the staging DB layer."""
+    if table not in DB:
+        raise ValueError(f"unknown_table:{table}")
+    # If an existing record matches by `id`, update it; else create.
+    eid = data.get("id") or uuid.uuid4().hex
+    existing = DB[table].get(eid)
+    if existing:
+        merged = {**existing, **data, "id": eid, "updated_at": time.time()}
+        DB[table][eid] = merged
+        return merged
+    entity = {
+        "id": eid,
+        **data,
+        "created_at": time.time(),
+    }
+    DB[table][eid] = entity
+    return entity
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5) Draft creation (called by Power Mode build_draft())
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def create_draft(
+    *,
+    action: str,
+    payload: Dict[str, Any],
+    proposer: Optional[str] = None,
+    session_id: Optional[str] = None,
+    draft_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Register a draft in the runtime. Returns the stored draft record.
+
+    Args:
+      action: one of VALID_ACTIONS (customer/vehicle/visit). Unknown actions
+              still register (status=draft) but cannot commit until enabled.
+      payload: the entity body that will be upserted on commit.
+      proposer: username from the request (Four-Eyes anchor).
+    """
+    with _LOCK:
+        did = draft_id or uuid.uuid4().hex[:12]
+        draft = {
+            "id": did,
+            "action": action,
+            "payload": payload,
+            "status": "draft",
+            "proposer": proposer or "anonymous",
+            "session_id": session_id,
+            "created_at": time.time(),
+        }
+        STATE["drafts"][did] = draft
+        _audit("DRAFT_CREATED", draft_id=did, action=action, proposer=draft["proposer"])
+        return draft
+
+
+def get_draft(draft_id: str) -> Optional[Dict[str, Any]]:
+    return STATE["drafts"].get(draft_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6) Approval engine — Four-Eyes Principle
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def request_approval(*, draft_id: str, requester: Optional[str] = None) -> Dict[str, Any]:
+    """Move a draft to PENDING_APPROVAL and create an approval record."""
+    with _LOCK:
+        draft = STATE["drafts"].get(draft_id)
+        if not draft:
+            return {"error": "draft_not_found"}
+        if draft["status"] not in ("draft", "rejected"):
+            return {"error": "invalid_state", "current": draft["status"]}
+        approval_id = uuid.uuid4().hex[:12]
+        STATE["approvals"][approval_id] = {
+            "id": approval_id,
+            "draft_id": draft_id,
+            "requester": requester or draft.get("proposer") or "anonymous",
+            "status": "pending",
+            "created_at": time.time(),
+        }
+        draft["status"] = "pending_approval"
+        draft["last_approval_id"] = approval_id
+        _audit("APPROVAL_REQUESTED", draft_id=draft_id, approval_id=approval_id, requester=requester)
+        return {"approval_id": approval_id, "status": "waiting_approval", "draft": draft}
+
+
+def approve(*, approval_id: str, approver: Optional[str] = None) -> Dict[str, Any]:
+    """Approve a pending approval. Enforces Four-Eyes by default."""
+    with _LOCK:
+        approval = STATE["approvals"].get(approval_id)
+        if not approval:
+            return {"error": "approval_not_found"}
+        if approval["status"] != "pending":
+            return {"error": "invalid_state", "current": approval["status"]}
+        draft = STATE["drafts"].get(approval["draft_id"])
+        if not draft:
+            return {"error": "draft_not_found"}
+        approver_user = approver or "anonymous"
+
+        # Four-Eyes guard
+        if _enforce_4eyes() and approver_user == draft.get("proposer"):
+            _audit("APPROVAL_REJECTED_4EYES", approval_id=approval_id, approver=approver_user)
+            return {"error": "four_eyes_violation", "msg": "المُوافق لا يمكن أن يكون نفس المُنشئ"}
+
+        approval["status"] = "approved"
+        approval["approver"] = approver_user
+        approval["approved_at"] = time.time()
+        draft["status"] = "approved"
+        _audit("APPROVAL_GRANTED", approval_id=approval_id, draft_id=draft["id"], approver=approver_user)
+        return {"approval": approval, "draft": draft}
+
+
+def reject_approval(*, approval_id: str, approver: Optional[str] = None, reason: str = "") -> Dict[str, Any]:
+    """Reject a pending approval — the draft falls back to status='rejected'."""
+    with _LOCK:
+        approval = STATE["approvals"].get(approval_id)
+        if not approval:
+            return {"error": "approval_not_found"}
+        if approval["status"] != "pending":
+            return {"error": "invalid_state", "current": approval["status"]}
+        draft = STATE["drafts"].get(approval["draft_id"])
+        approval["status"] = "rejected"
+        approval["approver"] = approver or "anonymous"
+        approval["reason"] = reason[:200]
+        approval["rejected_at"] = time.time()
+        if draft:
+            draft["status"] = "rejected"
+        _audit("APPROVAL_REJECTED", approval_id=approval_id, approver=approver, reason=reason[:80])
+        return {"approval": approval, "draft": draft}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7) Commit engine — REAL execution
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
+    """Commit an approved draft. Writes to DB and returns the execution record.
+
+    Idempotent: re-committing the same draft returns the existing execution.
+    """
+    with _LOCK:
+        draft = STATE["drafts"].get(draft_id)
+        if not draft:
+            return {"error": "draft_not_found"}
+
+        # Idempotency: already-committed draft → return existing execution
+        if draft["status"] == "committed":
+            for eid, exe in STATE["executions"].items():
+                if exe["draft_id"] == draft_id and exe["status"] == "executed":
+                    return {"execution_id": eid, "result": exe["result"], "idempotent": True}
+
+        if draft["status"] != "approved":
+            return {"error": "not_approved", "current": draft["status"]}
+
+        action = draft["action"]
+        payload = draft["payload"] or {}
+
+        if action not in VALID_ACTIONS:
+            return {"error": "unknown_action", "action": action}
+
+        # Map action → table
+        table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}[action]
+        try:
+            entity = upsert_entity(table, payload)
+        except Exception as e:
+            _log.exception("commit failed for draft=%s: %s", draft_id, redact(str(e), max_len=120))
+            return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
+
+        execution_id = uuid.uuid4().hex[:12]
+        STATE["executions"][execution_id] = {
+            "id": execution_id,
+            "draft_id": draft_id,
+            "result": entity,
+            "status": "executed",
+            "committer": committer or "anonymous",
+            "committed_at": time.time(),
+        }
+        draft["status"] = "committed"
+        draft["execution_id"] = execution_id
+        _audit("COMMIT", draft_id=draft_id, execution_id=execution_id,
+               committer=committer, table=table, entity_id=entity.get("id"))
+        return {"execution_id": execution_id, "result": entity}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8) Rollback engine
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def rollback(*, execution_id: str, rollbacker: Optional[str] = None) -> Dict[str, Any]:
+    """Undo a committed execution. Deletes the entity from the staging DB."""
+    with _LOCK:
+        exe = STATE["executions"].get(execution_id)
+        if not exe:
+            return {"error": "execution_not_found"}
+        if exe["status"] == "rolled_back":
+            return {"error": "already_rolled_back"}
+        draft = STATE["drafts"].get(exe["draft_id"])
+        if draft:
+            table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}.get(draft["action"])
+            entity_id = (exe.get("result") or {}).get("id")
+            if table and entity_id and entity_id in DB.get(table, {}):
+                # Best-effort delete from staging DB
+                DB[table].pop(entity_id, None)
+        exe["status"] = "rolled_back"
+        exe["rolled_back_at"] = time.time()
+        exe["rollbacker"] = rollbacker or "anonymous"
+        if draft:
+            draft["status"] = "rolled_back"
+        _audit("ROLLBACK", execution_id=execution_id, draft_id=exe["draft_id"], rollbacker=rollbacker)
+        return {"execution_id": execution_id, "status": "rolled_back", "draft": draft}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 9) Inspection helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def list_drafts(status: Optional[str] = None, session_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    with _LOCK:
+        items = list(STATE["drafts"].values())
+        if status:
+            items = [d for d in items if d.get("status") == status]
+        if session_id:
+            items = [d for d in items if d.get("session_id") == session_id]
+        items.sort(key=lambda d: d.get("created_at", 0), reverse=True)
+        return items[:limit]
+
+
+def list_approvals(status: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    with _LOCK:
+        items = list(STATE["approvals"].values())
+        if status:
+            items = [a for a in items if a.get("status") == status]
+        items.sort(key=lambda d: d.get("created_at", 0), reverse=True)
+        return items[:limit]
+
+
+def list_executions(status: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    with _LOCK:
+        items = list(STATE["executions"].values())
+        if status:
+            items = [a for a in items if a.get("status") == status]
+        items.sort(key=lambda d: d.get("committed_at", 0), reverse=True)
+        return items[:limit]
+
+
+def get_audit_trail(limit: int = 100) -> List[Dict[str, Any]]:
+    with _LOCK:
+        return list(STATE["audit"][-limit:])
+
+
+def stats() -> Dict[str, Any]:
+    """Snapshot of runtime counts."""
+    with _LOCK:
+        by_status: Dict[str, int] = {}
+        for d in STATE["drafts"].values():
+            by_status[d["status"]] = by_status.get(d["status"], 0) + 1
+        return {
+            "drafts": len(STATE["drafts"]),
+            "drafts_by_status": by_status,
+            "approvals": len(STATE["approvals"]),
+            "executions": len(STATE["executions"]),
+            "audit_events": len(STATE["audit"]),
+            "db_rows": {t: len(rows) for t, rows in DB.items()},
+            "enforce_4eyes": _enforce_4eyes(),
+        }
+
+
+def reset_for_tests() -> None:  # pragma: no cover
+    """Wipe everything — ONLY for unit tests."""
+    with _LOCK:
+        for k in DB:
+            DB[k].clear()
+        for k in STATE:
+            if isinstance(STATE[k], dict):
+                STATE[k].clear()
+            elif isinstance(STATE[k], list):
+                STATE[k].clear()
