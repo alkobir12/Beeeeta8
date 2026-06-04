@@ -32,6 +32,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 from core import action_runtime
 from core.log_utils import get_logger
@@ -391,3 +392,42 @@ async def runtime_execute_intent(payload: Dict[str, Any] = Body(...)):
 async def runtime_get_active_visits(limit: int = Query(default=50, le=200)):
     """Read-only — current active visits (vehicles with status != مُسلَّمة)."""
     return {"success": True, "data": action_runtime.get_active_visits(limit=limit)}
+
+
+# ============================================================================
+# 🚀 Phase 3C.4 — Unified Execution Engine (policy-driven single entrypoint)
+# ============================================================================
+
+
+@router.post("/execute")
+async def runtime_execute_unified(payload: Dict[str, Any] = Body(...)):
+    """POST /api/runtime/execute  — the L16 single-shot endpoint.
+
+    Body: {"text": "...", "proposer": "?", "session_id": "?"}
+
+    Pipeline: text → LLM intent → policy decision → runtime.
+
+    Returned `status` is one of:
+      • "rejected"          — unknown action
+      • "read_only"         — pure query (no draft)
+      • "pending_approval"  — risky → draft + approval, waiting human
+      • "committed"         — safe → auto-approved and written
+      • "error"             — runtime failure (e.g. four_eyes_violation)
+    """
+    from core.unified_executor import execute_text
+    text = (payload.get("text") or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text required")
+    result = await execute_text(
+        text,
+        proposer=payload.get("proposer"),
+        session_id=payload.get("session_id"),
+        auto_approver=payload.get("auto_approver") or "auto:policy",
+    )
+    # Surface the right HTTP status without breaking the JSON contract
+    status_code = 200
+    if result.get("status") == "rejected":
+        status_code = 422  # unprocessable — we understood but couldn't act
+    elif result.get("status") == "error":
+        status_code = 400
+    return JSONResponse(content={"success": result.get("status") not in ("error",), "data": result}, status_code=status_code)
