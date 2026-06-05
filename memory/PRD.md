@@ -3,6 +3,33 @@
 ## Original Problem Statement
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 
+## CHANGELOG — 2026-06-05 · L16 "كاترينا" (Katrina) Conversational Operator
+The floating assistant was upgraded from a read-only L5 helper to a true L16
+executing agent, **rebranded to "كاترينا" (Katrina)**. Five user complaints resolved + voice added:
+1. **Executes instead of instructing** — root cause: `/api/assistant/chat` ran a read-only
+   kernel whose prompt told the LLM to "go to the page"; the real write path
+   (`/api/runtime/execute`) was separate and chosen by a brittle frontend Arabic regex.
+   Fix: `assistant_kernel.chat()` now detects write intent via `looks_like_action()` and
+   executes through `unified_executor.execute_text()`, returning a "✅ تم بنجاح" confirmation
+   + `executed{}` field. Backend is now the safety-net regardless of phrasing/dialect.
+2. **Arabic-tolerant search** — new `core/arabic_nlp.py`: `normalize_arabic()`, `arabic_tokens()`,
+   `arabic_match()` (hamza أإآ→ا, ة→ه, ى/ئ→ي, tashkeel/tatweel strip, definite-article-insensitive,
+   Arabic-Indic digits→ASCII). Applied to customers/operations/vehicles search + fetch-all fallback.
+   Nicknames/kunya like "ابو مصري" / "أبو المصري" now resolve.
+3. **Model badge/list** — `GET /api/assistant/models` now returns `default='sonnet'`,
+   id `sonnet` / "Claude Sonnet 4.6" (was GPT/gpt-4o-mini).
+4. **Mobile UI** — drawer height 80vh (was 95vh), bigger clear close button, tappable drag handle.
+5. **Voice (live talk)** — `useVoice.js` browser-native Web Speech API (STT mic ar-SA + TTS spoken
+   replies). Mic button (`assistant-mic-btn`) + voice toggle (`assistant-voice-toggle`). No keys/backend.
+6. **Knowledge/personality** — Katrina system prompt enriched from the attached CRP-AlKabeer/أبو فهد
+   spec: warm Qassimi dialect, car-diagnostics + parts/VIN knowledge, workshop info (📞 0553280100).
+7. **Reactive binding** — `AssistantProvider` dispatches `finance:updated` when `data.executed.status=='committed'`.
+Verified: backend 10/10 pytest (`/app/backend/tests/test_katrina_iter233.py`), frontend 9/10 (1 timing artifact).
+Known minor (deferred): dup-prevention returns the pre-existing row (so re-registering an existing
+name keeps its old phone); `/api/assistant/tool/*` envelope differs from `/chat`; RecentOperationsWidget
+has a `<button>`-in-`<button>` DOM-nesting warning.
+
+
 ## Core Requirements
 - Strict double-entry accounting
 - Smart POS Journal Entries
