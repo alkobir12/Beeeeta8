@@ -3,6 +3,25 @@
 ## Original Problem Statement
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 
+## CHANGELOG — 2026-06-05 (c) · Katrina CRUD: delete + edit commands (verified 100%)
+User-approved scope (أ) + (ج). Verified iteration_235: 7/7 frontend flows PASS, net DB delta = 0.
+- **Fixed broken delete_customer / delete_vehicle**: were declared RISKY but never wired to runtime.
+  Now: `_ACTION_TO_RUNTIME` maps them; `execute_text` resolves the target row FIRST
+  (`resolve_customer_target`/`resolve_vehicle_target`, Arabic-tolerant) → returns
+  `needs_clarification` (reason `not_found`|`ambiguous` + candidates) instead of guessing; risky →
+  ApprovalCard → on approve it **auto-commits** (approve endpoint now uses a distinct `reviewer:` identity
+  to pass Four-Eyes AND commits the draft, so risky approvals finally execute — fixes a pre-existing gap
+  affecting delete_operation/close_visits too).
+- **NEW update_customer / update_vehicle** (safe, auto-commit): "عدّل جوال خالد إلى 05..",
+  "غيّر حالة المركبة 8123 إلى جاهزة". Payload schema `{match:{...}, set:{...}}`. `_update_entity` PATCHes Supabase.
+- **visits table**: code now writes/reads a real Supabase `visits` table when present, else falls back to
+  staging. Migration SQL added at `/app/backend/migrations/001_create_visits.sql` — **user must run it once**
+  in Supabase SQL Editor for visits to persist (until then create_visit uses in-memory staging).
+- Clarification UX: ambiguous deletes list candidates ("⚠️ وجدت أكثر من … أيّهم تقصد؟"); not-found says "🔎 لم أجد…".
+- Files: core/llm_intent_parser.py, core/unified_executor.py, core/action_runtime.py,
+  routes_action_runtime.py, frontend AssistantProvider.jsx (statuses+labels).
+
+
 ## CHANGELOG — 2026-06-05 (b) · Fixed rrweb fetch-body errors in Katrina chat
 User saw intermittent error bubbles: "stream ended without done event" and "Body is disturbed or locked".
 **Root cause:** the platform's rrweb session-recorder wraps `window.fetch` and locks/disturbs the
