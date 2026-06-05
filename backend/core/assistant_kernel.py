@@ -60,11 +60,15 @@ _TOOL_PATTERNS = [
     (re.compile(r"(موافقات\s*معلق|اعتمادات\s*معلق|بانتظار\s*(?:ال)?اعتماد|pending\s*approvals?|تحت\s*المراجع|تنتظر\s*موافق)", re.IGNORECASE), "runtime.pending_approvals"),
     # 🆕 Phase 3C.5 — Audit trail
     (re.compile(r"(سجل\s*(?:ال)?تدقيق|audit\s*trail|آخر\s*(?:ال)?أحداث|أحداث\s*النظام|من\s*غيّر|تتبع\s*التغيير)", re.IGNORECASE), "runtime.audit_recent"),
+    # 🆕 Phase 3C.9 — Services + Parts catalog awareness
+    (re.compile(r"(تصنيفات\s*(?:ال)?خدمات|أقسام\s*(?:ال)?خدمات|اقسام\s*(?:ال)?خدمات|service\s*categor|أنواع\s*(?:ال)?خدمات|انواع\s*(?:ال)?خدمات)", re.IGNORECASE), "services.categories"),
+    (re.compile(r"(الخدمات\s*المتوفرة|الخدمات\s*المتاحة|اظهر\s*(?:ال)?خدمات|أظهر\s*(?:ال)?خدمات|كم\s*سعر\s*(?:خدمة|تغيير|إصلاح|اصلاح|فحص)|سعر\s*خدمة|قائمة\s*(?:ال)?خدمات|service\s*list)", re.IGNORECASE), "services.search"),
+    (re.compile(r"(قطع\s*(?:ال)?غيار|كم\s*(?:عندي|عندنا)\s*(?:قطعة|قطع)|كم\s*سعر\s*القطعة|بحث\s*(?:عن\s*)?قطعة|inventory\s*list|parts\s*list)", re.IGNORECASE), "parts.list"),
 ]
 
 
 # Tools that accept a `query` parameter parsed from the user's free text
-_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search", "nl.search"}
+_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search", "nl.search", "services.search", "parts.list"}
 
 
 def _extract_query(text: str, tool_name: str) -> str:
@@ -272,8 +276,18 @@ async def chat(
     )
     context_text = ai_context.context_to_text(snapshot)
 
+    # 🆕 Phase 3C.9 — inject live workshop brief so the LLM knows the catalog.
+    try:
+        from core import context_brief as _cb
+        _brief = await _cb.get_context_brief(limit_per_kind=5)
+        brief_text = _cb.to_llm_brief_text(_brief)
+    except Exception as _e:
+        brief_text = ""
+
     # 3) System message (L5: single assistant, no agent persona)
     system_msg = _system_prompt() + "\n\n" + context_text
+    if brief_text:
+        system_msg += "\n\n" + brief_text
 
     # 4) Append tool results
     if tool_results:

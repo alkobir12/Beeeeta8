@@ -35,6 +35,9 @@ const TYPE_META = {
   ReportDetailCard: { Icon: BarChart3, color: 'from-blue-600 to-indigo-600', tone: 'border-blue-300 dark:border-blue-700' },
   FindingCard: { Icon: Bug, color: 'from-rose-600 to-red-600', tone: 'border-rose-300 dark:border-rose-700' },
   ReportCard: { Icon: BarChart3, color: 'from-blue-500 to-indigo-500', tone: 'border-blue-200 dark:border-blue-700' },
+  // 🆕 Phase 3C.9 — Service catalog card
+  ServiceCard: { Icon: Wrench, color: 'from-amber-500 via-orange-500 to-rose-500', tone: 'border-amber-200 dark:border-amber-800' },
+  SearchIntentCard: { Icon: Sparkles, color: 'from-cyan-500 to-blue-500', tone: 'border-cyan-200 dark:border-cyan-800' },
 };
 
 // 🆕 Round 2 — Draft card styling per intent kind (more polished, matches site theme)
@@ -231,6 +234,20 @@ function renderFields(card) {
             <Row key={k} label={k} value={typeof v === 'object' ? JSON.stringify(v).slice(0, 30) : String(v).slice(0, 50)} />
           ))}
         </>
+      );
+    case 'ServiceCard':
+      return (
+        <>
+          {d.category && <Row label="التصنيف" value={d.category} highlight="indigo" />}
+          {d.price_formatted && <Row label="السعر" value={d.price_formatted} highlight="emerald" />}
+          {d.duration_minutes && <Row label="المدة" value={`${d.duration_minutes} دقيقة`} />}
+        </>
+      );
+    case 'SearchIntentCard':
+      return (
+        <div className="text-[12px] text-slate-600 dark:text-slate-300 py-1">
+          {d.raw && <div className="opacity-80">{String(d.raw).slice(0, 100)}</div>}
+        </div>
       );
     case 'GuidanceCard':
       return (

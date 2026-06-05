@@ -389,6 +389,30 @@ def detailed_report_card(report: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def service_card(service: Dict[str, Any]) -> Dict[str, Any]:
+    """🔧 Service card — one row from the services catalog."""
+    sid = service.get("id") or "s"
+    price = service.get("price")
+    duration = service.get("duration_minutes")
+    return {
+        "type": "ServiceCard",
+        "id": str(sid),
+        "title": f"🔧 {service.get('name') or 'خدمة'}",
+        "data": {
+            "name": service.get("name"),
+            "category": service.get("category"),
+            "price": price,
+            "price_formatted": _sar(price) if price is not None else None,
+            "duration_minutes": duration,
+            "active": service.get("active", True),
+        },
+        "actions": [
+            {"id": "use", "label": "استخدم في زيارة", "intent": "navigate",
+             "target": f"/operations?service_id={sid}"},
+        ],
+    }
+
+
 # ---------- High-level helpers used by tool handlers ----------
 
 def cards_from_customers(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:

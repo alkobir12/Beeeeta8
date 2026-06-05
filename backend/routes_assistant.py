@@ -365,6 +365,18 @@ async def assistant_whatsapp_outbox(session_id: str):
     }
 
 
+@router.get("/context_brief")
+async def assistant_context_brief():
+    """🧠 Phase 3C.9 — Live workshop brief (read-only).
+
+    Returns counts, active visits, service categories, low-stock parts. Used
+    by the assistant for context-aware answers without spawning multiple tools.
+    """
+    from core import context_brief as cb
+    data = await cb.get_context_brief()
+    return {"success": True, "data": data, "summary": cb.to_llm_brief_text(data)}
+
+
 @router.post("/memory/search")
 async def assistant_memory_search(payload: Dict[str, Any] = Body(...)):
     """🧠 Search vector memory for a semantic hit. Read-only."""

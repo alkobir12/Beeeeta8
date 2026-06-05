@@ -655,6 +655,84 @@ async def _whatsapp_send_real(
     }
 
 
+async def _services_search(workshop_id: str = "finmodule-sync", query: str = "", category: Optional[str] = None, limit: int = 10) -> Dict[str, Any]:
+    """🔧 يبحث في كتالوج الخدمات بالاسم أو التصنيف. يُرجع ServiceCards."""
+    try:
+        from supabase_service import SupabaseService
+        svc = SupabaseService()
+        client = svc.client
+    except Exception as e:
+        return {"error": f"supabase unavailable: {e}", "cards": []}
+    q = (query or "").strip()
+    try:
+        sel = client.table("services").select("id, name, category, price, duration_minutes").eq("active", True)
+        if category:
+            sel = sel.eq("category", category)
+        if q:
+            sel = sel.ilike("name", f"%{q}%")
+        res = sel.limit(limit).execute()
+        rows = res.data or []
+    except Exception as e:
+        return {"error": str(e)[:120], "cards": []}
+    from core.card_builder import service_card
+    return {
+        "query": q,
+        "category": category,
+        "count": len(rows),
+        "results": rows,
+        "cards": [service_card(r) for r in rows],
+    }
+
+
+async def _services_categories(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
+    """🗂️ يرجع تصنيفات الخدمات + عدد الخدمات في كل تصنيف."""
+    try:
+        from supabase_service import SupabaseService
+        svc = SupabaseService()
+        client = svc.client
+    except Exception as e:
+        return {"error": str(e), "categories": []}
+    try:
+        res = client.table("services").select("category").eq("active", True).execute()
+        rows = res.data or []
+    except Exception as e:
+        return {"error": str(e)[:120], "categories": []}
+    counts: Dict[str, int] = {}
+    for r in rows:
+        c = r.get("category") or "بدون تصنيف"
+        counts[c] = counts.get(c, 0) + 1
+    cats = sorted(
+        [{"name": k, "service_count": v} for k, v in counts.items()],
+        key=lambda x: x["service_count"], reverse=True,
+    )
+    return {"total_categories": len(cats), "total_services": len(rows), "categories": cats}
+
+
+async def _parts_list(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 10) -> Dict[str, Any]:
+    """📦 يبحث في كتالوج قطع الغيار بالاسم أو الفئة. يُرجع InventoryCards."""
+    try:
+        from supabase_service import SupabaseService
+        svc = SupabaseService()
+        client = svc.client
+    except Exception as e:
+        return {"error": str(e), "cards": []}
+    q = (query or "").strip()
+    try:
+        sel = client.table("parts").select("id, name, part_number, category, selling_price, quantity, min_quantity")
+        if q:
+            sel = sel.ilike("name", f"%{q}%")
+        res = sel.limit(limit).execute()
+        rows = res.data or []
+    except Exception as e:
+        return {"error": str(e)[:120], "cards": []}
+    from core.card_builder import inventory_card
+    return {
+        "query": q,
+        "count": len(rows),
+        "cards": [inventory_card(r) for r in rows],
+    }
+
+
 # Register built-ins (يُستدعى مرة واحدة عند الاستيراد)
 def _bootstrap() -> None:
     if _TOOLS:
@@ -771,6 +849,28 @@ def _bootstrap() -> None:
         description="📲 إرسال رسالة واتساب حقيقية عبر Infobip لرقم محدد.",
         handler=_whatsapp_send_real,
         params={"workshop_id": "string?", "to": "string", "message": "string"},
+    )
+    # 🆕 Phase 3C.9 — Services + Parts catalog awareness
+    register_tool(
+        "services.search",
+        agent="WorkshopAgent",
+        description="🔧 يبحث في كتالوج الخدمات (520+ خدمة) بالاسم أو التصنيف.",
+        handler=_services_search,
+        params={"workshop_id": "string?", "query": "string?", "category": "string?", "limit": "int?"},
+    )
+    register_tool(
+        "services.categories",
+        agent="WorkshopAgent",
+        description="🗂️ تصنيفات الخدمات المتاحة (فرامل، تعليق، كهرباء، ...) مع عدد الخدمات.",
+        handler=_services_categories,
+        params={"workshop_id": "string?"},
+    )
+    register_tool(
+        "parts.list",
+        agent="WorkshopAgent",
+        description="📦 يبحث في كتالوج قطع الغيار (148 قطعة) ويُرجع السعر والكمية.",
+        handler=_parts_list,
+        params={"workshop_id": "string?", "query": "string?", "limit": "int?"},
     )
 
 
