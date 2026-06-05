@@ -123,11 +123,14 @@ export const AssistantProvider = ({ children }) => {
 
   // ----- core: send a message (with optional SSE streaming) -----
   //
-  // 🆕 Phase 3C.7: Smart auto-routing
-  //   If the text starts with an ACTION verb (سجل/أضف/اصدر/أرسل/تحصيل/...),
-  //   we route through /api/runtime/execute instead of /chat so the bot
-  //   ACTUALLY EXECUTES instead of giving advisory text.
-  //   The LLM path is reserved for genuine questions (كم/ماذا/كيف/أعطني/...).
+  // 🆕 Phase 3C.10 — Smart auto-routing with **structured data detection**
+  //
+  // Routes to /api/runtime/execute when:
+  //   (A) Text starts with an action verb (سجل/اضف/...), OR
+  //   (B) Text contains structured ERP signals — phone + service/price/year/plate.
+  //   This catches "صالون 2009 رقم الجوال 0553747747 خدمه توضيب سعر ٥٥"
+  //   even though it doesn't start with a verb.
+  // Routes to /chat (LLM) when the text is a question.
   const _looksLikeAction = useCallback((text) => {
     if (!text) return false;
     const t = text.trim();
@@ -135,9 +138,20 @@ export const AssistantProvider = ({ children }) => {
     // Question words → keep on the LLM path
     const QUESTION_PREFIX = /^(?:ما\s|ماذا|كم\s|كيف|متى|أين|اين|هل\s|من\s|لماذا|أي\s|اي\s|اعرض|أعطني|اعطني|اخبرني|أخبرني|ابحث|اشرح|why|what|how|when|where)/i;
     if (QUESTION_PREFIX.test(t)) return false;
-    // Action verbs at start → run through /execute
-    const ACTION_PREFIX = /^(?:سجل|اضف|أضف|انشئ|أنشئ|افتح|أفتح|اصدر|أصدر|اعمل|أعمل|بع\s|بيع|تحصيل|اقبض|ادفع|اصرف|أصرف|اغلق|أغلق|اقفل|احذف|أحذف|عدل|عدّل|update|create|add|delete|register|close|open)/i;
-    return ACTION_PREFIX.test(t);
+    // (A) Action verb at start or anywhere
+    const ACTION_VERB = /\b(?:سجل|اضف|أضف|انشئ|أنشئ|افتح|أفتح|اصدر|أصدر|اعمل|أعمل|بع|بيع|تحصيل|اقبض|ادفع|اصرف|أصرف|اغلق|أغلق|اقفل|احذف|أحذف|عدل|عدّل|update|create|add|delete|register|close|open)\b/i;
+    if (ACTION_VERB.test(t)) return true;
+    // (B) Structured ERP data — phone is the strongest signal
+    const HAS_PHONE = /\b05\d{8}\b/.test(t);
+    if (HAS_PHONE) return true;
+    // (C) Vehicle type + year (e.g. "صالون 2009")
+    const HAS_VEHICLE_TYPE_YEAR = /\b(?:صالون|جيب|شاحنة|بكب|فان|نقل|دباب|باص|sedan|suv)\s*\d{4}\b/i.test(t);
+    if (HAS_VEHICLE_TYPE_YEAR) return true;
+    // (D) Service keyword + price/amount
+    const HAS_SERVICE = /\b(?:توضيب|تنجيد|صبغ|تلميع|غسيل|صيانة|إصلاح|اصلاح|فحص|تبديل|تركيب|خدم[ةه])\b/i.test(t);
+    const HAS_PRICE = /\b(?:سعر|بسعر|بـ\s*\d|\d+\s*(?:ر\.?س|ريال|sar))/i.test(t);
+    if (HAS_SERVICE && (HAS_PRICE || /\d{2,}/.test(t))) return true;
+    return false;
   }, []);
 
   const _executeDirectly = useCallback(async (text) => {
@@ -157,7 +171,17 @@ export const AssistantProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, proposer, session_id: sessionId }),
       });
-      const data = await resp.json();
+      // 🆕 Phase 3C.10 — read the body EXACTLY ONCE as text, then JSON.parse.
+      // This prevents "Body is disturbed or locked" errors when service
+      // workers or HTTP/2 streams cause double-reads.
+      let rawText = '';
+      try { rawText = await resp.text(); } catch (e) { rawText = ''; }
+      let data;
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch (e) { data = { _parse_error: true }; }
+      // For HTTP 4xx/5xx (e.g., 422 rejected), the body still has useful info
+      if (!resp.ok && !data?.data) {
+        data = { data: { status: 'rejected', reason: data?.detail || rawText.slice(0, 120) || `http_${resp.status}` } };
+      }
       const d = data?.data || {};
       const action = d.action?.action || 'unknown';
       let summary;
@@ -184,20 +208,24 @@ export const AssistantProvider = ({ children }) => {
         const n = Array.isArray(d.result) ? d.result.length : 0;
         summary = `🔎 **${n} نتيجة** للاستعلام.`;
       } else if (d.status === 'rejected') {
-        summary = `💡 لم أفهم تماماً. جرّب صياغة أوضح، مثل:\n• "سجل عميل احمد العتيبي 0501234567"\n• "أضف مركبة 9935 تويوتا"\n• "أصدر فاتورة 500 ريال"`;
+        summary = `💡 لم أفهم تماماً. جرّب صياغة أوضح:\n• "سجل عميل احمد 0501234567"\n• "أضف مركبة 9935 تويوتا"\n• "اضف صالون 2009 جوال 0501234567 خدمة توضيب سعر 55"`;
       } else {
-        summary = `⚠️ ${d.reason || 'حدث خطأ'}`;
+        summary = `⚠️ ${d.reason || 'تعذّر تنفيذ هذا الطلب'}`;
       }
       setMessages((prev) => [...prev, {
         role: 'assistant', content: summary, ts: Date.now() / 1000,
         meta: { cards, status: d.status, action, execution_id: d.execution_id },
       }]);
-      // 🆕 Notify the activity widget
       window.dispatchEvent(new CustomEvent('assistant:executed', { detail: { ...d, text } }));
       return data;
     } catch (e) {
+      // Show a friendlier error — keep the actual reason in console for devs
+      // eslint-disable-next-line no-console
+      console.error('execute error:', e);
       setMessages((prev) => [...prev, {
-        role: 'assistant', content: `⚠️ فشل التنفيذ: ${e.message}`, ts: Date.now() / 1000, meta: { error: true },
+        role: 'assistant',
+        content: `⚠️ تعذّر التنفيذ مؤقتاً. حاول مرة أخرى أو صِغ الطلب بشكل أوضح.`,
+        ts: Date.now() / 1000, meta: { error: true },
       }]);
       return null;
     } finally {
@@ -245,32 +273,49 @@ export const AssistantProvider = ({ children }) => {
             proposer,
           }),
         });
-        if (!resp.ok || !resp.body) throw new Error(`stream ${resp.status}`);
+        // 🆕 Phase 3C.10 — robust SSE reader. We must verify `resp.ok` BEFORE
+        // attempting to read the body, otherwise an early failure (e.g. an
+        // OPTIONS preflight quirk or 4xx) leaves the body in a "disturbed
+        // or locked" state when the catch block later tries to read it again.
+        if (!resp.ok) {
+          let errBody = '';
+          try { errBody = await resp.text(); } catch (e) { /* ignore */ }
+          throw new Error(`stream HTTP ${resp.status}: ${errBody.slice(0, 120)}`);
+        }
+        if (!resp.body) {
+          throw new Error('stream: missing response body');
+        }
         const reader = resp.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let buffer = '';
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          // SSE messages are separated by blank lines
-          const parts = buffer.split('\n\n');
-          buffer = parts.pop() || '';
-          for (const block of parts) {
-            const evMatch = block.match(/^event:\s*(\w+)/m);
-            const dataMatch = block.match(/^data:\s*(.*)$/m);
-            if (!evMatch || !dataMatch) continue;
-            const event = evMatch[1];
-            let payload = null;
-            try { payload = JSON.parse(dataMatch[1]); } catch (e) { /* keep null */ }
-            if (event === 'progress' && payload?.label) {
-              setStreamingPhase(payload.label);
-            } else if (event === 'done') {
-              data = payload;
-            } else if (event === 'error') {
-              throw new Error(payload?.error || 'stream_error');
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            // SSE messages are separated by blank lines
+            const parts = buffer.split('\n\n');
+            buffer = parts.pop() || '';
+            for (const block of parts) {
+              const evMatch = block.match(/^event:\s*(\w+)/m);
+              const dataMatch = block.match(/^data:\s*(.*)$/m);
+              if (!evMatch || !dataMatch) continue;
+              const event = evMatch[1];
+              let payload = null;
+              try { payload = JSON.parse(dataMatch[1]); } catch (e) { /* keep null */ }
+              if (event === 'progress' && payload?.label) {
+                setStreamingPhase(payload.label);
+              } else if (event === 'done') {
+                data = payload;
+              } else if (event === 'error') {
+                throw new Error(payload?.error || 'stream_error');
+              }
             }
           }
+        } finally {
+          // Always release the reader so the connection cleans up gracefully
+          // and we never trigger "Body disturbed or locked" on retry.
+          try { reader.releaseLock(); } catch (e) { /* ignore */ }
         }
         if (!data) throw new Error('stream ended without done event');
       } else {

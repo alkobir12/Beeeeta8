@@ -74,7 +74,7 @@ async def execute_text(
 ) -> Dict[str, Any]:
     """End-to-end orchestrator: text → LLM → policy decision → runtime.
 
-    Returns one of three shapes:
+    Returns one of these shapes:
       • status="rejected"          — unknown action, nothing happened
       • status="read_only"         — read query, includes result
       • status="pending_approval"  — risky action, draft + approval created
@@ -85,12 +85,48 @@ async def execute_text(
         return {"status": "rejected", "reason": "empty_text"}
 
     action = await parse_intent_with_llm(text, session_id=session_id)
+
+    # 🆕 Phase 3C.10 — Fallback: if LLM said "unknown" but the regex catches
+    # a clear action verb, build a minimal payload from extracted entities
+    # and proceed. This rescues the bot from over-strict LLM rejections.
+    if action.action == "unknown":
+        action = _regex_fallback_action(text)
+
     return await execute_action(
         action,
         proposer=proposer,
         session_id=session_id,
         auto_approver=auto_approver,
     )
+
+
+def _regex_fallback_action(text: str) -> Action:
+    """Convert regex-detected intents to an Action when the LLM gives up."""
+    from core import power_mode
+    intent_kind = power_mode.detect_intent_kind(text)
+    if intent_kind == "unknown":
+        return Action(action="unknown")
+    entities = power_mode.extract_entities(text, intent_kind)
+    # Map regex intent_kind → LLM action_name
+    kind_to_action = {
+        "customer": "create_customer",
+        "vehicle": "create_vehicle",
+        "visit": "create_visit",
+        "operation": "create_visit",  # operation = visit-with-service in this domain
+    }
+    action_name = kind_to_action.get(intent_kind)
+    if not action_name:
+        return Action(action="unknown")
+    # Build a clean payload — drop _resolved_from/raw noise
+    payload: Dict[str, Any] = {}
+    for key in ("name", "plate", "phone", "amount", "year", "vehicle_type", "service"):
+        if entities.get(key) is not None:
+            # Translate field names: amount→price, phone→customer_phone for visits
+            tgt = "price" if (key == "amount" and action_name == "create_visit") else \
+                  "customer_phone" if (key == "phone" and action_name in ("create_vehicle", "create_visit")) else \
+                  key
+            payload[tgt] = entities[key]
+    return Action(action=action_name, payload=payload)
 
 
 async def execute_action(
