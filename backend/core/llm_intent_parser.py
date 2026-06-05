@@ -81,7 +81,8 @@ _SYSTEM_PROMPT = (
     "  5. action='unknown' فقط إذا لم تجد أي verb أو entity واضح.\n"
     "  6. لا تخترع حقولاً غير الموجودة في الـ payload المسموح به أعلاه.\n"
     "  7. الأسماء العربية تُحفظ كما هي (UTF-8).\n"
-    "  8. plate = رقم اللوحة فقط. لا تضع نوع السيارة في plate.\n\n"
+    "  8. plate = رقم اللوحة فقط. لا تضع نوع السيارة في plate.\n"
+    "  9. **افهم اللهجة القصيمية/النجدية**: 'ضيف/حط' = أضف، 'ابي/ابغى' = أريد (create_*)، 'شيل' = احذف (delete_*)، 'وش عندنا' = get_*.\n\n"
     "أمثلة:\n"
     "  • 'اضف سيارة لوحة ggg 1111 رقم 0574747'\n"
     "    → {\"action\":\"create_vehicle\",\"payload\":{\"plate\":\"ggg 1111\",\"customer_phone\":\"0574747\"}}\n"
@@ -153,7 +154,7 @@ async def parse_intent_with_llm(text: str, *, session_id: Optional[str] = None) 
             api_key=api_key,
             session_id=session_id or "intent-parser",
             system_message=_SYSTEM_PROMPT,
-        ).with_model("openai", "gpt-4o-mini")
+        ).with_model("anthropic", "claude-sonnet-4-6")
         msg = UserMessage(text=text.strip())
         raw = await chat.send_message(msg)
         raw = str(raw or "").strip()

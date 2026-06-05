@@ -43,7 +43,7 @@ export const AssistantProvider = ({ children }) => {
   }, []);
   const [availableModels, setAvailableModels] = useState([
     // Default fallback list so the selector shows even before /models lands
-    { id: 'gpt', label: 'GPT (Emergent)', provider: 'openai', model: 'gpt-4o-mini', available: true, description: 'سريع وعالي الجودة (cloud)' },
+    { id: 'gpt', label: 'Claude Sonnet', provider: 'anthropic', model: 'claude-sonnet-4-6', available: true, description: 'سريع وعالي الجودة (cloud)' },
     { id: 'ollama', label: 'Ollama (محلي)', provider: 'ollama', model: 'llama3.2:3b', available: true, description: 'خصوصية تامة (يعمل بدون إنترنت)' },
   ]);
   const lastFetchRef = useRef(0);
@@ -136,21 +136,21 @@ export const AssistantProvider = ({ children }) => {
     const t = text.trim();
     if (t.startsWith('/power')) return true;
     // Question words → keep on the LLM path
-    const QUESTION_PREFIX = /^(?:ما\s|ماذا|كم\s|كيف|متى|أين|اين|هل\s|من\s|لماذا|أي\s|اي\s|اعرض|أعطني|اعطني|اخبرني|أخبرني|ابحث|اشرح|why|what|how|when|where)/i;
+    const QUESTION_PREFIX = /^(?:ما\s|ماذا|كم\s|كيف|متى|أين|اين|هل\s|من\s|لماذا|أي\s|اي\s|اعرض|أعطني|اعطني|اخبرني|أخبرني|ابحث|اشرح|why|what|how|when|where|وش\s|ايش\s|وين\s)/i;
     if (QUESTION_PREFIX.test(t)) return false;
-    // (A) Action verb at start or anywhere
-    // (A) Action verb at start or anywhere — handles Arabic suffixes (ها/ه/هم/هن/ني)
-    const ACTION_VERB = /(?:سجل|اضف|أضف|انشئ|أنشئ|افتح|أفتح|اصدر|أصدر|اعمل|أعمل|بع|بيع|تحصيل|اقبض|ادفع|اصرف|أصرف|اغلق|أغلق|اقفل|احذف|أحذف|عدل|عدّل|update|create|add|delete|register|close|open)(?:ها|ه|هم|هن|ني|نا|وا|وه|ي)?\b/i;
+    // (A) Action verb — NO \b boundaries (they don't work with Arabic in JS!)
+    // Instead use (?:\s|$) lookahead for word end, and match start or after space for word start
+    const ACTION_VERB = /(?:^|\s)(?:سجل|اضف|أضف|ضيف|حط|انشئ|أنشئ|افتح|أفتح|اصدر|أصدر|اعمل|أعمل|بع|بيع|تحصيل|اقبض|ادفع|اصرف|أصرف|اغلق|أغلق|اقفل|احذف|أحذف|شيل|امسح|عدل|عدّل|غير|update|create|add|delete|register|close|open)(?:ها|ه|هم|هن|ني|نا|وا|وه|ي|ين)?(?:\s|$)/i;
     if (ACTION_VERB.test(t)) return true;
-    // (B) Structured ERP data — phone is the strongest signal
-    const HAS_PHONE = /\b05\d{8}\b/.test(t);
+    // (B) Structured ERP data — phone (Saudi: 05 + 8 digits = 10 total, allow 10-11)
+    const HAS_PHONE = /05\d{7,9}/.test(t);
     if (HAS_PHONE) return true;
-    // (C) Vehicle type + year (e.g. "صالون 2009")
-    const HAS_VEHICLE_TYPE_YEAR = /\b(?:صالون|جيب|شاحنة|بكب|فان|نقل|دباب|باص|sedan|suv)\s*\d{4}\b/i.test(t);
+    // (C) Vehicle type + year (e.g. "صالون 2009", "هايلوكس 2016")
+    const HAS_VEHICLE_TYPE_YEAR = /(?:صالون|جيب|شاحنة|بكب|فان|نقل|دباب|باص|هايلوكس|كامري|لاندكروزر|باترول|اكسنت|سوناتا|النترا|كورولا|يارس|راف فور|برادو|اف جي|ددسن|hilux|camry|sedan|suv|pickup)\s*\d{4}/i.test(t);
     if (HAS_VEHICLE_TYPE_YEAR) return true;
     // (D) Service keyword + price/amount
-    const HAS_SERVICE = /\b(?:توضيب|تنجيد|صبغ|تلميع|غسيل|صيانة|إصلاح|اصلاح|فحص|تبديل|تركيب|خدم[ةه])\b/i.test(t);
-    const HAS_PRICE = /\b(?:سعر|بسعر|بـ\s*\d|\d+\s*(?:ر\.?س|ريال|sar))/i.test(t);
+    const HAS_SERVICE = /(?:توضيب|تنجيد|صبغ|تلميع|غسيل|صيانة|إصلاح|اصلاح|فحص|تبديل|تركيب|خدم[ةه]|برمجة|سمكرة|رش|دهان|حداده)/i.test(t);
+    const HAS_PRICE = /(?:سعر|بسعر|بـ\s*\d|\d+\s*(?:ر\.?س|ريال|sar))/i.test(t);
     if (HAS_SERVICE && (HAS_PRICE || /\d{2,}/.test(t))) return true;
     return false;
   }, []);
@@ -167,29 +167,16 @@ export const AssistantProvider = ({ children }) => {
     setStreamingPhase('executing');
     try {
       const url = `${API_URL}/runtime/execute`;
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, proposer, session_id: sessionId }),
-      });
-      // 🆕 Phase 3C.10 — read the body EXACTLY ONCE as text, then JSON.parse.
-      // This prevents "Body is disturbed or locked" errors when service
-      // workers or HTTP/2 streams cause double-reads.
-      let rawText = '';
-      try { rawText = await resp.text(); } catch (e) { rawText = ''; }
-      let data;
-      try { data = rawText ? JSON.parse(rawText) : {}; } catch (e) { data = { _parse_error: true }; }
-      // For HTTP 4xx/5xx (e.g., 422 rejected), the body still has useful info
-      if (!resp.ok && !data?.data) {
-        data = { data: { status: 'rejected', reason: data?.detail || rawText.slice(0, 120) || `http_${resp.status}` } };
-      }
-      const d = data?.data || {};
+      // Use XMLHttpRequest-style approach via axios to avoid rrweb fetch interceptor conflicts
+      const axResp = await axios.post(url, { text, proposer, session_id: sessionId });
+      const data = axResp.data || {};
+      const d = data?.data || data || {};
       const action = d.action?.action || 'unknown';
       let summary;
       let cards = [];
       if (d.status === 'committed') {
         const r = d.result || {};
-        summary = `✅ **تم بنجاح** — ${r.name || r.id || action}\n📌 تم الحفظ في قاعدة البيانات.`;
+        summary = `✅ **تم بنجاح** — ${r.name || r.plate_number || r.id || action}\n📌 تم الحفظ في قاعدة البيانات.`;
       } else if (d.status === 'pending_approval') {
         summary = `⏳ **بانتظار اعتمادك** — العملية حساسة (${action}).`;
         cards = [{
@@ -220,7 +207,6 @@ export const AssistantProvider = ({ children }) => {
       window.dispatchEvent(new CustomEvent('assistant:executed', { detail: { ...d, text } }));
       return data;
     } catch (e) {
-      // Show a friendlier error — keep the actual reason in console for devs
       // eslint-disable-next-line no-console
       console.error('execute error:', e);
       setMessages((prev) => [...prev, {

@@ -105,7 +105,7 @@ async def execute_text(
 def _regex_fallback_action(text: str) -> Action:
     """Convert regex-detected intents to an Action when the LLM gives up."""
     import re as _re
-    # Check for delete intent first (handles Arabic suffixes like احذفها)
+    # Check for delete intent first (handles Arabic suffixes + Qassimi dialect)
     delete_match = _re.search(r"(?:احذف|أحذف|امسح|أمسح|شيل|delete|remove)(?:ها|ه|هم|هن|وا|وه)?", text, _re.IGNORECASE)
     if delete_match:
         # Try to extract an operation ID from the text

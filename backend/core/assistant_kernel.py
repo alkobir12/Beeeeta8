@@ -52,8 +52,8 @@ _TOOL_PATTERNS = [
     # Operations search by customer/partner name — "عمليات محمد" / "تفاصيل عملية X"
     # Excludes common conjunctions/particles after "عمليات" (و/بدون/بلا/في/من)
     (re.compile(r"(تفاصيل\s*(?:ال)?عملي[ةه]?(?:ات)?\s+[\u0621-\u064A]|عمليات\s+(?!وال|والت|بدون|بلا|في\s|من\s|على\s|إلى)[\u0621-\u064A]{2,}(?:\s|$)|ملف\s*(?:ال)?عملي[ةه]?(?:ات)?\s+[\u0621-\u064A])", re.IGNORECASE), "operations.search"),
-    # Customer search — broad patterns including name-based queries
-    (re.compile(r"(ابحث\s*عن\s*(?:ال)?عميل|أبحث\s*عن\s*(?:ال)?عميل|اعرض\s*(?:ال)?عميل|عرض\s*(?:ال)?عميل|بيانات\s*(?:ال)?عميل|رصيد\s*(?:ال)?عميل|كم\s*رصيد|كم\s*يستحق\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل\s+|ابحث\s*(?:ال)?عميل)", re.IGNORECASE), "customers.search"),
+    # Customer search — broad patterns including name-based queries + Qassimi dialect
+    (re.compile(r"(ابحث\s*عن\s*(?:ال)?عميل|أبحث\s*عن\s*(?:ال)?عميل|اعرض\s*(?:ال)?عميل|عرض\s*(?:ال)?عميل|بيانات\s*(?:ال)?عميل|رصيد\s*(?:ال)?عميل|كم\s*رصيد|كم\s*يستحق\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل\s+|ابحث\s*(?:ال)?عميل|وش\s+عند|وين\s+(?:ال)?عميل|ابي\s+بيانات|ابغى\s+بيانات)", re.IGNORECASE), "customers.search"),
     # Generic info request with a proper name — "أعطني/عطني ملاحظة/بيانات/تفاصيل [name]"
     (re.compile(r"((?:أعطني|اعطني|عطني|أعطيني|ابغى|أبغى|أريد|اريد|وريني|اخبرني|أخبرني)\s+(?:ملاحظ[ةه]?|ملاحظات|بيانات|تفاصيل|معلومات|ملف|حساب|سجل|رصيد|عمليات?)\s)", re.IGNORECASE), "customers.search"),
     # Vehicle search (intent: "ابحث عن المركبة" / "أين مركبة X")
@@ -157,8 +157,8 @@ async def _llm_chat(
     user_message: str,
     history: List[Dict[str, str]],
     max_tokens: int = 800,
-    model_provider: str = "openai",
-    model_name: str = "gpt-4o-mini",
+    model_provider: str = "anthropic",
+    model_name: str = "claude-sonnet-4-6",
 ) -> str:
     api_key = _emergent_llm_key()
     if not api_key:
@@ -237,7 +237,8 @@ def _system_prompt() -> str:
         "📐 أسلوبك:\n"
         "  • عربية فصحى مبسطة، مختصرة، رقمية حين تتوفر أرقام.\n"
         "  • Markdown مسموح ومفضّل (جداول | bullets | **bold**) — الواجهة تعرضه بشكل صحيح.\n"
-        "  • إذا لم تتوفر بيانات في السياق ولم تُنفّذ أداة → اطلب من المستخدم سؤالاً أكثر تحديداً بدلاً من التخمين.\n\n"
+        "  • إذا لم تتوفر بيانات في السياق ولم تُنفّذ أداة → اطلب من المستخدم سؤالاً أكثر تحديداً بدلاً من التخمين.\n"
+        "  • **افهم اللهجة القصيمية والنجدية**: مثلاً 'وش' = ماذا، 'ابي/ابغى' = أريد، 'وين' = أين، 'حط' = أضف/ضع، 'شيل' = احذف، 'كم ذا' = كم هذا، 'ذيك' = تلك، 'هذيل' = هؤلاء، 'زين' = حسناً/جيد، 'لا هنت' = شكراً، 'الحين' = الآن، 'ضيفه' = أضفه.\n\n"
         "⚠️ قواعد حاسمة (لا تخالفها):\n"
         "  1. **ممنوع** الرد بـ 'دعني أتحقق' أو 'سأستعرض' أو 'لحظة' بدون أن تُكمل بالإجابة الكاملة فوراً في **نفس** الرسالة.\n"
         "  2. **ممنوع** الردود غير المكتملة أو الـ teasers — كل رد يجب أن يكون نهائياً ومفيداً.\n"
@@ -356,7 +357,7 @@ async def chat(
                 if response_text:
                     model_used = f"ollama/{llm_helpers.OLLAMA_DEFAULT_MODEL}"
             else:
-                _log.info("ollama not reachable; falling back to Emergent gpt-4o-mini")
+                _log.info("ollama not reachable; falling back to Emergent claude-sonnet-4-6")
         # Emergent path (default + fallback when Ollama is offline)
         if not response_text:
             response_text = await _llm_chat(
@@ -366,7 +367,7 @@ async def chat(
                 history=history[:-1],
             )
             if response_text:
-                model_used = "emergent/gpt-4o-mini"
+                model_used = "emergent/claude-sonnet-4-6"
 
     # Fallback: aggregated tool output + canned message
     if not response_text:

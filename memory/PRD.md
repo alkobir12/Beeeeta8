@@ -29,10 +29,12 @@
 - **Smart Fallback**: When no tool matches and an Arabic proper name is detected (2+ words), auto-triggers `customers.search` + `operations.search`
 - **Delete Support**: Added `delete_operation` to LLM intent parser, unified executor (RISKY — requires approval), and action runtime
 - **Arabic Suffix Fix**: Frontend `_looksLikeAction()` now matches verbs with Arabic suffixes (احذفها/احذفه/اغلقها)
-- **Query Extraction**: Improved `_extract_query` to strip info nouns (ملاحظة/تفاصيل/معلومات) from search queries
-- **Tokenized Matching**: Customer and operations search now tokenize queries for partial multi-word matching
-- **Alert Pattern**: Added "تحذير/تحذيرات" to firewall.top_alerts regex
-- 10/10 tests passed (test_bot_fixes_iter232.py)
+- **CRITICAL FIX: JS `\b` doesn't work with Arabic** — Removed `\b` word boundaries from ACTION_VERB regex in frontend, replaced with `(?:^|\s)` and `(?:\s|$)` for proper Arabic word detection
+- **LLM Switch**: GPT-4o-mini → **Claude Sonnet 4.6** (both assistant_kernel.py and llm_intent_parser.py)
+- **Qassimi Dialect**: Added dialect support (وش/ابي/ابغى/ضيف/حط/شيل/الحين/وين) in system prompt, intent parser, and frontend action routing
+- **fetch → axios**: Switched `_executeDirectly` from `fetch` to `axios` to avoid rrweb-recorder interceptor conflicts
+- **Vehicle Types**: Added هايلوكس/كامري/لاندكروزر/باترول/etc. to HAS_VEHICLE_TYPE_YEAR pattern
+- 10/10 backend tests passed + E2E browser verification shows "✅ تم بنجاح" for vehicle creation
 
 ### Session 11 (Feb 12 — previous) — Phase 3B Round 2 (Power Mode + Multi-Intent + Drafts)
 - ✅ **⚡ Power Mode**: `/power` prefix triggers multi-intent execution. Backend `core/power_mode.py` (~280 lines, fully tested) detects the prefix and bypasses the LLM path. Single round-trip handles N commands.
