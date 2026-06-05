@@ -3,6 +3,17 @@
 ## Original Problem Statement
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 
+## CHANGELOG — 2026-06-05 (b) · Fixed rrweb fetch-body errors in Katrina chat
+User saw intermittent error bubbles: "stream ended without done event" and "Body is disturbed or locked".
+**Root cause:** the platform's rrweb session-recorder wraps `window.fetch` and locks/disturbs the
+response body. The assistant's SSE chat path and the 🚀 execute button used `fetch()`.
+**Fix:** migrated everything to **axios (XHR)** — `sendMessage` now defaults to the non-streaming
+axios `/api/assistant/chat` path; `UnifiedAssistantDrawer.handleExecute` (🚀) now uses `axios.post`
+for `/api/runtime/execute` (matching `_executeDirectly` which already used axios). Verified
+iteration_234: 10/10 frontend, **0 occurrences** of the 4 error strings across 6 flows. Note: kept
+LLM-first intent parsing (no regex fast-path) to protect accounting data accuracy.
+
+
 ## CHANGELOG — 2026-06-05 · L16 "كاترينا" (Katrina) Conversational Operator
 The floating assistant was upgraded from a read-only L5 helper to a true L16
 executing agent, **rebranded to "كاترينا" (Katrina)**. Five user complaints resolved + voice added:
