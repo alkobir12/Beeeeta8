@@ -22,7 +22,19 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 11 (Feb 12 — current) — Phase 3B Round 2 (Power Mode + Multi-Intent + Drafts)
+### Session 12 (Jun 5) — Bot Intelligence Fixes (Name Search + Operations Search + Delete Support)
+- **Bug Fix**: "أعطني ملاحظة محمد الجهني" now correctly triggers `customers.search` and finds the customer
+- **New Tool**: `operations.search` — searches operations by customer/partner name with tokenized matching
+- **Tool Pattern Fixes**: Added broader patterns for name-based queries ("أعطني/عطني + تفاصيل/ملاحظة/بيانات + [name]")
+- **Smart Fallback**: When no tool matches and an Arabic proper name is detected (2+ words), auto-triggers `customers.search` + `operations.search`
+- **Delete Support**: Added `delete_operation` to LLM intent parser, unified executor (RISKY — requires approval), and action runtime
+- **Arabic Suffix Fix**: Frontend `_looksLikeAction()` now matches verbs with Arabic suffixes (احذفها/احذفه/اغلقها)
+- **Query Extraction**: Improved `_extract_query` to strip info nouns (ملاحظة/تفاصيل/معلومات) from search queries
+- **Tokenized Matching**: Customer and operations search now tokenize queries for partial multi-word matching
+- **Alert Pattern**: Added "تحذير/تحذيرات" to firewall.top_alerts regex
+- 10/10 tests passed (test_bot_fixes_iter232.py)
+
+### Session 11 (Feb 12 — previous) — Phase 3B Round 2 (Power Mode + Multi-Intent + Drafts)
 - ✅ **⚡ Power Mode**: `/power` prefix triggers multi-intent execution. Backend `core/power_mode.py` (~280 lines, fully tested) detects the prefix and bypasses the LLM path. Single round-trip handles N commands.
 - ✅ **🔀 Multi-Intent Parsing**: Splits on `\n`, `،`, `؛`, `.`, ` ثم `, ` and `, ` و `. Each sub-command goes through its own intent classifier (11 kinds: customer/vehicle/visit/operation/invoice/collection/payment/supplier/inventory/part_search/unknown).
 - ✅ **🎴 4 New Draft Cards** (CustomerDraftCard, VehicleDraftCard, VisitDraftCard, OperationDraftCard + 5 others) — rendered with dashed amber border + "مسوّدة" badge. **All 3 actions (review/discard/commit) are deferred to Phase 3C** (Approval Runtime) — strict read-only contract intact.
@@ -250,12 +262,16 @@
 ## Backlog
 - **P1**: Refactor `server.py` → split routers
 - **P1**: Refactor `routes_finance.py` and `routes_extended.py`
+- **P1**: Extract vehicles/inventory to `/app/backend/domains/`
+- **P2**: Auto-fix missing journal entries button in assistant
+- **P2**: Multi-provider fallback (Groq/Llama)
 - **P2**: OCR for invoice auditing
 - **P2**: Mini-ledger for advance payments
 - **P2**: Per-case hook dependency review
 - **P3**: Split oversized React components
 - **P3**: CRA → Vite migration (would resolve 89 high vulnerabilities)
 - **P3**: Add type hints to 10 utility scripts
+- **Enhancement**: Advanced context memory — "احذفها" auto-resolves entity from conversation history
 
 ## Key Files
 - `/app/frontend/src/contexts/ThemeContext.jsx`
