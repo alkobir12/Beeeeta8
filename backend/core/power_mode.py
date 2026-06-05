@@ -85,19 +85,28 @@ def extract_commands(text: str) -> List[str]:
 # 3) Intent kind detection per command
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Order matters — more specific patterns first.
+# Order matters — more specific patterns first. Action verbs win against
+# noun-only patterns when both could match (e.g. "اضف ... سعر ٥٥" is an
+# operation create, NOT a part search).
 _INTENT_PATTERNS: List[Tuple[str, re.Pattern[str]]] = [
+    # Money flow (highest specificity)
     ("collection", re.compile(r"\b(?:تحصيل|اقبض|قبض|حصّل|دفع\s*(?:ال)?عميل|سدد\s*(?:ال)?عميل|دفعة\s*من)\b", re.IGNORECASE)),
     ("payment", re.compile(r"\b(?:ادفع|دفع\s*(?:ال)?مورد|سداد\s*(?:ال)?مورد|سند\s*صرف|اصرف|اصرفي)\b", re.IGNORECASE)),
     ("invoice", re.compile(r"\b(?:فاتورة|invoice|بيع\s+ل|بع\s+ل|اصدر\s+فاتورة|كشف\s+حساب)\b", re.IGNORECASE)),
-    ("part_search", re.compile(r"\b(?:سعر|كم\s+سعر|كم\s+ع?ندي|كم\s+ع?ندنا|متوفر|بيع\s+قطع|أبيع|ابيع|ابحث\s+عن\s+قطع|اشتري\s+قطع)\b", re.IGNORECASE)),
+    # Action verbs that create something — these MUST run BEFORE part_search
+    # so "اضف ... سعر ٥٥" doesn't get misclassified as a price lookup.
+    # `operation` catches service words (توضيب/تنجيد/صبغ/...) so "اضف صالون
+    # خدمه توضيب سعر ٥٥" correctly classifies as an operation creation.
+    ("operation", re.compile(r"\b(?:عملية|أضف\s+عملية|اضف\s+عملية|سجل\s+عملية|خدمة\s+جديدة|أمر\s+شغل|توضيب|تنجيد|صبغ|ميكانيكا|كهرباء|تلميع|غسيل|تبديل)\b", re.IGNORECASE)),
     ("visit", re.compile(r"\b(?:زيارة|افتح\s+زيارة|سجل\s+زيارة|دخل|إدخال|ادخال|استقبال)\b", re.IGNORECASE)),
-    ("operation", re.compile(r"\b(?:عملية|أضف\s+عملية|اضف\s+عملية|سجل\s+عملية|خدمة\s+جديدة|أمر\s+شغل)\b", re.IGNORECASE)),
-    ("vehicle", re.compile(r"\b(?:مركبة|سيارة|لوحة|رقم\s+اللوحة|أضف\s+مركبة|اضف\s+سيارة)\b", re.IGNORECASE)),
-    ("customer", re.compile(r"\b(?:عميل|زبون|عميلة|زبونة|أضف\s+عميل|اضف\s+عميل|سجل\s+عميل|عميل\s+جديد)\b", re.IGNORECASE)),
+    ("vehicle", re.compile(r"\b(?:مركبة|سيارة|لوحة|رقم\s+اللوحة|أضف\s+مركبة|اضف\s+مركبة|أضف\s+سيارة|اضف\s+سيارة|اضف\s+صالون|أضف\s+صالون)\b", re.IGNORECASE)),
     ("supplier", re.compile(r"\b(?:مورد|أضف\s+مورد|اضف\s+مورد|سجل\s+مورد)\b", re.IGNORECASE)),
+    ("customer", re.compile(r"\b(?:عميل|زبون|عميلة|زبونة|أضف\s+عميل|اضف\s+عميل|سجل\s+عميل|عميل\s+جديد)\b", re.IGNORECASE)),
+    # Stock queries — read-only paths (NO draft created)
     ("inventory", re.compile(r"\b(?:قطع\s+ناقصة|مخزون|قطع\s+منخفضة|الحد\s+الأدنى|نواقص|القطع\s+الناقصة|low\s*stock)\b", re.IGNORECASE)),
-    ("oil", re.compile(r"\b(?:زيت|فلتر|filter|بطار|بواجي|تيل)\b", re.IGNORECASE)),
+    # part_search now requires CLEAR search verb (kept LAST so verb-led
+    # action sentences never fall here). "كم سعر..." matches; "اضف ... سعر ٥٥" doesn't.
+    ("part_search", re.compile(r"^(?:كم\s+سعر|كم\s+ع?ندي|كم\s+ع?ندنا|متوفر|بيع\s+قطع|ابحث\s+عن\s+قطع|اشتري\s+قطع|سعر\s+قطعة|كم\s+تكلف)", re.IGNORECASE)),
 ]
 
 
@@ -107,8 +116,7 @@ def detect_intent_kind(cmd: str) -> str:
         return "unknown"
     for kind, rgx in _INTENT_PATTERNS:
         if rgx.search(cmd):
-            # "oil" is really a part_search ("غيّر زيت" ≈ "أبيع زيت")
-            return "part_search" if kind == "oil" else kind
+            return kind
     return "unknown"
 
 
@@ -424,6 +432,40 @@ async def execute_action(*, session_id: Optional[str], cmd: str, proposer: Optio
             from core.log_utils import get_logger as _gl, redact as _r
             _gl("power_mode").warning("action_runtime register failed: %s", _r(str(e), max_len=80))
             draft["runtime"] = {"enabled": False, "error": "runtime_unavailable"}
+
+    # 🆕 Phase 3C.8 — Operation drafts: too complex to auto-commit (multiple
+    # line items + accounting routing). Link the user to the full form page.
+    elif intent_kind == "operation":
+        # Build a pre-fill query string so the Operations page can hydrate
+        prefill = []
+        if entities.get("plate"):
+            prefill.append(f"plate={entities['plate']}")
+        if entities.get("name"):
+            from urllib.parse import quote
+            prefill.append(f"customer={quote(entities['name'])}")
+        if entities.get("amount"):
+            prefill.append(f"amount={entities['amount']}")
+        if entities.get("phone"):
+            prefill.append(f"phone={entities['phone']}")
+        qs = ("?" + "&".join(prefill)) if prefill else ""
+        draft["actions"] = [
+            {"id": "open_form", "label": "إكمال في صفحة العمليات", "intent": "navigate",
+             "target": f"/operations{qs}"},
+            {"id": "discard", "label": "تجاهل", "intent": "deferred", "phase": "soon"},
+        ]
+        draft["runtime"] = {"enabled": False, "reason": "operations_use_dedicated_form"}
+
+    # 🆕 part_search / inventory: read-only intents — never get a draft. The
+    # user's intent was to LOOK UP information, not to create something.
+    elif intent_kind in {"part_search", "inventory"}:
+        draft["actions"] = [
+            {"id": "search", "label": "ابحث في المخزون", "intent": "tool",
+             "tool": "parts.search", "args": {"query": entities.get("raw", "")}},
+            {"id": "view", "label": "صفحة قطع الغيار", "intent": "navigate", "target": "/parts"},
+        ]
+        # Convert to a SearchIntentCard so the UI doesn't show "مسوّدة"
+        draft["type"] = "SearchIntentCard"
+        draft.pop("status", None)
 
     return draft
 
