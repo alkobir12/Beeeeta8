@@ -144,6 +144,117 @@ def detect_tools(text: str) -> List[str]:
     return matched
 
 
+# ---------- L16: write-action intent gate + executor wiring ----------
+
+# Strong write verbs (MSA + Saudi/Qassimi dialect). NOTE: "بيع" is intentionally
+# excluded — "بيع X" is a parts-search pattern in this domain, not a write.
+_ACTION_VERB_RE = re.compile(
+    r"(?:^|\s)(?:سجّ?ل|اضف|أضف|اضيف|أضيف|ضيف|ضع|حط|انشئ|أنشئ|انشاء|افتح|أفتح|"
+    r"اصدر|أصدر|اعمل|سوّ?ي|احذف|أحذف|امسح|شيل|الغ|ألغ|اغلق|أغلق|اقفل|"
+    r"عدّ?ل|غيّ?ر|حدّ?ث|register|create|add|delete|close|open|update)"
+    r"(?:ها|ه|هم|هن|ني|نا|وا|وه|ي|ين)?(?=\s|$)",
+    re.IGNORECASE,
+)
+# Dialect "I want to <do>" → treat as an action even without a leading verb.
+_DIALECT_INTENT_RE = re.compile(
+    r"(?:ابغى|أبغى|ابي|أبي|ودّ?ي|بغيت|ابا|أبا)\s+(?:اضيف|أضيف|اسجّ?ل|أسجّ?ل|افتح|"
+    r"احذف|امسح|شيل|اغلق|اقفل|ضيف|حط|اعمل|انشئ)",
+    re.IGNORECASE,
+)
+# Clear read/question lead-ins — keep these on the answering path.
+_QUESTION_LEAD_RE = re.compile(
+    r"^\s*(?:ما|ماذا|كم|كيف|متى|اين|أين|هل|من\s|لماذا|ليش|وش|ايش|إيش|وين|ابحث|أبحث|"
+    r"اعرض|أعرض|عرض|اعطني|أعطني|عطني|اخبرني|أخبرني|ارني|أرني|وريني|"
+    r"why|what|how|when|where|who|show|find|search|list)",
+    re.IGNORECASE,
+)
+
+
+def looks_like_action(text: str) -> bool:
+    """Backend safety-net: should this message be EXECUTED (write) instead of
+    answered (read)? Arabic-normalised so morphology/dialect/hamza don't break it.
+
+    This is the fix for "البوت يعطي تعليمات بدل التنفيذ": even when the frontend
+    regex misses a command, the kernel still routes it through the executor.
+    """
+    if not text or not text.strip():
+        return False
+    raw = text.strip()
+    try:
+        from core.arabic_nlp import normalize_arabic
+        norm = normalize_arabic(raw)
+    except Exception:
+        norm = raw.lower()
+    if _DIALECT_INTENT_RE.search(raw) or _DIALECT_INTENT_RE.search(norm):
+        return True
+    if _ACTION_VERB_RE.search(raw) or _ACTION_VERB_RE.search(norm):
+        return True
+    # Structured ERP signal (phone, or vehicle type + year) with no question lead.
+    has_phone = bool(re.search(r"05\d{7,9}", norm))
+    has_vehicle_year = bool(re.search(
+        r"(?:صالون|جيب|شاحنه|بكب|فان|نقل|دباب|باص|هايلكس|هايلوكس|كامري|لاندكروزر|"
+        r"باترول|اكسنت|سوناتا|النترا|كورولا|يارس|برادو|فورتشنر|ددسن|hilux|camry)\s*\d{4}",
+        norm,
+    ))
+    is_question = bool(_QUESTION_LEAD_RE.search(raw))
+    if (has_phone or has_vehicle_year) and not is_question:
+        return True
+    return False
+
+
+def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, Any]) -> Dict[str, Any]:
+    """Format a Unified-Executor result as a chat reply (confirmation + cards)."""
+    status = exec_res.get("status")
+    action = (exec_res.get("action") or {}).get("action") or "unknown"
+    label = {
+        "create_customer": "عميل", "create_vehicle": "مركبة", "create_visit": "زيارة",
+        "delete_operation": "حذف عملية", "close_visits": "إغلاق الزيارات",
+    }.get(action, action)
+    cards: List[Dict[str, Any]] = []
+    entity_id = None
+    if status == "committed":
+        r = exec_res.get("result") or {}
+        entity_id = r.get("id")
+        name = (r.get("name") or r.get("plate_number") or r.get("plateNumber")
+                or r.get("id") or "")
+        if r.get("_duplicate"):
+            response_text = f"⚠️ **{label} موجود مسبقاً** — {name}\nلم أُنشئ نسخة مكررة."
+        else:
+            response_text = f"✅ **تم بنجاح** — {label}: {name}\n📌 حُفظ في قاعدة البيانات."
+    else:  # pending_approval
+        approval_id = (exec_res.get("approval") or {}).get("approval_id")
+        draft_id = (exec_res.get("draft") or {}).get("id")
+        response_text = f"⏳ **بانتظار اعتمادك** — هذه عملية حساسة ({label})."
+        cards = [{
+            "type": "ApprovalCard", "id": approval_id,
+            "title": f"موافقة — {label}", "status": "pending",
+            "data": {"approval_id": approval_id, "draft_id": draft_id, "status": "pending"},
+            "actions": [
+                {"id": "approve", "label": "✓ اعتماد", "intent": "runtime",
+                 "endpoint": f"/api/runtime/approvals/{approval_id}/approve", "method": "POST"},
+                {"id": "reject", "label": "✗ رفض", "intent": "runtime",
+                 "endpoint": f"/api/runtime/approvals/{approval_id}/reject", "method": "POST"},
+            ],
+        }]
+    shared_memory.append_message(sid, "assistant", response_text, meta={
+        "intent": "action", "action": action, "status": status,
+    })
+    shared_memory.track_action(sid, "action", {
+        "message": message[:160], "action": action, "status": status,
+    })
+    return {
+        "session_id": sid, "agent": "Assistant", "assistant_name": ASSISTANT_NAME,
+        "assistant_version": ASSISTANT_VERSION, "intent": "action",
+        "tool_results": [], "response": response_text, "cards": cards,
+        "context_snapshot": {}, "recent_actions": shared_memory.get_recent_actions(sid, limit=10),
+        "ai_used": False, "model_used": None, "read_only": False, "mode": "action",
+        # 🆕 the frontend dispatches finance:updated when this is a committed write
+        "executed": {"status": status, "action": action, "entity_id": entity_id},
+        "power": None,
+    }
+
+
+
 # ---------- LLM Helper ----------
 
 def _emergent_llm_key() -> Optional[str]:
@@ -188,8 +299,8 @@ async def _llm_chat(
 
 # ---------- Public API ----------
 
-ASSISTANT_NAME = "Beeeeta8 Assistant"
-ASSISTANT_VERSION = "L5.1"
+ASSISTANT_NAME = "كاترينا"
+ASSISTANT_VERSION = "L16"
 
 
 def _system_prompt() -> str:
@@ -200,50 +311,39 @@ def _system_prompt() -> str:
     We only refuse when the user explicitly asks for CREATE/UPDATE/DELETE/APPROVE.
     """
     return (
-        f"أنت {ASSISTANT_NAME} — المساعد الذكي داخل نظام Beeeeta8 لإدارة الورش.\n\n"
-        "🎯 وظيفتك الأساسية: **مساعدة المستخدم بفاعلية**.\n"
-        "  • أجب على الأسئلة استناداً للبيانات الفعلية المُمرّرة لك (في 'السياق' و 'نتائج الأدوات').\n"
-        "  • اشرح التنبيهات والقيود والتقارير المالية والذمم وحالة المركبات.\n"
-        "  • لخّص الأرقام واعرض الـ insights الذكية.\n"
-        "  • وجّه المستخدم لأي مكان في النظام عبر صياغة واضحة (مثل: 'افتح صفحة /accounting/firewall').\n\n"
-        "🧰 الأدوات المتاحة لك (تُستدعى تلقائياً حسب نية السؤال):\n"
-        "  • firewall.health_score — درجة الصحة المالية للنظام.\n"
-        "  • firewall.top_alerts — أهم 5 تنبيهات نشطة.\n"
-        "  • firewall.cash_flow — تدفق نقدي 30 يوماً.\n"
-        "  • firewall.operation_integrity — العمليات بها قيود/مشاكل ربط.\n"
-        "  • finance.ar_summary — ذمم العملاء + أعلى المدينين.\n"
-        "  • finance.payables_summary — ذمم الموردين + أعلى الدائنين.\n"
-        "  • workshop.active_visits — عدد الزيارات المفتوحة.\n"
-        "  • inventory.low_stock — قطع المخزون التي وصلت للحد الأدنى.\n"
-        "  • parts.search — 🔧 بحث ذكي عن قطعة في المخزون (الاسم/التصنيف) + يرجع السعر والكمية المتاحة. استخدمها عند 'بيع X' و 'سعر X' و 'كم عندي X'.\n"
-        "  • operations.recent — آخر العمليات (بيع/شراء/مصروف).\n"
-        "  • customers.search — بحث عميل بالاسم/الهاتف.\n"
-        "  • vehicles.search — بحث مركبة باللوحة/الماركة/المالك.\n"
-        "  • operations.search — بحث عمليات عميل/مورد بالاسم (تفاصيل عمليات شخص معين).\n\n"
-        "📊 كيف تتعامل مع نتائج الأدوات:\n"
-        "  • إذا الأداة أعادت قائمة فارغة → قل صراحة 'لا توجد بيانات حالياً' بدون اعتذار طويل.\n"
-        "  • إذا الأداة فشلت → اعرض الخطأ بإيجاز واقترح بدائل.\n"
-        "  • إذا الأداة نجحت → قدّم النتيجة منسّقة (جدول Markdown أو قائمة أو أرقام واضحة).\n"
-        "  • إذا الأرقام كبيرة → نسّقها بفواصل الآلاف عند الكتابة.\n\n"
-        "🛡️ القيد الوحيد (read-only backend):\n"
-        "  • لا تستدع أداة تكتب/تعدّل/تحذف في DB — كل الأدوات المسجّلة لديك قراءة فقط.\n"
-        "  • لو طلب المستخدم 'أنشئ/عدّل/وافق' → اشرح الخطوات وأرشده للواجهة المناسبة.\n"
-        "  • لو طلب المستخدم 'احذف' → وجّهه لكتابة الأمر كفعل مباشر (مثل: 'احذف العملية رقم X') ليتحوّل للمسار التنفيذي.\n"
-        "  • **ممنوع** الرد بـ 'لا يمكنني فتح أو تعديل' عند سؤال قراءة عادي — أنت تملك بيانات النظام وتقدر تجيب.\n\n"
-        "📌 سياق المحادثة:\n"
-        "  • إذا قال المستخدم 'احذفها' أو 'عدّله' أو 'غيّرها' (ضمير متصل) → ارجع للرسالة السابقة وحدد ما يقصده.\n"
-        "  • إذا ذكر اسم شخص بدون تحديد نوع الطلب → ابحث عنه كعميل واعرض بياناته وعملياته.\n"
-        "  • لا تقل 'لا توجد بيانات' إلا إذا فعلاً لم تجد نتائج في أدوات البحث.\n\n"
-        "📐 أسلوبك:\n"
-        "  • عربية فصحى مبسطة، مختصرة، رقمية حين تتوفر أرقام.\n"
-        "  • Markdown مسموح ومفضّل (جداول | bullets | **bold**) — الواجهة تعرضه بشكل صحيح.\n"
-        "  • إذا لم تتوفر بيانات في السياق ولم تُنفّذ أداة → اطلب من المستخدم سؤالاً أكثر تحديداً بدلاً من التخمين.\n"
-        "  • **افهم اللهجة القصيمية والنجدية**: مثلاً 'وش' = ماذا، 'ابي/ابغى' = أريد، 'وين' = أين، 'حط' = أضف/ضع، 'شيل' = احذف، 'كم ذا' = كم هذا، 'ذيك' = تلك، 'هذيل' = هؤلاء، 'زين' = حسناً/جيد، 'لا هنت' = شكراً، 'الحين' = الآن، 'ضيفه' = أضفه.\n\n"
-        "⚠️ قواعد حاسمة (لا تخالفها):\n"
-        "  1. **ممنوع** الرد بـ 'دعني أتحقق' أو 'سأستعرض' أو 'لحظة' بدون أن تُكمل بالإجابة الكاملة فوراً في **نفس** الرسالة.\n"
-        "  2. **ممنوع** الردود غير المكتملة أو الـ teasers — كل رد يجب أن يكون نهائياً ومفيداً.\n"
-        "  3. لو نتائج الأدوات فارغة، قل النتيجة مباشرة: 'لا توجد عمليات بقيود مفقودة' (مثلاً) — لا تَعِد بمراجعة لاحقة.\n"
-        "  4. **ممنوع** قول 'سأتحقق', 'سأعود إليك', 'سأنظر' — أنت بالفعل تَملك البيانات، فقط أجب مباشرة.\n"
+        f"أنت **{ASSISTANT_NAME}** — المساعِدة الذكية التنفيذية لنظام إدارة «ورشة الكبير للسيارات».\n"
+        "أنتِ لستِ مجرد دليل إرشادات — أنتِ مشغّلة فعلية للنظام: تُنفّذين الأوامر، تُجيبين، وتحلّلين.\n\n"
+        "🎯 **مهمتك**:\n"
+        "  • نفّذي طلبات المستخدم فعلياً (إنشاء عميل/مركبة/زيارة، فتح/إغلاق زيارة، حذف عملية…) — لا تكتفي بشرح الخطوات.\n"
+        "  • أجيبي على الأسئلة من البيانات الفعلية (السياق + نتائج الأدوات).\n"
+        "  • اشرحي التنبيهات والقيود والذمم والتقارير، ولخّصي الأرقام بذكاء.\n"
+        "  • كوني استباقية: بعد أي إجابة اقترحي الخطوة التالية المنطقية.\n\n"
+        "🗣️ **شخصيتك ولهجتك**:\n"
+        "  • ودودة، خبيرة، واثقة، مختصرة. تحيّة دافئة عند بداية المحادثة (مثل: 'هلا والله 👋').\n"
+        "  • افهمي وتجاوبي مع **اللهجة القصيمية/النجدية**: 'وش'=ماذا، 'ابي/ابغى/ودّي'=أريد، 'وين'=أين، 'حط/ضيف'=أضف، 'شيل'=احذف، 'الحين'=الآن، 'كم عليه'=كم رصيده، 'زين'=تمام، 'لا هنت'=شكراً.\n"
+        "  • استخدمي إيموجي باعتدال (✅ ⚠️ 🔧 🚗 💰 📊).\n\n"
+        "🔧 **معرفتك الفنية (ورشة الكبير)**:\n"
+        "  • متخصصة في محركات الديزل والبنزين: Toyota (فورتشنر، لاندكروزر 200/300، هايلكس، برادو)، Isuzu (ديماكس، MU-X)، Mitsubishi (باجيرو، L200).\n"
+        "  • تقدّمين **تشخيصاً مبدئياً** للأعطال حسب العَرَض/الصوت (طقطقة، صفير، دخان أسود/أزرق/أبيض)، وتوضّحين الأسباب المحتملة والقطع المرشّحة للفحص.\n"
+        "  • تعرفين القطع الشائعة وأرقامها التقريبية (فلتر زيت/ديزل/هواء، بخاخات، تيربو، طرمبة) — وللأسعار الدقيقة تُحيلين لجرد المخزون أو أداة parts.search.\n"
+        "  • معلومات الورشة: 📞 0553280100 — الدوام 8ص–12ظ و 4ع–9م (السبت–الخميس، الجمعة إجازة).\n"
+        "  • أكّدي دائماً أن أي تشخيص **مبدئي** ويحتاج فحصاً مباشراً.\n\n"
+        "🧰 **أدوات القراءة المتاحة** (تُستدعى تلقائياً حسب نية السؤال):\n"
+        "  • firewall.health_score / top_alerts / cash_flow / operation_integrity\n"
+        "  • finance.ar_summary (ذمم العملاء) / finance.payables_summary (ذمم الموردين)\n"
+        "  • workshop.active_visits / inventory.low_stock / operations.recent\n"
+        "  • customers.search / vehicles.search / operations.search / parts.search\n\n"
+        "📊 **التعامل مع النتائج**:\n"
+        "  • نتيجة فارغة → قولي مباشرة 'لا توجد بيانات' بدون اعتذار.\n"
+        "  • نتيجة ناجحة → نسّقيها (جدول Markdown/قائمة) وبفواصل آلاف للأرقام.\n\n"
+        "⚙️ **التنفيذ**:\n"
+        "  • أوامر الإنشاء/الحذف/الإغلاق تُنفَّذ مباشرة عبر محرك التنفيذ — وتظهر للمستخدم رسالة تأكيد '✅ تم'.\n"
+        "  • إذا نقص حقل ضروري للتنفيذ (مثل الاسم أو رقم الجوال) → **اطلبي الحقل الناقص بوضوح**، ولا تقولي 'افتح الصفحة وأضف يدوياً'.\n"
+        "  • العمليات الحساسة (حذف) تحتاج اعتماداً — اعرضيها كبطاقة موافقة.\n\n"
+        "⚠️ **قواعد حاسمة**:\n"
+        "  1. **ممنوع** 'دعني أتحقق' أو 'سأعود إليك' — أكملي الإجابة فوراً في نفس الرسالة.\n"
+        "  2. **ممنوع** الرد بـ 'لا يمكنني، افتح الصفحة' عند طلب تنفيذ — إمّا نفّذتِ أو اطلبتِ المعلومة الناقصة.\n"
+        "  3. كل رد نهائي ومفيد، بالعربية الواضحة، Markdown مسموح ومفضّل.\n"
     )
 
 
@@ -285,6 +385,23 @@ async def chat(
             "executed": power_block.get("executed", 0),
             "commands": power_block.get("commands", [])[:5],
         })
+
+    # 🆕 L16 (كاترينا) — Unified action execution. If the message is a WRITE
+    # command (create/delete/close/...), execute it directly through the
+    # Unified Execution Engine and return a confirmation. This is the backend
+    # safety-net that guarantees execution even if the frontend router missed it.
+    if not power_block and looks_like_action(message):
+        try:
+            from core import unified_executor
+            exec_res = await unified_executor.execute_text(
+                message, proposer=proposer, session_id=sid,
+            )
+        except Exception as e:
+            _log.warning("unified action execution failed: %s", redact(str(e), max_len=120))
+            exec_res = None
+        if exec_res and exec_res.get("status") in ("committed", "pending_approval"):
+            return _build_action_chat_response(sid=sid, message=message, exec_res=exec_res)
+        # read_only / rejected / error → fall through to the normal read path
 
     # 1) Detect which read-only tools to invoke
     tool_names = detect_tools(message)

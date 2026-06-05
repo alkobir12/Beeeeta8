@@ -1,0 +1,52 @@
+{
+  "summary": "Iteration 233 — Katrina (كاترينا) L16 assistant validation. Backend: 10/10 pytest passed. Frontend: 9/10 Playwright steps passed (the 10th is a timing/selector artifact, not a product bug — see below). All five complaints from the user are RESOLVED: (1) write-intent commands now EXECUTE (mode=action, executed.status=committed/duplicate, reply '✅ **تم بنجاح**'); (2) hamza/article/kunya tolerant search returns 'ابو مصري' for all three query variants; (3) model badge displays '⚡ Sonnet' (default='sonnet', label='Claude Sonnet 4.6'); (4) mobile drawer height = 0.800 of viewport (exactly ~80vh); (5) voice toggle + mic button render. Pure question routes through read-path (mode=normal, firewall.health_score in tool_results). Risky delete returns mode=action, status=pending_approval with ApprovalCard. Header title is 'كاترينا'. Close button + mobile handle both close the drawer and FAB reappears.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/assistant/chat (create_customer)", "issue": "Duplicate-prevention message is '⚠️ **عميل موجود مسبقاً** — ...' but executed.status is not explicitly 'duplicate'/'deduped' — clients have to parse the response text. Consider returning executed.status='duplicate' (or status='committed' with a dedup_reason field) for easier UX."},
+      {"endpoint": "POST /api/assistant/tool/*", "issue": "Response envelope is {success, tool, agent, result:{...}, write} — DIFFERENT from /api/assistant/chat which uses {success, data:{...}}. Inconsistent. Recommend unifying both to {success, data} for client simplicity."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "assistant write-intent send (UI)", "issue": "End-to-end timing on the public preview can exceed 15s for the assistant bubble to render '✅ تم بنجاح' after clicking send. The execution itself works (verified via 'Executed Operations' panel showing 3 committed entries: مركبة 7788, عميل تجريبي ٢, عميل خالد المطيري) — but the visible bubble may take 20-30s on first LLM call. Consider showing a streaming-style progress message or extending the in-flight indicator until the bubble lands.", "affected_selectors": ["[data-testid='assistant-input']", "[data-testid='assistant-send-btn']"]}
+    ],
+    "design_issues": [
+      {"screen": "AssistantDrawer header (desktop)", "issues": ["Top-bar uses purple gradient — readable but high saturation; bot avatar + 'كاترينا' RTL aligned correctly."]},
+      {"screen": "Dashboard during assistant test", "issues": ["Main dashboard area kept showing a loading spinner while assistant drawer was open — dashboard widgets did not finish loading within the test window. Possibly unrelated to this iteration but worth checking RecentOperationsWidget (also threw a React validateDOMNesting warning: <button> nested inside <button>)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_katrina_iter233.py",
+    "/app/test_reports/pytest/iter233_katrina.xml",
+    "/app/test_reports/screenshots_iter233_desktop_open.png",
+    "/app/test_reports/screenshots_iter233_desktop_after_send.png",
+    "/app/test_reports/screenshots_iter233_mobile.png"
+  ],
+  "action_items": [
+    "CLEANUP (Supabase): delete the test customers/vehicles created during this iteration — see seed_data_creation below for the exact IDs.",
+    "OPTIONAL: standardize the response envelope between /api/assistant/chat (uses {success,data:{...}}) and /api/assistant/tool/* (uses {success,tool,result:{...}}) — current inconsistency forces clients to branch on path.",
+    "OPTIONAL: expose executed.status='duplicate' (or executed.duplicate=true) when create_customer is short-circuited by the existing-customer guard, so the frontend can render a distinct UI without parsing Arabic text.",
+    "OPTIONAL: investigate RecentOperationsWidget warning (validateDOMNesting: <button> inside <button>)."
+  ],
+  "critical_code_review_comments": [
+    "looks_like_action() / _build_action_chat_response() correctly routed all three write-intent phrasings (classical 'سجل', dialect 'ابغى اضيف', 'ضيف') to unified_executor — dialect support works without relying on the frontend's brittle regex.",
+    "arabic_match() correctly normalised hamza ('أ'→'ا'), removed the definite article 'ال' before 'مصري', and matched on token overlap so all of {'ابو مصري','ابو المصري','أبو المصري'} retrieved the same row.",
+    "The chat envelope {success, data:{...}} is now consistent for chat, but the tool-execution endpoint /api/assistant/tool/* still returns {success, tool, agent, result:{...}, write} — recommend aligning both to reduce client branching.",
+    "Frontend AssistantProvider dispatches 'finance:updated' on data.executed.status=='committed' — verified in console: 💰 Finance updated: assistant fired after the desktop close-button step.",
+    "Mobile drawer measured height ratio = 0.800 of viewport (390x844) — exactly matches the 80vh spec.",
+    "Voice & mic buttons render under data-testid='assistant-voice-toggle' and data-testid='assistant-mic-btn'. Actual STT/TTS could not be exercised in headless chromium — recommend manual verification on a real device.",
+    "Risky delete: GET status pending_approval and an ApprovalCard is emitted — but the payload contains operation 'رقم 123' which likely does not exist; ensure the approval card carries operation_id resolved from context, not just the user-typed string."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_katrina_iter233.py (new)"
+  ],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "90% (9/10 — 1 timing artifact, not a product bug)"},
+  "test_credentials": "Admin: username 'مدير' (name-only, click دخول). Used as proposer for Four-Eyes auto-approval on safe write actions.",
+  "seed_data_creation": "PLEASE CLEAN UP these Supabase rows created during this iteration:\n  Customers: (1) id=418df582-... name='خالد المطيري' phone='0000000000'  — created by classical 'سجل عميل اسمه خالد المطيري جواله 0501234501' (phone parsing dropped to 0000000000 — investigate); (2) id=4488b0d8-... name='تجريبي ٢' phone='0501234502'.\n  Vehicles: (3) id=74950408-... plate='7788' brand='تويوتا' model='كامري' year=2021.\n  Possibly created via frontend send (سعود الاختبار 0509990011) if execution completed after the test window closed — recommend a quick scan for customer name='سعود الاختبار'.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All 5 user complaints from this iteration are verified resolved on backend (10/10 pytest) and frontend (9/10 Playwright; the 10th step is a timing artifact — the executed-operations panel proves the flow works end-to-end). Test envelope quirks: /api/assistant/chat = {success,data:{...}}, /api/assistant/tool/* = {success,tool,agent,result:{...},write}. Created-customer phone for 'خالد المطيري' came out as '0000000000' instead of 0501234501 — likely an Arabic-phone-parsing regression on the classical phrasing 'جواله 0501234501'; the dialect phrasing 'جواله 0501234502' captured the phone correctly. Worth a dedicated NLP test next iteration.",
+  "rca of the issue": "All 5 reported user complaints (instructions-vs-execution, kunya/hamza search, GPT badge, mobile sizing, voice/mic) are RESOLVED end-to-end. The single observed regression candidate is phone-number capture on the classical 'سجل عميل اسمه X جواله NNN' phrasing (got 0000000000 instead of the digits). Reproduction: POST /api/assistant/chat {message:'سجل عميل اسمه فلان فلان جواله 05XXXXXXXX', model:'sonnet', proposer:'مدير'} → executed.result.phone may default to 0000000000. Compare with the dialect phrasing which captures correctly. Mitigation: revisit the phone-extraction regex in unified_executor / NLP layer to ensure 'جواله 05XX' is parsed identically to 'جواله 05XX' in the dialect path."
+}

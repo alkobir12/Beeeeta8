@@ -263,3 +263,91 @@ def nlp_search_hint(text: str) -> Optional[Tuple[str, Dict[str, str]]]:
         if pattern.search(norm) or pattern.search(text):
             return tool, args
     return None
+
+
+
+# ---------- Arabic text normalisation for robust/tolerant search ----------
+
+# Strip harakat (tashkeel), dagger alef, Quranic marks, etc.
+_TASHKEEL_RE = re.compile(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
+_TATWEEL_RE = re.compile(r"\u0640")
+
+# Variant → canonical letter map (hamza/alef/taa-marbuta/alef-maqsura forms).
+_LETTER_MAP = {
+    "أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", "ٲ": "ا", "ٵ": "ا",
+    "ة": "ه",
+    "ى": "ي", "ئ": "ي", "ي": "ي",
+    "ؤ": "و",
+    "ﻷ": "لا", "ﻵ": "لا", "ﻹ": "لا", "ﻻ": "لا",
+    "ک": "ك", "گ": "ك",
+    "ٹ": "ت", "ﺔ": "ه",
+    "ۀ": "ه",
+}
+
+# Arabic-Indic & Persian digits → ASCII so "٠٥٠" matches "050".
+_DIGIT_MAP = {
+    "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+    "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
+    "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
+    "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9",
+}
+
+_AR_STOPWORDS = {
+    "عن", "في", "من", "الى", "إلى", "على", "هل", "كم", "ما", "او", "أو", "و",
+    "ابحث", "ابي", "ابغى", "ودي", "اعرض", "اعطني", "رقم", "اسم", "بيانات",
+    "عميل", "العميل", "زبون", "الزبون", "مركبه", "المركبه", "سياره", "السياره",
+    "عمليه", "العمليه", "عمليات", "العمليات", "مورد", "المورد", "قطعه", "القطعه",
+}
+
+
+def normalize_arabic(text: str) -> str:
+    """Normalise Arabic text for tolerant matching:
+      • strip tashkeel + tatweel
+      • unify alef/hamza variants (أإآٱ → ا), ة → ه, ى/ئ → ي, ؤ → و
+      • convert Arabic-Indic digits → ASCII
+      • lowercase latin + collapse whitespace
+    Idempotent. Safe on mixed Arabic/English/numbers.
+    """
+    if not text:
+        return ""
+    s = str(text)
+    s = _TASHKEEL_RE.sub("", s)
+    s = _TATWEEL_RE.sub("", s)
+    s = "".join(_LETTER_MAP.get(ch, _DIGIT_MAP.get(ch, ch)) for ch in s)
+    s = s.lower()
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def arabic_tokens(text: str) -> List[str]:
+    """Normalised, article-insensitive, stopword-free tokens for matching."""
+    norm = normalize_arabic(text)
+    toks: List[str] = []
+    for t in norm.split():
+        base = t
+        # Strip leading definite article "ال" for 4+ char words so
+        # "المصري" matches "مصري" and vice-versa.
+        if len(t) >= 4 and t.startswith("ال"):
+            base = t[2:]
+        if base in _AR_STOPWORDS or t in _AR_STOPWORDS:
+            continue
+        if len(base) >= 2:
+            toks.append(base)
+    return toks
+
+
+def arabic_match(query: str, *fields: object) -> bool:
+    """True if EVERY meaningful query token appears (normalised,
+    hamza/article-insensitive) somewhere in the concatenated fields.
+
+    Falls back to a full normalised-substring check when the query has no
+    meaningful tokens (e.g. a bare plate number or a single stopword).
+    """
+    haystack = normalize_arabic(" ".join(str(f or "") for f in fields))
+    if not haystack:
+        return False
+    toks = arabic_tokens(query)
+    if not toks:
+        nq = normalize_arabic(query)
+        return bool(nq) and nq in haystack
+    return all(t in haystack for t in toks)

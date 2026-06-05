@@ -203,26 +203,32 @@ async def _customers_search(workshop_id: str = "finmodule-sync", query: str = ""
         return {"error": str(e)}
     if not isinstance(customers, list):
         customers = []
-    # filter additionally if query did not propagate
+    # filter additionally if query did not propagate — Arabic-tolerant matching
+    # (handles hamza/alef variants, taa-marbuta, definite article, nicknames/kunya)
     if query:
-        q = query.lower().strip()
-        # Tokenized matching: each token must appear in name or phone
-        tokens = [t for t in q.split() if len(t) >= 2]
-        if tokens:
-            customers = [
-                c for c in customers
-                if all(
-                    tok in str(c.get("name") or "").lower()
-                    or tok in str(c.get("phone") or "").lower()
-                    for tok in tokens
-                )
-            ]
-        else:
-            customers = [
-                c for c in customers
-                if q in str(c.get("name") or "").lower()
-                or q in str(c.get("phone") or "").lower()
-            ]
+        from core.arabic_nlp import arabic_match
+        filtered = [
+            c for c in customers
+            if arabic_match(query, c.get("name"), c.get("phone"),
+                            c.get("vehiclePlate"), c.get("fileNumber"))
+        ]
+        # Fallback: the server-side `search` param may have over-filtered (e.g.
+        # it matched the raw hamza form). Refetch ALL and match locally so a
+        # nickname like "ابو مصري" / "أبو المصري" still resolves.
+        if not filtered:
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    r2 = await client.get(f"{base}/api/customers")
+                    all_customers = r2.json() if r2.status_code == 200 else []
+                if isinstance(all_customers, list):
+                    filtered = [
+                        c for c in all_customers
+                        if arabic_match(query, c.get("name"), c.get("phone"),
+                                        c.get("vehiclePlate"), c.get("fileNumber"))
+                    ]
+            except Exception:
+                pass
+        customers = filtered
     customers = customers[:limit]
     from core.card_builder import cards_from_customers
     return {
@@ -253,15 +259,16 @@ async def _vehicles_search(workshop_id: str = "finmodule-sync", query: str = "",
         return {"error": str(e)}
     if not isinstance(vehicles, list):
         vehicles = []
-    q = (query or "").lower().strip()
+    q = (query or "").strip()
     if q:
+        from core.arabic_nlp import arabic_match
         vehicles = [
             v for v in vehicles
-            if q in str(v.get("plateNumber") or "").lower()
-            or q in str(v.get("plate") or "").lower()
-            or q in str(v.get("model") or "").lower()
-            or q in str(v.get("brand") or "").lower()
-            or q in str(v.get("customerName") or v.get("ownerName") or "").lower()
+            if arabic_match(
+                q,
+                v.get("plateNumber"), v.get("plate"), v.get("model"), v.get("brand"),
+                v.get("customerName"), v.get("ownerName"),
+            )
         ]
     vehicles = vehicles[:limit]
     from core.card_builder import cards_from_vehicles
@@ -452,21 +459,18 @@ async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "
         ops = ops.get("data") or ops.get("items") or []
     if not isinstance(ops, list):
         ops = []
-    q = (query or "").lower().strip()
+    q = (query or "").strip()
     if q:
-        tokens = [t for t in q.split() if len(t) >= 2]
-        filtered = []
-        for o in ops:
-            partner = str(o.get("partnerName") or o.get("customerName") or o.get("supplierName") or "").lower()
-            notes = str(o.get("notes") or o.get("description") or "").lower()
-            op_type = str(o.get("type") or "").lower()
-            haystack = f"{partner} {notes} {op_type}"
-            if tokens:
-                if all(tok in haystack for tok in tokens):
-                    filtered.append(o)
-            elif q in haystack:
-                filtered.append(o)
-        ops = filtered
+        from core.arabic_nlp import arabic_match
+        ops = [
+            o for o in ops
+            if arabic_match(
+                q,
+                o.get("partnerName"), o.get("customerName"), o.get("supplierName"),
+                o.get("notes"), o.get("description"), o.get("type"),
+                o.get("invoiceNumber"), o.get("invoice_number"),
+            )
+        ]
     ops = ops[:limit]
     from core.card_builder import cards_from_operations
     total_amount = sum(float(o.get("total") or 0) for o in ops)

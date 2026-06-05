@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, X, Send, Sparkles, AlertTriangle, RefreshCw, Settings, Trash2 } from 'lucide-react';
+import { Bot, X, Send, Sparkles, AlertTriangle, RefreshCw, Settings, Trash2, Mic, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLocation } from 'react-router-dom';
@@ -88,6 +88,7 @@ export const UnifiedAssistantDrawer = () => {
     messages, busy, activeAgent, streamingPhase,
     alerts, stats,
     model, setModel, availableModels,
+    voice, voiceEnabled, setVoiceEnabled,
     sendMessage, resetSession, appendMessage,
   } = useAssistant();
 
@@ -96,6 +97,11 @@ export const UnifiedAssistantDrawer = () => {
   const messagesEndRef = useRef(null);
   const location = useLocation();
   const pageSuggestions = useMemo(() => getSuggestionsForPath(location?.pathname || '/'), [location?.pathname]);
+
+  // 🎙️ Live interim transcript feedback while the mic is listening
+  useEffect(() => {
+    if (voice?.listening && voice?.interim) setInput(voice.interim);
+  }, [voice?.interim, voice?.listening]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -121,6 +127,18 @@ export const UnifiedAssistantDrawer = () => {
     const text = input.trim();
     setInput('');
     await sendMessage(text);
+  };
+
+  // 🎙️ Mic — start/stop live Arabic dictation; auto-sends on final transcript.
+  const handleMic = () => {
+    if (!voice?.supported?.stt) return;
+    if (voice.listening) { voice.stopListening(); return; }
+    voice.startListening((finalText) => {
+      if (finalText && !busy) {
+        setInput('');
+        sendMessage(finalText);
+      }
+    });
   };
 
   // 🆕 Phase 3C.6 — Smart Execute (POST /api/runtime/execute)
@@ -286,7 +304,7 @@ export const UnifiedAssistantDrawer = () => {
         data-testid="unified-assistant-fab"
         onClick={() => setOpen(true)}
         className="fixed bottom-6 right-6 z-[80] group"
-        title="افتح المساعد الذكي (Ctrl+Shift+B)"
+        title="افتح كاترينا (Ctrl+Shift+B)"
         dir="rtl"
       >
         <div className="relative">
@@ -312,14 +330,20 @@ export const UnifiedAssistantDrawer = () => {
           ? 'fixed bottom-0 inset-x-0 z-[80] w-full bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl border-t-2 border-x border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden'
           : 'fixed bottom-6 right-6 z-[80] w-[420px] h-[640px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border-2 border-slate-300 dark:border-slate-700 flex flex-col overflow-hidden'
       }
-      style={isMobile ? { height: '95vh', paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}
+      style={isMobile ? { height: '80vh', maxHeight: '80vh', paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}
       dir="rtl"
     >
-      {/* Mobile drag handle */}
+      {/* Mobile drag handle — tap to close */}
       {isMobile && (
-        <div className="flex justify-center py-2" data-testid="assistant-mobile-handle">
-          <div className="w-10 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
-        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="flex flex-col items-center justify-center py-2 w-full active:bg-slate-100 dark:active:bg-slate-800"
+          data-testid="assistant-mobile-handle"
+          title="اضغط للإغلاق"
+        >
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full" />
+        </button>
       )}
       {/* Header */}
       <div className={`bg-gradient-to-r ${agentMeta?.color || 'from-indigo-600 to-purple-700'} text-white px-4 py-3 flex items-center justify-between`}>
@@ -328,9 +352,11 @@ export const UnifiedAssistantDrawer = () => {
             {agentMeta?.icon || '🤖'}
           </div>
           <div className="min-w-0">
-            <h3 className="font-extrabold text-sm truncate">{agentMeta?.name || 'المساعد الذكي'}</h3>
+            <h3 className="font-extrabold text-sm truncate">{agentMeta?.name || 'كاترينا'}</h3>
             <p className="text-[10px] opacity-90">
-              {stats?.ai_enabled ? <><Sparkles size={9} className="inline ml-0.5" /> AI نشط</> : 'محرك قواعد'}
+              {voice?.listening ? <span className="text-emerald-200 font-bold">🎙️ أستمع…</span>
+                : voice?.speaking ? <span className="text-emerald-200 font-bold">🔊 أتحدّث…</span>
+                : (stats?.ai_enabled ? <><Sparkles size={9} className="inline ml-0.5" /> AI نشط</> : 'محرك قواعد')}
               <span className="mx-1 opacity-60">·</span>
               <span data-testid="assistant-model-badge" className="font-bold">
                 {model === 'ollama' ? '🦙 Ollama' : '⚡ Sonnet'}
@@ -341,7 +367,17 @@ export const UnifiedAssistantDrawer = () => {
             </p>
           </div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
+          {voice?.supported?.tts && (
+            <button
+              data-testid="assistant-voice-toggle"
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              className={`p-1.5 rounded transition-colors ${voiceEnabled ? 'bg-white/30' : 'hover:bg-white/20'}`}
+              title={voiceEnabled ? 'إيقاف نطق الردود' : 'تفعيل نطق الردود'}
+            >
+              {voiceEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            </button>
+          )}
           <button
             data-testid="assistant-settings-btn"
             onClick={() => setShowSettings(!showSettings)}
@@ -353,10 +389,10 @@ export const UnifiedAssistantDrawer = () => {
           <button
             data-testid="assistant-close-btn"
             onClick={() => setOpen(false)}
-            className="p-1.5 rounded hover:bg-white/20 transition-colors"
+            className={`rounded hover:bg-white/20 transition-colors ${isMobile ? 'p-2 bg-white/15' : 'p-1.5'}`}
             title="إغلاق"
           >
-            <X size={16} />
+            <X size={isMobile ? 22 : 16} />
           </button>
         </div>
       </div>
@@ -421,7 +457,7 @@ export const UnifiedAssistantDrawer = () => {
         {messages.length === 0 ? (
           <div className="text-center py-3">
             <Bot className="mx-auto mb-2 text-indigo-500" size={32} />
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">مرحباً! كيف أساعدك اليوم؟</p>
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">هلا والله! أنا كاترينا 👋 كيف أقدر أساعدك؟</p>
             <AssistantDashboard onAskMore={(p) => sendMessage(`تفاصيل ${p.label}`)} />
             <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-3 mb-1.5">أو جرّب:</p>
             <div className="flex flex-wrap gap-1.5 justify-center">
@@ -509,10 +545,25 @@ export const UnifiedAssistantDrawer = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          placeholder="اسأل أو نفّذ — مثال: سجل عميل احمد 0501234567"
+          placeholder={voice?.listening ? '🎙️ أستمع إليك… تكلّم' : 'اسأل أو نفّذ — مثال: سجل عميل احمد 0501234567'}
           disabled={busy}
           className="flex-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-full px-4 py-2.5 border-2 border-slate-300 dark:border-slate-600 focus:outline-none focus:border-indigo-500 disabled:opacity-50 transition-colors"
         />
+        {voice?.supported?.stt && (
+          <button
+            data-testid="assistant-mic-btn"
+            onClick={handleMic}
+            disabled={busy}
+            title={voice.listening ? 'إيقاف الاستماع' : '🎙️ تحدّث'}
+            className={`px-3 py-2.5 rounded-full text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md ${
+              voice.listening
+                ? 'bg-rose-600 animate-pulse shadow-rose-500/40'
+                : 'bg-slate-600 hover:bg-slate-700'
+            }`}
+          >
+            <Mic size={16} />
+          </button>
+        )}
         <button
           data-testid="assistant-execute-btn"
           onClick={handleExecute}

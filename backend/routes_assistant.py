@@ -77,15 +77,15 @@ async def assistant_models():
     return {
         "success": True,
         "data": {
-            "default": "gpt",
+            "default": "sonnet",
             "models": [
                 {
-                    "id": "gpt",
-                    "label": "GPT (Emergent)",
-                    "provider": "openai",
-                    "model": "gpt-4o-mini",
+                    "id": "sonnet",
+                    "label": "Claude Sonnet 4.6",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "available": bool(os.environ.get("EMERGENT_LLM_KEY")),
-                    "description": "سريع وعالي الجودة (cloud)",
+                    "description": "ذكاء عالٍ وفهم ممتاز للهجة (سحابي)",
                 },
                 {
                     "id": "ollama",

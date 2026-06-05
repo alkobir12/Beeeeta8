@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { resolveBackendBase } from '../../utils/backendBase';
+import { useVoice } from './useVoice';
 
 /**
  * 🤖 AssistantProvider — Shared state for the Unified Assistant.
@@ -32,10 +33,13 @@ export const AssistantProvider = ({ children }) => {
   const [activeAgent, setActiveAgent] = useState(null);
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState(null);
-  // 🆕 Model selector — persisted across reloads
+  // 🆕 Model selector — persisted across reloads ('gpt' legacy → 'sonnet')
   const MODEL_KEY = 'assistant.model';
   const [model, setModelState] = useState(() => {
-    try { return localStorage.getItem(MODEL_KEY) || 'gpt'; } catch (e) { return 'gpt'; }
+    try {
+      const stored = localStorage.getItem(MODEL_KEY);
+      return (!stored || stored === 'gpt') ? 'sonnet' : stored;
+    } catch (e) { return 'sonnet'; }
   });
   const setModel = useCallback((m) => {
     setModelState(m);
@@ -43,9 +47,32 @@ export const AssistantProvider = ({ children }) => {
   }, []);
   const [availableModels, setAvailableModels] = useState([
     // Default fallback list so the selector shows even before /models lands
-    { id: 'sonnet', label: 'Claude Sonnet', provider: 'anthropic', model: 'claude-sonnet-4-6', available: true, description: 'سريع وعالي الجودة (cloud)' },
+    { id: 'sonnet', label: 'Claude Sonnet 4.6', provider: 'anthropic', model: 'claude-sonnet-4-6', available: true, description: 'ذكاء عالٍ وفهم ممتاز للهجة (سحابي)' },
     { id: 'ollama', label: 'Ollama (محلي)', provider: 'ollama', model: 'llama3.2:3b', available: true, description: 'خصوصية تامة (يعمل بدون إنترنت)' },
   ]);
+
+  // 🎙️ Voice (كاترينا): browser-native STT + TTS. Auto-speak toggle persisted.
+  const VOICE_KEY = 'assistant.voice_enabled';
+  const voice = useVoice({ lang: 'ar-SA' });
+  const [voiceEnabled, setVoiceEnabledState] = useState(() => {
+    try { return localStorage.getItem(VOICE_KEY) === '1'; } catch (e) { return false; }
+  });
+  const setVoiceEnabled = useCallback((v) => {
+    setVoiceEnabledState(v);
+    try { localStorage.setItem(VOICE_KEY, v ? '1' : '0'); } catch (e) { /* noop */ }
+    if (!v) { try { voice.stopSpeaking(); } catch (e) { /* noop */ } }
+  }, [voice]);
+  // Refs so sendMessage/_executeDirectly can read live voice state without
+  // re-creating their callbacks on every voice tick.
+  const voiceEnabledRef = useRef(voiceEnabled);
+  const voiceRef = useRef(voice);
+  useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
+  useEffect(() => { voiceRef.current = voice; }, [voice]);
+  const _maybeSpeak = useCallback((text) => {
+    if (voiceEnabledRef.current && text) {
+      try { voiceRef.current?.speak?.(text); } catch (e) { /* noop */ }
+    }
+  }, []);
   const lastFetchRef = useRef(0);
   const skipNextSessionReloadRef = useRef(false);
   const initialSessionLoadedRef = useRef(false);
@@ -220,6 +247,7 @@ export const AssistantProvider = ({ children }) => {
         role: 'assistant', content: summary, ts: Date.now() / 1000,
         meta: { cards, status: d.status, action, execution_id: d.execution_id },
       }]);
+      _maybeSpeak(summary);
       window.dispatchEvent(new CustomEvent('assistant:executed', { detail: { ...d, text } }));
       return data;
     } catch (e) {
@@ -235,7 +263,7 @@ export const AssistantProvider = ({ children }) => {
       setBusy(false);
       setStreamingPhase(null);
     }
-  }, [sessionId]);
+  }, [sessionId, _maybeSpeak]);
 
   const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true, stream = true, force = null } = {}) => {
     const trimmed = (text || '').trim();
@@ -357,6 +385,15 @@ export const AssistantProvider = ({ children }) => {
         ts: Date.now() / 1000,
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      // 🆕 Reactive binding: if the kernel executed a write via /chat, refresh pages.
+      if (data.executed && data.executed.status === 'committed') {
+        try {
+          window.dispatchEvent(new CustomEvent('finance:updated', {
+            detail: { source: 'assistant_chat', action: data.executed.action, entity_id: data.executed.entity_id },
+          }));
+        } catch (e) { /* noop */ }
+      }
+      _maybeSpeak(data.response);
       return data;
     } catch (e) {
       const errMsg = {
@@ -371,7 +408,7 @@ export const AssistantProvider = ({ children }) => {
       setBusy(false);
       setStreamingPhase(null);
     }
-  }, [busy, sessionId, model]);
+  }, [busy, sessionId, model, _maybeSpeak]);
 
   // 🆕 Fetch available models on mount + retry once after 2s in case of race
   const fetchModels = useCallback(async () => {
@@ -430,13 +467,14 @@ export const AssistantProvider = ({ children }) => {
     activeAgent,
     alerts, stats,
     model, setModel, availableModels,
+    voice, voiceEnabled, setVoiceEnabled,  // 🎙️ voice (STT/TTS)
     sendMessage,
     callTool,
     refreshAlerts,
     refreshStats,
     resetSession,
     appendMessage,  // 🆕 direct UI inject (no LLM call)
-  }), [open, sessionId, messages, busy, streamingPhase, activeAgent, alerts, stats, model, setModel, availableModels, sendMessage, callTool, refreshAlerts, refreshStats, resetSession, appendMessage]);
+  }), [open, sessionId, messages, busy, streamingPhase, activeAgent, alerts, stats, model, setModel, availableModels, voice, voiceEnabled, setVoiceEnabled, sendMessage, callTool, refreshAlerts, refreshStats, resetSession, appendMessage]);
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>;
 };
@@ -451,6 +489,8 @@ export const useAssistant = () => {
       streamingPhase: null,
       alerts: [], stats: null,
       model: 'sonnet', setModel: () => {}, availableModels: [],
+      voice: { listening: false, speaking: false, interim: '', supported: { stt: false, tts: false }, startListening: () => false, stopListening: () => {}, speak: () => {}, stopSpeaking: () => {} },
+      voiceEnabled: false, setVoiceEnabled: () => {},
       sendMessage: async () => null,
       callTool: async () => ({ success: false }),
       refreshAlerts: async () => {},
