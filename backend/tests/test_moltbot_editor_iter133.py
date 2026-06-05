@@ -13,7 +13,7 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://fleet-audit-system-2.preview.emergentagent.com"
+    BASE_URL = "https://workshop-helper-7.preview.emergentagent.com"
 
 TEST_USER_ID = "manager"
 TEST_PATH_OPERATIONS = "/operations"

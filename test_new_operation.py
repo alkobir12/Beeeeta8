@@ -14,7 +14,7 @@ async def test_new_operation_creation():
             print("=== TESTING NEW OPERATION CREATION ===")
             
             # Login
-            await page.goto('https://fleet-audit-system-2.preview.emergentagent.com/login')
+            await page.goto('https://workshop-helper-7.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             await page.fill('[data-testid="login-username-input"]', 'مدير')
             await page.click('[data-testid="login-submit-button"]')
@@ -22,7 +22,7 @@ async def test_new_operation_creation():
             await page.wait_for_timeout(2000)
             
             # Navigate to operations
-            await page.goto('https://fleet-audit-system-2.preview.emergentagent.com/operations')
+            await page.goto('https://workshop-helper-7.preview.emergentagent.com/operations')
             await page.wait_for_timeout(5000)
             
             # Get current operations count and first invoice number
