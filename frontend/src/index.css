@@ -1318,3 +1318,17 @@ input, select, textarea, button {
 .assistant-md strong { color: rgb(67, 56, 202); }
 .dark .assistant-md strong { color: rgb(165, 180, 252); }
 .assistant-md blockquote { border-right: 3px solid rgba(99,102,241,.4); padding-right: 0.6rem; margin: 0.4rem 0; opacity: 0.85; }
+
+/* Typing dots animation for the assistant */
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.animate-typingDot { animation: typingDot 1.2s ease-in-out infinite; }
+
+/* Gentle pulse for the assistant FAB when alerts are present */
+@keyframes assistantPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+}
+.animate-assistantPulse { animation: assistantPulse 2.4s ease-in-out infinite; }

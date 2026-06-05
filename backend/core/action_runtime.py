@@ -500,12 +500,22 @@ def list_approvals(status: Optional[str] = None, limit: int = 50) -> List[Dict[s
 
 
 def list_executions(status: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    """List executions, enriched with the originating draft's action."""
     with _LOCK:
         items = list(STATE["executions"].values())
         if status:
             items = [a for a in items if a.get("status") == status]
         items.sort(key=lambda d: d.get("committed_at", 0), reverse=True)
-        return items[:limit]
+        # 🆕 Phase 3C.7: enrich with draft action for widget rendering
+        enriched: List[Dict[str, Any]] = []
+        for ex in items[:limit]:
+            draft = STATE["drafts"].get(ex.get("draft_id")) or {}
+            enriched.append({
+                **ex,
+                "action": draft.get("action") or ex.get("action"),
+                "proposer": draft.get("proposer"),
+            })
+        return enriched
 
 
 def get_audit_trail(limit: int = 100) -> List[Dict[str, Any]]:

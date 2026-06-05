@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { resolveBackendBase } from '../utils/backendBase';
 import { resolveVisitDisplay, normalizeAccountCode, LEGACY_TO_NEW_CODE } from '../utils/displayLabels';
 import { hasPermission } from '../utils/permissions';
+import { RecentOperationsWidget } from '../components/assistant/RecentOperationsWidget';
 
 const API_URL = `${resolveBackendBase()}/api`;
 const OPERATIONS_PAGE_SIZE = 15;
@@ -3457,6 +3458,13 @@ const Operations = () => {
           </div>
         </div>
         ) : null}
+
+        {/* 🆕 Phase 3C.7 — Recent bot-executed operations */}
+        <RecentOperationsWidget
+          variant="page"
+          limit={5}
+          className="mb-4"
+        />
 
         {/* Recent Operations */}
         <div className="space-y-6" data-testid="operations-sections-wrapper">

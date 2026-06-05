@@ -122,9 +122,98 @@ export const AssistantProvider = ({ children }) => {
   const [streamingPhase, setStreamingPhase] = useState(null);
 
   // ----- core: send a message (with optional SSE streaming) -----
-  const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true, stream = true } = {}) => {
+  //
+  // 🆕 Phase 3C.7: Smart auto-routing
+  //   If the text starts with an ACTION verb (سجل/أضف/اصدر/أرسل/تحصيل/...),
+  //   we route through /api/runtime/execute instead of /chat so the bot
+  //   ACTUALLY EXECUTES instead of giving advisory text.
+  //   The LLM path is reserved for genuine questions (كم/ماذا/كيف/أعطني/...).
+  const _looksLikeAction = useCallback((text) => {
+    if (!text) return false;
+    const t = text.trim();
+    if (t.startsWith('/power')) return true;
+    // Question words → keep on the LLM path
+    const QUESTION_PREFIX = /^(?:ما\s|ماذا|كم\s|كيف|متى|أين|اين|هل\s|من\s|لماذا|أي\s|اي\s|اعرض|أعطني|اعطني|اخبرني|أخبرني|ابحث|اشرح|why|what|how|when|where)/i;
+    if (QUESTION_PREFIX.test(t)) return false;
+    // Action verbs at start → run through /execute
+    const ACTION_PREFIX = /^(?:سجل|اضف|أضف|انشئ|أنشئ|افتح|أفتح|اصدر|أصدر|اعمل|أعمل|بع\s|بيع|تحصيل|اقبض|ادفع|اصرف|أصرف|اغلق|أغلق|اقفل|احذف|أحذف|عدل|عدّل|update|create|add|delete|register|close|open)/i;
+    return ACTION_PREFIX.test(t);
+  }, []);
+
+  const _executeDirectly = useCallback(async (text) => {
+    // POST to /api/runtime/execute and append the result as a chat reply.
+    let proposer = null;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || 'null');
+      proposer = u?.name || u?.username || null;
+    } catch (e) { /* noop */ }
+    setMessages((prev) => [...prev, { role: 'user', content: text, ts: Date.now() / 1000 }]);
+    setBusy(true);
+    setStreamingPhase('executing');
+    try {
+      const url = `${API_URL}/runtime/execute`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, proposer, session_id: sessionId }),
+      });
+      const data = await resp.json();
+      const d = data?.data || {};
+      const action = d.action?.action || 'unknown';
+      let summary;
+      let cards = [];
+      if (d.status === 'committed') {
+        const r = d.result || {};
+        summary = `✅ **تم بنجاح** — ${r.name || r.id || action}\n📌 تم الحفظ في قاعدة البيانات.`;
+      } else if (d.status === 'pending_approval') {
+        summary = `⏳ **بانتظار اعتمادك** — العملية حساسة (${action}).`;
+        cards = [{
+          type: 'ApprovalCard',
+          id: d.approval?.approval_id,
+          title: `موافقة — ${action}`,
+          status: 'pending',
+          data: { approval_id: d.approval?.approval_id, draft_id: d.draft?.id, status: 'pending', requester: proposer },
+          actions: [
+            { id: 'approve', label: '✓ اعتماد', intent: 'runtime',
+              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/approve`, method: 'POST' },
+            { id: 'reject', label: '✗ رفض', intent: 'runtime',
+              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/reject`, method: 'POST' },
+          ],
+        }];
+      } else if (d.status === 'read_only') {
+        const n = Array.isArray(d.result) ? d.result.length : 0;
+        summary = `🔎 **${n} نتيجة** للاستعلام.`;
+      } else if (d.status === 'rejected') {
+        summary = `💡 لم أفهم تماماً. جرّب صياغة أوضح، مثل:\n• "سجل عميل احمد العتيبي 0501234567"\n• "أضف مركبة 9935 تويوتا"\n• "أصدر فاتورة 500 ريال"`;
+      } else {
+        summary = `⚠️ ${d.reason || 'حدث خطأ'}`;
+      }
+      setMessages((prev) => [...prev, {
+        role: 'assistant', content: summary, ts: Date.now() / 1000,
+        meta: { cards, status: d.status, action, execution_id: d.execution_id },
+      }]);
+      // 🆕 Notify the activity widget
+      window.dispatchEvent(new CustomEvent('assistant:executed', { detail: { ...d, text } }));
+      return data;
+    } catch (e) {
+      setMessages((prev) => [...prev, {
+        role: 'assistant', content: `⚠️ فشل التنفيذ: ${e.message}`, ts: Date.now() / 1000, meta: { error: true },
+      }]);
+      return null;
+    } finally {
+      setBusy(false);
+      setStreamingPhase(null);
+    }
+  }, [sessionId]);
+
+  const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true, stream = true, force = null } = {}) => {
     const trimmed = (text || '').trim();
     if (!trimmed || busy) return null;
+
+    // 🆕 Auto-route action verbs to /execute (unless force='chat')
+    if (force !== 'chat' && _looksLikeAction(trimmed)) {
+      return _executeDirectly(trimmed);
+    }
 
     // optimistic user message
     const userMsg = { role: 'user', content: trimmed, ts: Date.now() / 1000 };
@@ -133,7 +222,6 @@ export const AssistantProvider = ({ children }) => {
     setStreamingPhase(stream ? 'thinking' : null);
     try {
       let data = null;
-
       if (stream && typeof fetch !== 'undefined') {
         // ----- SSE path -----
         // 🆕 Phase 3C — include the logged-in user as `proposer` so the

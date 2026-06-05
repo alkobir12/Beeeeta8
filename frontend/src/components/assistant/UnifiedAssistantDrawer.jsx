@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { useAssistant } from './AssistantProvider';
 import { AssistantCard } from './AssistantCard';
 import { AssistantDashboard } from './AssistantDashboard';
+import { RecentOperationsWidget } from './RecentOperationsWidget';
 
 // 📱 Detect mobile breakpoint reactively
 function useIsMobile(breakpoint = 768) {
@@ -394,6 +395,8 @@ export const UnifiedAssistantDrawer = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50 dark:bg-slate-950" data-testid="assistant-messages">
+        {/* 🆕 Phase 3C.7 — recent executed operations widget (always visible at top) */}
+        <RecentOperationsWidget variant="drawer" limit={6} className="mb-2" />
         {messages.length === 0 ? (
           <div className="text-center py-3">
             <Bot className="mx-auto mb-2 text-indigo-500" size={32} />
@@ -457,10 +460,20 @@ export const UnifiedAssistantDrawer = () => {
           ))
         )}
         {busy && (
-          <div className="flex justify-start" data-testid="assistant-typing">
-            <div className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl rounded-bl-sm px-3 py-2 text-sm">
-              <RefreshCw className="inline animate-spin ml-1" size={12} />
-              <span data-testid="assistant-typing-phase">{streamingPhase || 'يفكّر...'}</span>
+          <div className="flex justify-start animate-fadeIn" data-testid="assistant-typing">
+            <div className="bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 rounded-2xl rounded-bl-md px-3 py-2.5 text-sm shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-typingDot" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-typingDot" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-typingDot" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span data-testid="assistant-typing-phase" className="text-[12px] text-slate-600 dark:text-slate-300 font-medium">
+                  {streamingPhase === 'executing' ? '⚙️ يُنفّذ...' :
+                    streamingPhase === 'thinking' ? '🧠 يفكّر...' :
+                      streamingPhase || '...'}
+                </span>
+              </div>
             </div>
           </div>
         )}

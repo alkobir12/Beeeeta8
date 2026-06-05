@@ -8,6 +8,7 @@ import { buildDebtWhatsAppDraft } from '../utils/debtWhatsapp';
 import { getWhatsAppLink } from '../utils/constants';
 import { resolveVisitDisplay } from '../utils/displayLabels';
 import { loadWorkshopPrintInfo, buildWorkshopHeaderHtml } from '../utils/workshopPrintInfo';
+import { RecentOperationsWidget } from '../components/assistant/RecentOperationsWidget';
 
 const Customers = () => {
   const { themeName } = useTheme();
@@ -488,6 +489,14 @@ const Customers = () => {
           )}
         </div>
       )}
+
+      {/* 🆕 Phase 3C.7 — Recent bot-executed customer ops */}
+      <RecentOperationsWidget
+        variant="page"
+        limit={5}
+        filterAction={['customer', 'create_customer']}
+        className="mb-4"
+      />
 
       {/* Search */}
       <div className="mb-6" data-testid="customers-search-section">
