@@ -1,0 +1,33 @@
+{
+  "summary": "Backend bot-fix validation (iteration 232). 10/10 pytest tests passed. Verified: (a) name-based info queries trigger customers.search, (b) operation detail queries trigger operations.search, (c) alerts query correctly triggers firewall.top_alerts (NOT operations.search), (d) integrity queries trigger firewall.operation_integrity, (e) smart fallback on proper Arabic names triggers both customers.search + operations.search, (f) /api/runtime/execute with 'احذفها' + proposer='مدير' returns status='pending_approval' via Four-Eyes (delete_operation), (g) create_customer returns 'committed', (h) customer 'محمد الجهني ابو خالد' (phone 0505172748) is found in matches.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/assistant/chat", "issue": "Response is wrapped in {success, data:{...}} envelope — clients (incl. frontend AssistantProvider) must unwrap. Confirm frontend handles this consistently."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_bot_fixes_iter232.py",
+    "/app/test_reports/pytest/iter232_bot_fixes.xml"
+  ],
+  "action_items": [
+    "Verify frontend AssistantProvider correctly unwraps the {success, data} envelope from /api/assistant/chat (the data object now contains tool_results, response, cards, mode).",
+    "Consider documenting the response envelope shape in the API docs to prevent client confusion."
+  ],
+  "critical_code_review_comments": [
+    "assistant_kernel._TOOL_PATTERNS — the 'firewall.top_alerts' regex now includes 'تحذير(ات)' and 'التنبي'. Good. Verify these don't accidentally match operational queries that should hit operations.search (currently tested OK for 'ماهي العمليات والتحذيرات').",
+    "operations.search pattern uses lookahead exclusions (وال/والت/بدون/بلا/في\\s/من\\s) — robust but brittle. If a customer name starts with one of those particles it will fail. Edge case but worth a unit test set.",
+    "Smart fallback in detect_tools() runs only when NO patterns matched. If a name happens to contain a stop-word like 'كم' (e.g., 'كمال أحمد'), the fallback may not trigger because 'كم' triggers nothing but the name pattern still matches — verify via additional test cases.",
+    "tool_router._operations_search() fetches up to 200 ops on every call (no caching). Combined with the 15s perf_cache TTL elsewhere, this is acceptable for now, but consider caching the /api/operations response or paging on the partner field server-side.",
+    "delete_operation action arrives with empty payload {} (no operation_id) — yet still returns pending_approval. The approval workflow MUST resolve the target operation from session context before commit, otherwise approval will commit an unscoped delete. Check action_runtime.commit() for delete_operation safety guard."
+  ],
+  "updated_files": ["/app/backend/tests/test_bot_fixes_iter232.py (new)"],
+  "success_rate": {"backend": "100%", "frontend": "not tested"},
+  "test_credentials": "Admin proposer used: 'مدير' (name-only, no password) — passes Four-Eyes for risky actions.",
+  "seed_data_creation": "Created 1 transient test customer with name 'TEST_احمد' via /api/runtime/execute (create_customer). Recommend cleanup by main agent if persistence to Supabase occurred.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All bot fixes from iter232 validated end-to-end via public URL. The /api/assistant/chat envelope is {success: true, data: {...}} — tests must unwrap. For future iterations: test files live in /app/backend/tests/ and JUnit XMLs in /app/test_reports/pytest/. Bot routing now correctly distinguishes alerts/integrity/operations/customers by Arabic intent.",
+  "rca of the issue": "N/A — fixes are working. Initial test-script issue was forgetting to unwrap the {success, data} response envelope; fixed in test and all 10 cases pass."
+}

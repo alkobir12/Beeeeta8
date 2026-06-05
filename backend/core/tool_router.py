@@ -206,11 +206,23 @@ async def _customers_search(workshop_id: str = "finmodule-sync", query: str = ""
     # filter additionally if query did not propagate
     if query:
         q = query.lower().strip()
-        customers = [
-            c for c in customers
-            if q in str(c.get("name") or "").lower()
-            or q in str(c.get("phone") or "").lower()
-        ]
+        # Tokenized matching: each token must appear in name or phone
+        tokens = [t for t in q.split() if len(t) >= 2]
+        if tokens:
+            customers = [
+                c for c in customers
+                if all(
+                    tok in str(c.get("name") or "").lower()
+                    or tok in str(c.get("phone") or "").lower()
+                    for tok in tokens
+                )
+            ]
+        else:
+            customers = [
+                c for c in customers
+                if q in str(c.get("name") or "").lower()
+                or q in str(c.get("phone") or "").lower()
+            ]
     customers = customers[:limit]
     from core.card_builder import cards_from_customers
     return {
@@ -420,6 +432,57 @@ async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5
             "payment_status": o.get("paymentStatus") or o.get("payment_status"),
             "partner": o.get("partnerName") or o.get("customerName") or o.get("supplierName"),
             "date": o.get("createdAt") or o.get("created_at") or o.get("date"),
+        } for o in ops],
+        "cards": cards_from_operations(ops, limit=limit),
+    }
+
+
+async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 10) -> Dict[str, Any]:
+    """🔍 بحث عمليات بالاسم (عميل/مورد) أو النوع — يرجع كل عمليات الشخص المحدد."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(f"{base}/api/operations", params={"limit": 200})
+            ops = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if isinstance(ops, dict):
+        ops = ops.get("data") or ops.get("items") or []
+    if not isinstance(ops, list):
+        ops = []
+    q = (query or "").lower().strip()
+    if q:
+        tokens = [t for t in q.split() if len(t) >= 2]
+        filtered = []
+        for o in ops:
+            partner = str(o.get("partnerName") or o.get("customerName") or o.get("supplierName") or "").lower()
+            notes = str(o.get("notes") or o.get("description") or "").lower()
+            op_type = str(o.get("type") or "").lower()
+            haystack = f"{partner} {notes} {op_type}"
+            if tokens:
+                if all(tok in haystack for tok in tokens):
+                    filtered.append(o)
+            elif q in haystack:
+                filtered.append(o)
+        ops = filtered
+    ops = ops[:limit]
+    from core.card_builder import cards_from_operations
+    total_amount = sum(float(o.get("total") or 0) for o in ops)
+    return {
+        "query": query,
+        "count": len(ops),
+        "total_amount": round(total_amount, 2),
+        "items": [{
+            "id": (o.get("id") or "")[:8],
+            "type": o.get("type"),
+            "total": float(o.get("total") or 0),
+            "payment_method": o.get("paymentMethod") or o.get("payment_method"),
+            "payment_status": o.get("paymentStatus") or o.get("payment_status"),
+            "partner": o.get("partnerName") or o.get("customerName") or o.get("supplierName"),
+            "date": o.get("createdAt") or o.get("created_at") or o.get("date"),
+            "notes": (o.get("notes") or "")[:100],
         } for o in ops],
         "cards": cards_from_operations(ops, limit=limit),
     }
@@ -817,9 +880,16 @@ def _bootstrap() -> None:
     register_tool(
         "operations.recent",
         agent="WorkshopAgent",
-        description="🧾 آخر N عمليات (بيع/شراء/مصاريف/تحصيل) مع المبلغ وحالة السداد.",
+        description="آخر N عمليات (بيع/شراء/مصاريف/تحصيل) مع المبلغ وحالة السداد.",
         handler=_operations_recent,
         params={"workshop_id": "string?", "limit": "int?"},
+    )
+    register_tool(
+        "operations.search",
+        agent="WorkshopAgent",
+        description="بحث عمليات بالاسم (عميل/مورد) — يرجع كل عمليات الشخص المحدد مع المبالغ والحالة.",
+        handler=_operations_search,
+        params={"workshop_id": "string?", "query": "string", "limit": "int?"},
     )
     # 🆕 Phase 3C.5 — Natural Language Search + Approvals + Audit + WhatsApp
     register_tool(

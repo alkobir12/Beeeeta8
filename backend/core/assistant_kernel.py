@@ -34,33 +34,39 @@ _log = get_logger("kernel")
 _TOOL_PATTERNS = [
     # Firewall / audit insights — تنبيهات وتصحيحات (إفراد + جمع + مرادفات)
     (re.compile(r"(صح[ةه]\s*(?:ال)?(نظام|مال)|درج[ةه]\s*(?:ال)?صح|نقاط|health\s*score|health)", re.IGNORECASE), "firewall.health_score"),
-    (re.compile(r"(تنبيه|تنبي?هات|alerts?|تصحيح|تصحيحات|خطأ|أخطاء|مشكل[ةه]|عيب|شذوذ|مخالف[ةه]|audit|إنذار|warning|fix|issue|التنبي)", re.IGNORECASE), "firewall.top_alerts"),
-    # 🆕 Per-operation integrity warnings (missing_journal_entry, duplicates …)
-    (re.compile(r"(ملاحظ|ملاحظات|integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|بدون\s*قيد|بدون\s*قيود|بلا\s*قيد|بلا\s*قيود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل|قيود.*مفقود|عمليات.*بدون)", re.IGNORECASE), "firewall.operation_integrity"),
+    (re.compile(r"(تنبيه|تنبي?هات|تحذير|تحذيرات|alerts?|تصحيح|تصحيحات|خطأ|أخطاء|مشكل[ةه]|عيب|شذوذ|مخالف[ةه]|audit|إنذار|warning|fix|issue|التنبي)", re.IGNORECASE), "firewall.top_alerts"),
+    # Per-operation integrity warnings (missing_journal_entry, duplicates …)
+    # NOTE: "ملاحظ" only matches when NOT followed by a proper name (to avoid stealing name-queries)
+    (re.compile(r"(integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|بدون\s*قيد|بدون\s*قيود|بلا\s*قيد|بلا\s*قيود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل|قيود.*مفقود|عمليات.*بدون)", re.IGNORECASE), "firewall.operation_integrity"),
     (re.compile(r"(تدفق|cash\s*flow|إيراد|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
     # Finance read-only
     (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين)", re.IGNORECASE), "finance.ar_summary"),
-    # 🆕 Suppliers AP
+    # Suppliers AP
     (re.compile(r"(ذمم\s*(?:ال)?مورد|دائن|دائنين|payables?|ap\s*summary|نستحق|نحن\s*مدين|للمورد|ذمم\s*ال?ورش[ةه])", re.IGNORECASE), "finance.payables_summary"),
-    # 🆕 Inventory low stock
+    # Inventory low stock
     (re.compile(r"((?:ال)?قطع\s*(?:ال)?ناقص|مخزون\s*منخفض|low\s*stock|(?:ال)?قطع\s*انتهت|قطع\s*أوشكت|نفاد|نفذت\s*(?:ال)?قطع|(?:ل?ل?)?(?:ال)?حد\s*(?:ال)?أدنى|قطع.*ناقص|نواقص\s*المخزون|تنبيه.*مخزون|تنبيهات\s*المخزون)", re.IGNORECASE), "inventory.low_stock"),
-    # 🆕 Parts search — "بيع X" / "أبيع X" / "سعر X" / "كم سعر X" / "كم عندي X" / "هل عندنا X"
+    # Parts search — "بيع X" / "أبيع X" / "سعر X" / "كم سعر X" / "كم عندي X" / "هل عندنا X"
     (re.compile(r"(\bبيع\b|\bأبيع\b|\bابيع\b|اشتري|شراء\s+قطع|كم\s*سعر|سعر\s+(?:ال)?(?:قطع|فلتر|زيت|بطار|طرمب|ربلات|مساحات|بواجي|بلف|كبسول|كمبيوتر|مكيف|ايرباغ|دبري|كبائن|سلندر|طقم|كرنك|كومة|كوب|كولر|سير|تيل|قرص|دريم|قار|بوش|طبه)|تكلفة\s+قطع|كم\s+ع?ندي|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|أبحث\s+عن\s+قطع|ابحث\s+عن\s+قطع|بحث\s+عن\s+قطع|كم\s+مخزون|كم\s+ع?ندك\s+من|أحتاج\s+قطع|احتاج\s+قطع)", re.IGNORECASE), "parts.search"),
-    # 🆕 Recent operations
+    # Recent operations
     (re.compile(r"(آخر\s*(?:ال)?عمليات|أحدث\s*(?:ال)?عمليات|آخر\s*(?:ال)?مبيعات|recent\s*operations?|عمليات\s*اليوم|أخر\s*(?:ال)?عمليات)", re.IGNORECASE), "operations.recent"),
-    # 🆕 Customer search (intent: "ابحث عن العميل X" / "كم رصيد X")
+    # Operations search by customer/partner name — "عمليات محمد" / "تفاصيل عملية X"
+    # Excludes common conjunctions/particles after "عمليات" (و/بدون/بلا/في/من)
+    (re.compile(r"(تفاصيل\s*(?:ال)?عملي[ةه]?(?:ات)?\s+[\u0621-\u064A]|عمليات\s+(?!وال|والت|بدون|بلا|في\s|من\s|على\s|إلى)[\u0621-\u064A]{2,}(?:\s|$)|ملف\s*(?:ال)?عملي[ةه]?(?:ات)?\s+[\u0621-\u064A])", re.IGNORECASE), "operations.search"),
+    # Customer search — broad patterns including name-based queries
     (re.compile(r"(ابحث\s*عن\s*(?:ال)?عميل|أبحث\s*عن\s*(?:ال)?عميل|اعرض\s*(?:ال)?عميل|عرض\s*(?:ال)?عميل|بيانات\s*(?:ال)?عميل|رصيد\s*(?:ال)?عميل|كم\s*رصيد|كم\s*يستحق\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل\s+|ابحث\s*(?:ال)?عميل)", re.IGNORECASE), "customers.search"),
-    # 🆕 Vehicle search (intent: "ابحث عن المركبة" / "أين مركبة X")
+    # Generic info request with a proper name — "أعطني/عطني ملاحظة/بيانات/تفاصيل [name]"
+    (re.compile(r"((?:أعطني|اعطني|عطني|أعطيني|ابغى|أبغى|أريد|اريد|وريني|اخبرني|أخبرني)\s+(?:ملاحظ[ةه]?|ملاحظات|بيانات|تفاصيل|معلومات|ملف|حساب|سجل|رصيد|عمليات?)\s)", re.IGNORECASE), "customers.search"),
+    # Vehicle search (intent: "ابحث عن المركبة" / "أين مركبة X")
     (re.compile(r"(ابحث\s*عن\s*(?:ال)?مركب|أبحث\s*عن\s*(?:ال)?مركب|بيانات\s*(?:ال)?مركب|أين\s*(?:ال)?مركب|اعرض\s*(?:ال)?مركب|لوحة\s*(?:ال)?مركب|رقم\s*(?:ال)?لوحة|ابحث\s*(?:ال)?مركب|ابحث\s*(?:ال)?سيار|بيانات\s*(?:ال)?سيار)", re.IGNORECASE), "vehicles.search"),
     # Workshop read-only
     (re.compile(r"(زيار[ةه]\s*نشط|مركبات\s*مفتوح|active\s*visits|كم\s*زيار|مركبات\s*داخل|قائم[ةه]\s*العمل)", re.IGNORECASE), "workshop.active_visits"),
-    # 🆕 Phase 3C.5 — Natural Language Search (top debtors / overdue / biggest)
+    # Natural Language Search (top debtors / overdue / biggest)
     (re.compile(r"(اكثر\s*(?:ال)?عملاء\s*مديوني|أكثر\s*(?:ال)?عملاء\s*مديوني|اعلي\s*(?:ال)?مدينين|أعلى\s*(?:ال)?مدينين|اكبر\s*مدينين|أكبر\s*مدينين|كبار\s*(?:ال)?مدينين|الفواتير\s*المتأخر|فواتير\s*متأخر|آجل\s*متأخر|اكبر\s*(?:ال)?عمليات|أكبر\s*(?:ال)?عمليات|اعلي\s*مبيعات|أعلى\s*مبيعات|اقل\s*(?:ال)?مركبات\s*نشاط|أقل\s*(?:ال)?مركبات\s*نشاط|مركبات\s*راكد)", re.IGNORECASE), "nl.search"),
-    # 🆕 Phase 3C.5 — Pending approvals
+    # Pending approvals
     (re.compile(r"(موافقات\s*معلق|اعتمادات\s*معلق|بانتظار\s*(?:ال)?اعتماد|pending\s*approvals?|تحت\s*المراجع|تنتظر\s*موافق)", re.IGNORECASE), "runtime.pending_approvals"),
-    # 🆕 Phase 3C.5 — Audit trail
+    # Audit trail
     (re.compile(r"(سجل\s*(?:ال)?تدقيق|audit\s*trail|آخر\s*(?:ال)?أحداث|أحداث\s*النظام|من\s*غيّر|تتبع\s*التغيير)", re.IGNORECASE), "runtime.audit_recent"),
-    # 🆕 Phase 3C.9 — Services + Parts catalog awareness
+    # Services + Parts catalog awareness
     (re.compile(r"(تصنيفات\s*(?:ال)?خدمات|أقسام\s*(?:ال)?خدمات|اقسام\s*(?:ال)?خدمات|service\s*categor|أنواع\s*(?:ال)?خدمات|انواع\s*(?:ال)?خدمات)", re.IGNORECASE), "services.categories"),
     (re.compile(r"(الخدمات\s*المتوفرة|الخدمات\s*المتاحة|اظهر\s*(?:ال)?خدمات|أظهر\s*(?:ال)?خدمات|كم\s*سعر\s*(?:خدمة|تغيير|إصلاح|اصلاح|فحص)|سعر\s*خدمة|قائمة\s*(?:ال)?خدمات|service\s*list)", re.IGNORECASE), "services.search"),
     (re.compile(r"(قطع\s*(?:ال)?غيار|كم\s*(?:عندي|عندنا)\s*(?:قطعة|قطع)|كم\s*سعر\s*القطعة|بحث\s*(?:عن\s*)?قطعة|inventory\s*list|parts\s*list)", re.IGNORECASE), "parts.list"),
@@ -68,7 +74,7 @@ _TOOL_PATTERNS = [
 
 
 # Tools that accept a `query` parameter parsed from the user's free text
-_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search", "nl.search", "services.search", "parts.list"}
+_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search", "nl.search", "services.search", "parts.list", "operations.search"}
 
 
 def _extract_query(text: str, tool_name: str) -> str:
@@ -81,24 +87,33 @@ def _extract_query(text: str, tool_name: str) -> str:
     """
     if not text:
         return ""
-    # 🆕 nl.search uses the FULL message (the NL handler does its own matching)
+    # nl.search uses the FULL message (the NL handler does its own matching)
     if tool_name == "nl.search":
         return text.strip()
     raw = text.strip()
-    # Remove leading question words / verbs commonly preceding a search term
+    # Remove leading request verbs / question words
     raw = re.sub(
-        r"^(?:كم\s+رصيد|كم\s+سعر|سعر|تكلفة|كم\s+ع?ندي|كم\s+ع?ندك\s*من|كم\s+مخزون|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|ابحث\s*عن|أبحث\s*عن|بحث\s*عن|اعرض|عرض|بيانات|أين|أرني|ارني|لوحة|رقم\s*لوحة|رقم\s*(?:ال)?لوحة|رصيد\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل|أبيع|ابيع|بيع|اشتري|شراء|أحتاج|احتاج)\s*",
+        r"^(?:كم\s+رصيد|كم\s+سعر|سعر|تكلفة|كم\s+ع?ندي|كم\s+ع?ندك\s*من|كم\s+مخزون|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|ابحث\s*عن|أبحث\s*عن|بحث\s*عن|اعرض|عرض|بيانات|أين|أرني|ارني|لوحة|رقم\s*لوحة|رقم\s*(?:ال)?لوحة|رصيد\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل|أبيع|ابيع|بيع|اشتري|شراء|أحتاج|احتاج|أعطني|اعطني|عطني|أعطيني|ابغى|أبغى|أريد|اريد|وريني|اخبرني|أخبرني)\s*",
         "",
         raw,
         flags=re.IGNORECASE,
     )
-    # Drop entity nouns ("العميل" / "المركبة" / "القطعة")
+    # Drop info-type nouns (ملاحظة / تفاصيل / معلومات)
+    raw = re.sub(
+        r"(?:ملاحظ[ةه]?|ملاحظات|تفاصيل|معلومات|بيانات|ملف|حساب|سجل|رصيد)",
+        "",
+        raw,
+        flags=re.IGNORECASE,
+    )
+    # Drop entity nouns ("العميل" / "المركبة" / "القطعة" / "العملية")
     if tool_name == "customers.search":
-        raw = re.sub(r"(?:ال)?عميل[ةه]?|(?:ال)?زبون[ةه]?", "", raw, flags=re.IGNORECASE)
+        raw = re.sub(r"(?:ال)?عميل[ةه]?|(?:ال)?زبون[ةه]?|(?:ال)?عملي[ةه]?(?:ات)?|(?:ال)?عمل(?:يات)?", "", raw, flags=re.IGNORECASE)
     elif tool_name == "vehicles.search":
         raw = re.sub(r"(?:ال)?مركب[ةه]?|(?:ال)?سيار[ةه]?", "", raw, flags=re.IGNORECASE)
     elif tool_name == "parts.search":
         raw = re.sub(r"(?:ال)?قطع[ةه]?(?:\s*غيار)?|(?:ال)?مخزون", " ", raw, flags=re.IGNORECASE)
+    elif tool_name == "operations.search":
+        raw = re.sub(r"(?:ال)?عملي[ةه]?(?:ات)?|(?:ال)?عمل(?:يات)?", " ", raw, flags=re.IGNORECASE)
     # Drop common particles
     raw = re.sub(r"\b(عن|في|من|إلى|الى|على|ل|لـ|ب|بـ|ك|كـ|و|أو|او|هل|كم|ما)\b", " ", raw)
     raw = re.sub(r"[?\.,!؟،]", " ", raw)
@@ -112,6 +127,20 @@ def detect_tools(text: str) -> List[str]:
     for rgx, tool_name in _TOOL_PATTERNS:
         if rgx.search(t):
             matched.append(tool_name)
+
+    # Smart fallback: if no tools matched AND the message looks like it contains
+    # a proper Arabic name (2+ word name), try customers.search + operations.search
+    if not matched and t:
+        # Detect multi-word Arabic proper name (at least 2 words with 2+ Arabic chars each)
+        _name_pattern = re.compile(
+            r"[\u0621-\u064A]{2,}\s+(?:ال)?[\u0621-\u064A]{2,}(?:\s+(?:ال)?[\u0621-\u064A]{2,})*"
+        )
+        # Exclude common non-name phrases
+        _non_name = re.compile(r"(?:لا\s+(?:توجد|يوجد|يمكن)|كيف\s+(?:يمكن|اقدر))", re.IGNORECASE)
+        if _name_pattern.search(t) and not _non_name.search(t):
+            matched.append("customers.search")
+            matched.append("operations.search")
+
     return matched
 
 
@@ -189,7 +218,8 @@ def _system_prompt() -> str:
         "  • parts.search — 🔧 بحث ذكي عن قطعة في المخزون (الاسم/التصنيف) + يرجع السعر والكمية المتاحة. استخدمها عند 'بيع X' و 'سعر X' و 'كم عندي X'.\n"
         "  • operations.recent — آخر العمليات (بيع/شراء/مصروف).\n"
         "  • customers.search — بحث عميل بالاسم/الهاتف.\n"
-        "  • vehicles.search — بحث مركبة باللوحة/الماركة/المالك.\n\n"
+        "  • vehicles.search — بحث مركبة باللوحة/الماركة/المالك.\n"
+        "  • operations.search — بحث عمليات عميل/مورد بالاسم (تفاصيل عمليات شخص معين).\n\n"
         "📊 كيف تتعامل مع نتائج الأدوات:\n"
         "  • إذا الأداة أعادت قائمة فارغة → قل صراحة 'لا توجد بيانات حالياً' بدون اعتذار طويل.\n"
         "  • إذا الأداة فشلت → اعرض الخطأ بإيجاز واقترح بدائل.\n"
@@ -197,8 +227,13 @@ def _system_prompt() -> str:
         "  • إذا الأرقام كبيرة → نسّقها بفواصل الآلاف عند الكتابة.\n\n"
         "🛡️ القيد الوحيد (read-only backend):\n"
         "  • لا تستدع أداة تكتب/تعدّل/تحذف في DB — كل الأدوات المسجّلة لديك قراءة فقط.\n"
-        "  • لو طلب المستخدم 'أنشئ/عدّل/احذف/وافق' → اشرح الخطوات وأرشده للواجهة المناسبة، لكن لا تتذرّع بأنك لا تستطيع 'فتح' أو 'الوصول'.\n"
+        "  • لو طلب المستخدم 'أنشئ/عدّل/وافق' → اشرح الخطوات وأرشده للواجهة المناسبة.\n"
+        "  • لو طلب المستخدم 'احذف' → وجّهه لكتابة الأمر كفعل مباشر (مثل: 'احذف العملية رقم X') ليتحوّل للمسار التنفيذي.\n"
         "  • **ممنوع** الرد بـ 'لا يمكنني فتح أو تعديل' عند سؤال قراءة عادي — أنت تملك بيانات النظام وتقدر تجيب.\n\n"
+        "📌 سياق المحادثة:\n"
+        "  • إذا قال المستخدم 'احذفها' أو 'عدّله' أو 'غيّرها' (ضمير متصل) → ارجع للرسالة السابقة وحدد ما يقصده.\n"
+        "  • إذا ذكر اسم شخص بدون تحديد نوع الطلب → ابحث عنه كعميل واعرض بياناته وعملياته.\n"
+        "  • لا تقل 'لا توجد بيانات' إلا إذا فعلاً لم تجد نتائج في أدوات البحث.\n\n"
         "📐 أسلوبك:\n"
         "  • عربية فصحى مبسطة، مختصرة، رقمية حين تتوفر أرقام.\n"
         "  • Markdown مسموح ومفضّل (جداول | bullets | **bold**) — الواجهة تعرضه بشكل صحيح.\n"

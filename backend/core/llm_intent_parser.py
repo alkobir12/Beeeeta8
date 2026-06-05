@@ -37,6 +37,9 @@ ALLOWED_ACTIONS = {
     "create_visit",          # staging only (no visits table in Supabase yet)
     "close_visits",          # bulk close — implemented as a vehicles status flip
     "get_active_visits",     # read-only query, returns immediately
+    "delete_operation",      # delete a specific operation by ID — requires approval
+    "get_customers",         # read-only query
+    "get_vehicles",          # read-only query
 }
 
 
@@ -66,7 +69,10 @@ _SYSTEM_PROMPT = (
     "  • create_vehicle   — payload: {plate?, brand?, model?, year?, vehicle_type?, customer_name?, customer_phone?}\n"
     "  • create_visit     — payload: {plate?, vehicle_type?, year?, customer_name?, customer_phone?, service?, price?, reason?}\n"
     "  • close_visits     — payload: {} (يُغلق كل الزيارات النشطة)\n"
-    "  • get_active_visits — payload: {}\n\n"
+    "  • get_active_visits — payload: {}\n"
+    "  • get_customers    — payload: {query?} (بحث عن عميل)\n"
+    "  • get_vehicles     — payload: {query?} (بحث عن مركبة)\n"
+    "  • delete_operation — payload: {operation_id?, reason?} (حذف عملية بالمعرف — يحتاج موافقة)\n\n"
     "قواعد الإخراج (مهمّة):\n"
     "  1. أرجع JSON واحد بدون ```\n"
     "  2. الشكل: {\"action\":\"...\", \"entity\":\"...\", \"payload\":{...}}\n"

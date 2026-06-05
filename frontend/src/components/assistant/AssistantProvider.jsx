@@ -139,7 +139,8 @@ export const AssistantProvider = ({ children }) => {
     const QUESTION_PREFIX = /^(?:ما\s|ماذا|كم\s|كيف|متى|أين|اين|هل\s|من\s|لماذا|أي\s|اي\s|اعرض|أعطني|اعطني|اخبرني|أخبرني|ابحث|اشرح|why|what|how|when|where)/i;
     if (QUESTION_PREFIX.test(t)) return false;
     // (A) Action verb at start or anywhere
-    const ACTION_VERB = /\b(?:سجل|اضف|أضف|انشئ|أنشئ|افتح|أفتح|اصدر|أصدر|اعمل|أعمل|بع|بيع|تحصيل|اقبض|ادفع|اصرف|أصرف|اغلق|أغلق|اقفل|احذف|أحذف|عدل|عدّل|update|create|add|delete|register|close|open)\b/i;
+    // (A) Action verb at start or anywhere — handles Arabic suffixes (ها/ه/هم/هن/ني)
+    const ACTION_VERB = /(?:سجل|اضف|أضف|انشئ|أنشئ|افتح|أفتح|اصدر|أصدر|اعمل|أعمل|بع|بيع|تحصيل|اقبض|ادفع|اصرف|أصرف|اغلق|أغلق|اقفل|احذف|أحذف|عدل|عدّل|update|create|add|delete|register|close|open)(?:ها|ه|هم|هن|ني|نا|وا|وه|ي)?\b/i;
     if (ACTION_VERB.test(t)) return true;
     // (B) Structured ERP data — phone is the strongest signal
     const HAS_PHONE = /\b05\d{8}\b/.test(t);

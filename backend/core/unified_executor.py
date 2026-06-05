@@ -35,6 +35,7 @@ RISKY_ACTIONS = {
     "close_visits",
     "delete_customer",
     "delete_vehicle",
+    "delete_operation",
     "bulk_update",
     "bulk_delete",
 }
@@ -52,6 +53,7 @@ _ACTION_TO_RUNTIME = {
     "create_vehicle": "vehicle",
     "create_visit": "visit",
     "close_visits": "close_visits",
+    "delete_operation": "delete_operation",
 }
 
 
@@ -102,6 +104,17 @@ async def execute_text(
 
 def _regex_fallback_action(text: str) -> Action:
     """Convert regex-detected intents to an Action when the LLM gives up."""
+    import re as _re
+    # Check for delete intent first (handles Arabic suffixes like احذفها)
+    delete_match = _re.search(r"(?:احذف|أحذف|امسح|أمسح|شيل|delete|remove)(?:ها|ه|هم|هن|وا|وه)?", text, _re.IGNORECASE)
+    if delete_match:
+        # Try to extract an operation ID from the text
+        id_match = _re.search(r"(?:رقم|معرف|id)\s*[:#]?\s*(\S+)", text, _re.IGNORECASE)
+        payload = {}
+        if id_match:
+            payload["operation_id"] = id_match.group(1)
+        return Action(action="delete_operation", payload=payload)
+
     from core import power_mode
     intent_kind = power_mode.detect_intent_kind(text)
     if intent_kind == "unknown":

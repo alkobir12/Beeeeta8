@@ -68,7 +68,7 @@ STATE: Dict[str, Dict[str, Any]] = {
 # 2) State machine constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-VALID_ACTIONS = {"customer", "vehicle", "visit", "close_visits"}
+VALID_ACTIONS = {"customer", "vehicle", "visit", "close_visits", "delete_operation"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -419,6 +419,41 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                 return {"execution_id": execution_id, "result": {"closed_ids": closed_ids, "count": len(closed_ids)}}
             except Exception as e:
                 _log.exception("close_visits commit failed: %s", redact(str(e), max_len=120))
+                return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
+
+        # ── delete_operation uses the operations API ──
+        if action == "delete_operation":
+            try:
+                import httpx as _httpx
+                _base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+                op_id = payload.get("operation_id") or payload.get("id") or ""
+                if not op_id:
+                    return {"error": "missing_operation_id"}
+                import asyncio
+                loop = asyncio.get_event_loop()
+
+                async def _do_delete():
+                    async with _httpx.AsyncClient(timeout=15.0) as _cl:
+                        return await _cl.delete(f"{_base}/api/operations/{op_id}")
+
+                resp = loop.run_until_complete(_do_delete())
+                result_data = {"operation_id": op_id, "deleted": resp.status_code in (200, 204)}
+                execution_id = uuid.uuid4().hex[:12]
+                STATE["executions"][execution_id] = {
+                    "id": execution_id,
+                    "draft_id": draft_id,
+                    "result": result_data,
+                    "status": "executed",
+                    "committer": committer or "anonymous",
+                    "committed_at": time.time(),
+                }
+                draft["status"] = "committed"
+                draft["execution_id"] = execution_id
+                _audit("COMMIT_DELETE_OPERATION", draft_id=draft_id, execution_id=execution_id,
+                       operation_id=op_id, committer=committer)
+                return {"execution_id": execution_id, "result": result_data}
+            except Exception as e:
+                _log.exception("delete_operation commit failed: %s", redact(str(e), max_len=120))
                 return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
 
         # Map action → table
