@@ -174,15 +174,13 @@ export const UnifiedAssistantDrawer = () => {
       return;
     }
 
-    // 3) Single-intent → /api/runtime/execute
+    // 3) Single-intent → /api/runtime/execute (axios/XHR — NOT fetch, to avoid
+    //    the platform's rrweb session-recorder locking the response body which
+    //    throws "Body is disturbed or locked").
     try {
       const url = `${process.env.REACT_APP_BACKEND_URL || ''}/api/runtime/execute`;
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, proposer }),
-      });
-      const data = await resp.json();
+      const axResp = await axios.post(url, { text, proposer }, { timeout: 120000 });
+      const data = axResp.data || {};
       const d = data?.data || {};
       const action = d.action?.action || 'unknown';
       let summary;

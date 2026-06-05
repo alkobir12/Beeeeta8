@@ -265,7 +265,7 @@ export const AssistantProvider = ({ children }) => {
     }
   }, [sessionId, _maybeSpeak]);
 
-  const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true, stream = true, force = null } = {}) => {
+  const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true, stream = false, force = null } = {}) => {
     const trimmed = (text || '').trim();
     if (!trimmed || busy) return null;
 
@@ -278,7 +278,7 @@ export const AssistantProvider = ({ children }) => {
     const userMsg = { role: 'user', content: trimmed, ts: Date.now() / 1000 };
     setMessages((prev) => [...prev, userMsg]);
     setBusy(true);
-    setStreamingPhase(stream ? 'thinking' : null);
+    setStreamingPhase('يفكّر…');
     try {
       let data = null;
       if (stream && typeof fetch !== 'undefined') {
@@ -362,7 +362,7 @@ export const AssistantProvider = ({ children }) => {
           workshop_id: WORKSHOP_ID,
           force_agent: forceAgent || undefined,
           use_ai: useAi,
-          model: model || 'gpt',
+          model: model || 'sonnet',
           proposer,
         }, { timeout: 120000 });
         if (!res.data?.success) {
