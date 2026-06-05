@@ -231,6 +231,51 @@ def _delete_entity(table: str, entity_id: str) -> bool:
     return removed
 
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4b) Duplicate Detection — L16 prevents double-creating the same entity
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _find_duplicate_customer(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Check if a customer with the same name+phone already exists."""
+    name = (payload.get("name") or "").strip().lower()
+    phone = (payload.get("phone") or "").strip()
+    if not name:
+        return None
+    client = _supabase_client()
+    if client:
+        try:
+            q = client.table("customers").select("*")
+            if phone:
+                res = q.eq("phone", phone).limit(1).execute()
+                if res.data:
+                    return res.data[0]
+            res = client.table("customers").select("*").ilike("name", f"%{name}%").limit(5).execute()
+            for row in (res.data or []):
+                if name in (row.get("name") or "").lower():
+                    return row
+        except Exception as e:
+            _log.debug("duplicate customer check failed: %s", redact(str(e), max_len=80))
+    return None
+
+
+def _find_duplicate_vehicle(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Check if a vehicle with the same plate already exists."""
+    plate = (payload.get("plate") or "").strip()
+    if not plate:
+        return None
+    client = _supabase_client()
+    if client:
+        try:
+            res = client.table("vehicles").select("*").eq("plate_number", plate).limit(1).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            _log.debug("duplicate vehicle check failed: %s", redact(str(e), max_len=80))
+    return None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 5) Draft creation (called by Power Mode build_draft())
 # ─────────────────────────────────────────────────────────────────────────────
@@ -458,6 +503,45 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
 
         # Map action → table
         table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}[action]
+
+        # L16 Duplicate Prevention — check if entity already exists before creating
+        if action == "customer" and payload.get("name"):
+            existing = _find_duplicate_customer(payload)
+            if existing:
+                # Return the existing entity instead of creating a duplicate
+                execution_id = uuid.uuid4().hex[:12]
+                STATE["executions"][execution_id] = {
+                    "id": execution_id,
+                    "draft_id": draft_id,
+                    "result": {**existing, "_duplicate": True},
+                    "status": "executed",
+                    "committer": committer or "anonymous",
+                    "committed_at": time.time(),
+                }
+                draft["status"] = "committed"
+                draft["execution_id"] = execution_id
+                _audit("COMMIT_DUPLICATE_SKIPPED", draft_id=draft_id, execution_id=execution_id,
+                       table=table, existing_id=existing.get("id"))
+                return {"execution_id": execution_id, "result": {**existing, "_duplicate": True, "_message": "العميل موجود مسبقاً"}}
+
+        if action == "vehicle" and payload.get("plate"):
+            existing = _find_duplicate_vehicle(payload)
+            if existing:
+                execution_id = uuid.uuid4().hex[:12]
+                STATE["executions"][execution_id] = {
+                    "id": execution_id,
+                    "draft_id": draft_id,
+                    "result": {**existing, "_duplicate": True},
+                    "status": "executed",
+                    "committer": committer or "anonymous",
+                    "committed_at": time.time(),
+                }
+                draft["status"] = "committed"
+                draft["execution_id"] = execution_id
+                _audit("COMMIT_DUPLICATE_SKIPPED", draft_id=draft_id, execution_id=execution_id,
+                       table=table, existing_id=existing.get("id"))
+                return {"execution_id": execution_id, "result": {**existing, "_duplicate": True, "_message": "المركبة موجودة مسبقاً"}}
+
         try:
             entity = upsert_entity(table, payload)
         except Exception as e:

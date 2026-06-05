@@ -63,6 +63,13 @@ const Customers = () => {
     fetchCollectionAccounts();
   }, []);
 
+  // L16 Reactive Binding — refresh when assistant creates/modifies customer data
+  useEffect(() => {
+    const onFinUpdated = () => { fetchCustomers(); };
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
+  }, []);
+
   const fetchCollectionAccounts = async () => {
     try {
       const response = await api.get('/finance/chart-of-accounts', workshopId ? { params: { workshop_id: workshopId } } : undefined);

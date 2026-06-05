@@ -22,19 +22,16 @@
 
 ## Recent Work — All 5 Sessions Summary (Feb 2026)
 
-### Session 12 (Jun 5) — Bot Intelligence Fixes (Name Search + Operations Search + Delete Support)
-- **Bug Fix**: "أعطني ملاحظة محمد الجهني" now correctly triggers `customers.search` and finds the customer
-- **New Tool**: `operations.search` — searches operations by customer/partner name with tokenized matching
-- **Tool Pattern Fixes**: Added broader patterns for name-based queries ("أعطني/عطني + تفاصيل/ملاحظة/بيانات + [name]")
-- **Smart Fallback**: When no tool matches and an Arabic proper name is detected (2+ words), auto-triggers `customers.search` + `operations.search`
-- **Delete Support**: Added `delete_operation` to LLM intent parser, unified executor (RISKY — requires approval), and action runtime
-- **Arabic Suffix Fix**: Frontend `_looksLikeAction()` now matches verbs with Arabic suffixes (احذفها/احذفه/اغلقها)
-- **CRITICAL FIX: JS `\b` doesn't work with Arabic** — Removed `\b` word boundaries from ACTION_VERB regex in frontend, replaced with `(?:^|\s)` and `(?:\s|$)` for proper Arabic word detection
-- **LLM Switch**: GPT-4o-mini → **Claude Sonnet 4.6** (both assistant_kernel.py and llm_intent_parser.py)
-- **Qassimi Dialect**: Added dialect support (وش/ابي/ابغى/ضيف/حط/شيل/الحين/وين) in system prompt, intent parser, and frontend action routing
-- **fetch → axios**: Switched `_executeDirectly` from `fetch` to `axios` to avoid rrweb-recorder interceptor conflicts
-- **Vehicle Types**: Added هايلوكس/كامري/لاندكروزر/باترول/etc. to HAS_VEHICLE_TYPE_YEAR pattern
-- 10/10 backend tests passed + E2E browser verification shows "✅ تم بنجاح" for vehicle creation
+### Session 12 (Jun 5) — L16 Conversational ERP Operator (Write Execution + Reactive Binding)
+- **CRITICAL FIX: JS `\b` doesn't work with Arabic** — Root cause of "البوت لا ينفذ الأوامر". Replaced with `(?:^|\s)` and `(?:\s|$)`.
+- **L16 Reactive Binding**: `finance:updated` dispatched after every committed action → auto-refreshes Dashboard, Operations, Customers, Financial pages
+- **Duplicate Prevention**: Checks Supabase for existing customer (name+phone) and vehicle (plate) before creating
+- **LLM Switch**: GPT-4o-mini → **Claude Sonnet 4.6**
+- **Qassimi Dialect**: وش/ابي/ابغى/ضيف/حط/شيل/الحين/وين
+- **New Tool**: `operations.search` — searches by customer/partner name
+- **Delete Support**: `delete_operation` action (RISKY — requires approval)
+- **fetch → axios**: Fixed rrweb-recorder interceptor conflicts
+- 10/10 backend tests + E2E "✅ تم بنجاح" for vehicle/customer creation
 
 ### Session 11 (Feb 12 — previous) — Phase 3B Round 2 (Power Mode + Multi-Intent + Drafts)
 - ✅ **⚡ Power Mode**: `/power` prefix triggers multi-intent execution. Backend `core/power_mode.py` (~280 lines, fully tested) detects the prefix and bypasses the LLM path. Single round-trip handles N commands.

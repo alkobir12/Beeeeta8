@@ -176,7 +176,23 @@ export const AssistantProvider = ({ children }) => {
       let cards = [];
       if (d.status === 'committed') {
         const r = d.result || {};
-        summary = `✅ **تم بنجاح** — ${r.name || r.plate_number || r.id || action}\n📌 تم الحفظ في قاعدة البيانات.`;
+        const actionLabel = {
+          create_customer: 'عميل',
+          create_vehicle: 'مركبة',
+          create_visit: 'زيارة',
+          delete_operation: 'حذف عملية',
+        }[action] || action;
+        if (r._duplicate) {
+          summary = `⚠️ **${actionLabel} موجود مسبقاً** — ${r.name || r.plate_number || r.id || ''}\nلم يتم إنشاء نسخة مكررة.`;
+        } else {
+          summary = `✅ **تم بنجاح** — ${actionLabel}: ${r.name || r.plate_number || r.id || ''}\n📌 تم الحفظ في قاعدة البيانات.`;
+        }
+        // L16 Reactive Binding — notify all listening pages to refresh
+        try {
+          window.dispatchEvent(new CustomEvent('finance:updated', {
+            detail: { source: 'assistant', action, entity_id: r.id }
+          }));
+        } catch (e) { /* noop */ }
       } else if (d.status === 'pending_approval') {
         summary = `⏳ **بانتظار اعتمادك** — العملية حساسة (${action}).`;
         cards = [{
