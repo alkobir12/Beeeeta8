@@ -28,6 +28,16 @@
 - **Duplicate Prevention**: Checks Supabase for existing customer (name+phone) and vehicle (plate) before creating
 - **LLM Switch**: GPT-4o-mini → **Claude Sonnet 4.6**
 - **Qassimi Dialect**: وش/ابي/ابغى/ضيف/حط/شيل/الحين/وين
+- **All 9 Button Types Activated**:
+  1. تصحيح القيود المفقودة (POST /api/operations/integrity/fix-all) — 7/7 fixed
+  2. تحصيل من عميل (POST /api/operations/{id}/confirm-payment)
+  3. حذف عملية (DELETE via runtime + approval)
+  4. تعديل عميل (PUT /api/customers/{id})
+  5. تعديل مركبة (PUT /api/vehicles/{id})
+  6. إنشاء زيارة جديدة (POST via runtime)
+  7. طباعة PDF (navigate to print page)
+  8. إرسال واتساب (Infobip integration)
+  9. حجز قطعة + كشف حساب مورد (navigate/tool)
 - **New Tool**: `operations.search` — searches by customer/partner name
 - **Delete Support**: `delete_operation` action (RISKY — requires approval)
 - **fetch → axios**: Fixed rrweb-recorder interceptor conflicts

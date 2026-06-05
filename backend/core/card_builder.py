@@ -43,6 +43,7 @@ def _sar(amount: Optional[float]) -> str:
 def customer_card(customer: Dict[str, Any]) -> Dict[str, Any]:
     cid = customer.get("id") or ""
     name = customer.get("name") or "(بدون اسم)"
+    phone = customer.get("phone") or ""
     return {
         "type": "CustomerCard",
         "id": _short(cid, 12),
@@ -51,7 +52,7 @@ def customer_card(customer: Dict[str, Any]) -> Dict[str, Any]:
             "id": cid,
             "code": _short(cid, 8).upper(),
             "name": name,
-            "phone": customer.get("phone") or "",
+            "phone": phone,
             "balance": float(customer.get("ajelBalance") or customer.get("balance") or 0),
             "balance_formatted": _sar(customer.get("ajelBalance") or customer.get("balance") or 0),
             "open_invoices": customer.get("openInvoices") or 0,
@@ -61,7 +62,12 @@ def customer_card(customer: Dict[str, Any]) -> Dict[str, Any]:
         "actions": [
             {"id": "open", "label": "فتح ملف العميل", "intent": "navigate", "target": f"/customer/{cid}"},
             {"id": "statement", "label": "كشف حساب", "intent": "tool", "tool": "customers.search", "args": {"query": name}},
-            {"id": "whatsapp", "label": "واتساب", "intent": "deferred", "phase": "3D"},
+            {"id": "edit", "label": "تعديل", "intent": "runtime",
+             "endpoint": f"/api/customers/{cid}", "method": "PUT"},
+            {"id": "collect", "label": "تحصيل", "intent": "navigate", "target": f"/operations?pos=collect&customer={cid}"},
+            {"id": "whatsapp", "label": "واتساب", "intent": "runtime",
+             "endpoint": "/api/runtime/execute", "method": "POST",
+             "body": {"text": f"أرسل واتساب {phone} رسالة تذكير بالمبالغ المستحقة"}},
         ],
     }
 
@@ -88,7 +94,11 @@ def vehicle_card(vehicle: Dict[str, Any]) -> Dict[str, Any]:
         "actions": [
             {"id": "open", "label": "فتح ملف المركبة", "intent": "navigate", "target": f"/vehicle/{vid}"},
             {"id": "visits", "label": "زياراتها", "intent": "navigate", "target": f"/vehicle/{vid}"},
-            {"id": "create_visit", "label": "زيارة جديدة", "intent": "deferred", "phase": "3C"},
+            {"id": "create_visit", "label": "زيارة جديدة", "intent": "runtime",
+             "endpoint": "/api/runtime/execute", "method": "POST",
+             "body": {"text": f"افتح زيارة للمركبة {plate}"}},
+            {"id": "edit", "label": "تعديل", "intent": "runtime",
+             "endpoint": f"/api/vehicles/{vid}", "method": "PUT"},
         ],
     }
 
@@ -115,9 +125,13 @@ def invoice_card(operation: Dict[str, Any]) -> Dict[str, Any]:
         },
         "actions": [
             {"id": "preview", "label": "معاينة", "intent": "navigate", "target": f"/operations?focus={op_id}"},
-            {"id": "pdf", "label": "PDF", "intent": "deferred", "phase": "3D"},
-            {"id": "whatsapp", "label": "واتساب", "intent": "deferred", "phase": "3D"},
-            {"id": "receive_payment", "label": "تحصيل", "intent": "deferred", "phase": "3C"},
+            {"id": "pdf", "label": "PDF", "intent": "navigate", "target": f"/operations?focus={op_id}&print=1"},
+            {"id": "receive_payment", "label": "تحصيل", "intent": "runtime",
+             "endpoint": f"/api/operations/{op_id}/confirm-payment", "method": "POST",
+             "body": {"status": "paid"}},
+            {"id": "whatsapp", "label": "واتساب", "intent": "runtime",
+             "endpoint": "/api/runtime/execute", "method": "POST",
+             "body": {"text": f"أرسل واتساب للعميل فاتورة {inv_no}"}},
         ],
     }
 
@@ -151,6 +165,10 @@ def operation_card(operation: Dict[str, Any]) -> Dict[str, Any]:
         "actions": [
             {"id": "open", "label": "فتح", "intent": "navigate", "target": f"/operations?focus={op_id}"},
             {"id": "audit", "label": "تدقيق", "intent": "tool", "tool": "firewall.operation_integrity"},
+            {"id": "delete", "label": "حذف", "intent": "runtime",
+             "endpoint": "/api/runtime/execute", "method": "POST",
+             "body": {"text": f"احذف العملية {op_id[:8]}"},
+             "confirm": "هل أنت متأكد من حذف هذه العملية؟"},
         ],
     }
 
@@ -173,8 +191,10 @@ def supplier_card(supplier: Dict[str, Any]) -> Dict[str, Any]:
         },
         "actions": [
             {"id": "open", "label": "فتح ملف المورد", "intent": "navigate", "target": "/suppliers"},
-            {"id": "statement", "label": "كشف حساب", "intent": "deferred", "phase": "3B.2"},
-            {"id": "whatsapp", "label": "واتساب", "intent": "deferred", "phase": "3D"},
+            {"id": "statement", "label": "كشف حساب", "intent": "tool", "tool": "finance.payables_summary"},
+            {"id": "whatsapp", "label": "واتساب", "intent": "runtime",
+             "endpoint": "/api/runtime/execute", "method": "POST",
+             "body": {"text": f"أرسل واتساب {supplier.get('phone') or ''} كشف حساب المورد {name}"}},
         ],
     }
 
@@ -202,7 +222,7 @@ def inventory_card(part: Dict[str, Any]) -> Dict[str, Any]:
         },
         "actions": [
             {"id": "open", "label": "فتح القطعة", "intent": "navigate", "target": "/parts"},
-            {"id": "reserve", "label": "حجز", "intent": "deferred", "phase": "3C"},
+            {"id": "reserve", "label": "حجز للعملية", "intent": "navigate", "target": f"/operations?part={sku}"},
         ],
     }
 
@@ -360,9 +380,14 @@ def finding_card(finding: Dict[str, Any]) -> Dict[str, Any]:
             "discovered_at": finding.get("discovered_at") or finding.get("ts"),
         },
         "actions": (
-            [{"id": "view", "label": "فتح", "intent": "navigate",
-              "target": finding.get("link") or "/accounting/firewall"}]
-            if finding.get("link") or True else []
+            [
+                {"id": "view", "label": "فتح", "intent": "navigate",
+                 "target": finding.get("link") or "/accounting/firewall"},
+                {"id": "fix", "label": "تصحيح تلقائي", "intent": "runtime",
+                 "endpoint": "/api/operations/integrity/fix-all", "method": "POST",
+                 "body": {},
+                 "confirm": "سيتم إنشاء قيود محاسبية تلقائية للعمليات المفقودة. متأكد؟"},
+            ]
         ),
     }
 

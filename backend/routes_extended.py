@@ -2065,6 +2065,97 @@ async def operations_integrity_check(payload: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+@router.post("/operations/integrity/fix-all")
+async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={})):
+    """تصحيح تلقائي للقيود المفقودة — يُنشئ journal entries للعمليات التي ليس لها قيد محاسبي."""
+    try:
+        provider = os.environ.get("DB_PROVIDER", "mongo").lower()
+        if provider != "supabase":
+            raise HTTPException(status_code=400, detail="يعمل فقط مع Supabase")
+        supa = SupabaseService()
+        if supa.mock_mode:
+            raise HTTPException(status_code=400, detail="Supabase في وضع المحاكاة")
+
+        # 1) Get all operations
+        ops = supa.client.table("operations").select("*").order("created_at", desc=True).limit(500).execute().data or []
+        op_ids = [str(o.get("id") or "") for o in ops if o.get("id")]
+
+        # 2) Get existing journal entries
+        existing_je = set()
+        if op_ids:
+            try:
+                je_rows = supa.client.table("journal_entries").select("reference_id").in_("reference_id", op_ids).execute().data or []
+                existing_je = {str(j.get("reference_id") or "") for j in je_rows}
+            except Exception:
+                # table might use referenceId
+                try:
+                    je_rows = supa.client.table("journal_entries").select("\"referenceId\"").in_("referenceId", op_ids).execute().data or []
+                    existing_je = {str(j.get("referenceId") or "") for j in je_rows}
+                except Exception:
+                    existing_je = set()
+
+        # 3) Find operations missing journal entries
+        missing = [o for o in ops if str(o.get("id") or "") not in existing_je and float(o.get("total") or 0) > 0]
+
+        # 4) Create journal entries for each
+        fixed = []
+        errors = []
+        for op in missing[:50]:  # limit to 50 at a time
+            op_id = str(op.get("id") or "")
+            op_type = (op.get("type") or "").lower()
+            total = float(op.get("total") or 0)
+            if total <= 0:
+                continue
+            # Determine debit/credit accounts based on operation type
+            if op_type in ("sale", "service", "instant_sale", "collect_customer", "receipt_voucher"):
+                debit_account = "1101"   # Cash/Bank
+                credit_account = "4101"  # Revenue
+            elif op_type in ("purchase", "expense", "cash_expense", "salary", "payment_order", "pay_supplier"):
+                debit_account = "5101"   # Expense
+                credit_account = "1101"  # Cash/Bank
+            else:
+                debit_account = "1101"
+                credit_account = "4101"
+
+            je_payload = {
+                "reference_id": op_id,
+                "date": op.get("createdAt") or op.get("created_at") or __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                "total": total,
+                "source": "integrity_auto_fix",
+                "description": f"قيد تصحيحي تلقائي — عملية {op_type} بمبلغ {total:.2f}",
+                "transaction_type": "auto_fix",
+                "workshop_id": op.get("workshopId") or op.get("workshop_id") or "finmodule-sync",
+                "lines": [
+                    {"account_id": debit_account, "debit": total, "credit": 0, "description": f"مدين — {op_type}"},
+                    {"account_id": credit_account, "debit": 0, "credit": total, "description": f"دائن — {op_type}"},
+                ],
+            }
+            try:
+                result = supa.client.table("journal_entries").insert(je_payload).execute()
+                if result.data:
+                    fixed.append({"op_id": op_id, "type": op_type, "total": total, "je_id": result.data[0].get("id")})
+            except Exception as fix_err:
+                errors.append({"op_id": op_id, "error": str(fix_err)[:100]})
+
+        return {
+            "success": True,
+            "data": {
+                "total_operations": len(ops),
+                "missing_before": len(missing),
+                "fixed": len(fixed),
+                "errors": len(errors),
+                "fixed_items": fixed,
+                "error_items": errors[:10],
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)[:200])
+
+
+
 def _extract_visit_items_for_dashboard(visit_row: Dict[str, Any]) -> List[Dict[str, Any]]:
     notes_payload = _parse_notes_json(visit_row.get("notes"))
     financial = _calc_visit_financial(notes_payload)

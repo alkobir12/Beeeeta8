@@ -3,6 +3,7 @@ import { Bot, X, Send, Sparkles, AlertTriangle, RefreshCw, Settings, Trash2 } fr
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLocation } from 'react-router-dom';
+import axios from 'axios';
 import { useAssistant } from './AssistantProvider';
 import { AssistantCard } from './AssistantCard';
 import { AssistantDashboard } from './AssistantDashboard';
@@ -225,35 +226,55 @@ export const UnifiedAssistantDrawer = () => {
       sendMessage(phrase);
       return;
     }
-    // 🆕 Phase 3C — runtime intent: call the runtime REST endpoint directly.
+    // Phase 3C — runtime intent: call the runtime REST endpoint directly.
     if (action?.intent === 'runtime' && action?.endpoint) {
+      // Confirm dialog if the action requires it
+      if (action.confirm && !window.confirm(action.confirm)) return;
       try {
-        // Read the logged-in user once — used as requester/approver/committer
         let me = 'anonymous';
         try {
           const u = JSON.parse(localStorage.getItem('user') || 'null');
           me = u?.name || u?.username || 'anonymous';
         } catch (e) { /* noop */ }
 
-        const url = `${(process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_BACKEND_URL || ''))}${action.endpoint}`;
-        const opts = {
-          method: action.method || 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const baseUrl = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_BACKEND_URL || '');
+        const url = `${baseUrl}${action.endpoint}`;
+        const method = (action.method || 'POST').toUpperCase();
+        const bodyData = {
+          ...(action.body || {}),
+          requester: me, approver: me, committer: me, proposer: me, by: me,
         };
-        if ((action.method || 'POST') !== 'GET') {
-          opts.body = JSON.stringify({
-            requester: me, approver: me, committer: me, rollbacker: me, by: me,
-          });
+
+        let resp;
+        if (method === 'GET') {
+          resp = await axios.get(url);
+        } else if (method === 'PUT') {
+          resp = await axios.put(url, bodyData);
+        } else if (method === 'DELETE') {
+          resp = await axios.delete(url, { data: bodyData });
+        } else {
+          resp = await axios.post(url, bodyData);
         }
-        const resp = await fetch(url, opts);
-        const data = await resp.json();
-        const ok = resp.ok && data?.success;
-        const summary = ok
-          ? `✅ تم: ${action.label} (draft: ${card.id})`
-          : `⚠️ فشل: ${action.label} — ${JSON.stringify(data?.detail || data?.error || data).slice(0, 120)}`;
-        sendMessage(summary);
+        const data = resp.data || {};
+        const ok = data?.success !== false;
+        const resultData = data?.data || data;
+        let summary;
+        if (ok) {
+          const fixedCount = resultData?.fixed;
+          if (fixedCount !== undefined) {
+            summary = `✅ تم تصحيح **${fixedCount}** قيد محاسبي مفقود من أصل ${resultData?.missing_before || '?'}`;
+          } else {
+            summary = `✅ تم: ${action.label}`;
+          }
+          // Reactive binding — refresh related pages
+          try { window.dispatchEvent(new CustomEvent('finance:updated', { detail: { source: 'card_action', action: action.id } })); } catch (e) { /* noop */ }
+        } else {
+          summary = `⚠️ ${resultData?.detail || resultData?.error || 'فشل تنفيذ العملية'}`;
+        }
+        // Show as assistant message
+        appendMessage({ role: 'assistant', content: summary, meta: { status: ok ? 'success' : 'error', action: action.id } });
       } catch (e) {
-        sendMessage(`⚠️ خطأ في ${action.label}: ${e.message}`);
+        appendMessage({ role: 'assistant', content: `⚠️ خطأ في ${action.label}: ${e?.response?.data?.detail || e.message}`, meta: { error: true } });
       }
     }
   };
