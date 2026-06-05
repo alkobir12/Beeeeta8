@@ -6,15 +6,15 @@ import uuid
 
 # ============ Vehicle Models ============
 class VehicleBase(BaseModel):
-    plateNumber: str
-    brand: str
-    model: str
-    year: int
-    color: str
+    plateNumber: str = ""
+    brand: str = ""
+    model: str = ""
+    year: int = 0
+    color: Optional[str] = None
     vin: Optional[str] = None  # رقم الهيكل اختياري
     fileNumber: Optional[str] = None  # رقم الملف
-    customerName: str
-    customerPhone: str
+    customerName: Optional[str] = None
+    customerPhone: Optional[str] = None
     customerEmail: Optional[str] = None
     customerFileNumber: Optional[str] = None
     services: List[str] = []
@@ -29,12 +29,12 @@ class VehicleCreate(VehicleBase):
 
 class Vehicle(VehicleBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    customerId: str
+    customerId: Optional[str] = None
     status: str = "diagnosis"  # diagnosis, quotation, repair, ready
-    entryDate: datetime = Field(default_factory=datetime.utcnow)
+    entryDate: Optional[datetime] = Field(default_factory=datetime.utcnow)
     estimatedCompletion: Optional[datetime] = None
     completionDate: Optional[datetime] = None
-    trackingLink: str
+    trackingLink: Optional[str] = None
     images: List[str] = []  # URLs للصور
     parts: List[Any] = []  # بنود مرتبطة (خدمات/قطع) أو IDs
     estimatedTotal: Optional[float] = None  # المبلغ التقديري المحسوب من البنود
