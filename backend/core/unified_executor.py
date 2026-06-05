@@ -54,6 +54,16 @@ _ACTION_TO_RUNTIME = {
     "create_visit": "visit",
     "close_visits": "close_visits",
     "delete_operation": "delete_operation",
+    "delete_customer": "delete_customer",
+    "delete_vehicle": "delete_vehicle",
+    "update_customer": "update_customer",
+    "update_vehicle": "update_vehicle",
+}
+
+# Actions whose target must be resolved (to a concrete DB row) before we act.
+_RESOLVE_TARGET_ACTIONS = {
+    "delete_customer", "update_customer",
+    "delete_vehicle", "update_vehicle",
 }
 
 
@@ -93,6 +103,21 @@ async def execute_text(
     # and proceed. This rescues the bot from over-strict LLM rejections.
     if action.action == "unknown":
         action = _regex_fallback_action(text)
+
+    # 🆕 Resolve the target row for delete/update BEFORE acting, so the
+    # approval card shows the real entity and commits never run blind.
+    if action.action in _RESOLVE_TARGET_ACTIONS:
+        resolved = _resolve_target(action)
+        if resolved.get("error"):
+            return {
+                "status": "needs_clarification",
+                "reason": resolved["error"],            # not_found | ambiguous
+                "entity": "customer" if "customer" in action.action else "vehicle",
+                "candidates": resolved.get("candidates") or [],
+                "action": action.model_dump(),
+            }
+        # Enrich payload with the concrete id + a human label for the card.
+        action.payload.update(resolved["enrich"])
 
     return await execute_action(
         action,
@@ -140,6 +165,37 @@ def _regex_fallback_action(text: str) -> Action:
                   key
             payload[tgt] = entities[key]
     return Action(action=action_name, payload=payload)
+
+
+def _resolve_target(action: Action) -> Dict[str, Any]:
+    """Resolve a delete/update target to a concrete DB row.
+
+    Returns either:
+      • {"enrich": {<id_field>: <id>, "_target_label": <name/plate>, "set": {...}}}
+      • {"error": "not_found"|"ambiguous", "candidates": [...]}
+    """
+    payload = action.payload or {}
+    is_customer = "customer" in action.action
+    is_update = action.action.startswith("update_")
+    # For updates the matcher lives under `match`; for deletes the payload IS the matcher.
+    criteria = (payload.get("match") if is_update else None) or payload
+
+    if is_customer:
+        res = action_runtime.resolve_customer_target(criteria)
+    else:
+        res = action_runtime.resolve_vehicle_target(criteria)
+
+    if res.get("error"):
+        return res
+    row = res["row"]
+    if is_customer:
+        enrich = {"customer_id": row.get("id"), "_target_label": row.get("name") or row.get("phone") or row.get("id")}
+    else:
+        enrich = {"vehicle_id": row.get("id"),
+                  "_target_label": row.get("plate_number") or row.get("plate") or row.get("id")}
+    if is_update:
+        enrich["set"] = payload.get("set") or {}
+    return {"enrich": enrich}
 
 
 async def execute_action(

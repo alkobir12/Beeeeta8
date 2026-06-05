@@ -209,22 +209,35 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
     label = {
         "create_customer": "عميل", "create_vehicle": "مركبة", "create_visit": "زيارة",
         "delete_operation": "حذف عملية", "close_visits": "إغلاق الزيارات",
+        "delete_customer": "حذف عميل", "delete_vehicle": "حذف مركبة",
+        "update_customer": "تعديل عميل", "update_vehicle": "تعديل مركبة",
     }.get(action, action)
     cards: List[Dict[str, Any]] = []
     entity_id = None
     if status == "committed":
         r = exec_res.get("result") or {}
         entity_id = r.get("id")
-        name = (r.get("name") or r.get("plate_number") or r.get("plateNumber")
-                or r.get("id") or "")
-        if r.get("_duplicate"):
-            response_text = f"⚠️ **{label} موجود مسبقاً** — {name}\nلم أُنشئ نسخة مكررة."
+        if action in ("delete_customer", "delete_vehicle"):
+            nm = r.get("name") or r.get("id")
+            response_text = (f"✅ **تم الحذف** — {label}: {nm}"
+                             if r.get("deleted") else f"⚠️ لم أعثر على ما يُحذف ({label}).")
+        elif action in ("update_customer", "update_vehicle"):
+            nm = r.get("name") or r.get("plate_number") or r.get("id")
+            fields = "، ".join(r.get("_updated_fields") or [])
+            response_text = f"✅ **تم التعديل** — {label}: {nm}\n📝 حُدّث: {fields}"
         else:
-            response_text = f"✅ **تم بنجاح** — {label}: {name}\n📌 حُفظ في قاعدة البيانات."
+            name = (r.get("name") or r.get("plate_number") or r.get("plateNumber")
+                    or r.get("id") or "")
+            if r.get("_duplicate"):
+                response_text = f"⚠️ **{label} موجود مسبقاً** — {name}\nلم أُنشئ نسخة مكررة."
+            else:
+                response_text = f"✅ **تم بنجاح** — {label}: {name}\n📌 حُفظ في قاعدة البيانات."
     else:  # pending_approval
         approval_id = (exec_res.get("approval") or {}).get("approval_id")
         draft_id = (exec_res.get("draft") or {}).get("id")
-        response_text = f"⏳ **بانتظار اعتمادك** — هذه عملية حساسة ({label})."
+        tgt = ((exec_res.get("action") or {}).get("payload") or {}).get("_target_label")
+        response_text = (f"⏳ **بانتظار اعتمادك** — هذه عملية حساسة "
+                         f"({label}{': ' + str(tgt) if tgt else ''}).")
         cards = [{
             "type": "ApprovalCard", "id": approval_id,
             "title": f"موافقة — {label}", "status": "pending",
@@ -252,6 +265,39 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
         "executed": {"status": status, "action": action, "entity_id": entity_id},
         "power": None,
     }
+
+
+def _build_clarification_response(*, sid: str, message: str, exec_res: Dict[str, Any]) -> Dict[str, Any]:
+    """When a delete/update target can't be uniquely resolved, ask the user
+    to disambiguate instead of guessing (data-safety)."""
+    reason = exec_res.get("reason")
+    entity = exec_res.get("entity")
+    ent_ar = "عميل" if entity == "customer" else "مركبة"
+    cands = exec_res.get("candidates") or []
+    if reason == "not_found":
+        response_text = (f"🔎 لم أجد {ent_ar} مطابقاً لطلبك. "
+                         f"تأكّد من الاسم أو رقم الجوال/اللوحة وحاول مرة أخرى.")
+    else:  # ambiguous
+        lines = []
+        for c in cands:
+            if entity == "customer":
+                lines.append(f"• {c.get('name')} — {c.get('phone') or 'بدون جوال'}")
+            else:
+                lines.append(f"• لوحة {c.get('plate')} — {c.get('brand') or ''} {c.get('model') or ''}".strip())
+        listing = "\n".join(lines)
+        response_text = (f"⚠️ وجدت أكثر من {ent_ar} مطابق — أيّهم تقصد؟\n{listing}\n\n"
+                         f"حدّد بالاسم الكامل أو رقم الجوال/اللوحة.")
+    shared_memory.append_message(sid, "assistant", response_text,
+                                 meta={"intent": "clarify", "reason": reason})
+    return {
+        "session_id": sid, "agent": "Assistant", "assistant_name": ASSISTANT_NAME,
+        "assistant_version": ASSISTANT_VERSION, "intent": "clarify",
+        "tool_results": [], "response": response_text, "cards": [],
+        "context_snapshot": {}, "recent_actions": shared_memory.get_recent_actions(sid, limit=10),
+        "ai_used": False, "model_used": None, "read_only": False, "mode": "clarify",
+        "executed": None, "power": None,
+    }
+
 
 
 
@@ -401,6 +447,8 @@ async def chat(
             exec_res = None
         if exec_res and exec_res.get("status") in ("committed", "pending_approval"):
             return _build_action_chat_response(sid=sid, message=message, exec_res=exec_res)
+        if exec_res and exec_res.get("status") == "needs_clarification":
+            return _build_clarification_response(sid=sid, message=message, exec_res=exec_res)
         # read_only / rejected / error → fall through to the normal read path
 
     # 1) Detect which read-only tools to invoke

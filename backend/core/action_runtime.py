@@ -68,7 +68,8 @@ STATE: Dict[str, Dict[str, Any]] = {
 # 2) State machine constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-VALID_ACTIONS = {"customer", "vehicle", "visit", "close_visits", "delete_operation"}
+VALID_ACTIONS = {"customer", "vehicle", "visit", "close_visits", "delete_operation",
+                 "delete_customer", "delete_vehicle", "update_customer", "update_vehicle"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -139,6 +140,23 @@ def _payload_to_vehicles_row(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _payload_to_visits_row(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Map a draft payload to the Supabase `visits` schema (see migration SQL
+    in /app/backend/migrations/001_create_visits.sql)."""
+    price_raw = str(data.get("price") or "").replace(",", "")
+    return {
+        "plate": data.get("plate") or None,
+        "vehicle_type": data.get("vehicle_type") or None,
+        "year": int(data.get("year")) if str(data.get("year") or "").isdigit() else None,
+        "customer_name": data.get("customer_name") or data.get("name") or None,
+        "customer_phone": data.get("customer_phone") or data.get("phone") or None,
+        "service": data.get("service") or None,
+        "price": float(price_raw) if price_raw.replace(".", "", 1).isdigit() else None,
+        "reason": data.get("reason") or None,
+        "status": data.get("status") or "open",
+    }
+
+
 def resolve_entity(table: str, field: str, value: str) -> Optional[Dict[str, Any]]:
     """Return the first row in `table` whose `field` matches `value`.
 
@@ -201,7 +219,21 @@ def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
             _log.exception("supabase vehicles insert failed: %s", redact(str(e), max_len=120))
             _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
 
-    # ── Staging fallback (visits or DB-unavailable) ──
+    # ── Real Supabase write for visits (if the `visits` table exists) ──
+    if client and table == "visits":
+        row = _payload_to_visits_row(data)
+        try:
+            res = client.table("visits").insert(row).execute()
+            if res.data:
+                created = res.data[0]
+                DB[table][created["id"]] = created
+                _audit("DB_WRITE_SUPABASE", table=table, entity_id=created.get("id"))
+                return created
+        except Exception as e:
+            # Table likely not created yet → fall back to in-memory staging.
+            _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
+
+    # ── Staging fallback (DB-unavailable) ──
     eid = data.get("id") or uuid.uuid4().hex
     existing = DB[table].get(eid)
     if existing:
@@ -229,6 +261,92 @@ def _delete_entity(table: str, entity_id: str) -> bool:
         DB[table].pop(entity_id, None)
         removed = True
     return removed
+
+
+def _update_entity(table: str, entity_id: str, changes: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Patch an entity's fields. Returns the updated row (Supabase) or None."""
+    client = _supabase_client()
+    if client and table in ("customers", "vehicles") and changes:
+        try:
+            res = client.table(table).update(changes).eq("id", entity_id).execute()
+            if res.data:
+                updated = res.data[0]
+                DB.setdefault(table, {})[entity_id] = updated
+                _audit("DB_UPDATE_SUPABASE", table=table, entity_id=entity_id, fields=list(changes.keys()))
+                return updated
+        except Exception as e:
+            _log.exception("supabase update failed for %s/%s: %s", table, entity_id, redact(str(e), max_len=100))
+    # Staging fallback
+    if table in DB and entity_id in DB[table]:
+        DB[table][entity_id] = {**DB[table][entity_id], **changes, "updated_at": time.time()}
+        return DB[table][entity_id]
+    return None
+
+
+def _fetch_all(table: str) -> List[Dict[str, Any]]:
+    client = _supabase_client()
+    if client and table in ("customers", "vehicles"):
+        try:
+            return (client.table(table).select("*").limit(5000).execute().data) or []
+        except Exception as e:
+            _log.warning("fetch_all %s failed: %s", table, redact(str(e), max_len=80))
+    return list(DB.get(table, {}).values())
+
+
+def resolve_customer_target(criteria: Dict[str, Any]) -> Dict[str, Any]:
+    """Find the single customer matching criteria {customer_id?|id?|phone?|name?}.
+
+    Returns {"row": {...}} | {"error": "not_found"|"ambiguous", "candidates": [...]}.
+    """
+    from core.arabic_nlp import arabic_match, normalize_arabic
+    criteria = criteria or {}
+    cid = criteria.get("customer_id") or criteria.get("id")
+    rows = _fetch_all("customers")
+    if cid:
+        hit = next((c for c in rows if str(c.get("id")) == str(cid)), None)
+        return {"row": hit} if hit else {"error": "not_found", "candidates": []}
+    phone = str(criteria.get("phone") or "").strip()
+    name = str(criteria.get("name") or "").strip()
+    cands: List[Dict[str, Any]] = []
+    if phone:
+        np = normalize_arabic(phone)
+        cands = [c for c in rows if np and np in normalize_arabic(c.get("phone"))]
+    if not cands and name:
+        cands = [c for c in rows if arabic_match(name, c.get("name"))]
+    if not cands:
+        return {"error": "not_found", "candidates": []}
+    if len(cands) > 1:
+        return {"error": "ambiguous",
+                "candidates": [{"id": c.get("id"), "name": c.get("name"), "phone": c.get("phone")} for c in cands[:6]]}
+    return {"row": cands[0]}
+
+
+def resolve_vehicle_target(criteria: Dict[str, Any]) -> Dict[str, Any]:
+    """Find the single vehicle matching criteria {vehicle_id?|id?|plate?}."""
+    from core.arabic_nlp import arabic_match, normalize_arabic
+    criteria = criteria or {}
+    vid = criteria.get("vehicle_id") or criteria.get("id")
+    rows = _fetch_all("vehicles")
+    if vid:
+        hit = next((v for v in rows if str(v.get("id")) == str(vid)), None)
+        return {"row": hit} if hit else {"error": "not_found", "candidates": []}
+    plate = str(criteria.get("plate") or criteria.get("plate_number") or "").strip()
+    cands: List[Dict[str, Any]] = []
+    if plate:
+        npl = normalize_arabic(plate)
+        cands = [v for v in rows
+                 if npl and (npl in normalize_arabic(v.get("plate_number")) or npl in normalize_arabic(v.get("plate")))]
+    name = str(criteria.get("name") or criteria.get("customer_name") or "").strip()
+    if not cands and name:
+        cands = [v for v in rows if arabic_match(name, v.get("customer_name"), v.get("ownerName"))]
+    if not cands:
+        return {"error": "not_found", "candidates": []}
+    if len(cands) > 1:
+        return {"error": "ambiguous",
+                "candidates": [{"id": v.get("id"),
+                                "plate": v.get("plate_number") or v.get("plate"),
+                                "brand": v.get("brand"), "model": v.get("model")} for v in cands[:6]]}
+    return {"row": cands[0]}
 
 
 
@@ -501,6 +619,57 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                 _log.exception("delete_operation commit failed: %s", redact(str(e), max_len=120))
                 return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
 
+        # ── delete_customer / delete_vehicle (target id pre-resolved in payload) ──
+        if action in ("delete_customer", "delete_vehicle"):
+            tbl = "customers" if action == "delete_customer" else "vehicles"
+            ent_id = payload.get("customer_id") or payload.get("vehicle_id") or payload.get("id")
+            if not ent_id:
+                return {"error": "missing_target_id"}
+            removed = _delete_entity(tbl, ent_id)
+            result_data = {"id": ent_id, "deleted": removed,
+                           "name": payload.get("_target_label"), "_action": action}
+            execution_id = uuid.uuid4().hex[:12]
+            STATE["executions"][execution_id] = {
+                "id": execution_id, "draft_id": draft_id, "result": result_data,
+                "status": "executed", "committer": committer or "anonymous",
+                "committed_at": time.time(),
+            }
+            draft["status"] = "committed"
+            draft["execution_id"] = execution_id
+            _audit("COMMIT_DELETE_ENTITY", draft_id=draft_id, execution_id=execution_id,
+                   table=tbl, entity_id=ent_id, committer=committer)
+            return {"execution_id": execution_id, "result": result_data}
+
+        # ── update_customer / update_vehicle ──
+        if action in ("update_customer", "update_vehicle"):
+            tbl = "customers" if action == "update_customer" else "vehicles"
+            ent_id = payload.get("customer_id") or payload.get("vehicle_id") or payload.get("id")
+            changes = dict(payload.get("set") or {})
+            if action == "update_vehicle":
+                if "plate" in changes:
+                    changes["plate_number"] = changes.pop("plate")
+                if "year" in changes and str(changes.get("year") or "").strip().isdigit():
+                    changes["year"] = int(changes["year"])
+            if not ent_id:
+                return {"error": "missing_target_id"}
+            if not changes:
+                return {"error": "no_changes"}
+            updated = _update_entity(tbl, ent_id, changes)
+            if updated is None:
+                return {"error": "update_failed"}
+            result_data = {**updated, "_action": action, "_updated_fields": list(changes.keys())}
+            execution_id = uuid.uuid4().hex[:12]
+            STATE["executions"][execution_id] = {
+                "id": execution_id, "draft_id": draft_id, "result": result_data,
+                "status": "executed", "committer": committer or "anonymous",
+                "committed_at": time.time(),
+            }
+            draft["status"] = "committed"
+            draft["execution_id"] = execution_id
+            _audit("COMMIT_UPDATE_ENTITY", draft_id=draft_id, execution_id=execution_id,
+                   table=tbl, entity_id=ent_id, fields=list(changes.keys()), committer=committer)
+            return {"execution_id": execution_id, "result": result_data}
+
         # Map action → table
         table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}[action]
 
@@ -661,6 +830,15 @@ def get_active_visits(limit: int = 50) -> List[Dict[str, Any]]:
             rows = list(res.data or [])
         except Exception as e:
             _log.debug("get_active_visits supabase miss: %s", redact(str(e), max_len=80))
+        # 🆕 Also read the dedicated `visits` table (if it exists)
+        try:
+            vres = client.table("visits").select("*").not_.in_(
+                "status", ["closed", "delivered", "مغلقة", "مسلمة"]
+            ).limit(limit).execute()
+            for v in (vres.data or []):
+                rows.append({**v, "_source": "visits"})
+        except Exception:
+            pass  # table not created yet — staging handles it below
     # Append staging visits dict too
     for vid, v in DB.get("visits", {}).items():
         if v.get("status") != "closed":

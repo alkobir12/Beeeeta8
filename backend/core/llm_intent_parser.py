@@ -34,10 +34,14 @@ _log = get_logger("llm_intent")
 ALLOWED_ACTIONS = {
     "create_customer",
     "create_vehicle",
-    "create_visit",          # staging only (no visits table in Supabase yet)
+    "create_visit",          # staging or Supabase visits table
     "close_visits",          # bulk close — implemented as a vehicles status flip
     "get_active_visits",     # read-only query, returns immediately
     "delete_operation",      # delete a specific operation by ID — requires approval
+    "delete_customer",       # delete a customer (resolved by name/phone/id) — requires approval
+    "delete_vehicle",        # delete a vehicle (resolved by plate/id) — requires approval
+    "update_customer",       # edit a customer's fields (safe, auto-commit)
+    "update_vehicle",        # edit a vehicle's fields (safe, auto-commit)
     "get_customers",         # read-only query
     "get_vehicles",          # read-only query
 }
@@ -72,7 +76,11 @@ _SYSTEM_PROMPT = (
     "  • get_active_visits — payload: {}\n"
     "  • get_customers    — payload: {query?} (بحث عن عميل)\n"
     "  • get_vehicles     — payload: {query?} (بحث عن مركبة)\n"
-    "  • delete_operation — payload: {operation_id?, reason?} (حذف عملية بالمعرف — يحتاج موافقة)\n\n"
+    "  • delete_operation — payload: {operation_id?, reason?} (حذف عملية بالمعرف — يحتاج موافقة)\n"
+    "  • delete_customer  — payload: {name?, phone?, customer_id?} (حذف عميل — يحتاج موافقة)\n"
+    "  • delete_vehicle   — payload: {plate?, vehicle_id?} (حذف مركبة — يحتاج موافقة)\n"
+    "  • update_customer  — payload: {match:{name?|phone?|customer_id?}, set:{name?,phone?,email?,address?}} (تعديل بيانات عميل)\n"
+    "  • update_vehicle   — payload: {match:{plate?|vehicle_id?}, set:{plate?,brand?,model?,year?,status?}} (تعديل بيانات مركبة)\n\n"
     "قواعد الإخراج (مهمّة):\n"
     "  1. أرجع JSON واحد بدون ```\n"
     "  2. الشكل: {\"action\":\"...\", \"entity\":\"...\", \"payload\":{...}}\n"
@@ -82,7 +90,8 @@ _SYSTEM_PROMPT = (
     "  6. لا تخترع حقولاً غير الموجودة في الـ payload المسموح به أعلاه.\n"
     "  7. الأسماء العربية تُحفظ كما هي (UTF-8).\n"
     "  8. plate = رقم اللوحة فقط. لا تضع نوع السيارة في plate.\n"
-    "  9. **افهم اللهجة القصيمية/النجدية**: 'ضيف/حط' = أضف، 'ابي/ابغى' = أريد (create_*)، 'شيل' = احذف (delete_*)، 'وش عندنا' = get_*.\n\n"
+    "  9. **افهم اللهجة القصيمية/النجدية**: 'ضيف/حط' = أضف، 'ابي/ابغى' = أريد (create_*)، 'شيل/امسح/احذف' = حذف (delete_*)، 'عدّل/غيّر/حدّث' = تعديل (update_*)، 'وش عندنا' = get_*.\n"
+    "  10. للتعديل (update_*): ضع *معرّف* الكيان في match والقيم *الجديدة* في set. مثال 'عدّل جوال خالد إلى 05..' → match.name='خالد', set.phone='05..'.\n\n"
     "أمثلة:\n"
     "  • 'اضف سيارة لوحة ggg 1111 رقم 0574747'\n"
     "    → {\"action\":\"create_vehicle\",\"payload\":{\"plate\":\"ggg 1111\",\"customer_phone\":\"0574747\"}}\n"
@@ -92,6 +101,12 @@ _SYSTEM_PROMPT = (
     "    → {\"action\":\"create_customer\",\"payload\":{\"name\":\"أحمد العتيبي\",\"phone\":\"0501234567\"}}\n"
     "  • 'أضف مركبة لوحة 9935 تويوتا كامري 2020'\n"
     "    → {\"action\":\"create_vehicle\",\"payload\":{\"plate\":\"9935\",\"brand\":\"تويوتا\",\"model\":\"كامري\",\"year\":2020}}\n"
+    "  • 'احذف العميل خالد المطيري'  → {\"action\":\"delete_customer\",\"payload\":{\"name\":\"خالد المطيري\"}}\n"
+    "  • 'شيل المركبة لوحة 9935'      → {\"action\":\"delete_vehicle\",\"payload\":{\"plate\":\"9935\"}}\n"
+    "  • 'عدّل جوال خالد المطيري إلى 0509998877'\n"
+    "    → {\"action\":\"update_customer\",\"payload\":{\"match\":{\"name\":\"خالد المطيري\"},\"set\":{\"phone\":\"0509998877\"}}}\n"
+    "  • 'غيّر حالة المركبة 9935 إلى جاهزة'\n"
+    "    → {\"action\":\"update_vehicle\",\"payload\":{\"match\":{\"plate\":\"9935\"},\"set\":{\"status\":\"جاهزة\"}}}\n"
 )
 
 

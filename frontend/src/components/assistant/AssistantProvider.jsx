@@ -203,13 +203,20 @@ export const AssistantProvider = ({ children }) => {
       let cards = [];
       if (d.status === 'committed') {
         const r = d.result || {};
-        const actionLabel = {
-          create_customer: 'عميل',
-          create_vehicle: 'مركبة',
-          create_visit: 'زيارة',
-          delete_operation: 'حذف عملية',
-        }[action] || action;
-        if (r._duplicate) {
+        const labels = {
+          create_customer: 'عميل', create_vehicle: 'مركبة', create_visit: 'زيارة',
+          delete_operation: 'حذف عملية', delete_customer: 'حذف عميل', delete_vehicle: 'حذف مركبة',
+          update_customer: 'تعديل عميل', update_vehicle: 'تعديل مركبة',
+        };
+        const actionLabel = labels[action] || action;
+        if (action === 'delete_customer' || action === 'delete_vehicle') {
+          summary = r.deleted
+            ? `✅ **تم الحذف** — ${actionLabel}: ${r.name || r.id || ''}`
+            : `⚠️ لم أعثر على ما يُحذف.`;
+        } else if (action === 'update_customer' || action === 'update_vehicle') {
+          const fields = (r._updated_fields || []).join('، ');
+          summary = `✅ **تم التعديل** — ${actionLabel}: ${r.name || r.plate_number || r.id || ''}\n📝 حُدّث: ${fields}`;
+        } else if (r._duplicate) {
           summary = `⚠️ **${actionLabel} موجود مسبقاً** — ${r.name || r.plate_number || r.id || ''}\nلم يتم إنشاء نسخة مكررة.`;
         } else {
           summary = `✅ **تم بنجاح** — ${actionLabel}: ${r.name || r.plate_number || r.id || ''}\n📌 تم الحفظ في قاعدة البيانات.`;
@@ -220,6 +227,17 @@ export const AssistantProvider = ({ children }) => {
             detail: { source: 'assistant', action, entity_id: r.id }
           }));
         } catch (e) { /* noop */ }
+      } else if (d.status === 'needs_clarification') {
+        const entAr = d.entity === 'customer' ? 'عميل' : 'مركبة';
+        const cands = d.candidates || [];
+        if (d.reason === 'not_found') {
+          summary = `🔎 لم أجد ${entAr} مطابقاً. تأكّد من الاسم أو رقم الجوال/اللوحة وحاول مجدداً.`;
+        } else {
+          const lines = cands.map((c) => (d.entity === 'customer'
+            ? `• ${c.name} — ${c.phone || 'بدون جوال'}`
+            : `• لوحة ${c.plate} — ${c.brand || ''} ${c.model || ''}`)).join('\n');
+          summary = `⚠️ وجدت أكثر من ${entAr} مطابق — أيّهم تقصد؟\n${lines}\n\nحدّد بالاسم الكامل أو رقم الجوال/اللوحة.`;
+        }
       } else if (d.status === 'pending_approval') {
         summary = `⏳ **بانتظار اعتمادك** — العملية حساسة (${action}).`;
         cards = [{
