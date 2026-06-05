@@ -4,7 +4,7 @@
 import requests
 import json
 
-API_URL = "https://workshop-helper-7.preview.emergentagent.com/api"
+API_URL = "https://garage-erp-arabic.preview.emergentagent.com/api"
 WID = "finmodule-sync"
 TOWDHEEB = ["توضيب", "تلميع مكينة", "توضيب مكينه"]
 

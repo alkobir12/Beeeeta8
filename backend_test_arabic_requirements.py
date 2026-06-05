@@ -411,7 +411,7 @@ class ArabicRequirementsAPITester:
 def main():
     """Main function to run the tests"""
     # Use the base URL from frontend/.env
-    BASE_URL = "https://workshop-helper-7.preview.emergentagent.com"
+    BASE_URL = "https://garage-erp-arabic.preview.emergentagent.com"
     
     if len(sys.argv) > 1:
         BASE_URL = sys.argv[1]

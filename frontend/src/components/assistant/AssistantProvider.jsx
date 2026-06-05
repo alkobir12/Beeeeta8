@@ -43,7 +43,7 @@ export const AssistantProvider = ({ children }) => {
   }, []);
   const [availableModels, setAvailableModels] = useState([
     // Default fallback list so the selector shows even before /models lands
-    { id: 'gpt', label: 'Claude Sonnet', provider: 'anthropic', model: 'claude-sonnet-4-6', available: true, description: 'سريع وعالي الجودة (cloud)' },
+    { id: 'sonnet', label: 'Claude Sonnet', provider: 'anthropic', model: 'claude-sonnet-4-6', available: true, description: 'سريع وعالي الجودة (cloud)' },
     { id: 'ollama', label: 'Ollama (محلي)', provider: 'ollama', model: 'llama3.2:3b', available: true, description: 'خصوصية تامة (يعمل بدون إنترنت)' },
   ]);
   const lastFetchRef = useRef(0);
@@ -272,7 +272,7 @@ export const AssistantProvider = ({ children }) => {
             workshop_id: WORKSHOP_ID,
             force_agent: forceAgent || undefined,
             use_ai: useAi,
-            model: model || 'gpt',
+            model: model || 'sonnet',
             proposer,
           }),
         });
@@ -450,7 +450,7 @@ export const useAssistant = () => {
       messages: [], busy: false, activeAgent: null,
       streamingPhase: null,
       alerts: [], stats: null,
-      model: 'gpt', setModel: () => {}, availableModels: [],
+      model: 'sonnet', setModel: () => {}, availableModels: [],
       sendMessage: async () => null,
       callTool: async () => ({ success: false }),
       refreshAlerts: async () => {},

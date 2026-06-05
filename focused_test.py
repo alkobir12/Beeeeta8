@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 # Backend URL
-BACKEND_URL = "https://workshop-helper-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://garage-erp-arabic.preview.emergentagent.com/api"
 
 # Test data from user request
 VEHICLE_ID = "641b1f96-6a55-46db-80e7-a76e3d1f394d"

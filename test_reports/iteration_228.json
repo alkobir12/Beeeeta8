@@ -23,7 +23,7 @@
   "passed_checks": {
     "BUG_2_a_url_preserved": {
       "status": "PASS",
-      "details": "After login as 'مدير' and navigating to /debts-followup, page.url remains 'https://workshop-helper-7.preview.emergentagent.com/debts-followup' (no redirect to /). resolveRoutePermission() now matches the new {pattern:/^\\/debts-followup/, module:'reports', action:'view'} entry at permissions.js:141 and admin has reports.view → guard allows the route."
+      "details": "After login as 'مدير' and navigating to /debts-followup, page.url remains 'https://garage-erp-arabic.preview.emergentagent.com/debts-followup' (no redirect to /). resolveRoutePermission() now matches the new {pattern:/^\\/debts-followup/, module:'reports', action:'view'} entry at permissions.js:141 and admin has reports.view → guard allows the route."
     },
     "BUG_2_b_component_mounts": {
       "status": "PASS",

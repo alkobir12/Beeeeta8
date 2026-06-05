@@ -514,12 +514,21 @@ async def _firewall_operation_integrity(workshop_id: Optional[str] = None, limit
             "status": f.get("status"),
             "duplicate_group_size": f.get("duplicate_group_size"),
         })
+    from core.card_builder import finding_card
+    cards = [finding_card({
+        "type": "warning",
+        "title": f"عملية {s.get('operation_id','')} — {', '.join(w.get('code','') for w in (s.get('warnings') or []))}",
+        "description": "; ".join(w.get("message", w.get("code", "")) for w in (s.get("warnings") or [])),
+        "severity": "warning",
+        "link": "/accounting/firewall",
+    }) for s in sample if s.get("warnings")]
     return {
         "total_operations": summary.get("total") or len(items),
         "ok": summary.get("ok"),
         "with_warnings": summary.get("warnings") or len(flagged),
         "duplicates": summary.get("duplicates"),
         "sample": sample,
+        "cards": cards,
     }
 
 

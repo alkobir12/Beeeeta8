@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://workshop-helper-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://garage-erp-arabic.preview.emergentagent.com/api"
 
 def test_endpoint(method, endpoint, params=None, data=None, expected_status=200, timeout=30):
     """Test an API endpoint and return result"""

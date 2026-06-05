@@ -333,7 +333,7 @@ export const UnifiedAssistantDrawer = () => {
               {stats?.ai_enabled ? <><Sparkles size={9} className="inline ml-0.5" /> AI نشط</> : 'محرك قواعد'}
               <span className="mx-1 opacity-60">·</span>
               <span data-testid="assistant-model-badge" className="font-bold">
-                {model === 'ollama' ? '🦙 Ollama' : '⚡ GPT'}
+                {model === 'ollama' ? '🦙 Ollama' : '⚡ Sonnet'}
               </span>
               {alerts.length > 0 && (
                 <span className="mr-2"><AlertTriangle size={9} className="inline ml-0.5" />{alerts.length} تنبيه</span>
