@@ -436,10 +436,10 @@ async def runtime_execute_unified(payload: Dict[str, Any] = Body(...)):
         session_id=payload.get("session_id"),
         auto_approver=payload.get("auto_approver") or "auto:policy",
     )
-    # Surface the right HTTP status without breaking the JSON contract
-    status_code = 200
-    if result.get("status") == "rejected":
-        status_code = 422  # unprocessable — we understood but couldn't act
-    elif result.get("status") == "error":
-        status_code = 400
+    # Always return HTTP 200 for "rejected" (text we understood but is not an
+    # executable action — usually a question). Returning 422 made the frontend
+    # axios call throw and surface a scary red error bubble for normal chat
+    # text; now the UI can inspect `status` and gracefully fall back to the
+    # chat/answer path. Genuine runtime failures still return 400.
+    status_code = 400 if result.get("status") == "error" else 200
     return JSONResponse(content={"success": result.get("status") not in ("error",), "data": result}, status_code=status_code)

@@ -182,6 +182,58 @@ export const AssistantProvider = ({ children }) => {
     return false;
   }, []);
 
+  // 🆕 Answer a message via the read/chat path WITHOUT re-adding the user
+  // bubble (it's already optimistically shown by the caller). Used as the
+  // graceful fallback when /runtime/execute returns `rejected` (the text was a
+  // question, not an action).
+  const _answerViaChat = useCallback(async (text) => {
+    let proposer = null;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || 'null');
+      proposer = u?.name || u?.username || null;
+    } catch (e) { /* noop */ }
+    try {
+      const res = await axios.post(`${API_URL}/assistant/chat`, {
+        message: text,
+        session_id: sessionId || undefined,
+        workshop_id: WORKSHOP_ID,
+        use_ai: true,
+        model: model || 'sonnet',
+        proposer,
+      }, { timeout: 120000 });
+      const data = res.data?.success ? res.data.data : null;
+      if (!data) throw new Error(res.data?.error || 'assistant_failed');
+      if (data.session_id && data.session_id !== sessionId) {
+        skipNextSessionReloadRef.current = true;
+        setSessionId(data.session_id);
+      }
+      setActiveAgent(data.agent);
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: data.response,
+        meta: { agent: data.agent, tool_results: data.tool_results, ai_used: data.ai_used, model_used: data.model_used, cards: data.cards || [] },
+        ts: Date.now() / 1000,
+      }]);
+      if (data.executed && data.executed.status === 'committed') {
+        try {
+          window.dispatchEvent(new CustomEvent('finance:updated', {
+            detail: { source: 'assistant_chat', action: data.executed.action, entity_id: data.executed.entity_id },
+          }));
+        } catch (e) { /* noop */ }
+      }
+      _maybeSpeak(data.response);
+      return data;
+    } catch (e) {
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: `⚠️ تعذّر الاتصال بالمساعد: ${e.message || 'unknown'}`,
+        meta: { error: true },
+        ts: Date.now() / 1000,
+      }]);
+      return null;
+    }
+  }, [sessionId, model, _maybeSpeak]);
+
   const _executeDirectly = useCallback(async (text) => {
     // POST to /api/runtime/execute and append the result as a chat reply.
     let proposer = null;
@@ -199,6 +251,11 @@ export const AssistantProvider = ({ children }) => {
       const data = axResp.data || {};
       const d = data?.data || data || {};
       const action = d.action?.action || 'unknown';
+      // 🆕 Not an executable action (e.g. a question) → answer via the chat
+      // path instead of showing a "couldn't understand" / 422 error.
+      if (d.status === 'rejected') {
+        return await _answerViaChat(text);
+      }
       let summary;
       let cards = [];
       if (d.status === 'committed') {
@@ -256,8 +313,6 @@ export const AssistantProvider = ({ children }) => {
       } else if (d.status === 'read_only') {
         const n = Array.isArray(d.result) ? d.result.length : 0;
         summary = `🔎 **${n} نتيجة** للاستعلام.`;
-      } else if (d.status === 'rejected') {
-        summary = `💡 لم أفهم تماماً. جرّب صياغة أوضح:\n• "سجل عميل احمد 0501234567"\n• "أضف مركبة 9935 تويوتا"\n• "اضف صالون 2009 جوال 0501234567 خدمة توضيب سعر 55"`;
       } else {
         summary = `⚠️ ${d.reason || 'تعذّر تنفيذ هذا الطلب'}`;
       }
@@ -269,6 +324,14 @@ export const AssistantProvider = ({ children }) => {
       window.dispatchEvent(new CustomEvent('assistant:executed', { detail: { ...d, text } }));
       return data;
     } catch (e) {
+      // Defensive: if the runtime still answered 422 (older deploy) or any
+      // "rejected" payload slipped through, answer via the chat path so the
+      // user never sees a raw HTTP error for normal conversational text.
+      const httpStatus = e?.response?.status;
+      const rejected = httpStatus === 422 || e?.response?.data?.data?.status === 'rejected';
+      if (rejected) {
+        return await _answerViaChat(text);
+      }
       // eslint-disable-next-line no-console
       console.error('execute error:', e);
       setMessages((prev) => [...prev, {
@@ -281,14 +344,17 @@ export const AssistantProvider = ({ children }) => {
       setBusy(false);
       setStreamingPhase(null);
     }
-  }, [sessionId, _maybeSpeak]);
+  }, [sessionId, _maybeSpeak, _answerViaChat]);
 
   const sendMessage = useCallback(async (text, { forceAgent = null, useAi = true, stream = false, force = null } = {}) => {
     const trimmed = (text || '').trim();
     if (!trimmed || busy) return null;
 
-    // 🆕 Auto-route action verbs to /execute (unless force='chat')
-    if (force !== 'chat' && _looksLikeAction(trimmed)) {
+    // 🆕 Auto-route action verbs to /execute (unless force='chat').
+    // /power multi-intent MUST stay on the chat path (the power_mode handler
+    // lives there) — never send it to the single-intent /runtime/execute.
+    const _isPower = trimmed.startsWith('/power');
+    if (force !== 'chat' && !_isPower && _looksLikeAction(trimmed)) {
       return _executeDirectly(trimmed);
     }
 

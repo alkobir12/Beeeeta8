@@ -639,23 +639,36 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                 _log.exception("close_visits commit failed: %s", redact(str(e), max_len=120))
                 return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
 
-        # ── delete_operation uses the operations API ──
+        # ── delete_operation — direct SYNCHRONOUS Supabase delete (cascade JE) ──
+        #    Previously this fired an async httpx request via
+        #    `loop.run_until_complete()`, which raises "event loop is already
+        #    running" inside FastAPI's running loop → the commit silently failed
+        #    (the bot reported success but nothing was deleted, and approvals
+        #    surfaced an [object Object] error). We now delete directly through
+        #    the synchronous Supabase client and report the *real* outcome.
         if action == "delete_operation":
+            op_id = payload.get("operation_id") or payload.get("id") or ""
+            if not op_id:
+                return {"error": "missing_operation_id"}
             try:
-                import httpx as _httpx
-                _base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
-                op_id = payload.get("operation_id") or payload.get("id") or ""
-                if not op_id:
-                    return {"error": "missing_operation_id"}
-                import asyncio
-                loop = asyncio.get_event_loop()
-
-                async def _do_delete():
-                    async with _httpx.AsyncClient(timeout=15.0) as _cl:
-                        return await _cl.delete(f"{_base}/api/operations/{op_id}")
-
-                resp = loop.run_until_complete(_do_delete())
-                result_data = {"operation_id": op_id, "deleted": resp.status_code in (200, 204)}
+                client = _supabase_client()
+                deleted = False
+                if client:
+                    # 1) cascade: remove linked journal entries first (best-effort)
+                    try:
+                        client.table("journal_entries").delete().eq("reference_id", op_id).execute()
+                    except Exception as je:
+                        _log.debug("cascade journal delete skipped: %s", redact(str(je), max_len=80))
+                    # 2) delete the operation — capture returned rows to know if it existed
+                    res = client.table("operations").delete().eq("id", op_id).execute()
+                    deleted = bool(getattr(res, "data", None))
+                    # 3) best-effort cache invalidation so the UI reflects the delete
+                    try:
+                        from routes_extended import _invalidate_ops_caches
+                        _invalidate_ops_caches()
+                    except Exception:
+                        pass
+                result_data = {"operation_id": op_id, "deleted": deleted}
                 execution_id = uuid.uuid4().hex[:12]
                 STATE["executions"][execution_id] = {
                     "id": execution_id,
@@ -668,7 +681,7 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                 draft["status"] = "committed"
                 draft["execution_id"] = execution_id
                 _audit("COMMIT_DELETE_OPERATION", draft_id=draft_id, execution_id=execution_id,
-                       operation_id=op_id, committer=committer)
+                       operation_id=op_id, deleted=deleted, committer=committer)
                 return {"execution_id": execution_id, "result": result_data}
             except Exception as e:
                 _log.exception("delete_operation commit failed: %s", redact(str(e), max_len=120))

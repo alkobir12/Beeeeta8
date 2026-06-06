@@ -98,10 +98,10 @@ export const UnifiedAssistantDrawer = () => {
   const location = useLocation();
   const pageSuggestions = useMemo(() => getSuggestionsForPath(location?.pathname || '/'), [location?.pathname]);
 
-  // 🎙️ Live interim transcript feedback while the mic is listening
-  useEffect(() => {
-    if (voice?.listening && voice?.interim) setInput(voice.interim);
-  }, [voice?.interim, voice?.listening]);
+  // 🎙️ Live interim transcript feedback while the mic is listening.
+  // Derived value (no setState-in-effect): show the live transcript while
+  // listening, otherwise fall back to the typed input.
+  const displayInput = (voice?.listening && voice?.interim) ? voice.interim : input;
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -158,63 +158,15 @@ export const UnifiedAssistantDrawer = () => {
     if (!input.trim() || busy) return;
     const text = input.trim();
     setInput('');
-    let proposer = null;
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || 'null');
-      proposer = u?.name || u?.username || null;
-    } catch (e) { /* noop */ }
-
-    // 1) Push the user's request as a chat bubble (no /power prefix shown)
-    appendMessage?.({ role: 'user', text });
-
-    // 2) Multi-intent → /power via the chat pipeline (uses kernel + drafts)
+    // Multi-intent → /power (the chat pipeline batches drafts).
+    // Single-intent → sendMessage auto-routes: action → /runtime/execute,
+    // question → /chat, with a graceful rejected→answer fallback. This delegates
+    // to the single, well-tested path and removes the duplicated execute logic
+    // that previously surfaced raw "422" / "[object Object]" error bubbles.
     if (_isMultiIntent(text)) {
-      // sendMessage will route through /api/assistant/chat which handles /power
       sendMessage(`/power ${text}`);
-      return;
-    }
-
-    // 3) Single-intent → /api/runtime/execute (axios/XHR — NOT fetch, to avoid
-    //    the platform's rrweb session-recorder locking the response body which
-    //    throws "Body is disturbed or locked").
-    try {
-      const url = `${process.env.REACT_APP_BACKEND_URL || ''}/api/runtime/execute`;
-      const axResp = await axios.post(url, { text, proposer }, { timeout: 120000 });
-      const data = axResp.data || {};
-      const d = data?.data || {};
-      const action = d.action?.action || 'unknown';
-      let summary;
-      let cards = [];
-
-      if (d.status === 'committed') {
-        const r = d.result || {};
-        summary = `✅ **تم بنجاح** — ${r.name || r.id || action}\nتم الحفظ في قاعدة البيانات.`;
-      } else if (d.status === 'pending_approval') {
-        summary = `⏳ بانتظار اعتمادك — العملية حساسة وتحتاج تأكيد.`;
-        cards = [{
-          type: 'ApprovalCard',
-          id: d.approval?.approval_id,
-          title: `موافقة — ${action}`,
-          status: 'pending',
-          data: { approval_id: d.approval?.approval_id, draft_id: d.draft?.id, status: 'pending', requester: proposer },
-          actions: [
-            { id: 'approve', label: 'اعتماد', intent: 'runtime',
-              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/approve`, method: 'POST' },
-            { id: 'reject', label: 'رفض', intent: 'runtime',
-              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/reject`, method: 'POST' },
-          ],
-        }];
-      } else if (d.status === 'read_only') {
-        const n = Array.isArray(d.result) ? d.result.length : 0;
-        summary = `🔎 **${n} نتيجة** للاستعلام.`;
-      } else if (d.status === 'rejected') {
-        summary = `💡 لم أفهم تماماً ما تريد. جرّب:\n• "سجل عميل اسمه ورقمه"\n• "أضف مركبة بلوحة"\n• "أكثر العملاء مديونية"`;
-      } else {
-        summary = `⚠️ ${d.reason || 'حدث خطأ غير متوقع'}`;
-      }
-      appendMessage?.({ role: 'assistant', text: summary, cards });
-    } catch (e) {
-      appendMessage?.({ role: 'assistant', text: `⚠️ فشل التنفيذ: ${e.message}` });
+    } else {
+      sendMessage(text);
     }
   };
 
@@ -277,8 +229,16 @@ export const UnifiedAssistantDrawer = () => {
         let summary;
         if (ok) {
           const fixedCount = resultData?.fixed;
+          const committedRes = resultData?.committed?.result;
           if (fixedCount !== undefined) {
             summary = `✅ تم تصحيح **${fixedCount}** قيد محاسبي مفقود من أصل ${resultData?.missing_before || '?'}`;
+          } else if (committedRes && committedRes.deleted !== undefined) {
+            // Approval auto-commit of a delete — report the REAL outcome.
+            summary = committedRes.deleted
+              ? `✅ **تم الاعتماد والحذف بنجاح.**`
+              : `⚠️ تم الاعتماد، لكن لم أعثر على العنصر المطلوب حذفه (ربما حُذف مسبقاً).`;
+          } else if (action.id === 'reject') {
+            summary = `🚫 تم رفض العملية.`;
           } else {
             summary = `✅ تم: ${action.label}`;
           }
@@ -290,7 +250,17 @@ export const UnifiedAssistantDrawer = () => {
         // Show as assistant message
         appendMessage({ role: 'assistant', content: summary, meta: { status: ok ? 'success' : 'error', action: action.id } });
       } catch (e) {
-        appendMessage({ role: 'assistant', content: `⚠️ خطأ في ${action.label}: ${e?.response?.data?.detail || e.message}`, meta: { error: true } });
+        // The backend may raise HTTPException with a dict `detail`
+        // (e.g. {error:'four_eyes_violation', msg:'...'}). Render a readable
+        // string instead of "[object Object]".
+        const detail = e?.response?.data?.detail;
+        let msg;
+        if (detail && typeof detail === 'object') {
+          msg = detail.msg || detail.error || detail.detail || JSON.stringify(detail);
+        } else {
+          msg = detail || e?.message || 'خطأ غير معروف';
+        }
+        appendMessage({ role: 'assistant', content: `⚠️ خطأ في ${action.label}: ${msg}`, meta: { error: true } });
       }
     }
   };
@@ -540,7 +510,7 @@ export const UnifiedAssistantDrawer = () => {
         <input
           data-testid="assistant-input"
           type="text"
-          value={input}
+          value={displayInput}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
           placeholder={voice?.listening ? '🎙️ أستمع إليك… تكلّم' : 'اسأل أو نفّذ — مثال: سجل عميل احمد 0501234567'}
