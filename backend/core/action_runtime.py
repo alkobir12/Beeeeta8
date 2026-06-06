@@ -36,6 +36,8 @@ import os
 import threading
 import time
 import uuid
+import json
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from core.log_utils import get_logger, redact
@@ -128,11 +130,12 @@ def _payload_to_customers_row(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _payload_to_vehicles_row(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Map a draft payload to the Supabase `vehicles` schema."""
+    """Map a draft payload to the Supabase `vehicles` schema.
+    `brand` is NOT NULL in the DB, so it defaults to 'غير محدد' when missing."""
     return {
         "plate_number": (data.get("plate") or "")[:32],
-        "brand": data.get("brand") or None,
-        "model": data.get("model") or None,
+        "brand": data.get("brand") or "غير محدد",
+        "model": data.get("model") or data.get("vehicle_type") or None,
         "year": int(data.get("year")) if str(data.get("year") or "").isdigit() else None,
         "status": data.get("status") or "تشخيص",
         "customer_name": data.get("name") or data.get("customer_name") or None,
@@ -141,20 +144,10 @@ def _payload_to_vehicles_row(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _payload_to_visits_row(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Map a draft payload to the Supabase `visits` schema (see migration SQL
-    in /app/backend/migrations/001_create_visits.sql)."""
-    price_raw = str(data.get("price") or "").replace(",", "")
-    return {
-        "plate": data.get("plate") or None,
-        "vehicle_type": data.get("vehicle_type") or None,
-        "year": int(data.get("year")) if str(data.get("year") or "").isdigit() else None,
-        "customer_name": data.get("customer_name") or data.get("name") or None,
-        "customer_phone": data.get("customer_phone") or data.get("phone") or None,
-        "service": data.get("service") or None,
-        "price": float(price_raw) if price_raw.replace(".", "", 1).isdigit() else None,
-        "reason": data.get("reason") or None,
-        "status": data.get("status") or "open",
-    }
+    """Deprecated — visits now write to the existing `vehicle_visits` table.
+    Kept only for backward compatibility with any external caller."""
+    return {"notes": json.dumps({"text": data.get("reason") or "", "items": [], "payments": []}, ensure_ascii=False),
+            "status": data.get("status") or "in_progress"}
 
 
 def resolve_entity(table: str, field: str, value: str) -> Optional[Dict[str, Any]]:
@@ -219,19 +212,49 @@ def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
             _log.exception("supabase vehicles insert failed: %s", redact(str(e), max_len=120))
             _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
 
-    # ── Real Supabase write for visits (if the `visits` table exists) ──
+    # ── Visits → write to the EXISTING vehicle_visits table (integrates with
+    #    vehicle details & financial reports). Falls back to staging if we
+    #    can't resolve/create a vehicle to link the visit to.
     if client and table == "visits":
-        row = _payload_to_visits_row(data)
         try:
-            res = client.table("visits").insert(row).execute()
-            if res.data:
-                created = res.data[0]
-                DB[table][created["id"]] = created
-                _audit("DB_WRITE_SUPABASE", table=table, entity_id=created.get("id"))
-                return created
+            vehicle_id = _resolve_or_create_vehicle_for_visit(data)
+            if vehicle_id:
+                notes_obj: Dict[str, Any] = {
+                    "text": data.get("reason") or "", "items": [], "payments": [], "source": "katrina",
+                }
+                svc_name = str(data.get("service") or "").strip()
+                if svc_name:
+                    try:
+                        price = float(str(data.get("price") or "").replace(",", "")) if str(data.get("price") or "").strip() else 0
+                    except Exception:
+                        price = 0
+                    notes_obj["items"].append({
+                        "itemType": "service", "name": svc_name, "quantity": 1, "qty": 1,
+                        "price": price, "total": price, "billingType": "workshop",
+                    })
+                row = {
+                    "vehicle_id": vehicle_id,
+                    "entry_date": datetime.now(timezone.utc).isoformat(),
+                    "exit_date": None,
+                    "status": "in_progress",
+                    "notes": json.dumps(notes_obj, ensure_ascii=False),
+                }
+                res = client.table("vehicle_visits").insert(row).execute()
+                if res.data:
+                    created = res.data[0]
+                    # Friendly display fields (consumed by the chat confirmation)
+                    created["plate_number"] = data.get("plate") or None
+                    created["name"] = data.get("customer_name") or data.get("plate") or None
+                    # Mark the vehicle active so the visit surfaces in dashboards/get_active_visits
+                    try:
+                        client.table("vehicles").update({"status": "تشخيص"}).eq("id", vehicle_id).execute()
+                    except Exception:
+                        pass
+                    DB.setdefault("visits", {})[created["id"]] = created
+                    _audit("DB_WRITE_SUPABASE", table="vehicle_visits", entity_id=created.get("id"))
+                    return created
         except Exception as e:
-            # Table likely not created yet → fall back to in-memory staging.
-            _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
+            _audit("DB_WRITE_FALLBACK_STAGING", table="vehicle_visits", reason=redact(str(e), max_len=100))
 
     # ── Staging fallback (DB-unavailable) ──
     eid = data.get("id") or uuid.uuid4().hex
@@ -347,6 +370,38 @@ def resolve_vehicle_target(criteria: Dict[str, Any]) -> Dict[str, Any]:
                                 "plate": v.get("plate_number") or v.get("plate"),
                                 "brand": v.get("brand"), "model": v.get("model")} for v in cands[:6]]}
     return {"row": cands[0]}
+
+
+def _resolve_or_create_vehicle_for_visit(data: Dict[str, Any]) -> Optional[str]:
+    """Find (or create) the vehicle to attach a visit to. Returns vehicle_id.
+
+    Resolution order: plate → single customer-phone match → create from plate.
+    Returns None when there is nothing to link to (caller falls back to staging).
+    """
+    from core.arabic_nlp import normalize_arabic
+    plate = str(data.get("plate") or "").strip()
+    phone = str(data.get("customer_phone") or data.get("phone") or "").strip()
+    if plate:
+        res = resolve_vehicle_target({"plate": plate})
+        if res.get("row"):
+            return res["row"].get("id")
+    if phone:
+        npq = normalize_arabic(phone)
+        matches = [v for v in _fetch_all("vehicles")
+                   if npq and npq in normalize_arabic(v.get("customer_phone"))]
+        if len(matches) == 1:
+            return matches[0].get("id")
+    # Create a new vehicle only when we have a plate to identify it.
+    if plate:
+        veh = upsert_entity("vehicles", {
+            "plate": plate,
+            "model": data.get("vehicle_type") or data.get("model"),
+            "year": data.get("year"),
+            "name": data.get("customer_name") or data.get("name"),
+            "phone": phone or None,
+        })
+        return veh.get("id") if isinstance(veh, dict) else None
+    return None
 
 
 
@@ -830,18 +885,9 @@ def get_active_visits(limit: int = 50) -> List[Dict[str, Any]]:
             rows = list(res.data or [])
         except Exception as e:
             _log.debug("get_active_visits supabase miss: %s", redact(str(e), max_len=80))
-        # 🆕 Also read the dedicated `visits` table (if it exists)
-        try:
-            vres = client.table("visits").select("*").not_.in_(
-                "status", ["closed", "delivered", "مغلقة", "مسلمة"]
-            ).limit(limit).execute()
-            for v in (vres.data or []):
-                rows.append({**v, "_source": "visits"})
-        except Exception:
-            pass  # table not created yet — staging handles it below
-    # Append staging visits dict too
+    # Append staging visits dict too (no-plate fallback visits)
     for vid, v in DB.get("visits", {}).items():
-        if v.get("status") != "closed":
+        if v.get("status") not in ("closed", "completed", "delivered"):
             rows.append({**v, "id": vid, "_staging": True})
     return rows[:limit]
 

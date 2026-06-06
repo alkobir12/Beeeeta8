@@ -3,6 +3,21 @@
 ## Original Problem Statement
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 
+## CHANGELOG — 2026-06-05 (d) · Visits wired to existing `vehicle_visits` (no new table)
+User chose to integrate with the existing schema instead of creating a standalone `visits` table.
+- `create_visit` now resolves (or creates) the vehicle by plate/phone → inserts into the existing
+  **`vehicle_visits`** table (entry_date, status='in_progress', exit_date=null, notes JSON with service
+  items), and flips the vehicle status to active so it surfaces in dashboards/active-visits. Falls back to
+  in-memory staging only when no vehicle can be linked (no plate). `_resolve_or_create_vehicle_for_visit`.
+- Fixed a latent bug: `vehicles.brand` is NOT NULL — `_payload_to_vehicles_row` now defaults brand to
+  'غير محدد' (also unblocks brand-less `create_vehicle` commands). model falls back to vehicle_type.
+- Removed the obsolete standalone `visits` migration (no SQL burden on the user).
+- Verified by curl: create_visit → real vehicle_visits row (linked vehicle, service item), surfaces in
+  active visits (109→110), cleaned up. Table audit: 17 Supabase tables exist; only auxiliary tables
+  (users/suppliers/chart_of_accounts/moltbot_*/ui_generations/user_layouts/inventory_backorders) missing —
+  none block Katrina's current commands.
+
+
 ## CHANGELOG — 2026-06-05 (c) · Katrina CRUD: delete + edit commands (verified 100%)
 User-approved scope (أ) + (ج). Verified iteration_235: 7/7 frontend flows PASS, net DB delta = 0.
 - **Fixed broken delete_customer / delete_vehicle**: were declared RISKY but never wired to runtime.
