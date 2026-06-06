@@ -519,10 +519,17 @@ async def _firewall_operation_integrity(workshop_id: Optional[str] = None, limit
             "duplicate_group_size": f.get("duplicate_group_size"),
         })
     from core.card_builder import finding_card
+
+    def _warn_code(w):
+        return w.get("code", "") if isinstance(w, dict) else str(w)
+
+    def _warn_msg(w):
+        return w.get("message", w.get("code", "")) if isinstance(w, dict) else str(w)
+
     cards = [finding_card({
         "type": "warning",
-        "title": f"عملية {s.get('operation_id','')} — {', '.join(w.get('code','') for w in (s.get('warnings') or []))}",
-        "description": "; ".join(w.get("message", w.get("code", "")) for w in (s.get("warnings") or [])),
+        "title": f"عملية {s.get('operation_id','')} — {', '.join(_warn_code(w) for w in (s.get('warnings') or []))}",
+        "description": "; ".join(_warn_msg(w) for w in (s.get("warnings") or [])),
         "severity": "warning",
         "link": "/accounting/firewall",
     }) for s in sample if s.get("warnings")]
