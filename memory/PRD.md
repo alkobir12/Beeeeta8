@@ -3,6 +3,28 @@
 ## Original Problem Statement
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 
+## CHANGELOG — 2026-06-07 (b) · Merged Send/🚀 buttons + P0 anti-hallucination guardrail + journal-entries tool
+User flagged (with a long chat log): bot fabricated accounting entries ("قيد رقم 6"/trial balance), falsely
+claimed the system has no journal-entries module, and asked to merge the Send + Rocket buttons.
+- **Merged the two input buttons into ONE smart Send button** (UnifiedAssistantDrawer.jsx): removed the green 🚀
+  `assistant-execute-btn`; the single `assistant-send-btn` now routes via `smartSend` — multi-intent → /power,
+  else sendMessage auto-routes (action → execute, question → chat). Mic dictation also uses `smartSend`.
+- **P0 anti-hallucination guardrail** (assistant_kernel.py `_system_prompt`): added a "🛑 قواعد الصدق المطلقة"
+  block forbidding the bot from inventing any numbers/journal entries/trial balances; it must report only what
+  tools return and say plainly when data is unavailable. Verified via 2 adversarial tests — bot now replies
+  "لا أستطيع تلفيق هذا القيد — قواعد الصدق تمنعني" instead of fabricating.
+- **Taught the bot the system's real accounting capabilities** (journal entries / trial balance / COA exist) so
+  it stops claiming "لا يوجد وحدة قيود محاسبية".
+- **Added `accounting.journal_entries` tool** (tool_router.py) — reads the REAL journal_entries via
+  GET /api/finance/journal-entries; returns count + total debit/credit + recent entries. Wired into
+  detect_tools (قيود/دفتر يومية/ميزان مراجعة). Verified: returns 15 real entries (was previously fabricated).
+  NOTE: deliberately NOT added to _QUERY_AWARE_TOOLS (generic words like "القيود اليومية" were being extracted
+  as a filter → 0 results; now it returns all recent entries).
+- Files: frontend UnifiedAssistantDrawer.jsx; backend core/assistant_kernel.py, core/tool_router.py.
+- DEFERRED (offered as next): P1 cash-flow expense-breakdown tool to explain the 4,222 vs 323 (3,899) gap with
+  real data; P1 follow-up context retention ("اجماليها"); P2 visit/op lookup by UUID; transient 404 probe.
+
+
 ## CHANGELOG — 2026-06-07 · Page-linkage + bot↔page wiring audit; fixed dead links, deep-link & 502 root cause
 User asked to verify ترابط الصفحات (page interconnection) and ترابط البوت مع الصفحات (bot↔page wiring).
 Audited + fixed; focus deep-link verified 2/2 ops, security headers intact, customer search confirmed working.

@@ -174,6 +174,66 @@ async def _finance_ar_summary(workshop_id: str = "finmodule-sync") -> Dict[str, 
     }
 
 
+async def _accounting_journal_entries(workshop_id: str = "finmodule-sync", limit: int = 15, query: str = "") -> Dict[str, Any]:
+    """📒 القيود المحاسبية الفعلية (دفتر اليومية) من جدول journal_entries.
+
+    يرجع العدد الكلي + إجمالي المدين/الدائن + آخر القيود. هذه بيانات حقيقية من
+    قاعدة البيانات — تمنع البوت من اختلاق قيود افتراضية أو إنكار وجود المحاسبة.
+    """
+    import os
+    import httpx
+    base = os.getenv("BACKEND_INTERNAL_URL") or os.getenv("INTERNAL_API_BASE") or "http://localhost:8001"
+    try:
+        n = max(1, min(int(limit or 15), 100))
+    except Exception:
+        n = 15
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            r = await client.get(
+                f"{base}/api/finance/journal-entries",
+                params={"workshop_id": workshop_id or "finmodule-sync", "limit": n},
+            )
+            payload = r.json() if r.status_code == 200 else {}
+    except Exception as e:
+        return {"error": str(e)}
+    entries = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(entries, list):
+        entries = []
+    if query:
+        from core.arabic_nlp import arabic_match
+        entries = [
+            e for e in entries
+            if arabic_match(query, e.get("description"), e.get("party_label"),
+                            e.get("vehicle_label"), e.get("date"),
+                            e.get("transaction_type_label_ar"))
+        ]
+    total_debit = 0.0
+    total_credit = 0.0
+    for e in entries:
+        for ln in (e.get("lines") or []):
+            try:
+                total_debit += float(ln.get("debit") or 0)
+                total_credit += float(ln.get("credit") or 0)
+            except Exception:
+                pass
+    items = [{
+        "id": e.get("id"),
+        "date": e.get("date"),
+        "description": e.get("description"),
+        "party": e.get("party_label"),
+        "type": e.get("transaction_type_label_ar") or e.get("operation_type_label"),
+        "total": e.get("total"),
+        "payment_status": e.get("payment_status_label_ar"),
+    } for e in entries[: min(n, 50)]]
+    return {
+        "count": len(entries),
+        "total_debit": round(total_debit, 2),
+        "total_credit": round(total_credit, 2),
+        "balanced": abs(total_debit - total_credit) < 0.01,
+        "entries": items,
+    }
+
+
 async def _workshop_active_visits(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
     """عدد الزيارات النشطة (مفتوحة)."""
     import os
@@ -910,6 +970,13 @@ def _bootstrap() -> None:
         description="بحث عمليات بالاسم (عميل/مورد) — يرجع كل عمليات الشخص المحدد مع المبالغ والحالة.",
         handler=_operations_search,
         params={"workshop_id": "string?", "query": "string", "limit": "int?"},
+    )
+    register_tool(
+        "accounting.journal_entries",
+        agent="FinanceAgent",
+        description="📒 القيود المحاسبية الفعلية (دفتر اليومية) من قاعدة البيانات — يرجع العدد وإجمالي المدين/الدائن وآخر القيود. استخدميها لأي سؤال عن 'القيود' أو 'دفتر اليومية' أو 'ميزان المراجعة' بدل اختلاق قيود.",
+        handler=_accounting_journal_entries,
+        params={"workshop_id": "string?", "limit": "int?", "query": "string?"},
     )
     # 🆕 Phase 3C.5 — Natural Language Search + Approvals + Audit + WhatsApp
     register_tool(
