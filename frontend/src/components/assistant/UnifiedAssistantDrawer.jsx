@@ -122,11 +122,33 @@ export const UnifiedAssistantDrawer = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, setOpen]);
 
+  // 🆕 Multi-intent detector: separators (، . ؛ ثم) or ≥2 action verbs →
+  // route to /power so the chat pipeline batches the drafts.
+  const _isMultiIntent = (text) => {
+    if (/[،,؛]/.test(text)) return true;
+    if (/\sثم\s/.test(text)) return true;
+    if ((text.match(/[.]/g) || []).length >= 1 && text.length > 30) return true;
+    const verbs = (text.match(/(?:سجل|أضف|اضف|افتح|أنشئ|انشئ|اصدر|بيع|تحصيل|ادفع|اصرف)/g) || []).length;
+    return verbs >= 2;
+  };
+
+  // 🆕 Single SMART send (merged Send + 🚀 Execute into one button). Multi-intent
+  // → /power; otherwise sendMessage auto-routes (action → /runtime/execute,
+  // question → /chat) with a graceful rejected→answer fallback.
+  const smartSend = async (text) => {
+    if (!text || busy) return;
+    if (_isMultiIntent(text)) {
+      await sendMessage(`/power ${text}`);
+    } else {
+      await sendMessage(text);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || busy) return;
     const text = input.trim();
     setInput('');
-    await sendMessage(text);
+    await smartSend(text);
   };
 
   // 🎙️ Mic — start/stop live Arabic dictation; auto-sends on final transcript.
@@ -136,38 +158,9 @@ export const UnifiedAssistantDrawer = () => {
     voice.startListening((finalText) => {
       if (finalText && !busy) {
         setInput('');
-        sendMessage(finalText);
+        smartSend(finalText);
       }
     });
-  };
-
-  // 🆕 Phase 3C.6 — Smart Execute (POST /api/runtime/execute)
-  //
-  // Auto-detects multi-intent: if the input contains separators (، . ثم)
-  // OR multiple action keywords, it falls back to /power for multi-intent
-  // drafting. Otherwise it uses /api/runtime/execute (single LLM intent).
-  const _isMultiIntent = (text) => {
-    if (/[،,؛]/.test(text)) return true;
-    if (/\sثم\s/.test(text)) return true;
-    if ((text.match(/[.]/g) || []).length >= 1 && text.length > 30) return true;
-    const verbs = (text.match(/(?:سجل|أضف|اضف|افتح|أنشئ|انشئ|اصدر|بيع|تحصيل|ادفع|اصرف)/g) || []).length;
-    return verbs >= 2;
-  };
-
-  const handleExecute = async () => {
-    if (!input.trim() || busy) return;
-    const text = input.trim();
-    setInput('');
-    // Multi-intent → /power (the chat pipeline batches drafts).
-    // Single-intent → sendMessage auto-routes: action → /runtime/execute,
-    // question → /chat, with a graceful rejected→answer fallback. This delegates
-    // to the single, well-tested path and removes the duplicated execute logic
-    // that previously surfaced raw "422" / "[object Object]" error bubbles.
-    if (_isMultiIntent(text)) {
-      sendMessage(`/power ${text}`);
-    } else {
-      sendMessage(text);
-    }
   };
 
   const handleSuggestion = (s) => {
@@ -505,7 +498,7 @@ export const UnifiedAssistantDrawer = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input — Phase 3C.6: single smart Execute button (auto-detects /power) */}
+      {/* Input — single SMART send button (merged Send + 🚀 Execute) */}
       <div className="border-t-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 flex gap-1.5">
         <input
           data-testid="assistant-input"
@@ -533,20 +526,11 @@ export const UnifiedAssistantDrawer = () => {
           </button>
         )}
         <button
-          data-testid="assistant-execute-btn"
-          onClick={handleExecute}
-          disabled={busy || !input.trim()}
-          title="🚀 تنفيذ ذكي — يفهم الأوامر المتعددة تلقائياً"
-          className="px-3 py-2.5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[13px] font-bold shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 active:scale-95"
-        >
-          🚀
-        </button>
-        <button
           data-testid="assistant-send-btn"
           onClick={handleSend}
           disabled={busy || !input.trim()}
-          className="px-3.5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95 shadow-md"
-          title="إرسال سؤال"
+          title="إرسال / تنفيذ ذكي — يفهم الأسئلة والأوامر (حتى المتعددة) تلقائياً"
+          className="px-4 py-2.5 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50"
         >
           <Send size={16} />
         </button>
