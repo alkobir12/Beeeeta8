@@ -346,6 +346,8 @@ const Operations = () => {
   const searchParams = new URLSearchParams(location.search);
   const vehicleIdFromUrl = searchParams.get('vehicleId');
   const vehiclePlateFromUrl = searchParams.get('plate');
+  // 🆕 Bot deep-link: /operations?focus=<op_id> → expand + scroll to that op.
+  const focusOpFromUrl = searchParams.get('focus');
   const workshopId = process.env.REACT_APP_WORKSHOP_ID;
   const [isDeferredDataEnabled, setIsDeferredDataEnabled] = useState(false);
   const freshQueryOptions = {
@@ -1112,7 +1114,11 @@ const Operations = () => {
     setWorkshopPage((prev) => Math.min(Math.max(prev, 1), workshopTotalPages));
   }, [workshopTotalPages]);
 
+  // Collapse the expanded card when the user switches tab/page/search — but
+  // skip the FIRST (mount) run so a bot deep-link (?focus=) can expand its card.
+  const opsCollapseMountRef = useRef(false);
   useEffect(() => {
+    if (!opsCollapseMountRef.current) { opsCollapseMountRef.current = true; return; }
     setExpandedOperationId(null);
   }, [activeOperationsTab, rakanPage, workshopPage, operationsSearchQuery]);
 
@@ -1202,6 +1208,24 @@ const Operations = () => {
     const exists = sortedOps.some((op) => op.id === expandedOperationId);
     if (!exists) setExpandedOperationId(null);
   }, [expandedOperationId, sortedOps]);
+
+  // 🆕 Bot deep-link focus: once the op is in the loaded list, expand it and
+  // scroll it into view. Runs once per distinct focus id so the user can still
+  // collapse it afterwards.
+  const focusHandledRef = useRef(null);
+  useEffect(() => {
+    if (!focusOpFromUrl || focusHandledRef.current === focusOpFromUrl) return;
+    const exists = (sortedOps || []).some((op) => String(op.id) === String(focusOpFromUrl));
+    if (!exists) return;
+    focusHandledRef.current = focusOpFromUrl;
+    setExpandedOperationId(focusOpFromUrl);
+    setTimeout(() => {
+      try {
+        const el = document.querySelector(`[data-testid="operation-card-${focusOpFromUrl}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e) { /* noop */ }
+    }, 350);
+  }, [focusOpFromUrl, sortedOps]);
 
   useEffect(() => {
     if (!selectedBusinessAccount?.id) return;

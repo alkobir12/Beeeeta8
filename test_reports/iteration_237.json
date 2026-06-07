@@ -1,0 +1,40 @@
+{
+  "summary": "Verified Arabic ERP page-navigation and bot↔page wiring per request. Page navigation: all 12 sidebar pages render (screenshot confirms /customers and /technicians load real cards despite a low innerText counter false-flagging them; Dashboard hit an intermittent 502). Bot navigation: CustomerCard never appeared because the bot's customer search returned 'لم أجد عميل مطابقاً' for 'محمد' even though customer records with 'محمد' exist on /customers — so the bot navigation card→/customer/<id> route could NOT be exercised. Deep-link /operations?focus=<id> did NOT auto-expand the target operation (operation-card-expanded-<id> never rendered). Reactive binding for customer creation WORKED — created 'ربط تجريبي' via bot appeared on /customers without manual refresh.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "intermittent 502 from backend (e.g., GET / customers list after burst, dashboard initial load)", "issue": "Sporadic 502 'Failed to load resource' observed during the session — caused Dashboard initial render to look empty and customers fetch to throw AxiosError 502", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Operations.jsx focus deep-link", "issue": "Navigating to /operations?focus=<valid-uuid> does NOT auto-expand the operation card. The element [data-testid=\"operation-card-expanded-<uuid>\"] never appears (waited >4s after route). The 'عرض/معاينة العملية' bot deep-link is therefore broken end-to-end.", "selector": "[data-testid=operation-card-expanded-<id>]", "priority": "HIGH"},
+      {"component": "Assistant CustomerCard search", "issue": "Query 'ابحث عن عميل محمد' returned bubble 'لم أجد عميل مطابقاً، تأكد من الاسم أو رقم الجوال/اللوحة' although the /customers page clearly contains customers named 'احمد محمد العميل'. Search appears to require exact name match / not fuzzy-match Arabic substrings. Because no CustomerCard renders, the navigation-card→/customer/<id> assertion (card-action-CustomerCard-open) could not be verified.", "selector": "[data-testid^=assistant-card-CustomerCard-]", "priority": "HIGH"},
+      {"component": "Assistant bot create-customer flow", "issue": "Even though 'ربط تجريبي' was eventually created and reflected on /customers (reactive binding works ✓), the assistant first showed a transient error bubble 'تعذّر التنفيذ مؤقتاً. حاول مرة أخرى أو صِغ الطلب بشكل أوضح' and no explicit '✅ تم' success bubble was visible. UX is confusing — success bubble should appear when create succeeds.", "selector": "assistant message bubble", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Bot navigation card → page route (ترابط البوت)", "issue": "Could not be verified because CustomerCard never returned for the searched query. Recommend either (a) seeding/using an exact-match query like the full customer name returned by /api/customers, or (b) fixing fuzzy Arabic search in card_builder/intent layer.", "affected_selectors": ["[data-testid^=card-action-CustomerCard-]", "[data-testid^=assistant-card-CustomerCard-]"]},
+      {"flow": "Bot deep-link /operations?focus=<id>", "issue": "Operations.jsx skip-first-run effect or query-param read is not triggering expand-and-scroll. Verify the effect dependency on location.search and that initial render does not 'skip' on first mount when ?focus= is already present (skip-first-run might be eating the very mount we need).", "affected_selectors": ["[data-testid=operation-card-expanded-<id>]"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "FIX: /operations?focus=<id> must auto-expand and scroll to that operation on first mount. Review skip-first-run logic in Operations.jsx — when the URL already contains ?focus= on first render, the focus must NOT be skipped.",
+    "FIX: Bot customer search should match Arabic substrings (e.g., 'محمد' should match 'احمد محمد العميل'). Verify search query against backend /api/customers filter (likely case/whitespace-sensitive or only matches name prefix).",
+    "INVESTIGATE: Sporadic 502 from backend during navigation; check supervisor backend logs for crashes/timeouts.",
+    "UX: After successful create-customer via assistant, render a '✅ تم' success bubble even if a transient error bubble was shown earlier."
+  ],
+  "critical_code_review_comments": [
+    "Operations.jsx focus deep-link is silently failing — add a console.debug + e2e test to guarantee the expand path on direct URL load.",
+    "Sidebar children (e.g., /print) route to /print but App.js doesn't define /print route — it falls through to '*' Dashboard. Sidebar has child item path '/print' (line 116) but App.js has only /quotations and /document-print etc. — confirm /print is a valid route (verify after fixes)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend only)", "frontend": "Page-load 12/12 visually rendered (Dashboard hit 502 once); Bot↔page wiring 1/3 verified (reactive OK; bot-nav and deep-link FAILED)"},
+  "test_credentials": "Username: مدير (name-only login, no password)",
+  "seed_data_creation": "Created temp customer 'ربط تجريبي' via bot, attempted cleanup via 'احذف العميل ربط تجريبي' + approve. Cleanup approval was clicked but a 502 occurred during execute — main agent should verify if the test customer still exists on /customers and delete manually if so.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "When testing CustomerCard navigation, first call backend /api/customers to get an exact full Arabic name, then send that exact name to the assistant — fuzzy 'محمد' substring did not match. For deep-link test, after fix, retry /operations?focus=<uuid>; the assertion is the appearance of [data-testid=operation-card-expanded-<uuid>] within 5s. Reactive binding via finance:updated event works correctly. Page-nav low-text false-negatives are a test-detection artifact — pages do load (visible in screenshot).",
+  "rca of the issue": "Deep-link: most likely Operations.jsx has a 'skip-first-run' ref that is consuming the very initial mount where ?focus= is set, so the expand effect never runs on direct URL load. Recommendation: when the route is entered with an existing ?focus= param, do NOT skip on first run — only skip subsequent collapse-reset cycles. Bot customer search: backend search likely uses startsWith or exact match instead of contains/ILIKE on Arabic name field."
+}

@@ -260,7 +260,7 @@ def visit_card(visit: Dict[str, Any]) -> Dict[str, Any]:
             "entry_date": visit.get("entry_date"),
         },
         "actions": [
-            {"id": "open", "label": "فتح", "intent": "navigate", "target": f"/vehicles/{vid}"},
+            {"id": "open", "label": "فتح", "intent": "navigate", "target": f"/vehicle/{vid}"},
             {"id": "close", "label": "إغلاق الزيارة", "intent": "runtime",
              "endpoint": "/api/runtime/execute", "method": "POST",
              "body": {"text": f"أغلق الزيارة {vid}"}},
@@ -286,7 +286,7 @@ def payment_card(payment: Dict[str, Any]) -> Dict[str, Any]:
             "reference": payment.get("reference"),
         },
         "actions": [
-            {"id": "open", "label": "عرض", "intent": "navigate", "target": f"/operations/{pid}"},
+            {"id": "open", "label": "عرض", "intent": "navigate", "target": f"/operations?focus={pid}"},
         ],
     }
 
@@ -358,7 +358,7 @@ def whatsapp_card(message: Dict[str, Any]) -> Dict[str, Any]:
             "sent_at": message.get("sent_at") or message.get("ts"),
         },
         "actions": [
-            {"id": "view", "label": "تفاصيل", "intent": "navigate", "target": "/notifications"},
+            {"id": "view", "label": "تفاصيل", "intent": "navigate", "target": "/debts-followup"},
         ],
     }
 
@@ -409,7 +409,7 @@ def detailed_report_card(report: Dict[str, Any]) -> Dict[str, Any]:
         },
         "actions": [
             {"id": "open", "label": "تقرير كامل", "intent": "navigate",
-             "target": report.get("link") or "/reports"},
+             "target": report.get("link") or "/accounting/comprehensive"},
         ],
     }
 

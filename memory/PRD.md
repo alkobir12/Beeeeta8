@@ -3,6 +3,26 @@
 ## Original Problem Statement
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 
+## CHANGELOG — 2026-06-06 · Fixed 3 P0 Katrina bugs (delete crash / approval [object Object] / 422) — verified 3/3
+User reported 3 critical bugs. Root-caused & fixed; testing agent iter_236 = 100% (3/3 UI flows, net DB delta 0).
+- **delete_operation hallucination + approval `[object Object]` (same root cause):** `action_runtime.commit()`
+  used `asyncio.get_event_loop().run_until_complete()` for the delete — which raises *"event loop is already
+  running"* inside FastAPI's running loop. The commit silently failed (bot claimed success but nothing was
+  deleted) and the approve endpoint surfaced a dict-shaped error → UI rendered `[object Object]`.
+  **Fix:** delete_operation now does a **synchronous Supabase delete** (cascade journal_entries by reference_id
+  + `operations.delete().eq('id')`), reads `res.data` to report the *real* `deleted` flag, and best-effort
+  invalidates ops caches. Verified by script: real op actually removed; non-existent UUID → `deleted:false`.
+- **HTTP 422 on `/api/runtime/execute` for normal chat text:** the endpoint returned 422 for `status='rejected'`
+  → axios threw → scary red error bubble. **Fix:** `/execute` now returns **HTTP 200** for `rejected`; frontend
+  `_executeDirectly` falls back to `_answerViaChat` (chat path) on `rejected`/422 so questions get answered.
+- **Frontend hardening:** `handleCardAction` catch now stringifies dict `detail` (`.msg|.error|JSON`) instead of
+  `[object Object]`; approval success message reads `committed.result.deleted` to show the true outcome; the
+  🚀 button (`handleExecute`) now delegates to `sendMessage` (removed the duplicated buggy execute path);
+  `/power` routed to chat; live mic transcript converted from setState-in-effect to a derived value (lint fix).
+- Files: core/action_runtime.py, routes_action_runtime.py, frontend AssistantProvider.jsx, UnifiedAssistantDrawer.jsx.
+- Known minor (deferred, pre-existing): RecentOperationsWidget `<button>`-in-`<button>` DOM-nesting console warning.
+
+
 ## CHANGELOG — 2026-06-05 (d) · Visits wired to existing `vehicle_visits` (no new table)
 User chose to integrate with the existing schema instead of creating a standalone `visits` table.
 - `create_visit` now resolves (or creates) the vehicle by plate/phone → inserts into the existing
