@@ -3,6 +3,27 @@
 ## Original Problem Statement
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 
+## CHANGELOG — 2026-06-07 · Page-linkage + bot↔page wiring audit; fixed dead links, deep-link & 502 root cause
+User asked to verify ترابط الصفحات (page interconnection) and ترابط البوت مع الصفحات (bot↔page wiring).
+Audited + fixed; focus deep-link verified 2/2 ops, security headers intact, customer search confirmed working.
+- **Verified OK:** all 12 sidebar links map to real routes (incl. /print); كاترينا FAB mounts on every page
+  (Layout.jsx, except moltbot editor); reactive binding `finance:updated` present in 10+ pages and confirmed
+  e2e (bot-created customer appeared on /customers with no manual refresh); customer search returns CustomerCards
+  (curl: 'ابحث عن عميل محمد' → 5 cards) — the testing agent's "لم أجد" was a transient 502 victim, not a search bug.
+- **Fixed 4 dead bot navigation links** in core/card_builder.py (they fell through to '*' → Dashboard):
+  `/vehicles/{id}`→`/vehicle/{id}`, `/operations/{id}`→`/operations?focus={id}`, `/notifications`→`/debts-followup`,
+  `/reports` fallback→`/accounting/comprehensive`.
+- **Wired the `/operations?focus=<id>` deep-link** (Operations.jsx): expands + scrolls to that op. Made it robust
+  against the pagination/tab "collapse-reset" race by preserving the focus op id through resets (verified 2 ops).
+- **Fixed root-cause intermittent 502s** (`h11 LocalProtocolError: Can't send data when our state is ERROR`):
+  converted the `@app.middleware('http')` security-headers/rate-limit BaseHTTPMiddleware → a **pure ASGI
+  middleware** (server.py `SecurityHeadersAndRateLimitMiddleware`) which tolerates client disconnects (rapid SPA
+  navigation cancelling in-flight requests) without buffering. All security headers + CORS reflection + the
+  in-memory rate limiter preserved and verified via curl.
+- **Fixed pre-existing ObjectId serialization bug**: POST /api/business-accounts Mongo path now pops `_id`.
+- Files: core/card_builder.py, frontend Operations.jsx, server.py.
+
+
 ## CHANGELOG — 2026-06-06 · Fixed 3 P0 Katrina bugs (delete crash / approval [object Object] / 422) — verified 3/3
 User reported 3 critical bugs. Root-caused & fixed; testing agent iter_236 = 100% (3/3 UI flows, net DB delta 0).
 - **delete_operation hallucination + approval `[object Object]` (same root cause):** `action_runtime.commit()`

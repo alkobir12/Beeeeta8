@@ -1115,12 +1115,11 @@ const Operations = () => {
   }, [workshopTotalPages]);
 
   // Collapse the expanded card when the user switches tab/page/search — but
-  // skip the FIRST (mount) run so a bot deep-link (?focus=) can expand its card.
-  const opsCollapseMountRef = useRef(false);
+  // never collapse the bot deep-link focus op (?focus=), so it survives the
+  // automatic pagination/tab settling that happens right after data loads.
   useEffect(() => {
-    if (!opsCollapseMountRef.current) { opsCollapseMountRef.current = true; return; }
-    setExpandedOperationId(null);
-  }, [activeOperationsTab, rakanPage, workshopPage, operationsSearchQuery]);
+    setExpandedOperationId((prev) => (prev && prev === focusOpFromUrl ? prev : null));
+  }, [activeOperationsTab, rakanPage, workshopPage, operationsSearchQuery, focusOpFromUrl]);
 
   useEffect(() => {
     setRakanPage(1);

@@ -460,45 +460,89 @@ def _rate_bucket(path: str, method: str):
     return ("api", 240)
 
 
-@app.middleware("http")
-async def security_headers_and_rate_limit(request: Request, call_next):
-    bucket = _rate_bucket(request.url.path, request.method)
-    if bucket is not None:
-        bucket_name, limit = bucket
-        ip = _get_client_ip(request)
-        window = int(time() // 60)
-        key = (ip, bucket_name, window)
-        # FIX-B011: تجنّب نمو الذاكرة بلا حدود — أعد الضبط عند تجاوز السقف
-        if len(_RATE_STATE) > _RATE_STATE_MAX:
-            _RATE_STATE.clear()
-        count = _RATE_STATE.get(key, 0) + 1
-        _RATE_STATE[key] = count
+from starlette.datastructures import MutableHeaders
 
-        if count > limit:
-            return JSONResponse(
-                status_code=429,
-                content={"success": False, "error": "Rate limit exceeded. Please try again shortly."},
-            )
 
-    response = await call_next(request)
+class SecurityHeadersAndRateLimitMiddleware:
+    """Pure-ASGI security headers + lightweight in-memory rate limiter.
 
-    origin = request.headers.get("origin")
-    if origin and "Access-Control-Allow-Origin" not in response.headers:
-        if "*" in allow_origins:
-            response.headers["Access-Control-Allow-Origin"] = "*"
-        elif origin in allow_origins:
-            response.headers["Access-Control-Allow-Origin"] = origin
+    Replaces the previous BaseHTTPMiddleware (`@app.middleware('http')`) which
+    raised h11 `LocalProtocolError: Can't send data when our state is ERROR`
+    (surfacing as intermittent 502s) whenever a client disconnected mid-response
+    — e.g. rapid SPA navigation cancelling in-flight requests. A pure-ASGI
+    middleware tolerates client disconnects cleanly and never buffers responses.
+    """
 
-    response.headers.setdefault("X-Frame-Options", "DENY")
-    response.headers.setdefault("X-Content-Type-Options", "nosniff")  # FIX-SEC003
-    response.headers.setdefault("X-XSS-Protection", "1; mode=block")  # FIX-SEC003
-    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'")
-    response.headers.setdefault(
-        "Permissions-Policy",
-        "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
-    )
-    return response
+    def __init__(self, app):
+        self.app = app
+
+    @staticmethod
+    def _headers(scope) -> dict:
+        return {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
+
+    @classmethod
+    def _client_ip(cls, scope, headers) -> str:
+        cf_ip = headers.get("cf-connecting-ip")
+        if cf_ip:
+            return cf_ip.strip()
+        xff = headers.get("x-forwarded-for")
+        if xff:
+            return xff.split(",")[0].strip()
+        client = scope.get("client")
+        return client[0] if client else "unknown"
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        method = scope.get("method", "GET")
+        headers_in = self._headers(scope)
+
+        bucket = _rate_bucket(path, method)
+        if bucket is not None:
+            bucket_name, limit = bucket
+            ip = self._client_ip(scope, headers_in)
+            window = int(time() // 60)
+            key = (ip, bucket_name, window)
+            if len(_RATE_STATE) > _RATE_STATE_MAX:
+                _RATE_STATE.clear()
+            count = _RATE_STATE.get(key, 0) + 1
+            _RATE_STATE[key] = count
+            if count > limit:
+                resp = JSONResponse(
+                    status_code=429,
+                    content={"success": False, "error": "Rate limit exceeded. Please try again shortly."},
+                )
+                await resp(scope, receive, send)
+                return
+
+        origin = headers_in.get("origin")
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                if origin and "access-control-allow-origin" not in headers:
+                    if "*" in allow_origins:
+                        headers["Access-Control-Allow-Origin"] = "*"
+                    elif origin in allow_origins:
+                        headers["Access-Control-Allow-Origin"] = origin
+                headers.setdefault("X-Frame-Options", "DENY")
+                headers.setdefault("X-Content-Type-Options", "nosniff")
+                headers.setdefault("X-XSS-Protection", "1; mode=block")
+                headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+                headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'")
+                headers.setdefault(
+                    "Permissions-Policy",
+                    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+                )
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+
+app.add_middleware(SecurityHeadersAndRateLimitMiddleware)
 
 # ============ Settings: simple JSON-based global settings ============
 
@@ -2789,6 +2833,7 @@ async def create_business_account(account: dict):
         return new_acc
     account["id"] = str(uuid.uuid4())
     await db.business_accounts.insert_one(account)
+    account.pop("_id", None)  # drop the BSON ObjectId injected by insert_one (not JSON-serializable)
     return account
 
 
