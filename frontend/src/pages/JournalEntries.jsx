@@ -111,13 +111,27 @@ const getAuditHeaders = () => {
 const sanitizeEntryText = (value = '') => {
   if (!value) return '';
   return String(value)
+    .replace(/\[[A-Z_]+\s*:[^\]]*\]/g, '')   // إزالة الوسوم الخام [PARTY:..] [VEHICLE_REF:..] [VISIT:..] [PARTY_TYPE:..]
     .replace(/ACCOUNT_CODE:\s*\S+/gi, '')
     .replace(/ACCOUNTING_TARGET:\s*\S+/gi, '')
     .replace(/ACCOUNTING_SOURCE:\s*\S+/gi, '')
     .replace(/ACCOUNT_NAME:\s*[^|\n]+/gi, '')
     .replace(/ACCOUNT_CLASS:\s*\S+/gi, '')
+    .replace(/\s*[—–-]\s*$/g, '')            // فاصلة شرطة زائدة في النهاية
     .replace(/\s{2,}/g, ' ')
     .trim();
+};
+
+// تنظيف الوصف من التكرار: إزالة اسم الطرف/لوحة المركبة من نص الوصف لأنها تُعرض في حقول مستقلة
+const cleanDescription = (rawDesc = '', partyLabel = '', vehicleLabel = '') => {
+  const base = sanitizeEntryText(rawDesc);
+  if (!base) return '';
+  const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const skip = new Set([norm(partyLabel), norm(vehicleLabel)].filter((s) => s && s !== 'مفتوح'));
+  const segments = base.split(/\s*[—–]\s*|\s+-\s+/).map((s) => s.trim()).filter(Boolean);
+  const kept = segments.filter((s) => !skip.has(norm(s)));
+  const result = (kept.length ? kept : segments).join(' — ');
+  return result || base;
 };
 
 const extractTagValue = (text = '', tag = '') => {
@@ -940,7 +954,7 @@ export default function JournalEntries() {
                 const TypeIcon = typeConfig.icon;
                 const total = entry.total_debit || 0;
                 const isManual = entry.source === 'manual';
-                const safeDescription = sanitizeEntryText(entry.description || 'قيد محاسبي');
+                const safeDescription = cleanDescription(entry.description || 'قيد محاسبي', entry.party_label, entry.vehicle_plate);
                 const linkage = getEntryLinkage(entry);
 
                 return (
@@ -1099,7 +1113,7 @@ export default function JournalEntries() {
                   const TypeIcon = typeConfig.icon;
                   const total = entry.total_debit || 0;
                   const isManual = entry.source === 'manual';
-                  const safeDescription = sanitizeEntryText(entry.description || 'قيد محاسبي');
+                  const safeDescription = cleanDescription(entry.description || 'قيد محاسبي', entry.party_label, entry.vehicle_plate);
                   const linkage = getEntryLinkage(entry);
 
                   return (

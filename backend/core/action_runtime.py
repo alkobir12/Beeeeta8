@@ -85,18 +85,27 @@ def _enforce_4eyes() -> bool:
 
 
 def _audit(event: str, **kwargs) -> Dict[str, Any]:
-    """Append a row to the in-memory audit trail (and best-effort to bot_audit)."""
+    """Append a row to the audit trail AND persist state to MongoDB.
+
+    Every state transition in this module funnels through `_audit` right before
+    returning, so this is the single hook for durable persistence: the audit row
+    is appended to MongoDB, and any draft/approval/execution referenced by id in
+    the kwargs is upserted (write-through). Falls back to in-memory if MongoDB is
+    unavailable.
+    """
     row = {"event": event, "ts": time.time(), **kwargs}
     STATE["audit"].append(row)
-    # Best-effort relay to the persistent bot_audit log (Phase 3A wiring)
     try:
-        from domains.bot_audit import audit_service  # noqa: F401
-        # Use a lighter signature so the existing audit_service still works
-        # — we just log a metadata-only row, never the payload itself.
-        # (Audit service is async; we deliberately don't await to keep the
-        # runtime synchronous. Phase 3D can promote this to a queue.)
+        from core import runtime_store
+        runtime_store.append_audit(row)
+        if kwargs.get("draft_id"):
+            runtime_store.save_draft(STATE, kwargs["draft_id"])
+        if kwargs.get("approval_id"):
+            runtime_store.save_approval(STATE, kwargs["approval_id"])
+        if kwargs.get("execution_id"):
+            runtime_store.save_execution(STATE, kwargs["execution_id"])
     except Exception as e:  # pragma: no cover
-        _log.debug("audit relay skipped: %s", redact(str(e), max_len=80))
+        _log.debug("runtime persist skipped: %s", redact(str(e), max_len=80))
     return row
 
 
@@ -558,7 +567,8 @@ def reject_approval(*, approval_id: str, approver: Optional[str] = None, reason:
         approval["rejected_at"] = time.time()
         if draft:
             draft["status"] = "rejected"
-        _audit("APPROVAL_REJECTED", approval_id=approval_id, approver=approver, reason=reason[:80])
+        _audit("APPROVAL_REJECTED", approval_id=approval_id, draft_id=(draft or {}).get("id"),
+               approver=approver, reason=reason[:80])
         return {"approval": approval, "draft": draft}
 
 
@@ -932,3 +942,19 @@ def reset_for_tests() -> None:  # pragma: no cover
                 STATE[k].clear()
             elif isinstance(STATE[k], list):
                 STATE[k].clear()
+        try:
+            from core import runtime_store
+            runtime_store.clear_all()
+        except Exception:
+            pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10) Startup hydration — restore drafts/approvals/executions/audit from MongoDB
+# ─────────────────────────────────────────────────────────────────────────────
+
+try:
+    from core import runtime_store as _runtime_store
+    _runtime_store.hydrate(STATE)
+except Exception as _e:  # pragma: no cover
+    _log.debug("runtime hydrate skipped: %s", redact(str(_e), max_len=80))
