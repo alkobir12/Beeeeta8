@@ -105,3 +105,23 @@
 - Four-Eyes: approver-role JWT required; accountant/technician/no-JWT rejected.
 - Open (deferred, per user "no P1 this session"): edge-proxy CORS wildcard at preview ingress
   (app-level CORS is correct); silent unknown-user login toast (UX); button-nesting warning.
+
+## 20 June 2026 — Reversal/Contra-Entry + Governance Doctrine compliance
+- Implemented `AccountingEngine.reverse()` (core/accounting_engine.py): contra entry with dr/cr
+  SWAPPED per line, preserves the ORIGINAL (No Hard Delete), source='reversal',
+  reference_id='reversal::<orig>', idempotent (no double reversal).
+- Added `reverse_entry()` wrapper (core/financial_actions.py) + RBAC-protected
+  `POST /api/finance-actions/reverse` (needs journal_entries.delete OR approver role).
+- GOVERNANCE FIX: action_runtime.delete_operation no longer hard-deletes journal_entries
+  (Single-Writer violation) — it now REVERSES them through the engine.
+- FIXED CRITICAL FE bug: Login.jsx fired loginAndIssueToken() fire-and-forget then did a
+  full-page redirect, aborting the JWT request → no token stored → UI writes 403.
+  Now AWAITs token issuance before redirect (all 3 login paths). Verified: auth_token
+  stored, JWT role=admin.
+- Bot verified: 21 read-only tools (write=false), /api/assistant/chat routes to real
+  finance tools and returns grounded Arabic replies (proposer-only).
+
+## Verification (iteration_241)
+- `/app/test_reports/iteration_241.json` → backend 15/15 PASS (reversal, governance, bot).
+- Reversal correctness verified against DB (line-swap, original preserved, balanced).
+- FE JWT login race fixed & re-verified manually (token persisted before redirect).

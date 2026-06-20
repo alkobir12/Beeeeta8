@@ -87,8 +87,9 @@ const Login = () => {
       };
       localStorage.setItem('session', JSON.stringify(session));
       localStorage.setItem('user', JSON.stringify(fallbackUser));
-      // 🔒 Issue JWT token (server-side authenticator) — fires in parallel, non-blocking
-      loginAndIssueToken(fallbackUser.name).catch(() => {});
+      // 🔒 Issue JWT token (server-side authenticator) — AWAIT so the token is
+      // persisted BEFORE the full-page redirect (otherwise the request is aborted)
+      await loginAndIssueToken(fallbackUser.name).catch(() => {});
       window.dispatchEvent(new Event('sessionUpdated'));
 
       // keep session in cookie for Protected routes
@@ -158,7 +159,7 @@ const Login = () => {
           }
           localStorage.setItem('session', JSON.stringify(session));
           localStorage.setItem('user', JSON.stringify(fallbackUser));
-          loginAndIssueToken(fallbackUser.name).catch(() => {});
+          await loginAndIssueToken(fallbackUser.name).catch(() => {});
           window.dispatchEvent(new Event('sessionUpdated'));
           toast({ title: 'مرحباً بك', description: `أهلاً بعودتك، ${fallbackUser.name}` });
           await Promise.all([
@@ -193,7 +194,7 @@ const Login = () => {
 
       localStorage.setItem('session', JSON.stringify(session));
       localStorage.setItem('user', JSON.stringify(user));
-      loginAndIssueToken(user.name).catch(() => {});
+      await loginAndIssueToken(user.name).catch(() => {});
       window.dispatchEvent(new Event('sessionUpdated'));
 
       // Update last login
