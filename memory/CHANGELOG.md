@@ -21,9 +21,13 @@
 ### 🧹 Journal daybook cleanup (`pages/JournalEntries.jsx`)
 - Strip raw tags `[PARTY:..][VEHICLE_REF:..][VISIT:..][PARTY_TYPE:..]`; `cleanDescription` removes duplicated party/plate. Verified visually.
 
-### 🔗 Single-source-of-truth wiring (started)
-- Wired: `routes_extended._safe_insert_journal_entry` (central operation→journal) + `routes_finance._insert_repair_journal_entry`.
-- REMAINING direct inserts (lower-freq/admin): routes_finance manual journal CRUD (~2940/3079/3098), routes_smart_accounting:238, routes_suppliers_extended:505, routes_firewall:412, server.py (~892/1070/1077), routes_extended:2135.
+### 🔗 Single-source-of-truth wiring (COMPLETE)
+- ALL `journal_entries` writes now route through `AccountingEngine.post_entry` (engine is `entry_id`-aware, adaptive columns, idempotent):
+  `routes_extended` (`_safe_insert_journal_entry` + integrity_auto_fix), `routes_finance` (manual create + period-close + repair backfill), `routes_smart_accounting`, `routes_suppliers_extended`, `routes_firewall` auto-fix, `server.py` (cash-fix + operation sale).
+- Verified: manual create dedups (repost → same id, 1 row); reports (trial-balance/income/cash-flow/balance-sheet) + firewall reconciliation all 200.
+
+### 🔗 Full linkage verified (iteration 239 — 9/9 backend + frontend)
+- engine → journal page → dashboard KPIs → reports → firewall reconciliation all consistent; clean daybook descriptions; bot auto-commit + Four-Eyes intact.
 
 
 ## 13 May 2026 — Smart POS reference operations + journal card clarity
