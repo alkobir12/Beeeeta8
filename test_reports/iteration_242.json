@@ -1,0 +1,43 @@
+{
+  "summary": "Iter242 — full end-to-end re-verification of the BOT financial governance pipeline (Phase A + B). 21/21 backend pytest assertions PASS. Verified independently: (1) Bot ALWAYS pends financial actions (invoice/payment/expense/reverse) with full echo-back (النوع/الطرف/المبلغ/الأثر المحاسبي + red-line 'لن يُثبَّت أي قيد مالي دون اعتماد بشري مختلف'). (2) Principle ① ask-not-guess: missing amount → clarify (no approval, no guess); unknown customer → clarify. (3) Four-Eyes ENFORCED: same proposer (مدير→مدير) gets 403 four_eyes_violation; different approver (احمد1, supervisor) commits the draft. (4) After approval the accounting_engine posts balanced JEs (verified 320 invoice, 800 expense, 13 SAR reverse target — all balanced dr=cr, sources correct, transaction_type set). (5) Bot reverse via chat creates a contra entry with source='reversal' and reference_id='reversal::<orig>' while preserving the ORIGINAL JE. (6) SITE REST regression intact: /api/finance-actions/invoice|expense work for admin JWT (with field 'customer'+'total' for invoice, 'amount' for expense), technician reverse 403, no-JWT 403, spoofed x-user-role IGNORED, login deny-unknown 401. (7) Safe entity actions (customer/vehicle) still auto-commit (Phase C intentionally NOT yet implemented). (8) Accounting integrity: spot-check across 50 recent journal_entries — all balanced (debit==credit). Frontend smoke test confirms iter241 JWT regression is RESOLVED — login as مدير now POSTs /api/auth/login, stores access_token in localStorage (length 213) and sets httpOnly access_token/refresh_token cookies; backend write paths reachable from UI.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/finance-actions/invoice", "issue": "Route accepts 'customer'+'total' (not 'amount'). Inconsistent with /expense which uses 'amount'. Returns 400 invalid_amount if only 'amount' provided. Consider normalizing the field name across financial routes."},
+      {"endpoint": "/api/assistant/chat → executed", "issue": "Top-level executed payload only includes {status, action, entity_id} but NOT approval_id — clients must dig into cards[].data.approval_id. Recommend mirroring approval_id into executed for easier consumption."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bot_financial_iter242.py",
+    "/app/test_reports/pytest/iter242.xml"
+  ],
+  "action_items": [
+    "(MINOR) Mirror approval_id into the chat response 'executed' object so clients don't have to parse cards[].",
+    "(MINOR) Consider accepting both 'amount' and 'total' on /api/finance-actions/invoice for consistency with /expense and /payment.",
+    "(NOTE) Phase C (Level-1 quick confirm for safe entity actions) is intentionally not implemented this round — customer/vehicle create still auto-commits as designed."
+  ],
+  "critical_code_review_comments": [
+    "✅ core/unified_executor.py RISKY_ACTIONS correctly forces ALL financial verbs through the Four-Eyes approval pipeline (never auto-commit, regardless of caller role) — red-line respected.",
+    "✅ Principle ① implemented in _resolve_financial_target: missing amount + unknown/ambiguous customer return mode='ask' WITHOUT creating an approval draft (verified end-to-end). No fabricated values observed.",
+    "✅ core/assistant_kernel._build_action_chat_response produces a complete echo-back card with النوع/الطرف/المبلغ/الأثر المحاسبي + the red-line statement and emits a fully wired ApprovalCard with endpoint=/api/runtime/approvals/<id>/approve.",
+    "✅ Single-writer governance: every bot-approved financial draft commits via core/action_runtime.commit() → core/financial_actions.* → core/accounting_engine — balanced double-entry verified (dr==cr) across 50 recent entries.",
+    "✅ Reverse path: contra has source='reversal', reference_id='reversal::<orig>', original preserved (verified by direct DB read via /api/finance/journal-entries). Idempotent on repeat (tx_hash check).",
+    "✅ Four-Eyes enforced via JWT 'sub' (not body fields) — confirmed with 403 four_eyes_violation when مدير tries to approve own draft, and 200 committed when احمد1 (supervisor) approves.",
+    "⚠️ /api/assistant/chat 'executed' shape lacks approval_id — minor DX issue (clients currently must dig into cards[].data.approval_id)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_bot_financial_iter242.py (NEW pytest suite — 21 tests, all pass)"
+  ],
+  "success_rate": {"backend": "100% (21/21)", "frontend": "smoke-OK (login stores JWT, cookies set)"},
+  "test_credentials": "Name-only login: مدير (admin/approver), احمد1 (supervisor/approver), فرج1 (accountant, not approver), مستخدم اختبار (technician). /app/memory/test_credentials.md.",
+  "seed_data_creation": "Created (via approvals): one 320 SAR invoice (نادر بكر, credit), one 150 SAR payment (نادر بكر, cash), one 800 SAR expense (إيجار), one 47 SAR REST invoice, one 23 SAR REST expense, one 13 SAR expense + its reversal contra. All marked TEST_iter242_*.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pipeline is fully working end-to-end. Reusable pytest file: /app/backend/tests/test_bot_financial_iter242.py. NOTE: chat 'executed' field DOES NOT contain approval_id — read it from cards[].data.approval_id. Invoice route expects field 'customer'+'total' (not 'amount'). The frontend now correctly stores access_token in localStorage + sets httpOnly cookies after login (iter241 regression is fixed in this build). Phase C (Level-1 confirm for safe entity actions like customer create) is intentionally not implemented — they still auto-commit; do NOT report that as a bug.",
+  "rca_of_the_issue": "No bugs detected this round. All bot financial flows correctly route through the Four-Eyes approval pipeline (action_runtime + accounting_engine single writer). Principle ① clarification logic correctly intercepts missing/ambiguous parameters BEFORE creating an approval draft. Reverse correctly creates a contra with reference_id='reversal::<orig>' and preserves the original. Site REST regression is intact with proper RBAC (no-JWT→403, technician→403, admin→200). Accounting integrity holds: all 50 spot-checked journal entries are balanced (debit==credit), and there is no codepath writing journal_entries outside accounting_engine. Frontend JWT issue from iter241 is resolved (access_token cookies + localStorage set on login)."
+}

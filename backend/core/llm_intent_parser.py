@@ -42,6 +42,11 @@ ALLOWED_ACTIONS = {
     "delete_vehicle",        # delete a vehicle (resolved by plate/id) — requires approval
     "update_customer",       # edit a customer's fields (safe, auto-commit)
     "update_vehicle",        # edit a vehicle's fields (safe, auto-commit)
+    # 🏦 Financial actions (HIGH RISK — always Four-Eyes, NEVER auto-commit)
+    "create_invoice",        # issue an invoice for a customer
+    "collect_payment",       # collect/settle a payment from a customer
+    "create_expense",        # record an expense / supplier payment
+    "reverse_entry",         # reverse (contra) a prior journal entry — no hard delete
     "get_customers",         # read-only query
     "get_vehicles",          # read-only query
 }
@@ -80,7 +85,12 @@ _SYSTEM_PROMPT = (
     "  • delete_customer  — payload: {name?, phone?, customer_id?} (حذف عميل — يحتاج موافقة)\n"
     "  • delete_vehicle   — payload: {plate?, vehicle_id?} (حذف مركبة — يحتاج موافقة)\n"
     "  • update_customer  — payload: {match:{name?|phone?|customer_id?}, set:{name?,phone?,email?,address?}} (تعديل بيانات عميل)\n"
-    "  • update_vehicle   — payload: {match:{plate?|vehicle_id?}, set:{plate?,brand?,model?,year?,status?}} (تعديل بيانات مركبة)\n\n"
+    "  • update_vehicle   — payload: {match:{plate?|vehicle_id?}, set:{plate?,brand?,model?,year?,status?}} (تعديل بيانات مركبة)\n"
+    "  🏦 إجراءات مالية (تحتاج اعتماد أربع أعين دائمًا — لا تُثبَّت تلقائيًا):\n"
+    "  • create_invoice   — payload: {customer, total?, items?, payment_method?(credit/cash/card), date?} (إصدار فاتورة لعميل)\n"
+    "  • collect_payment  — payload: {customer, amount, payment_method?(cash/bank/card), date?} (تحصيل/سداد دفعة من عميل)\n"
+    "  • create_expense   — payload: {description, amount, category?, supplier?, payment_method?(cash/bank)} (تسجيل مصروف/دفعة لمورد)\n"
+    "  • reverse_entry    — payload: {journal_id?|reference_id?, reason?} (عكس قيد سابق — قيد عكسي)\n\n"
     "قواعد الإخراج (مهمّة):\n"
     "  1. أرجع JSON واحد بدون ```\n"
     "  2. الشكل: {\"action\":\"...\", \"entity\":\"...\", \"payload\":{...}}\n"
@@ -107,6 +117,15 @@ _SYSTEM_PROMPT = (
     "    → {\"action\":\"update_customer\",\"payload\":{\"match\":{\"name\":\"خالد المطيري\"},\"set\":{\"phone\":\"0509998877\"}}}\n"
     "  • 'غيّر حالة المركبة 9935 إلى جاهزة'\n"
     "    → {\"action\":\"update_vehicle\",\"payload\":{\"match\":{\"plate\":\"9935\"},\"set\":{\"status\":\"جاهزة\"}}}\n"
+    "  • 'اصدر فاتورة للعميل أحمد العتيبي بمبلغ 500 آجل'\n"
+    "    → {\"action\":\"create_invoice\",\"payload\":{\"customer\":\"أحمد العتيبي\",\"total\":500,\"payment_method\":\"credit\"}}\n"
+    "  • 'حصّل 300 من خالد المطيري نقدًا'\n"
+    "    → {\"action\":\"collect_payment\",\"payload\":{\"customer\":\"خالد المطيري\",\"amount\":300,\"payment_method\":\"cash\"}}\n"
+    "  • 'سجل مصروف إيجار 1200'  → {\"action\":\"create_expense\",\"payload\":{\"description\":\"إيجار\",\"amount\":1200}}\n"
+    "  • 'اعكس القيد رقم abc123 السبب خطأ إدخال'\n"
+    "    → {\"action\":\"reverse_entry\",\"payload\":{\"journal_id\":\"abc123\",\"reason\":\"خطأ إدخال\"}}\n"
+    "\n🔒 مبدأ المصدر الحقيقي: لا تخترع أسماء عملاء أو مبالغ. استخرج فقط ما ورد نصًّا. "
+    "إن لم يُذكر مبلغ لمصروف/دفعة/فاتورة فاتركه فارغًا (سيُطلب لاحقًا) — لا تخمّنه.\n"
 )
 
 

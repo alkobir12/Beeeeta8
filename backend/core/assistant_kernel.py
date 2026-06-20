@@ -153,6 +153,7 @@ def detect_tools(text: str) -> List[str]:
 _ACTION_VERB_RE = re.compile(
     r"(?:^|\s)(?:سجّ?ل|اضف|أضف|اضيف|أضيف|ضيف|ضع|حط|انشئ|أنشئ|انشاء|افتح|أفتح|"
     r"اصدر|أصدر|اعمل|سوّ?ي|احذف|أحذف|امسح|شيل|الغ|ألغ|اغلق|أغلق|اقفل|"
+    r"حصّ?ل|سدّ?د|اعكس|أعكس|فوتر|"
     r"عدّ?ل|غيّ?ر|حدّ?ث|register|create|add|delete|close|open|update)"
     r"(?:ها|ه|هم|هن|ني|نا|وا|وه|ي|ين)?(?=\s|$)",
     re.IGNORECASE,
@@ -213,6 +214,8 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
         "delete_operation": "حذف عملية", "close_visits": "إغلاق الزيارات",
         "delete_customer": "حذف عميل", "delete_vehicle": "حذف مركبة",
         "update_customer": "تعديل عميل", "update_vehicle": "تعديل مركبة",
+        "create_invoice": "فاتورة", "collect_payment": "تحصيل دفعة",
+        "create_expense": "مصروف", "reverse_entry": "قيد عكسي",
     }.get(action, action)
     cards: List[Dict[str, Any]] = []
     entity_id = None
@@ -237,9 +240,22 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
     else:  # pending_approval
         approval_id = (exec_res.get("approval") or {}).get("approval_id")
         draft_id = (exec_res.get("draft") or {}).get("id")
-        tgt = ((exec_res.get("action") or {}).get("payload") or {}).get("_target_label")
-        response_text = (f"⏳ **بانتظار اعتمادك** — هذه عملية حساسة "
-                         f"({label}{': ' + str(tgt) if tgt else ''}).")
+        payload = ((exec_res.get("action") or {}).get("payload") or {})
+        tgt = payload.get("_target_label")
+        echo = payload.get("_echo") or {}
+        if echo:
+            amt = echo.get("amount")
+            amt_line = f"\n💰 المبلغ: {amt}" if amt not in (None, "", 0) else ""
+            response_text = (
+                "⏳ **بانتظار اعتماد طرف ثانٍ (أربع أعين)** — عملية مالية حسّاسة.\n"
+                f"🧾 النوع: {echo.get('type') or label}\n"
+                f"👤 الطرف: {echo.get('entity') or '—'}{amt_line}\n"
+                f"📒 الأثر المحاسبي: {echo.get('accounts') or '—'}\n"
+                "🔴 لن يُثبَّت أي قيد مالي دون اعتماد بشري مختلف."
+            )
+        else:
+            response_text = (f"⏳ **بانتظار اعتمادك** — هذه عملية حساسة "
+                             f"({label}{': ' + str(tgt) if tgt else ''}).")
         cards = [{
             "type": "ApprovalCard", "id": approval_id,
             "title": f"موافقة — {label}", "status": "pending",
@@ -276,7 +292,10 @@ def _build_clarification_response(*, sid: str, message: str, exec_res: Dict[str,
     entity = exec_res.get("entity")
     ent_ar = "عميل" if entity == "customer" else "مركبة"
     cands = exec_res.get("candidates") or []
-    if reason == "not_found":
+    ask = exec_res.get("ask")
+    if ask:
+        response_text = ask
+    elif reason == "not_found":
         response_text = (f"🔎 لم أجد {ent_ar} مطابقاً لطلبك. "
                          f"تأكّد من الاسم أو رقم الجوال/اللوحة وحاول مرة أخرى.")
     else:  # ambiguous
@@ -394,10 +413,13 @@ def _system_prompt() -> str:
         "📊 **التعامل مع النتائج**:\n"
         "  • نتيجة فارغة → قولي مباشرة 'لا توجد بيانات' بدون اعتذار.\n"
         "  • نتيجة ناجحة → نسّقيها (جدول Markdown/قائمة) وبفواصل آلاف للأرقام.\n\n"
-        "⚙️ **التنفيذ**:\n"
-        "  • أوامر الإنشاء/الحذف/الإغلاق تُنفَّذ مباشرة عبر محرك التنفيذ — وتظهر للمستخدم رسالة تأكيد '✅ تم'.\n"
-        "  • إذا نقص حقل ضروري للتنفيذ (مثل الاسم أو رقم الجوال) → **اطلبي الحقل الناقص بوضوح**، ولا تقولي 'افتح الصفحة وأضف يدوياً'.\n"
-        "  • العمليات الحساسة (حذف) تحتاج اعتماداً — اعرضيها كبطاقة موافقة.\n\n"
+        "⚙️ **التنفيذ ونموذج المستويين (حوكمة القدرات)**:\n"
+        "  • تفهمين وتقترحين أي أمر (عميل/مركبة/جوال/فاتورة/دفعة/مصروف/عكس/حذف). التأكيد حاجز أمان على لحظة التثبيت فقط.\n"
+        "  • **المستوى ١ (منخفض الخطر)**: إنشاء/تعديل عميل، مركبة، جوال، والقراءة → تأكيد سريع منكِ ثم تثبيت.\n"
+        "  • **المستوى ٢ (عالي الخطر)**: المالية (فاتورة/دفعة/مصروف/عكس) والحذف والإغلاق الجماعي → **أربع أعين** (اعتماد بشري مختلف) + بطاقة echo-back كاملة.\n"
+        "  • 🔴 **الخط الأحمر**: لا يُثبَّت أي قيد مالي تلقائياً أبداً — لا auto-commit مالي تحت أي ظرف.\n"
+        "  • قبل أي تثبيت اعرضي echo-back: النوع + الكيان الحقيقي المُحلَّل من القاعدة + المبلغ + الحسابات المتأثرة. عند الغموض/عدم التطابق → اسألي، لا تخمّني.\n"
+        "  • إذا نقص حقل ضروري (الاسم/المبلغ/رقم الجوال) → **اطلبي الحقل الناقص بوضوح**، ولا تقولي 'افتح الصفحة وأضف يدوياً'.\n\n"
         "⚠️ **قواعد حاسمة**:\n"
         "  1. **ممنوع** 'دعني أتحقق' أو 'سأعود إليك' — أكملي الإجابة فوراً في نفس الرسالة.\n"
         "  2. **ممنوع** الرد بـ 'لا يمكنني، افتح الصفحة' عند طلب تنفيذ — إمّا نفّذتِ أو اطلبتِ المعلومة الناقصة.\n"

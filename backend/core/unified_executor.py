@@ -38,6 +38,11 @@ RISKY_ACTIONS = {
     "delete_operation",
     "bulk_update",
     "bulk_delete",
+    # 🏦 Financial actions — ALWAYS Four-Eyes, NEVER auto-commit (governance red line)
+    "create_invoice",
+    "collect_payment",
+    "create_expense",
+    "reverse_entry",
 }
 
 # Read-only actions — no draft created, no approval needed.
@@ -58,12 +63,18 @@ _ACTION_TO_RUNTIME = {
     "delete_vehicle": "delete_vehicle",
     "update_customer": "update_customer",
     "update_vehicle": "update_vehicle",
+    "create_invoice": "invoice",
+    "collect_payment": "payment",
+    "create_expense": "expense",
+    "reverse_entry": "reverse",
 }
 
 # Actions whose target must be resolved (to a concrete DB row) before we act.
 _RESOLVE_TARGET_ACTIONS = {
     "delete_customer", "update_customer",
     "delete_vehicle", "update_vehicle",
+    # 🏦 financial: resolve the real party / original entry + build echo-back
+    "create_invoice", "collect_payment", "create_expense", "reverse_entry",
 }
 
 
@@ -111,9 +122,10 @@ async def execute_text(
         if resolved.get("error"):
             return {
                 "status": "needs_clarification",
-                "reason": resolved["error"],            # not_found | ambiguous
-                "entity": "customer" if "customer" in action.action else "vehicle",
+                "reason": resolved["error"],            # not_found | ambiguous | missing_fields
+                "entity": resolved.get("entity") or ("customer" if "customer" in action.action else "vehicle"),
                 "candidates": resolved.get("candidates") or [],
+                "ask": resolved.get("ask"),
                 "action": action.model_dump(),
             }
         # Enrich payload with the concrete id + a human label for the card.
@@ -168,12 +180,16 @@ def _regex_fallback_action(text: str) -> Action:
 
 
 def _resolve_target(action: Action) -> Dict[str, Any]:
-    """Resolve a delete/update target to a concrete DB row.
+    """Resolve a delete/update/financial target to a concrete DB row / echo-back.
 
     Returns either:
-      • {"enrich": {<id_field>: <id>, "_target_label": <name/plate>, "set": {...}}}
-      • {"error": "not_found"|"ambiguous", "candidates": [...]}
+      • {"enrich": {<id_field>: <id>, "_target_label": <name/plate>, "_echo": {...}, "set": {...}}}
+      • {"error": "not_found"|"ambiguous"|"missing_fields", "entity": ..., "candidates": [...], "ask": ...}
     """
+    # 🏦 Financial actions resolve the real party / original entry + build echo-back.
+    if action.action in ("create_invoice", "collect_payment", "create_expense", "reverse_entry"):
+        return _resolve_financial_target(action)
+
     payload = action.payload or {}
     is_customer = "customer" in action.action
     is_update = action.action.startswith("update_")
@@ -196,6 +212,69 @@ def _resolve_target(action: Action) -> Dict[str, Any]:
     if is_update:
         enrich["set"] = payload.get("set") or {}
     return {"enrich": enrich}
+
+
+def _resolve_financial_target(action: Action) -> Dict[str, Any]:
+    """🏦 Resolve the real party / original entry for a financial action and build
+    the echo-back summary (type + entity + amount + affected accounts). Enforces
+    Principle ①: no guessing — missing/ambiguous data → ask the user."""
+    payload = action.payload or {}
+    act = action.action
+
+    if act == "reverse_entry":
+        jid = str(payload.get("journal_id") or "").strip()
+        ref = str(payload.get("reference_id") or "").strip()
+        if not jid and not ref:
+            return {"error": "missing_fields", "entity": "financial",
+                    "ask": "🔁 لعكس قيد، زوّدني برقم القيد (journal_id) أو المرجع (reference_id)."}
+        label = jid or ref
+        return {"enrich": {"_target_label": label, "_echo": {
+            "type": "قيد عكسي", "entity": label, "amount": None,
+            "accounts": "عكس القيد الأصلي (مدين↔دائن) — الأصل محفوظ"}}}
+
+    if act == "create_expense":
+        desc = str(payload.get("description") or payload.get("category") or "").strip()
+        amount = payload.get("amount") or payload.get("total")
+        if not desc:
+            return {"error": "missing_fields", "entity": "financial",
+                    "ask": "🧾 وضّح وصف المصروف (مثال: إيجار، رواتب، قطع غيار)."}
+        if not amount:
+            return {"error": "missing_fields", "entity": "financial",
+                    "ask": f"💰 كم مبلغ المصروف «{desc}»؟"}
+        return {"enrich": {"_target_label": desc, "_echo": {
+            "type": "مصروف", "entity": payload.get("supplier") or desc, "amount": amount,
+            "accounts": "مدين: مصروفات (030) / دائن: النقد أو البنك"}}}
+
+    # create_invoice / collect_payment → resolve the customer
+    name = str(payload.get("customer") or payload.get("customer_name") or payload.get("name") or "").strip()
+    phone = str(payload.get("customer_phone") or payload.get("phone") or "").strip()
+    if not name and not phone:
+        return {"error": "missing_fields", "entity": "financial",
+                "ask": "👤 لمن الفاتورة/الدفعة؟ زوّدني باسم العميل أو رقم جواله."}
+    res = action_runtime.resolve_customer_target({"name": name, "phone": phone})
+    if res.get("error"):
+        res["entity"] = "customer"
+        return res
+    row = res["row"]
+    cust_name = row.get("name") or row.get("phone") or row.get("id")
+    if act == "collect_payment":
+        amount = payload.get("amount") or payload.get("total")
+        if not amount:
+            return {"error": "missing_fields", "entity": "financial",
+                    "ask": f"💰 كم مبلغ الدفعة المُحصّلة من «{cust_name}»؟"}
+        echo = {"type": "تحصيل دفعة", "entity": cust_name, "amount": amount,
+                "accounts": "مدين: النقد/البنك / دائن: ذمم العملاء (005)"}
+    else:  # create_invoice
+        amount = payload.get("total") or payload.get("amount")
+        if not amount and not payload.get("items"):
+            return {"error": "missing_fields", "entity": "financial",
+                    "ask": f"💰 ما إجمالي الفاتورة للعميل «{cust_name}»؟"}
+        pm = payload.get("payment_method") or "credit"
+        accounts = ("مدين: ذمم العملاء (005) / دائن: الإيرادات (025)" if pm == "credit"
+                    else "مدين: النقد/الشبكة / دائن: الإيرادات (025)")
+        echo = {"type": "فاتورة", "entity": cust_name, "amount": amount, "accounts": accounts}
+    return {"enrich": {"customer": cust_name, "customer_id": row.get("id"),
+                       "_target_label": cust_name, "_echo": echo}}
 
 
 async def execute_action(

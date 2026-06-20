@@ -71,7 +71,8 @@ STATE: Dict[str, Dict[str, Any]] = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 VALID_ACTIONS = {"customer", "vehicle", "visit", "close_visits", "delete_operation",
-                 "delete_customer", "delete_vehicle", "update_customer", "update_vehicle"}
+                 "delete_customer", "delete_vehicle", "update_customer", "update_vehicle",
+                 "invoice", "payment", "expense", "reverse"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -754,6 +755,68 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
             _audit("COMMIT_UPDATE_ENTITY", draft_id=draft_id, execution_id=execution_id,
                    table=tbl, entity_id=ent_id, fields=list(changes.keys()), committer=committer)
             return {"execution_id": execution_id, "result": result_data}
+
+        # ── 🏦 Financial actions — committed THROUGH the central accounting engine ──
+        #    (Governance: single writer, never auto-commit, immutable audit.)
+        if action in ("invoice", "payment", "expense", "reverse"):
+            try:
+                from core import financial_actions as _fa
+                fa_actor = {"user_id": committer or "system"}
+                if action == "invoice":
+                    fres = _fa.create_invoice(
+                        customer=payload.get("customer") or payload.get("customer_name") or "",
+                        items=payload.get("items"),
+                        total=payload.get("total") or payload.get("amount"),
+                        payment_method=payload.get("payment_method") or "credit",
+                        date=payload.get("date"),
+                        reference_id=payload.get("reference_id"),
+                        actor=fa_actor,
+                    )
+                elif action == "payment":
+                    fres = _fa.collect_payment(
+                        customer=payload.get("customer") or payload.get("customer_name") or "",
+                        amount=payload.get("amount") or payload.get("total"),
+                        payment_method=payload.get("payment_method") or "cash",
+                        date=payload.get("date"),
+                        reference_id=payload.get("reference_id"),
+                        actor=fa_actor,
+                    )
+                elif action == "expense":
+                    fres = _fa.create_expense(
+                        description=payload.get("description") or payload.get("category") or "مصروف",
+                        amount=payload.get("amount") or payload.get("total"),
+                        category=payload.get("category"),
+                        supplier=payload.get("supplier"),
+                        payment_method=payload.get("payment_method") or "cash",
+                        date=payload.get("date"),
+                        reference_id=payload.get("reference_id"),
+                        actor=fa_actor,
+                    )
+                else:  # reverse
+                    fres = _fa.reverse_entry(
+                        journal_id=payload.get("journal_id"),
+                        reference_id=payload.get("reference_id"),
+                        reason=payload.get("reason") or "عكس عبر المساعد",
+                        actor=fa_actor,
+                    )
+            except Exception as e:
+                _log.exception("financial commit failed: %s", redact(str(e), max_len=140))
+                return {"error": "commit_failed", "detail": redact(str(e), max_len=140)}
+
+            if isinstance(fres, dict) and fres.get("error") and not fres.get("posted") and not fres.get("reversed"):
+                return {"error": fres.get("error"), "detail": fres}
+
+            execution_id = uuid.uuid4().hex[:12]
+            STATE["executions"][execution_id] = {
+                "id": execution_id, "draft_id": draft_id, "result": fres,
+                "status": "executed", "committer": committer or "anonymous",
+                "committed_at": time.time(),
+            }
+            draft["status"] = "committed"
+            draft["execution_id"] = execution_id
+            _audit("COMMIT_FINANCIAL", draft_id=draft_id, execution_id=execution_id,
+                   action=action, journal_id=(fres or {}).get("journal_id"), committer=committer)
+            return {"execution_id": execution_id, "result": fres}
 
         # Map action → table
         table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}[action]
