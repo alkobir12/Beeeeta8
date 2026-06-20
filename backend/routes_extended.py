@@ -147,9 +147,15 @@ def set_db(database):
 
 
 def _extract_request_actor(request: Optional[Request]) -> Dict[str, str]:
-    headers = getattr(request, "headers", {}) or {}
-    user_id = str(headers.get("x-user-id") or headers.get("x-user-name") or "system").strip() or "system"
-    user_role = str(headers.get("x-user-role") or "unknown").strip() or "unknown"
+    # 🔐 سمات التدقيق تُشتقّ من JWT الموقَّع (لا الترويسات القابلة للانتحال)
+    ident = {}
+    try:
+        from auth_jwt import identity_from_request
+        ident = identity_from_request(request) if request else {}
+    except Exception:
+        ident = {}
+    user_id = str(ident.get("username") or "system").strip() or "system"
+    user_role = str(ident.get("role") or "unknown").strip() or "unknown"
     return {"user_id": user_id, "user_role": user_role}
 
 

@@ -457,8 +457,9 @@ async def set_account_active(
 ):
     """Enable/disable account without relying on DB schema columns."""
     try:
-        role = (request.headers.get("x-user-role", "") if request else "").lower()
-        if role and role not in ["admin", "manager"]:
+        from auth_jwt import identity_from_request
+        role = (identity_from_request(request).get("role") or "").lower() if request else ""
+        if role not in ["admin", "manager"]:
             raise HTTPException(status_code=403, detail="هذه العملية متاحة للمدير فقط")
 
         is_active = bool(payload.get("isActive", True))
@@ -498,8 +499,9 @@ async def set_account_active(
 async def delete_account(account_id: str, request: Request = None):
     """Delete an account (only if not system and has no children)"""
     try:
-        role = (request.headers.get("x-user-role", "") if request else "").lower()
-        if role and role not in ["admin", "manager"]:
+        from auth_jwt import identity_from_request
+        role = (identity_from_request(request).get("role") or "").lower() if request else ""
+        if role not in ["admin", "manager"]:
             raise HTTPException(status_code=403, detail="هذه العملية متاحة للمدير فقط")
 
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()

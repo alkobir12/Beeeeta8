@@ -76,12 +76,13 @@ class PermissionResult:
 
 
 class Actor:
-    def __init__(self, *, user_id: str, name: str, role: str, permissions: Dict[str, Any], found: bool):
+    def __init__(self, *, user_id: str, name: str, role: str, permissions: Dict[str, Any], found: bool, active: bool = True):
         self.id = user_id
         self.name = name
         self.role = (role or "unknown").lower()
         self.permissions = permissions or {}
         self.found = found
+        self.active = active
 
     def can(self, module: str, action: str) -> bool:
         return bool(self.permissions.get(module, {}).get(action) is True)
@@ -131,7 +132,8 @@ async def resolve_actor(
         role = str(record.get("role") or role_hint or "unknown").lower()
         perms = _merge_permissions(get_role_permissions(role), record.get("permissions"))
         return Actor(user_id=str(record.get("id") or ident_id), name=record.get("name") or ident_name,
-                     role=role, permissions=perms, found=True)
+                     role=role, permissions=perms, found=True,
+                     active=record.get("isActive", True) is not False)
 
     # لم يُعثر على المستخدم — نعتمد على تلميح الدور (الترويسة) إن وُجد
     role = str(role_hint or "unknown").lower()
@@ -140,19 +142,22 @@ async def resolve_actor(
 
 
 def extract_identity(request: Any, body: Optional[Dict[str, Any]] = None) -> Dict[str, Optional[str]]:
-    """يستخرج هوية الفاعل من الترويسات أولاً ثم من جسم الطلب."""
-    headers = getattr(request, "headers", {}) or {}
-    body = body or {}
-    user_id = (headers.get("x-user-id") or headers.get("x-user-name")
-               or body.get("user_id") or body.get("approver") or body.get("by")
-               or body.get("committer") or body.get("rollbacker"))
-    role_hint = headers.get("x-user-role") or body.get("role")
-    name = (headers.get("x-user-name") or body.get("approver") or body.get("by")
-            or body.get("committer") or body.get("rollbacker") or user_id)
+    """🔐 الهوية الموثوقة تُؤخذ حصراً من JWT الموقَّع (لا الترويسات/الجسم القابلة للانتحال).
+
+    deny-by-default: بدون توكن صالح لا تُشتقّ هوية ولا دور ⇒ يفشل تحقق الصلاحية لاحقاً.
+    """
+    try:
+        from auth_jwt import identity_from_request
+        ident = identity_from_request(request) or {}
+    except Exception:
+        ident = {}
+    username = ident.get("username")
+    if not username:
+        return {"user_id": None, "name": None, "role_hint": None}
     return {
-        "user_id": str(user_id).strip() if user_id else None,
-        "name": str(name).strip() if name else None,
-        "role_hint": str(role_hint).strip() if role_hint else None,
+        "user_id": str(username).strip(),
+        "name": str(username).strip(),
+        "role_hint": (str(ident.get("role")).strip() if ident.get("role") else None),
     }
 
 

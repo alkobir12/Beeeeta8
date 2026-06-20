@@ -16,7 +16,9 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from pydantic import BaseModel
 
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 30  # 30 days for the name-only login UX
+# Token lifetimes (decision: short-lived access + 7-day refresh)
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 
 def _get_jwt_secret() -> str:
@@ -96,14 +98,14 @@ def _extract_token(request: Request) -> Optional[str]:
 
 
 async def get_current_user(request: Request) -> dict:
-    """Dependency: يتطلب توكن صالح."""
+    """Dependency: يتطلب توكن صالح. يُرجِع الهوية + الدور الموقَّع."""
     token = _extract_token(request)
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
     payload = decode_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return {"username": payload.get("sub"), "exp": payload.get("exp")}
+    return {"username": payload.get("sub"), "role": payload.get("role"), "exp": payload.get("exp")}
 
 
 async def get_current_user_optional(request: Request) -> Optional[dict]:
@@ -114,7 +116,25 @@ async def get_current_user_optional(request: Request) -> Optional[dict]:
     payload = decode_token(token)
     if not payload:
         return None
-    return {"username": payload.get("sub"), "exp": payload.get("exp")}
+    return {"username": payload.get("sub"), "role": payload.get("role"), "exp": payload.get("exp")}
+
+
+def identity_from_request(request: Request) -> dict:
+    """🔐 الهوية الموثوقة من JWT الموقَّع فقط (لا الترويسات القابلة للانتحال).
+
+    يُرجِع {'username','role'} عند وجود توكن صالح، وإلا {} (deny-by-default).
+    """
+    try:
+        token = _extract_token(request)
+        if not token:
+            return {}
+        payload = decode_token(token)
+        if not payload:
+            return {}
+        role = (payload.get("role") or "")
+        return {"username": payload.get("sub"), "role": (role.lower() or None)}
+    except Exception:
+        return {}
 
 
 # =========================================
@@ -127,40 +147,88 @@ class LoginPayload(BaseModel):
     username: str
 
 
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    """httpOnly cookies — دفاع في العمق إضافةً إلى Bearer header."""
+    response.set_cookie(
+        key="access_token", value=access_token, httponly=True, secure=False,
+        samesite="lax", max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/",
+    )
+    response.set_cookie(
+        key="refresh_token", value=refresh_token, httponly=True, secure=False,
+        samesite="lax", max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600, path="/",
+    )
+
+
 @router.post("/login")
 async def login(payload: LoginPayload, response: Response):
     """
     تسجيل الدخول بالاسم فقط (بدون كلمة مرور — حسب اختيار المالك).
-    يُرجِع JWT token + يضبط httpOnly cookie.
+    Deny-by-default: لا يُصدَر توكن إلا لمستخدم موجود وفعّال في سجل المستخدمين،
+    ويُضمَّن دوره الموثَّق داخل JWT (يعتمده RBAC بدل الترويسة الخام).
     """
     username = (payload.username or "").strip()
     if not username or len(username) > 100:
         raise HTTPException(status_code=400, detail="اسم المستخدم مطلوب")
 
-    token = create_access_token(username)
-    # Set httpOnly cookie for additional defense in depth
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        secure=False,  # set True if HTTPS-only
-        samesite="lax",
-        max_age=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 3600,
-        path="/",
-    )
+    # 🔐 حلّ الهوية من السجل — المستخدم غير المعروف/المعطّل لا يحصل على توكن
+    from core import rbac
+    actor = await rbac.resolve_actor(name=username)
+    if not actor.found:
+        raise HTTPException(status_code=401, detail="اسم المستخدم غير معروف")
+    if actor.active is False:
+        raise HTTPException(status_code=403, detail="هذا الحساب معطل")
+
+    resolved_name = actor.name or username
+    access_token = create_access_token(resolved_name, actor.role)
+    refresh_token = create_refresh_token(resolved_name)
+    _set_auth_cookies(response, access_token, refresh_token)
     return {
-        "access_token": token,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
-        "username": username,
-        "expires_in_days": ACCESS_TOKEN_EXPIRE_DAYS,
+        "username": resolved_name,
+        "role": actor.role,
+        "expires_in_minutes": ACCESS_TOKEN_EXPIRE_MINUTES,
     }
 
 
 @router.post("/logout")
 async def logout(response: Response):
-    """مسح cookie الجلسة."""
+    """مسح cookies الجلسة."""
     response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="refresh_token", path="/")
     return {"success": True, "message": "Logged out"}
+
+
+@router.post("/refresh")
+async def refresh(request: Request, response: Response):
+    """إصدار access token جديد اعتماداً على refresh token (cookie أو Bearer)."""
+    token = request.cookies.get("refresh_token")
+    if not token:
+        auth = request.headers.get("Authorization") or ""
+        if auth.startswith("Bearer "):
+            token = auth[7:].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+    payload = decode_refresh_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    username = payload.get("sub")
+    from core import rbac
+    actor = await rbac.resolve_actor(name=username)
+    if not actor.found or actor.active is False:
+        raise HTTPException(status_code=401, detail="User no longer valid")
+    resolved_name = actor.name or username
+    access_token = create_access_token(resolved_name, actor.role)
+    new_refresh = create_refresh_token(resolved_name)
+    _set_auth_cookies(response, access_token, new_refresh)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "username": resolved_name,
+        "role": actor.role,
+        "expires_in_minutes": ACCESS_TOKEN_EXPIRE_MINUTES,
+    }
 
 
 @router.get("/me")
