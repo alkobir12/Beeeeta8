@@ -83,6 +83,13 @@ def _norm_time(value: Any, granularity: str = "minute") -> str:
         return raw[:16]
 
 
+def _party_from_desc(description: Any) -> str:
+    """يحاول استخراج اسم الطرف من وسم [PARTY:..] داخل الوصف إن وُجد."""
+    s = str(description or "")
+    m = re.search(r"\[PARTY:\s*([^\]]+)\]", s)
+    return m.group(1).strip() if m else ""
+
+
 def _normalize_lines(lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """توحيد بنود القيد إلى الشكل القياسي: account / account_name / debit / credit."""
     out: List[Dict[str, Any]] = []
@@ -342,8 +349,7 @@ class AccountingEngine:
             payload.update({k: v for k, v in extra.items() if k not in payload})
 
         try:
-            res = self.raw.table(JOURNAL_TABLE).insert(payload).execute()
-            data = getattr(res, "data", None) or []
+            data = self._insert_adaptive(payload)
             journal_id = (data[0].get("id") if data else None) or payload["id"]
             self.identity.mark_posted(tx_hash, journal_id)
             self._audit("JOURNAL_POSTED", tx_hash=tx_hash, journal_id=journal_id,
@@ -356,6 +362,74 @@ class AccountingEngine:
             self.identity.release(tx_hash)
             _log.exception("journal write failed: %s", redact(str(e), max_len=120))
             return {"posted": False, "error": "write_failed", "detail": redact(str(e), max_len=160)}
+
+    def _insert_adaptive(self, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """يُدرج القيد ويتكيّف مع أعمدة Supabase: يحذف أي عمود غير موجود ويعيد المحاولة."""
+        import re as _re
+        attempt = dict(payload)
+        last_error: Optional[Exception] = None
+        for _ in range(12):
+            try:
+                res = self.raw.table(JOURNAL_TABLE).insert(attempt).execute()
+                return getattr(res, "data", None) or []
+            except Exception as err:
+                last_error = err
+                m = _re.search(r"Could not find the '([^']+)' column", str(err))
+                if not m:
+                    break
+                missing = m.group(1)
+                if missing not in attempt:
+                    break
+                attempt.pop(missing, None)
+        # محاولة أخيرة بالأعمدة الأساسية فقط
+        basic = {k: payload.get(k) for k in
+                 ("id", "workshop_id", "date", "description", "lines", "total",
+                  "source", "transaction_type", "reference_id") if k in payload}
+        res = self.raw.table(JOURNAL_TABLE).insert(basic).execute()
+        return getattr(res, "data", None) or []
+
+    # ── محوّل: قيد جاهز (entry dict) → المحرك (للملفات القديمة) ──
+    def post_entry(self, entry: Dict[str, Any], *, fallback: bool = True) -> List[Dict[str, Any]]:
+        """يمرّر قيدًا جاهزًا عبر المحرك (توازن + منع تكرار) ويعيد صف الإدراج بشكل `.data`.
+
+        عند رفض المحرك (غير متوازن/فشل كتابة) يتراجع إلى إدراج مباشر متكيّف كي لا
+        تُفقد أي بيانات مالية — منع التكرار يبقى فعّالاً في الحالة الشائعة.
+        """
+        if not entry:
+            return None
+        lines = entry.get("lines") or []
+        party = (entry.get("party_label") or entry.get("supplier_name")
+                 or _party_from_desc(entry.get("description")))
+        reserved = {"lines", "date", "description", "total", "source",
+                    "transaction_type", "reference_id", "workshop_id", "id"}
+        res = self.post(
+            lines=lines,
+            date=entry.get("date"),
+            description=entry.get("description") or "",
+            total=entry.get("total"),
+            source=entry.get("source") or "system",
+            transaction_type=entry.get("transaction_type") or "manual",
+            reference_id=entry.get("reference_id"),
+            workshop_id=entry.get("workshop_id") or DEFAULT_WORKSHOP_ID,
+            party=party,
+            extra={k: v for k, v in entry.items() if k not in reserved},
+        )
+        if res.get("posted"):
+            return [{**entry, "id": res["journal_id"]}]
+        if res.get("idempotent"):
+            _log.info("duplicate journal entry prevented (ref=%s)", entry.get("reference_id"))
+            return [{**entry, "id": res.get("journal_id")}]
+        # رفض المحرك (مثلاً غير متوازن) → تراجع لإدراج مباشر كي لا تُفقد البيانات
+        if fallback:
+            _log.warning("engine rejected entry (%s) — fallback direct insert", res.get("error"))
+            try:
+                payload = dict(entry)
+                payload.setdefault("id", str(uuid.uuid4()))
+                return self._insert_adaptive(payload)
+            except Exception as e:
+                _log.exception("fallback insert failed: %s", redact(str(e), max_len=120))
+                return None
+        return None
 
     # ── سجل تدقيق مالي على MongoDB (دائم، لا يُمحى عند إعادة التشغيل) ──
     def _audit(self, event: str, **kwargs) -> None:
@@ -382,6 +456,11 @@ def get_engine() -> AccountingEngine:
             if _ENGINE is None:
                 _ENGINE = AccountingEngine()
     return _ENGINE
+
+
+def post_entry(entry: Dict[str, Any], *, fallback: bool = True) -> List[Dict[str, Any]]:
+    """دالة مختصرة: تمرّر قيدًا جاهزًا عبر المحرك المركزي."""
+    return get_engine().post_entry(entry, fallback=fallback)
 
 
 def get_guarded_client(raw_client: Any = None) -> SupabaseGuardedClient:

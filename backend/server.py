@@ -614,6 +614,9 @@ app.include_router(assistant_router)
 from routes_action_runtime import router as action_runtime_router
 app.include_router(action_runtime_router)
 
+from routes_financial_actions import router as financial_actions_router
+app.include_router(financial_actions_router)
+
 # 🆕 Phase 3A — register slowapi limiter so @limiter.limit() actually fires.
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler

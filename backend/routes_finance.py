@@ -1385,21 +1385,12 @@ def _build_repair_journal_entry_from_operation(
 def _insert_repair_journal_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     if not supabase:
         raise Exception("Supabase not connected")
-
-    supabase.table("journal_entries").insert(entry).execute()
-
-    row = (
-        supabase.table("journal_entries")
-        .select("id,reference_id,transaction_type,total,workshop_id,date,source")
-        .eq("id", str(entry.get("id") or ""))
-        .limit(1)
-        .execute()
-        .data
-        or []
-    )
-    if not row:
-        raise Exception("Insert not persisted: journal row not found after insert")
-    return row[0]
+    # 🏦 المسار المركزي: AccountingEngine (توازن + منع تكرار)
+    from core import accounting_engine
+    res = accounting_engine.post_entry(entry)
+    if res:
+        return res[0]
+    raise Exception("Insert not persisted: AccountingEngine returned no row")
 
 
 @router.get("/reports/reconciliation")

@@ -542,7 +542,8 @@ def approve(*, approval_id: str, approver: Optional[str] = None) -> Dict[str, An
         # Four-Eyes guard
         if _enforce_4eyes() and approver_user == draft.get("proposer"):
             _audit("APPROVAL_REJECTED_4EYES", approval_id=approval_id, approver=approver_user)
-            return {"error": "four_eyes_violation", "msg": "المُوافق لا يمكن أن يكون نفس المُنشئ"}
+            return {"error": "four_eyes_violation",
+                    "msg": "مبدأ الأربع أعين: لا يمكن للمُنشئ اعتماد إجراءه بنفسه — يلزم مستخدم آخر مخوّل للاعتماد"}
 
         approval["status"] = "approved"
         approval["approver"] = approver_user

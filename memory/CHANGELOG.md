@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions
+
+### 🏦 Phase 1 — Centralized Accounting Engine (`core/accounting_engine.py`)
+- Single writer to Supabase `journal_entries`; validates double-entry balance (debit==credit).
+- `IdentityStore` on MongoDB with UNIQUE index on `tx_hash` → race-safe idempotency. Hash = **item+price+time+customer** (+reference_id).
+- `SupabaseGuardedClient` blocks direct journal_entries writes; `_insert_adaptive` strips unknown columns; `post_entry(entry)` adapter with safe fallback. Tested 9/9 (12-thread race → 1 winner).
+
+### 💾 Phase 2 — Durable runtime state (`core/runtime_store.py`)
+- Drafts/approvals/executions/audit persisted to MongoDB (`assistant_*`); write-through + hydrate on startup; survives restarts. Tested 11/11.
+
+### 🔐 Phase 3 — Backend RBAC + Strict Four-Eyes (`core/rbac.py`, `routes_action_runtime.py`)
+- Role/permission resolution from users store + `config/role_permissions.json`. Approver roles `admin,manager,supervisor`.
+- Removed `reviewer:` bypass; approver = REAL identity. Strict Four-Eyes (`ACTION_RUNTIME_ENFORCE_4EYES=true`): self-approval → 403 `four_eyes_violation`; non-approver → 403 `permission_denied`. Tested 9/9 module + live API.
+- ⚠️ BEHAVIOR CHANGE: solo self-approval of risky actions now blocked (needs 2nd approver, or set `ACTION_RUNTIME_ENFORCE_4EYES=false`).
+
+### 💰 Phase 4 — Financial actions via engine (`core/financial_actions.py`, `routes_financial_actions.py`)
+- `POST /api/finance-actions/{invoice,payment,expense}` — balanced, idempotent, RBAC-protected. Tested 6/6.
+
+### 🧹 Journal daybook cleanup (`pages/JournalEntries.jsx`)
+- Strip raw tags `[PARTY:..][VEHICLE_REF:..][VISIT:..][PARTY_TYPE:..]`; `cleanDescription` removes duplicated party/plate. Verified visually.
+
+### 🔗 Single-source-of-truth wiring (started)
+- Wired: `routes_extended._safe_insert_journal_entry` (central operation→journal) + `routes_finance._insert_repair_journal_entry`.
+- REMAINING direct inserts (lower-freq/admin): routes_finance manual journal CRUD (~2940/3079/3098), routes_smart_accounting:238, routes_suppliers_extended:505, routes_firewall:412, server.py (~892/1070/1077), routes_extended:2135.
+
+
 ## 13 May 2026 — Smart POS reference operations + journal card clarity
 - Smart POS now creates reference operations via `POST /api/operations` for most templates instead of only writing standalone journal entries.
 - Journal entries API now exposes `payment_method`, `payment_method_label_ar`, `payment_status`, and `payment_status_label_ar`.

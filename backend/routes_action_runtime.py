@@ -31,10 +31,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
-from core import action_runtime
+from core import action_runtime, rbac
 from core.log_utils import get_logger
 
 _log = get_logger("routes.runtime")
@@ -87,15 +87,21 @@ async def runtime_request_approval(draft_id: str, payload: Optional[Dict[str, An
 
 
 @router.post("/drafts/{draft_id}/discard")
-async def runtime_discard_draft(draft_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
+async def runtime_discard_draft(draft_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
     payload = payload or {}
     d = action_runtime.get_draft(draft_id)
     if not d:
         raise HTTPException(status_code=404, detail="draft_not_found")
     if d["status"] not in ("draft", "pending_approval", "rejected"):
         raise HTTPException(status_code=400, detail=f"cannot_discard_in_state:{d['status']}")
+    # RBAC: المُنشئ نفسه يمكنه التجاهل، أو من يملك صلاحية الاعتماد
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    actor_ident = actor.name or actor.id or ""
+    if actor_ident != d.get("proposer"):
+        rbac.require(rbac.can_approve(actor))
     d["status"] = "rejected"
-    action_runtime._audit("DRAFT_DISCARDED", draft_id=draft_id, by=payload.get("by"))
+    action_runtime._audit("DRAFT_DISCARDED", draft_id=draft_id, by=actor_ident or payload.get("by"))
     return {"success": True, "data": d}
 
 
@@ -111,14 +117,15 @@ async def runtime_list_approvals(
 
 
 @router.post("/approvals/{approval_id}/approve")
-async def runtime_approve(approval_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
+async def runtime_approve(approval_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
     payload = payload or {}
-    raw_approver = payload.get("approver") or "ui"
-    # Single-operator workshops: the human reviewing the card is usually the same
-    # person who triggered it. Tag a distinct reviewer identity so the Four-Eyes
-    # state-machine check passes, while the audit trail still records the real user.
-    reviewer = str(raw_approver) if str(raw_approver).startswith("reviewer:") else f"reviewer:{raw_approver}"
-    result = action_runtime.approve(approval_id=approval_id, approver=reviewer)
+    # ── RBAC: حلّ هوية المُعتمِد الحقيقية وتحقق من صلاحيته ──
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    rbac.require(rbac.can_approve(actor))
+    # الهوية الحقيقية للمُعتمِد (بدون بادئة reviewer:) → الأربع أعين الصارم
+    approver = actor.name or actor.id or "anonymous"
+    result = action_runtime.approve(approval_id=approval_id, approver=approver)
     if "error" in result:
         # 4-eyes violation gets a 403, other errors 400
         code = 403 if result["error"] == "four_eyes_violation" else 400
@@ -127,7 +134,7 @@ async def runtime_approve(approval_id: str, payload: Optional[Dict[str, Any]] = 
     draft_id = (result.get("draft") or {}).get("id")
     committed = None
     if draft_id:
-        committed = action_runtime.commit(draft_id=draft_id, committer=reviewer)
+        committed = action_runtime.commit(draft_id=draft_id, committer=approver)
         if isinstance(committed, dict) and "error" in committed:
             raise HTTPException(status_code=400, detail=committed)
     return {"success": True, "data": {**result, "committed": committed}}
@@ -150,9 +157,12 @@ async def runtime_reject(approval_id: str, payload: Optional[Dict[str, Any]] = B
 
 
 @router.post("/drafts/{draft_id}/commit")
-async def runtime_commit(draft_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
+async def runtime_commit(draft_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
     payload = payload or {}
-    result = action_runtime.commit(draft_id=draft_id, committer=payload.get("committer"))
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    rbac.require(rbac.can_approve(actor))
+    result = action_runtime.commit(draft_id=draft_id, committer=actor.name or actor.id or payload.get("committer"))
     if "error" in result:
         raise HTTPException(status_code=400, detail=result)
     return {"success": True, "data": result}
@@ -170,9 +180,12 @@ async def runtime_list_executions(
 
 
 @router.post("/executions/{execution_id}/rollback")
-async def runtime_rollback(execution_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
+async def runtime_rollback(execution_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
     payload = payload or {}
-    result = action_runtime.rollback(execution_id=execution_id, rollbacker=payload.get("rollbacker"))
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    rbac.require(rbac.can_approve(actor))
+    result = action_runtime.rollback(execution_id=execution_id, rollbacker=actor.name or actor.id or payload.get("rollbacker"))
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"success": True, "data": result}

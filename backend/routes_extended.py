@@ -1603,6 +1603,12 @@ def _build_operation_journal_entry(
 def _safe_insert_journal_entry(supa: SupabaseService, entry: Dict[str, Any]):
     if not entry:
         return None
+    # 🏦 المسار المركزي: كل القيود تمرّ عبر AccountingEngine (توازن + منع تكرار + تدقيق)
+    try:
+        from core import accounting_engine
+        return accounting_engine.post_entry(entry)
+    except Exception as error:
+        print(f"AccountingEngine post_entry failed, fallback direct insert: {error}")
     payload = dict(entry)
     try:
         return supa.client.table("journal_entries").insert(payload).execute().data
