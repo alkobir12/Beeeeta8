@@ -36,15 +36,37 @@ def _get_jwt_secret() -> str:
     return secret
 
 
-def create_access_token(username: str) -> str:
-    """إنشاء JWT access token صالح لـ 30 يوم."""
+def create_access_token(username: str, role: Optional[str] = None) -> str:
+    """إنشاء JWT access token. يحمل الدور الموثَّق ليعتمده RBAC (لا الترويسة الخام)."""
     payload = {
         "sub": username,
+        "role": (role or "").lower() or None,
         "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         "type": "access",
     }
     return jwt.encode(payload, _get_jwt_secret(), algorithm=JWT_ALGORITHM)
+
+
+def create_refresh_token(username: str) -> str:
+    """توكن تجديد طويل العمر (لا يُستخدم للتصريح، فقط لإصدار access جديد)."""
+    payload = {
+        "sub": username,
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
+        "type": "refresh",
+    }
+    return jwt.encode(payload, _get_jwt_secret(), algorithm=JWT_ALGORITHM)
+
+
+def decode_refresh_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, _get_jwt_secret(), algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            return None
+        return payload
+    except jwt.InvalidTokenError:
+        return None
 
 
 def decode_token(token: str) -> Optional[dict]:

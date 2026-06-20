@@ -208,3 +208,6 @@ credentials.json
 frontend/node_modules/.cache/default-development/50.pack
 frontend/node_modules/.cache/default-development/52.pack
 frontend/node_modules/.cache/default-development/61.pack
+
+# Dormant duplicate source tree — NOT the live app (live = /app/backend + /app/frontend)
+autoprofit-pro/
