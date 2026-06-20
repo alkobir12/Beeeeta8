@@ -2138,9 +2138,10 @@ async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={}
                 ],
             }
             try:
-                result = supa.client.table("journal_entries").insert(je_payload).execute()
-                if result.data:
-                    fixed.append({"op_id": op_id, "type": op_type, "total": total, "je_id": result.data[0].get("id")})
+                from core import accounting_engine
+                result = accounting_engine.post_entry(je_payload)
+                if result:
+                    fixed.append({"op_id": op_id, "type": op_type, "total": total, "je_id": result[0].get("id")})
             except Exception as fix_err:
                 errors.append({"op_id": op_id, "error": str(fix_err)[:100]})
 

@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 239 — Enterprise Operator FULL LINKAGE verified end-to-end. Backend: 9/9 pytest cases pass covering L1 (finance-actions/invoice → AccountingEngine → journal_entries, balanced + idempotent), L2 (manual POST /api/finance/journal-entries wired to engine with reference_id dedup — repost returns same id and only one row exists), L3 (trial-balance, income-statement, cash-flow, balance-sheet all 200 success), L4 (firewall reconciliation 200 success), bot regression (/api/runtime/execute returns committed/pending_approval — no 500), and Four-Eyes regression (self-approval by مدير on his own draft → 403 four_eyes_violation; supervisor احمد1 passes RBAC+4eyes — commit may fail with update_failed due to fake customer id Z which is expected). Frontend: مدير name-only login works; dashboard at '/' loads with KPI cards (12/9/3/3) and no console/page errors; /accounting/journal-entries opens in full view via data-testid='journal-mode-full-button' and description column shows clean text (e.g. 'سند قبض — تحت الحساب', 'فاتورة — عميل ربط شامل (1 بند)') with NO raw [PARTY:]/[VEHICLE_REF:]/[VISIT:] tags — plate and party appear in their own columns.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_enterprise_linkage_iter239.py",
+    "/app/test_reports/pytest/iter239_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Manual POST /api/finance/journal-entries returns both top-level 'id' and 'data':[entry] — slight envelope ambiguity. Consider standardising on 'data': {entry} for single-create responses (consistent with finance-actions style).",
+    "Console shows React Router v7 future flag warnings — non-blocking, but worth opting-in (v7_startTransition / v7_relativeSplatPath) to silence noise during testing."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_enterprise_linkage_iter239.py"
+  ],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100% (dashboard + journal daybook)"},
+  "test_credentials": "Name-only login: مدير (admin/approver), احمد1 (supervisor/approver), فرج1 (accountant/non-approver). Backend identity via header x-user-role (ASCII) + Arabic name in body 'by'.",
+  "seed_data_creation": "Created and auto-cleaned: two journal_entries with TEST-LNK1-* and TEST-LNK2-* reference_ids (cleanup via DELETE /api/finance/journal-entries?reference_id=... in module fixture teardown). One ephemeral draft + approval for Four-Eyes regression (left in pending/rejected state — does not affect ledger).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Engine wiring is solid: all journal write paths (finance-actions invoice/payment/expense, manual /api/finance/journal-entries, period-close, smart_accounting, suppliers_extended, firewall auto_fix, server.py paths) post through core/accounting_engine.AccountingEngine with reference_id idempotency. Reports (trial-balance/income-statement/cash-flow/balance-sheet/reconciliation) read from journal_entries and all respond 200. Four-Eyes strict (self-approval → 403) and RBAC remain intact. Bot safe auto-commit path works. Frontend daybook sanitisation (JournalEntries.jsx cleanDescription/sanitizeEntryText) hides raw tags correctly. Re-use /app/backend/tests/test_enterprise_linkage_iter239.py as the linkage regression suite.",
+  "rca of the issue": "No production bugs. Two initial test envelope-mismatches were on the test side and were fixed in /app/backend/tests/test_enterprise_linkage_iter239.py: (1) manual journal-entries response is {success, id, data:[entry]} (list under data); test now extracts id from top-level or data[0]. (2) Approve route is POST /api/runtime/approvals/{approval_id}/approve (not /drafts/{id}/approve); test now chains drafts → request_approval → approvals/{id}/approve."
+}

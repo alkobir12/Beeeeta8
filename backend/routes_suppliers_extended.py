@@ -502,7 +502,8 @@ async def import_execute(payload: Dict[str, Any] = Body(...)):
                     ],
                     "total": amount,
                 }
-                supabase.table("journal_entries").insert(entry).execute()
+                from core import accounting_engine
+                accounting_engine.post_entry(entry)
             imported.append({"row": i + 1, "name": name, "amount": amount, "date": date})
         except Exception as e:
             failed.append({"row": i + 1, "error": str(e), "data": row[:5]})

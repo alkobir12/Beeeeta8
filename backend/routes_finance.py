@@ -2928,7 +2928,8 @@ async def close_period(
         }
 
         try:
-            supa.client.table("journal_entries").insert(new_entry).execute()
+            from core import accounting_engine
+            accounting_engine.post_entry(new_entry)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"فشل حفظ قيد الإقفال: {e}")
 
@@ -3061,47 +3062,24 @@ async def create_journal_entry(entry: dict, request: Request, workshop_id: str =
             "reference_id": entry.get("reference_id"),
         }
 
-        # Try to add transaction_type (source column may not exist in schema)
-        try:
-            full_entry_data = {
-                **entry_data,
-                "transaction_type": transaction_type,
-            }
-            response = supabase.table("journal_entries").insert(full_entry_data).execute()
+        # 🏦 المسار المركزي: AccountingEngine (توازن + منع تكرار + أعمدة متكيّفة)
+        full_entry_data = {**entry_data, "transaction_type": transaction_type}
+        from core import accounting_engine
+        response_data = accounting_engine.post_entry(full_entry_data)
 
-            invalidate_finance_caches()
-            result = {
-                "success": True,
-                "message": "تم إنشاء القيد المحاسبي بنجاح",
-                "id": entry_data["id"],
-                "data": response.data,
-            }
-            if _idem_key:
-                try:
-                    store_response(_idem_key, result)
-                except Exception:
-                    pass
-            return result
-
-        except Exception as schema_error:
-            # If transaction_type column doesn't exist, try with basic fields only
-            print(f"Schema error, trying with basic fields: {schema_error}")
-            response = supabase.table("journal_entries").insert(entry_data).execute()
-
-            invalidate_finance_caches()
-            result = {
-                "success": True,
-                "message": "تم إنشاء القيد المحاسبي بنجاح (بدون transaction_type)",
-                "id": entry_data["id"],
-                "data": response.data,
-                "note": "تم الحفظ بدون حقل transaction_type - يحتاج تحديث قاعدة البيانات",
-            }
-            if _idem_key:
-                try:
-                    store_response(_idem_key, result)
-                except Exception:
-                    pass
-            return result
+        invalidate_finance_caches()
+        result = {
+            "success": True,
+            "message": "تم إنشاء القيد المحاسبي بنجاح",
+            "id": (response_data[0].get("id") if response_data else entry_data["id"]),
+            "data": response_data,
+        }
+        if _idem_key:
+            try:
+                store_response(_idem_key, result)
+            except Exception:
+                pass
+        return result
 
     except HTTPException:
         raise

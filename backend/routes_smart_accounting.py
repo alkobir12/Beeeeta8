@@ -235,7 +235,8 @@ async def supplier_balance_payment(payload: Dict[str, Any] = Body(...)):
         "source": "supplier_balance_payment",
         "reference_id": operation_id or None,
     }
-    supabase.table("journal_entries").insert(entry).execute()
+    from core import accounting_engine
+    accounting_engine.post_entry(entry)
 
     # تحديث رصيد المورد إن كان جدول الموردين متاحاً
     if suppliers_table_available:

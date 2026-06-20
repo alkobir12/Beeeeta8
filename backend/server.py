@@ -889,7 +889,8 @@ async def settle_vehicle_credit_operations(vehicle_id: str):
         }
 
         try:
-            supabase_service.client.table("journal_entries").insert(entry).execute()
+            from core import accounting_engine
+            accounting_engine.post_entry(entry)
             supabase_service.client.table("operations").update({"payment_method": "cash"}).eq("id", op.get("id")).execute()
         except Exception:
             continue
@@ -1066,15 +1067,8 @@ async def save_vehicle_parts_and_create_journal(
         # حفظ في Supabase
         if DB_PROVIDER == "supabase":
             try:
-                try:
-                    supabase_service.client.table("journal_entries").insert(journal_entry).execute()
-                except Exception:
-                    fallback_entry = {
-                        k: v
-                        for k, v in journal_entry.items()
-                        if k not in {"transaction_type", "reference_id"}
-                    }
-                    supabase_service.client.table("journal_entries").insert(fallback_entry).execute()
+                from core import accounting_engine
+                accounting_engine.post_entry(journal_entry)
                 print("✅ Journal entry saved to Supabase")
             except Exception as e:
                 print(f"Failed to save journal entry to Supabase: {e}")

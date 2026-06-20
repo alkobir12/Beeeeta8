@@ -409,8 +409,10 @@ async def firewall_auto_fix(
                 ],
                 "created_at": _dt.now(_tz.utc).isoformat(),
             }
-            supa.client.table("journal_entries").insert(entry).execute()
-            return {"success": True, "action_taken": "created_balancing_adjustment", "journal_entry_id": entry["id"]}
+            from core import accounting_engine
+            _res = accounting_engine.post_entry(entry)
+            _jid = (_res[0].get("id") if _res else entry["id"])
+            return {"success": True, "action_taken": "created_balancing_adjustment", "journal_entry_id": _jid}
 
         return {"success": False, "error": f"نوع الإصلاح غير مدعوم: {fix_type}"}
     except HTTPException:

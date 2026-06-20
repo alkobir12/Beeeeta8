@@ -290,6 +290,7 @@ class AccountingEngine:
         actor: Optional[Dict[str, str]] = None,
         extra: Optional[Dict[str, Any]] = None,
         time_granularity: str = "minute",
+        entry_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """ينشر قيد يومية متوازن مع ضمان عدم التكرار.
 
@@ -335,7 +336,7 @@ class AccountingEngine:
             }
 
         payload: Dict[str, Any] = {
-            "id": str(uuid.uuid4()),
+            "id": entry_id or str(uuid.uuid4()),
             "workshop_id": workshop_id,
             "date": entry_date,
             "description": description or "",
@@ -413,6 +414,7 @@ class AccountingEngine:
             workshop_id=entry.get("workshop_id") or DEFAULT_WORKSHOP_ID,
             party=party,
             extra={k: v for k, v in entry.items() if k not in reserved},
+            entry_id=entry.get("id"),
         )
         if res.get("posted"):
             return [{**entry, "id": res["journal_id"]}]
