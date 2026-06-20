@@ -125,3 +125,28 @@
 - `/app/test_reports/iteration_241.json` → backend 15/15 PASS (reversal, governance, bot).
 - Reversal correctness verified against DB (line-swap, original preserved, balanced).
 - FE JWT login race fixed & re-verified manually (token persisted before redirect).
+
+## 20 June 2026 — Bot Capability Governance: Phase A + B (financial actions wired to كاترينا)
+Per BOT CAPABILITY GOVERNANCE + DECISIONS (start A+B, stop for review, then C):
+- Phase A: encoded Principle ① (real-source-only, resolve entity, ASK on missing/ambiguous)
+  + tiered model (L1 quick-confirm / L2 four-eyes) + echo-back + financial-no-auto-commit
+  in the assistant system prompt and intent parser.
+- Phase B: wired create_invoice / collect_payment / create_expense / reverse_entry to the bot:
+  * llm_intent_parser: 4 new ALLOWED_ACTIONS + prompt + examples.
+  * unified_executor: financial actions are RISKY (always Four-Eyes, never auto-commit);
+    _resolve_financial_target resolves the real customer/entry, builds echo-back, asks on
+    missing/ambiguous (no guessing).
+  * action_runtime: VALID_ACTIONS + commit() financial handler → financial_actions.* →
+    accounting_engine (single writer), audit COMMIT_FINANCIAL.
+  * assistant_kernel: financial verbs in looks_like_action, echo-back approval card
+    (النوع/الطرف/المبلغ/الأثر المحاسبي + red line), clarification 'ask' messages.
+- DX: chat 'executed' now includes approval_id; REST /finance-actions/invoice accepts amount alias.
+- BOT_ALLOW_WRITES stays 0; financial writes flow via the runtime approval pipeline only.
+
+## Verification (iteration_242) — 21/21 backend PASS
+- Bot proposes invoice/payment/expense/reverse → ALWAYS pending_approval + echo-back (never auto-commit).
+- Principle ①: missing amount / unknown customer → clarify (no fabricated values).
+- Four-Eyes: same proposer → 403; different approver (احمد1) → committed via engine.
+- Accounting integrity 100%: 50 recent journal entries all balanced (dr==cr); single-writer holds;
+  reverse contra preserves original; site REST regression intact; safe entity actions still auto-commit.
+- Phase C (L1 quick-confirm for safe entity actions) intentionally deferred for user review.

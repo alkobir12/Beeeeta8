@@ -217,8 +217,9 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
         "create_invoice": "فاتورة", "collect_payment": "تحصيل دفعة",
         "create_expense": "مصروف", "reverse_entry": "قيد عكسي",
     }.get(action, action)
-    cards: List[Dict[str, Any]] = []
+    cards: List[Dict[str, Any]] = []  # 🆕 collected from each tool result
     entity_id = None
+    approval_id = None
     if status == "committed":
         r = exec_res.get("result") or {}
         entity_id = r.get("id")
@@ -280,7 +281,7 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
         "context_snapshot": {}, "recent_actions": shared_memory.get_recent_actions(sid, limit=10),
         "ai_used": False, "model_used": None, "read_only": False, "mode": "action",
         # 🆕 the frontend dispatches finance:updated when this is a committed write
-        "executed": {"status": status, "action": action, "entity_id": entity_id},
+        "executed": {"status": status, "action": action, "entity_id": entity_id, "approval_id": approval_id},
         "power": None,
     }
 
