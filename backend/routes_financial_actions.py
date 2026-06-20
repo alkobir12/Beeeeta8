@@ -97,3 +97,28 @@ async def post_expense(request: Request, payload: Dict[str, Any] = Body(...)):
         actor=actor.to_dict(),
     )
     return _result_or_raise(result)
+
+
+@router.post("/reverse")
+async def post_reverse(request: Request, payload: Dict[str, Any] = Body(...)):
+    """قيد عكسي (No Hard Delete) — يتطلب صلاحية حذف القيود أو دور اعتماد."""
+    actor = await _actor(request, payload)
+    allowed = rbac.check_permission(actor, "journal_entries", "delete")
+    if not allowed.allowed:
+        allowed = rbac.can_approve(actor)
+    rbac.require(allowed)
+    journal_id = payload.get("journal_id")
+    reference_id = payload.get("reference_id")
+    if not journal_id and not reference_id:
+        raise HTTPException(status_code=400, detail={"error": "missing_target",
+                                                    "msg": "journal_id أو reference_id مطلوب"})
+    result = financial_actions.reverse_entry(
+        journal_id=journal_id,
+        reference_id=reference_id,
+        reason=(payload.get("reason") or "").strip(),
+        actor=actor.to_dict(),
+    )
+    if result.get("error") == "original_not_found":
+        raise HTTPException(status_code=404, detail={"error": "original_not_found",
+                                                    "msg": "القيد الأصلي غير موجود"})
+    return {"success": True, "data": result}

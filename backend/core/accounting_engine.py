@@ -433,6 +433,80 @@ class AccountingEngine:
                 return None
         return None
 
+    # ── قراءة قيد أصلي من Supabase (للعكس/التدقيق) ──
+    def _fetch_originals(self, *, journal_id: Optional[str] = None,
+                         reference_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        try:
+            q = self.raw.table(JOURNAL_TABLE).select("*")
+            if journal_id:
+                res = q.eq("id", journal_id).execute()
+            elif reference_id:
+                res = q.eq("reference_id", reference_id).execute()
+            else:
+                return []
+            return getattr(res, "data", None) or []
+        except Exception as e:
+            _log.warning("fetch originals failed: %s", redact(str(e), max_len=100))
+            return []
+
+    def _reversal_exists(self, original_id: str) -> bool:
+        try:
+            res = (self.raw.table(JOURNAL_TABLE).select("id")
+                   .eq("reference_id", f"reversal::{original_id}").limit(1).execute())
+            return bool(getattr(res, "data", None))
+        except Exception:
+            return False
+
+    # ── قيد عكسي (Reversal / Contra-entry) — يحفظ الأصل ويضيف العكس ──
+    def reverse(self, *, journal_id: Optional[str] = None, reference_id: Optional[str] = None,
+                reason: str = "", actor: Optional[Dict[str, str]] = None,
+                workshop_id: str = DEFAULT_WORKSHOP_ID) -> Dict[str, Any]:
+        """ينشئ قيدًا عكسيًا (مدين↔دائن) لقيد/قيود سابقة دون حذف الأصل.
+
+        مبدأ الحوكمة: No Hard Delete — يُحفَظ الأصل + يُضاف العكس عبر المحرك الوحيد.
+        منع تكرار: لا يُعكَس القيد مرتين، ولا يُعكَس قيدٌ عكسيّ.
+        """
+        originals = self._fetch_originals(journal_id=journal_id, reference_id=reference_id)
+        if not originals:
+            return {"reversed": False, "error": "original_not_found"}
+        out: List[Dict[str, Any]] = []
+        for orig in originals:
+            oid = str(orig.get("id") or "")
+            if str(orig.get("source") or "") == "reversal" or orig.get("reversed_of"):
+                out.append({"original_id": oid, "skipped": "is_reversal"})
+                continue
+            if oid and self._reversal_exists(oid):
+                out.append({"original_id": oid, "reversed": False, "idempotent": True,
+                            "message": "القيد مَعكوس مسبقًا"})
+                continue
+            rev_lines = [{
+                "account": ln.get("account"),
+                "account_name": ln.get("account_name"),
+                "debit": _norm_amount(ln.get("credit")),
+                "credit": _norm_amount(ln.get("debit")),
+            } for ln in (orig.get("lines") or [])]
+            if not rev_lines:
+                out.append({"original_id": oid, "reversed": False, "error": "no_lines"})
+                continue
+            res = self.post(
+                lines=rev_lines,
+                date=_now_iso(),
+                description=(f"قيد عكسي — {orig.get('description') or oid}"
+                             + (f" | السبب: {reason}" if reason else "")),
+                source="reversal",
+                transaction_type="reversal",
+                reference_id=f"reversal::{oid}",
+                workshop_id=orig.get("workshop_id") or workshop_id,
+                party=orig.get("party_label") or orig.get("party"),
+                actor=actor,
+                extra={"reversed_of": oid, "reversal_reason": reason or None},
+            )
+            self._audit("JOURNAL_REVERSED", original_id=oid,
+                        reversal_id=res.get("journal_id"), reason=reason or None,
+                        actor=(actor or {}).get("user_id"))
+            out.append({"original_id": oid, **res})
+        return {"reversed": any(r.get("posted") for r in out), "entries": out}
+
     # ── سجل تدقيق مالي على MongoDB (دائم، لا يُمحى عند إعادة التشغيل) ──
     def _audit(self, event: str, **kwargs) -> None:
         try:
@@ -463,6 +537,13 @@ def get_engine() -> AccountingEngine:
 def post_entry(entry: Dict[str, Any], *, fallback: bool = True) -> List[Dict[str, Any]]:
     """دالة مختصرة: تمرّر قيدًا جاهزًا عبر المحرك المركزي."""
     return get_engine().post_entry(entry, fallback=fallback)
+
+
+def reverse_entry(*, journal_id: Optional[str] = None, reference_id: Optional[str] = None,
+                  reason: str = "", actor: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    """دالة مختصرة: قيد عكسي عبر المحرك المركزي (يحفظ الأصل + يضيف العكس)."""
+    return get_engine().reverse(journal_id=journal_id, reference_id=reference_id,
+                                reason=reason, actor=actor)
 
 
 def get_guarded_client(raw_client: Any = None) -> SupabaseGuardedClient:

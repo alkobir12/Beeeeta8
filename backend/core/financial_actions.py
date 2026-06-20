@@ -171,3 +171,20 @@ def create_expense(
         extra={"party_label": supplier or "مفتوح",
                "party_type": "supplier" if supplier else "open"},
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4) قيد عكسي (Reversal / Contra-entry) — No Hard Delete
+# ─────────────────────────────────────────────────────────────────────────────
+
+def reverse_entry(
+    *,
+    journal_id: Optional[str] = None,
+    reference_id: Optional[str] = None,
+    reason: str = "",
+    actor: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """عكس قيد/قيود مرتبطة دون حذف الأصل — يمرّ عبر المحرك المركزي."""
+    return get_engine().reverse(
+        journal_id=journal_id, reference_id=reference_id, reason=reason, actor=actor,
+    )

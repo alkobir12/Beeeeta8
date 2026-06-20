@@ -665,11 +665,17 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                 client = _supabase_client()
                 deleted = False
                 if client:
-                    # 1) cascade: remove linked journal entries first (best-effort)
+                    # 1) 🏦 Governance (No Hard Delete): REVERSE linked journal
+                    #    entries via the central engine instead of deleting them.
+                    #    Preserves original + adds a contra entry (immutable audit).
                     try:
-                        client.table("journal_entries").delete().eq("reference_id", op_id).execute()
+                        from core import accounting_engine
+                        accounting_engine.get_engine().reverse(
+                            reference_id=op_id, reason="حذف عملية",
+                            actor={"user_id": committer or "system"},
+                        )
                     except Exception as je:
-                        _log.debug("cascade journal delete skipped: %s", redact(str(je), max_len=80))
+                        _log.debug("cascade journal reversal skipped: %s", redact(str(je), max_len=80))
                     # 2) delete the operation — capture returned rows to know if it existed
                     res = client.table("operations").delete().eq("id", op_id).execute()
                     deleted = bool(getattr(res, "data", None))
