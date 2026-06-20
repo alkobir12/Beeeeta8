@@ -430,3 +430,17 @@ has a `<button>`-in-`<button>` DOM-nesting warning.
 - `/app/backend/accounting_auditor.py`
 - `/app/backend/auto_sync_service.py`
 - `/app/backend/routes_*.py`
+
+---
+## 🔐 Security Status (updated 20 June 2026)
+**Pre-Deploy Audit P0 blockers — RESOLVED & verified (iteration_240):**
+- ✅ JWT-based RBAC (role embedded in signed token; spoofable `x-user-role`/`x-user-id` headers ignored).
+- ✅ Deny-by-default login (unknown/inactive users get no token; no token ⇒ 403).
+- ✅ Access token 60 min + refresh token 7 days (`POST /api/auth/refresh`; FE auto-refresh on 401).
+- ✅ CORS restricted (no `*`; `allow_credentials=True` + explicit origins).
+- ✅ Dormant duplicate `autoprofit-pro/` removed from `/app`.
+
+**Deferred (user: "no P1 this session" — awaiting review):**
+- P1: Decimal (not float) in accounting engine; explicit LLM call timeouts; connect finance APIs to AI bot tool router.
+- P2/UX: visible Arabic error toast on unknown-user login; button-in-button nesting warning (RecentOperationsWidget);
+  edge-proxy CORS wildcard at preview ingress (app-level CORS is correct); print→logger cleanup; deep-link contextual actions.

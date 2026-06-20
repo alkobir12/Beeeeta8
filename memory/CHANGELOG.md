@@ -84,3 +84,24 @@
 - `/app/test_reports/iteration_199.json` → PASS
 - `auto_frontend_testing_agent` → PASS
 - `deep_testing_backend_v2` → 7/7 PASS
+
+## 20 June 2026 — P0 Security Remediation (Pre-Deploy Audit fixes)
+- FIXED broken login (undefined `ACCESS_TOKEN_EXPIRE_MINUTES`) that returned HTTP 500.
+- Migrated RBAC from spoofable HTTP headers (`x-user-role`/`x-user-id`) to a signed JWT
+  that embeds the authenticated role (`auth_jwt.create_access_token` + `identity_from_request`;
+  `core/rbac.extract_identity` now reads identity/role ONLY from the JWT).
+- Deny-by-default: `POST /api/auth/login` now rejects unknown/inactive users (401/403);
+  no valid JWT ⇒ role `unknown` ⇒ 403 on protected routes.
+- Token strategy: access token 60 min + refresh token 7 days; new `POST /api/auth/refresh`.
+  Frontend (`utils/authToken.js`) silently refreshes on 401 and retries.
+- Updated `routes_accounts_extended.py`, `routes_finance.py`, `routes_extended.py`,
+  `routes_financial_actions.py`, `routes_action_runtime.py` to use JWT identity.
+- Restricted CORS: `CORS_ORIGINS` no longer `*`; `allow_credentials=True` with explicit origins.
+- Removed dormant duplicate repo: moved `/app/autoprofit-pro` (+ stray test scripts) out of `/app`.
+
+## Verification (iteration_240)
+- `/app/test_reports/iteration_240.json` → backend 30/31 PASS (97%), frontend 90%.
+- Impersonation re-tested: spoofed `x-user-role: admin` w/o JWT → 403 on invoice/payment/expense.
+- Four-Eyes: approver-role JWT required; accountant/technician/no-JWT rejected.
+- Open (deferred, per user "no P1 this session"): edge-proxy CORS wildcard at preview ingress
+  (app-level CORS is correct); silent unknown-user login toast (UX); button-nesting warning.
