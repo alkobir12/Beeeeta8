@@ -133,7 +133,7 @@ const TemplatesManager = () => {
   };
 
   const deleteTemplate = async (templateId) => {
-    if (!confirm(isArabic ? 'هل أنت متأكد من حذف هذا النموذج؟' : 'Are you sure you want to delete this template?')) {
+    if (!window.confirm(isArabic ? 'هل أنت متأكد من حذف هذا النموذج؟' : 'Are you sure you want to delete this template?')) {
       return;
     }
 

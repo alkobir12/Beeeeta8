@@ -722,7 +722,7 @@ const DocumentPrint = () => {
 
       const phone = formData.customer?.phone || formData.supplier?.phone || formData.customerPhone || '';
       if (phone) {
-        const message = `فاتورة ${docType}\nالعميل: ${formData.customer?.name || formData.customerName || ''}\nالإجمالي: ${formatCurrency(totalAmount)}\n${workshop?.name || ''}`;
+        const message = `فاتورة ${docType}\nالعميل: ${formData.customer?.name || formData.customerName || ''}\nالإجمالي: ${calculateTotal().total.toLocaleString('ar-SA', { minimumFractionDigits: 2 })}\n${formData.workshop?.name || ''}`;
         window.open(getWhatsAppLink(phone, message), '_blank');
       } else {
         alert(isArabic ? 'يرجى إضافة رقم الجوال للعميل لإرسال واتس اب' : 'Customer phone is missing');

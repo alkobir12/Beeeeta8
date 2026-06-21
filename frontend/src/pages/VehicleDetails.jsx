@@ -14,17 +14,6 @@ import { statusSteps, getStatusLabel, getStatusColor } from '../mock/data';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../utils/formatters';
 import { OPERATION_TYPE_LABELS, SOURCE_LABELS, labelFromMap, resolveVisitDisplay } from '../utils/displayLabels';
-
-// Updated icons imports
-
-const API_URL = (
-  process.env.NODE_ENV === 'production'
-    ? '/api'
-    : `${resolveBackendBase()}/api`.replace('//api', '/api')
-);
-const FILE_BASE = process.env.NODE_ENV === 'production' ? '' : (resolveBackendBase() || '');
-
-// Drag & drop (Liquid layout)
 import {
   DndContext,
   PointerSensor,
@@ -40,10 +29,16 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-
 import { userLayoutsAPI } from '../services/userLayoutsAPI';
 import { resolveBackendBase } from '../utils/backendBase';
 import { generateIdempotencyKey } from '../utils/idempotency';
+
+const API_URL = (
+  process.env.NODE_ENV === 'production'
+    ? '/api'
+    : `${resolveBackendBase()}/api`.replace('//api', '/api')
+);
+const FILE_BASE = process.env.NODE_ENV === 'production' ? '' : (resolveBackendBase() || '');
 
 const ARCHIVE_AUDIT_KEY = 'vehicle-archive-edit-audit-v1';
 
@@ -1384,9 +1379,6 @@ const VisitCard = ({
 
         if (onShowWhatsAppPreview) {
           onShowWhatsAppPreview(notification);
-        } else {
-          setWaPreview(notification);
-          setWaPreviewOpen(true);
         }
 
         setWhatsappNotification(notification);
