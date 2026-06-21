@@ -12,15 +12,13 @@ import { queryClient } from './queryClient';
 import { getFirstAllowedRoute, hasRoutePermission, normalizePermissions, resolveRoutePermission } from './utils/permissions';
 import { resolveBackendBase } from './utils/backendBase';
 import { installAuthInterceptors } from './utils/authToken';
+import Dashboard from "./pages/Dashboard";
+import Login from "./pages/Login";
+import PartsInventory from "./pages/PartsInventory";
 
 // 🔒 Install JWT interceptors globally — auto-attaches Authorization header to every
 // axios/fetch request once a token is stored in localStorage (set by Login.jsx).
 installAuthInterceptors(axios);
-
-// Eager load critical pages
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import PartsInventory from "./pages/PartsInventory";
 
 // Lazy load other pages for better performance
 const Customers = lazy(() => import("./pages/Customers"));
