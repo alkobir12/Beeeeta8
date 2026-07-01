@@ -110,8 +110,8 @@ const classifyAccountCode = (accountCode = '') => {
   if (!code) return 'غير مصنف';
   if (/^0?0[3-9]$/.test(code) || ['010', '1101', '1102', '1103', '1104', '1105'].includes(code)) return 'أصل';
   if (code === '2101' || code.startsWith('2')) return 'التزام';
-  if (['025', '026', '027', '028', '029', '042'].includes(code) || code.startsWith('4')) return 'إيراد';
-  if (['030', '031', '035', '036', '037', '0421'].includes(code) || code.startsWith('5') || code.startsWith('6')) return 'مصروف';
+  if (['024', '025', '026', '027', '028', '041', '042'].includes(code) || code.startsWith('4')) return 'إيراد';
+  if (['029', '030', '031', '032', '033', '034', '035', '036', '037', '038', '039', '040', '167', '0421'].includes(code) || code.startsWith('5') || code.startsWith('6')) return 'مصروف';
   if (code.startsWith('4')) return 'إيراد';
   if (code.startsWith('5') || code.startsWith('6')) return 'مصروف';
   if (code.startsWith('1')) return 'أصل';

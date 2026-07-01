@@ -721,34 +721,39 @@ async def save_coa_tree(payload: Dict[str, Any] = Body(...)):
 # NOTE: This app uses a modern chart of accounts (e.g., 1101 cash, 1102 bank, 1103 customers, 2101 suppliers).
 # Legacy codes (101/113/211/411/514) caused misclassification in reports.
 ACCOUNT_NAME_MAP = {
-    # ─── أكواد جديدة (تسلسلية) ───
+    # ─── أكواد جديدة (مطابقة لجدول accounts الحي) ───
     "003": "النقد",
     "004": "البنك",
     "005": "العملاء (ذمم مدينة)",
     "006": "نقاط بيع",
-    "022": "مسحوبات المالك",
-    "024": "خصم مسموح به للعملاء",
-    "025": "الإيرادات",
-    "026": "إيرادات الخدمات",
-    "027": "إيرادات خدمات ميكانيكية",
-    "028": "إيرادات إصلاح محركات",
-    "029": "إيرادات فرامل وتعليق",
-    "030": "تكلفة الخدمات",
-    "031": "تكاليف مباشرة",
+    "007": "مخزون قطع غيار",
+    "008": "مخزون مستهلكات",
+    "010": "معدات ميكانيكية",
+    "021": "مسحوبات المالك",
+    "024": "الإيرادات",
+    "025": "إيرادات الخدمات",
+    "026": "إيرادات خدمات ميكانيكية",
+    "027": "إيرادات إصلاح محركات",
+    "028": "إيرادات فرامل وتعليق",
+    "029": "تكلفة الخدمات",
+    "030": "تكاليف مباشرة",
+    "031": "أجور فنيين مباشرة",
+    "032": "قطع غيار مستخدمة",
+    "033": "مستهلكات مستخدمة",
     "034": "المصروفات التشغيلية",
     "035": "مصروفات عامة وإدارية",
     "036": "رواتب إدارية",
-    "010": "معدات ميكانيكية",
-    "1105": "مخزون قطع غيار",
-    "042": "ايراد قطع الورشه",
-    "0421": "تكلفة قطع الورشة",
+    "037": "إيجار المركز",
+    "041": "ايراد قطع الورشه",
+    "166": "حساب فروقات ترحيل",
+    "167": "تكلفة قطع الورشة",
     "2101": "الموردون (ذمم دائنة)",
-    "211":  "حساب فروقات ترحيل",
     # ─── أكواد قديمة (للتوافق مع القيود التاريخية) ───
     "1101": "النقد",
     "1102": "البنك",
     "1103": "العملاء (ذمم مدينة)",
     "1104": "نقاط بيع",
+    "1105": "مخزون قطع غيار",
     "4100": "إيرادات الخدمات",
     "4000": "الإيرادات",
     "6101": "رواتب إدارية",
@@ -756,9 +761,21 @@ ACCOUNT_NAME_MAP = {
     "1201": "معدات ميكانيكية",
     "6100": "مصروفات عامة وإدارية",
     "6000": "المصروفات التشغيلية",
+    "042": "ايراد قطع الورشه",
+    "0421": "تكلفة قطع الورشة",
+    "211":  "حساب فروقات ترحيل",
 }
 
 IDEMPOTENCY_NOTE_PREFIX = "[IDEMP:"
+
+
+def _sem_code(key: str, fallback: str) -> str:
+    """الكود الحالي من الدليل الحي (chart_resolver) مع fallback ثابت."""
+    try:
+        from core.chart_resolver import semantic_codes
+        return semantic_codes().get(key) or fallback
+    except Exception:
+        return fallback
 
 
 def _extract_idempotency_key(payload: Dict[str, Any]) -> str:
@@ -952,14 +969,14 @@ def _adjust_supabase_inventory_and_build_cogs_entries(
             "description": f"تكلفة قطع الورشة - عملية {op.get('id')}",
             "lines": [
                 {
-                    "account": "0421",
-                    "account_name": ACCOUNT_NAME_MAP.get("0421", "تكلفة قطع الورشة"),
+                    "account": _sem_code("parts_cogs", "167"),
+                    "account_name": "تكلفة قطع الورشة",
                     "debit": cogs_total,
                     "credit": 0,
                 },
                 {
-                    "account": "1105",
-                    "account_name": ACCOUNT_NAME_MAP.get("1105", "مخزون قطع غيار"),
+                    "account": _sem_code("inventory_parts", "007"),
+                    "account_name": "مخزون قطع غيار",
                     "debit": 0,
                     "credit": cogs_total,
                 },
@@ -978,10 +995,15 @@ _TOWDHEEB_KEYWORDS = ["توضيب", "تلميع مكينة", "غسيل مكين�
 
 def _infer_revenue_code(op: Dict[str, Any]) -> str:
     """
-    يستنتج كود حساب الإيراد الصحيح من بنود العملية:
-    - توضيب → 028 (إيرادات إصلاح محركات)
-    - غير ذلك → 027 (إيرادات خدمات ميكانيكية)
+    يستنتج كود حساب الإيراد الصحيح من بنود العملية (الأكواد الحالية من الدليل الحي):
+    - توضيب → إيرادات إصلاح محركات
+    - غير ذلك → إيرادات خدمات ميكانيكية
     """
+    try:
+        from core.chart_resolver import semantic_codes
+        sem = semantic_codes()
+    except Exception:
+        sem = {}
     items = op.get("items") or []
     all_text = " ".join(
         [str(op.get("notes") or ""), str(op.get("description") or "")]
@@ -990,8 +1012,8 @@ def _infer_revenue_code(op: Dict[str, Any]) -> str:
     )
     for kw in _TOWDHEEB_KEYWORDS:
         if kw in all_text:
-            return "028"
-    return "027"
+            return sem.get("revenue_engine") or "027"
+    return sem.get("revenue_mech") or "026"
 
 # خريطة تحويل الأكواد القديمة → الجديدة
 LEGACY_TO_NEW_CODE = {
@@ -1224,12 +1246,17 @@ def _build_operation_journal_entry(
 
     is_credit = payment_method == "credit"
 
-    # Choose cash/bank/pos code for non-credit payments (أكواد جديدة)
-    cash_code = "003"
+    # Choose cash/bank/pos code for non-credit payments (أكواد حالية من الدليل الحي)
+    cash_code = _sem_code("cash", "003")
     if payment_method in ("transfer", "bank", "تحويل", "بنك"):
-        cash_code = "004"
+        cash_code = _sem_code("bank", "004")
     elif payment_method in ("pos", "card", "mada", "visa", "mastercard", "نقاط بيع", "نقاط_بيع", "point_of_sale", "بطاقة", "بطاقه", "شبكة"):
-        cash_code = "006"
+        cash_code = _sem_code("pos", "006")
+
+    ar_code = _sem_code("ar", "005")
+    ap_code = _sem_code("ap", "2101")
+    parts_rev_code = _sem_code("parts_revenue", "041")
+    admin_exp_code = _sem_code("admin_expense", "035")
 
     chart_account_ref_map = chart_account_ref_map or {}
 
@@ -1318,8 +1345,8 @@ def _build_operation_journal_entry(
             return None
 
         # 🚫 Non-Rakan parts-only sale → archive only, no journal entry.
-        # BUT: if any item has revenueAccountCode='042' (workshop supplier part),
-        # create a journal entry to account 042 (ايراد قطع الورشة).
+        # BUT: if any item has revenueAccountCode for workshop parts revenue,
+        # create a journal entry to (ايراد قطع الورشة).
         items_for_check = op.get("items") or []
         workshop_supplier_items = [
             it for it in items_for_check
@@ -1328,7 +1355,7 @@ def _build_operation_journal_entry(
             and not is_rakan_operation
             and not _is_ajel_supplier(str(it.get("name") or ""))  # موردو الآجل مُستثنون
             and (
-                it.get("revenueAccountCode") == "042"
+                str(it.get("revenueAccountCode") or "") in ("041", "042")
                 or it.get("linkedPart")
                 or _is_known_workshop_supplier(str(it.get("name") or ""))
             )
@@ -1350,7 +1377,7 @@ def _build_operation_journal_entry(
             return None
 
         transaction_type = "sale"
-        debit_code = "005" if is_credit else cash_code
+        debit_code = ar_code if is_credit else cash_code
         _valid_rev_code = (
             selected_code
             if selected_code and len(selected_code) <= 12 and "-" not in selected_code
@@ -1367,7 +1394,7 @@ def _build_operation_journal_entry(
         full_debit = service_amount + workshop_parts_total  # 200+120=320 أو 0+150=150
 
         if workshop_parts_total > 0 and service_amount > 0:
-            # عملية مختلطة: خدمات → 026، قطع ورشة → 042
+            # عملية مختلطة: خدمات → إيراد خدمات، قطع ورشة → ايراد قطع الورشة
             lines = [
                 {
                     "account": debit_code,
@@ -1382,14 +1409,14 @@ def _build_operation_journal_entry(
                     "credit": service_amount,
                 },
                 {
-                    "account": "042",
+                    "account": parts_rev_code,
                     "account_name": "ايراد قطع الورشه",
                     "debit": 0,
                     "credit": workshop_parts_total,
                 },
             ]
         elif workshop_parts_total > 0:
-            # قطع ورشة فقط → 042 (بدون خدمات)
+            # قطع ورشة فقط → ايراد قطع الورشة (بدون خدمات)
             lines = [
                 {
                     "account": debit_code,
@@ -1398,7 +1425,7 @@ def _build_operation_journal_entry(
                     "credit": 0,
                 },
                 {
-                    "account": "042",
+                    "account": parts_rev_code,
                     "account_name": "ايراد قطع الورشه",
                     "debit": 0,
                     "credit": workshop_parts_total,
@@ -1423,24 +1450,24 @@ def _build_operation_journal_entry(
     elif op_type in ("purchase", "expense"):
         transaction_type = "purchase" if op_type == "purchase" else "expense"
 
-        # enforce purchases/expenses into expense/asset accounts (010, 030-059 new codes, or 5xxx/6xxx legacy)
+        # enforce purchases/expenses into expense/asset accounts (الأكواد الحالية: 029-048 مصروفات، 007/008/010 أصول قابلة للشراء)
         def _is_expense_code(c):
             if not c:
                 return False
             try:
                 n = int(c)
-                if n == 10 or (30 <= n <= 59):
+                if n in (7, 8, 10) or (29 <= n <= 48) or n == 167:
                     return True
             except (ValueError, TypeError):
                 pass
             return str(c or "").startswith(("5", "6", "1201"))
         if op_type == "purchase":
-            debit_code = selected_code if (selected_code and len(selected_code) <= 12 and "-" not in selected_code and _is_expense_code(selected_code)) else "036"
+            debit_code = selected_code if (selected_code and len(selected_code) <= 12 and "-" not in selected_code and _is_expense_code(selected_code)) else admin_exp_code
         else:
-            debit_code = selected_code if (selected_code and len(selected_code) <= 12 and "-" not in selected_code and _is_expense_code(selected_code)) else "036"
+            debit_code = selected_code if (selected_code and len(selected_code) <= 12 and "-" not in selected_code and _is_expense_code(selected_code)) else admin_exp_code
         if debit_code:
             debit_code = LEGACY_TO_NEW_CODE.get(debit_code, debit_code)
-        credit_code = "2101" if is_credit else cash_code
+        credit_code = ap_code if is_credit else cash_code
 
         lines = [
             {
@@ -1464,8 +1491,8 @@ def _build_operation_journal_entry(
             if selected_code and len(selected_code) <= 12 and "-" not in selected_code
             else None
         )
-        debit_code = _valid_dr_code or "026"
-        credit_code = "005" if is_credit else cash_code
+        debit_code = _valid_dr_code or _sem_code("revenue_mech", "026")
+        credit_code = ar_code if is_credit else cash_code
         lines = [
             {
                 "account": debit_code,
@@ -1483,8 +1510,8 @@ def _build_operation_journal_entry(
 
     elif op_type == "purchase_return":
         transaction_type = "purchase_return"
-        debit_code = "2101" if is_credit else cash_code
-        credit_code = selected_code if str(selected_code or "").startswith(("5", "6")) else "6100"
+        debit_code = ap_code if is_credit else cash_code
+        credit_code = selected_code if str(selected_code or "").startswith(("5", "6")) else admin_exp_code
         lines = [
             {
                 "account": debit_code,
@@ -1514,8 +1541,8 @@ def _build_operation_journal_entry(
                     "credit": 0,
                 },
                 {
-                    "account": "005",
-                    "account_name": ACCOUNT_NAME_MAP.get("005", "005"),
+                    "account": ar_code,
+                    "account_name": ACCOUNT_NAME_MAP.get(ar_code, "العملاء (ذمم مدينة)"),
                     "debit": 0,
                     "credit": total,
                 },
@@ -1524,8 +1551,8 @@ def _build_operation_journal_entry(
             # سداد لمورد: Dr ذمم دائنة, Cr نقدية/بنك
             lines = [
                 {
-                    "account": "2101",
-                    "account_name": ACCOUNT_NAME_MAP.get("2101", "2101"),
+                    "account": ap_code,
+                    "account_name": ACCOUNT_NAME_MAP.get(ap_code, "الموردون (ذمم دائنة)"),
                     "debit": total,
                     "credit": 0,
                 },
@@ -1582,13 +1609,13 @@ def _build_operation_journal_entry(
                 "description": f"[آجل] مشتريات من {sup_name} — {op.get('partnerName') or op.get('partner_name') or ''}",
                 "lines": [
                     {
-                        "account": "036",
+                        "account": admin_exp_code,
                         "account_name": "مصروفات عامة وإدارية",
                         "debit": it_total,
                         "credit": 0,
                     },
                     {
-                        "account": "2101",
+                        "account": ap_code,
                         "account_name": f"مورد - {sup_name}",
                         "debit": 0,
                         "credit": it_total,
@@ -2112,90 +2139,68 @@ async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={}
 
         dry_run = bool(payload.get("dry_run") or payload.get("preview"))
 
-        # 4) Build (and optionally post) journal entries — accrual basis:
-        #    credit sales → AR (1103) not Cash; credit purchases → AP (2101) not Cash
-        from firewall_engine import CREDIT_METHODS, UNPAID_STATUSES
-        SALE_TYPES = ("sale", "service", "instant_sale", "collect_customer", "receipt_voucher")
-        EXPENSE_TYPES = ("purchase", "expense", "cash_expense", "salary", "payment_order", "pay_supplier")
-
+        # 4) Build entries via the canonical builder (SSOT — نفس منطق إنشاء العمليات):
+        #    accrual basis + new chart codes (005 العملاء / 026 إيرادات / 003 النقد / 2101 موردون)
         preview = []
         fixed = []
         errors = []
+        skipped = []
         for op in missing[:50]:
             op_id = str(op.get("id") or "")
             op_type = (op.get("type") or "").lower()
             total = round(float(op.get("total") or 0), 2)
-            if total <= 0:
+            workshop_id = op.get("workshopId") or op.get("workshop_id") or "finmodule-sync"
+
+            built = _build_operation_journal_entry(op, workshop_id)
+            entries = built if isinstance(built, list) else ([built] if built else [])
+            if not entries:
+                skipped.append({"op_id": op_id, "type": op_type, "total": total,
+                                "reason": "لا يتطلب قيدًا (Rakan/قطع فقط)"})
                 continue
-            method = str(op.get("payment_method") or "").strip().lower()
-            ps = str(op.get("payment_status") or "").strip().lower()
-            is_credit = method in CREDIT_METHODS or ps in UNPAID_STATUSES
-            partner = str(op.get("partner_name") or "").strip()
 
-            if op_type in SALE_TYPES:
-                if is_credit:
-                    debit_account, debit_name = "1103", "ذمم مدينة عملاء"
-                    nature = "بيع آجل"
-                else:
-                    debit_account, debit_name = "1101", "الصندوق/البنك"
-                    nature = "بيع نقدي"
-                credit_account, credit_name = "4101", "إيرادات خدمات"
-            elif op_type in EXPENSE_TYPES:
-                debit_account, debit_name = "5101", "مصروفات"
-                nature = "مصروف/شراء"
-                if is_credit:
-                    credit_account, credit_name = "2101", "ذمم دائنة موردين"
-                    nature = "شراء آجل"
-                else:
-                    credit_account, credit_name = "1101", "الصندوق/البنك"
-            else:
-                debit_account, debit_name = ("1103", "ذمم مدينة عملاء") if is_credit else ("1101", "الصندوق/البنك")
-                credit_account, credit_name = "4101", "إيرادات خدمات"
-                nature = "غير مصنف"
-
-            desc_party = f" — {partner}" if partner else ""
-            je_payload = {
-                "reference_id": op_id,
-                "date": op.get("op_date") or op.get("created_at") or op.get("createdAt") or __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
-                "total": total,
-                "source": "integrity_auto_fix",
-                "description": f"قيد تصحيحي — {nature}{desc_party} (فاتورة {op.get('invoice_number') or op_id[:8]})",
-                "transaction_type": "credit_sale" if (is_credit and op_type in SALE_TYPES) else "auto_fix",
-                "workshop_id": op.get("workshopId") or op.get("workshop_id") or "finmodule-sync",
-                "party_label": partner or None,
-                "lines": [
-                    {"account": debit_account, "account_name": debit_name, "debit": total, "credit": 0, "description": f"مدين — {nature}"},
-                    {"account": credit_account, "account_name": credit_name, "debit": 0, "credit": total, "description": f"دائن — {nature}"},
-                ],
-            }
+            for entry in entries:
+                entry["source"] = "integrity_auto_fix"
+                entry.setdefault("reference_id", op_id)
 
             if dry_run:
-                preview.append({
-                    "op_id": op_id,
-                    "invoice_number": op.get("invoice_number"),
-                    "type": op_type,
-                    "payment_method": method or None,
-                    "partner_name": partner or None,
-                    "date": je_payload["date"],
-                    "nature": nature,
-                    "total": total,
-                    "entry": {
-                        "description": je_payload["description"],
-                        "debit": {"account": debit_account, "name": debit_name, "amount": total},
-                        "credit": {"account": credit_account, "name": credit_name, "amount": total},
-                    },
-                })
+                method = str(op.get("payment_method") or op.get("paymentMethod") or "").strip().lower()
+                is_credit = method == "credit"
+                for entry in entries:
+                    lines = entry.get("lines") or []
+                    debit_lines = [ln for ln in lines if float(ln.get("debit") or 0) > 0]
+                    credit_lines = [ln for ln in lines if float(ln.get("credit") or 0) > 0]
+                    preview.append({
+                        "op_id": op_id,
+                        "invoice_number": op.get("invoice_number") or op.get("invoiceNumber"),
+                        "type": op_type,
+                        "payment_method": method or None,
+                        "partner_name": op.get("partner_name") or op.get("partnerName"),
+                        "date": entry.get("date"),
+                        "nature": ("بيع آجل" if is_credit else "بيع نقدي") if op_type in ("sale", "service") else op_type,
+                        "total": round(float(entry.get("total") or 0), 2),
+                        "description": entry.get("description"),
+                        "entry": {
+                            "debit": [{"account": ln.get("account"), "name": ln.get("account_name"),
+                                       "amount": round(float(ln.get("debit") or 0), 2)} for ln in debit_lines],
+                            "credit": [{"account": ln.get("account"), "name": ln.get("account_name"),
+                                        "amount": round(float(ln.get("credit") or 0), 2)} for ln in credit_lines],
+                        },
+                        "balanced": abs(sum(float(ln.get("debit") or 0) for ln in lines)
+                                        - sum(float(ln.get("credit") or 0) for ln in lines)) < 0.01,
+                    })
                 continue
 
-            try:
-                from core import accounting_engine
-                result = accounting_engine.post_entry(je_payload, fallback=False)
-                if result:
-                    fixed.append({"op_id": op_id, "type": op_type, "total": total, "je_id": result[0].get("id")})
-                else:
-                    errors.append({"op_id": op_id, "error": "engine_rejected"})
-            except Exception as fix_err:
-                errors.append({"op_id": op_id, "error": str(fix_err)[:100]})
+            for entry in entries:
+                try:
+                    result = _safe_insert_journal_entry(supa, entry)
+                    if result:
+                        fixed.append({"op_id": op_id, "type": op_type,
+                                      "total": round(float(entry.get("total") or 0), 2),
+                                      "je_id": result[0].get("id")})
+                    else:
+                        errors.append({"op_id": op_id, "error": "insert_failed"})
+                except Exception as fix_err:
+                    errors.append({"op_id": op_id, "error": str(fix_err)[:100]})
 
         if dry_run:
             total_impact = round(sum(p["total"] for p in preview), 2)
@@ -2209,11 +2214,17 @@ async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={}
                     "total_operations": len(ops),
                     "missing_count": len(missing),
                     "preview_entries": preview,
+                    "skipped": skipped,
                     "total_impact": total_impact,
                     "summary_by_nature": by_nature,
                     "note": "معاينة فقط — لم يُحفظ أي قيد في قاعدة البيانات.",
                 }
             }
+
+        try:
+            _invalidate_finance_caches_safe()
+        except Exception:
+            pass
 
         return {
             "success": True,
@@ -2222,6 +2233,7 @@ async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={}
                 "missing_before": len(missing),
                 "fixed": len(fixed),
                 "errors": len(errors),
+                "skipped": skipped,
                 "fixed_items": fixed,
                 "error_items": errors[:10],
             }
@@ -2878,8 +2890,8 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
 
         op_account_code = str(op_row.get("account") or op_row.get("accountCode") or "").strip()
         if not op_account_code:
-            # الأكواد الجديدة: 027 للخدمات الميكانيكية بدلاً من 4001 القديم
-            op_account_code = "027" if op_type in ("sale", "service") else "036"
+            # الأكواد الحالية: إيرادات خدمات ميكانيكية للخدمات، مصروفات عامة وإدارية لغيرها
+            op_account_code = _sem_code("revenue_mech", "026") if op_type in ("sale", "service") else _sem_code("admin_expense", "035")
         else:
             # تحويل أي كود قديم إلى الجديد
             op_account_code = LEGACY_TO_NEW_CODE.get(op_account_code, op_account_code)
@@ -3001,9 +3013,11 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             entry["receipt_name"] = receipt_info.get("filename")
         _safe_insert_journal_entry(supa, entry)
 
-        # FIX: قيد الخصم منفصل — مدين "خصم مسموح به" (024) / دائن "العملاء" (005)
+        # FIX: قيد الخصم منفصل — مدين "الإيرادات" (خصم مسموح/contra-revenue) / دائن "العملاء"
         if discount_amount > 0 and op_type in ("sale", "service") and has_base_operation_entry:
             try:
+                _disc_code = _sem_code("revenue_parent", "024")
+                _disc_ar = _sem_code("ar", "005")
                 discount_entry = {
                     "id": str(uuid.uuid4()),
                     "workshop_id": workshop_id,
@@ -3011,14 +3025,14 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
                     "description": f"خصم ممنوح للعميل - {op_row.get('partner_name') or ''}".strip(),
                     "lines": [
                         {
-                            "account": "024",
-                            "account_name": ACCOUNT_NAME_MAP.get("024", "خصم مسموح به للعملاء"),
+                            "account": _disc_code,
+                            "account_name": ACCOUNT_NAME_MAP.get(_disc_code, "الإيرادات"),
                             "debit": discount_amount,
                             "credit": 0,
                         },
                         {
-                            "account": "005",
-                            "account_name": ACCOUNT_NAME_MAP.get("005", "العملاء"),
+                            "account": _disc_ar,
+                            "account_name": ACCOUNT_NAME_MAP.get(_disc_ar, "العملاء"),
                             "debit": 0,
                             "credit": discount_amount,
                         },

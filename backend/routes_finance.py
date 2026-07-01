@@ -157,13 +157,15 @@ AP_ACCOUNT_CODES = {"2101", "211"}           # الموردون (ذمم دائن
 CASH_ACCOUNT_CODES = {"003", "1101"}         # النقد
 BANK_ACCOUNT_CODES = {"004", "1102", "006", "1104"}  # البنك + نقاط بيع
 
-# خريطة التحويل من legacy إلى جديد (يُستخدم في القراءة والكتابة)
+# خريطة التحويل من legacy إلى جديد (يُستخدم في القراءة والكتابة) — مطابقة لجدول accounts الحي
 _LEGACY_CODE_MAP = {
     "1101": "003", "1102": "004", "1103": "005", "1104": "006",
-    "4000": "025", "4100": "026",
-    "5000": "030", "5100": "031",
-    "6000": "035", "6100": "036", "6101": "037",
-    "3102": "022", "1201": "010",
+    "1105": "007", "1106": "008",
+    "4000": "024", "4100": "025", "4101": "026", "4102": "027", "4103": "028",
+    "5000": "029", "5100": "030", "5101": "031", "5102": "032", "5103": "033",
+    "6000": "034", "6100": "035", "6101": "036", "6102": "037",
+    "3102": "021", "1201": "010",
+    "042": "041", "0421": "167", "211": "166",
 }
 
 def _to_new_code(code: str) -> str:
@@ -177,21 +179,33 @@ def _infer_account_type_from_code(code: str) -> str:
         numeric = int(c)
     except (ValueError, TypeError):
         return "other"
-    # أكواد جديدة تسلسلية (001-211)
+    # أكواد حالية (مطابقة لجدول accounts الحي بعد إعادة الترقيم)
+    if numeric == 41:
+        return "revenue"   # ايراد قطع الورشه
     if 1 <= numeric <= 13:
         return "asset"
-    if 14 <= numeric <= 18:
+    if 14 <= numeric <= 17:
         return "liability"
-    if 19 <= numeric <= 24:
+    if 18 <= numeric <= 23:
         return "equity"
-    if 25 <= numeric <= 29:
+    if 24 <= numeric <= 28:
         return "revenue"
-    if 30 <= numeric <= 59:
+    if 29 <= numeric <= 48:
         return "expense"
+    if 49 <= numeric <= 128:
+        return "asset"      # حسابات العملاء الفرعية
+    if 129 <= numeric <= 165:
+        return "liability"  # حسابات الموردين الفرعية
+    if numeric == 166:
+        return "equity"     # حساب فروقات ترحيل
+    if numeric == 167:
+        return "expense"    # تكلفة قطع الورشة
     if numeric == 211:
         return "equity"
     if 2101 <= numeric <= 2199:
         return "liability"
+    if numeric >= 21010000:
+        return "liability"  # حسابات موردين فرعية (2101xxxx)
     # أكواد قديمة (legacy)
     if 1000 <= numeric <= 1999:
         return "asset"
@@ -1320,20 +1334,20 @@ def _build_repair_journal_entry_from_operation(
 
     if op_type == "sale":
         debit_code = "005" if is_credit else cash_code
-        credit_code = selected_code or "026"
+        credit_code = selected_code or "026"  # إيرادات خدمات ميكانيكية (الدليل الحي)
         lines = [
             {"account": debit_code, "account_name": debit_code, "debit": total, "credit": 0},
             {"account": credit_code, "account_name": credit_code, "debit": 0, "credit": total},
         ]
     elif op_type == "purchase":
-        debit_code = selected_code if selected_code and _infer_account_type_from_code(selected_code) == "expense" else "036"
+        debit_code = selected_code if selected_code and _infer_account_type_from_code(selected_code) == "expense" else "035"
         credit_code = "2101" if is_credit else cash_code
         lines = [
             {"account": debit_code, "account_name": debit_code, "debit": total, "credit": 0},
             {"account": credit_code, "account_name": credit_code, "debit": 0, "credit": total},
         ]
     elif op_type == "expense":
-        debit_code = selected_code or "036"
+        debit_code = selected_code or "035"
         lines = [
             {"account": debit_code, "account_name": debit_code, "debit": total, "credit": 0},
             {"account": cash_code, "account_name": cash_code, "debit": 0, "credit": total},
@@ -5407,23 +5421,31 @@ async def migrate_legacy_account_codes(
         "1102": "004", "acc-1102": "004",
         "1103": "005", "acc-1103": "005",
         "1104": "006", "acc-1104": "006",
-        "4000": "025", "acc-4000": "025",
-        "4100": "026", "acc-4100": "026",
-        "5000": "030", "acc-5000": "030",
-        "5100": "031", "acc-5100": "031",
-        "6000": "035", "acc-6000": "035",
-        "6100": "036", "acc-6100": "036",
-        "6101": "037", "acc-6101": "037",
-        "3102": "022", "acc-3102": "022",
+        "1105": "007", "acc-1105": "007",
+        "4000": "024", "acc-4000": "024",
+        "4100": "025", "acc-4100": "025",
+        "4101": "026", "acc-4101": "026",
+        "4102": "027", "acc-4102": "027",
+        "5000": "029", "acc-5000": "029",
+        "5100": "030", "acc-5100": "030",
+        "6000": "034", "acc-6000": "034",
+        "6100": "035", "acc-6100": "035",
+        "6101": "036", "acc-6101": "036",
+        "3102": "021", "acc-3102": "021",
         "1201": "010", "acc-1201": "010",
+        "042": "041", "0421": "167", "211": "166",
     }
     NAME_MAP = {
         "003": "النقد", "004": "البنك", "005": "العملاء",
-        "006": "نقاط بيع", "025": "الإيرادات", "026": "إيرادات الخدمات",
-        "030": "تكلفة الخدمات", "031": "تكاليف مباشرة",
-        "035": "المصروفات التشغيلية", "036": "مصروفات عامة وإدارية",
-        "037": "رواتب إدارية", "022": "مسحوبات المالك",
-        "010": "معدات ميكانيكية", "2101": "الموردون",
+        "006": "نقاط بيع", "007": "مخزون قطع غيار",
+        "024": "الإيرادات", "025": "إيرادات الخدمات",
+        "026": "إيرادات خدمات ميكانيكية", "027": "إيرادات إصلاح محركات",
+        "029": "تكلفة الخدمات", "030": "تكاليف مباشرة",
+        "034": "المصروفات التشغيلية", "035": "مصروفات عامة وإدارية",
+        "036": "رواتب إدارية", "021": "مسحوبات المالك",
+        "010": "معدات ميكانيكية", "041": "ايراد قطع الورشه",
+        "166": "حساب فروقات ترحيل", "167": "تكلفة قطع الورشة",
+        "2101": "الموردون",
     }
 
     # مسح الـ cache أولاً للحصول على أحدث البيانات
@@ -5489,23 +5511,23 @@ async def reclassify_revenue_sub_accounts(
     apply_changes: bool = Query(False),
 ):
     """
-    يُعيد تصنيف قيود الإيراد من الحسابات العامة (025/026/4001/4000/4100)
+    يُعيد تصنيف قيود الإيراد من الحسابات العامة (024/025/4001/4000/4100)
     إلى الحسابات الفرعية الصحيحة:
-    - بنود تحتوي "توضيب" → 028 (إيرادات إصلاح محركات)
-    - غير ذلك → 027 (إيرادات خدمات ميكانيكية)
+    - بنود تحتوي "توضيب" → 027 (إيرادات إصلاح محركات)
+    - غير ذلك → 026 (إيرادات خدمات ميكانيكية)
     """
-    OLD_REV_CODES = {"025", "026", "027", "4001", "4000", "4100", "4101", "4102"}
+    OLD_REV_CODES = {"024", "025", "4001", "4000", "4100"}
     TOWDHEEB_KW = ["توضيب", "تلميع مكينة", "غسيل مكينة", "تنظيف مكينة"]
     NAME_MAP = {
-        "027": "إيرادات خدمات ميكانيكية",
-        "028": "إيرادات إصلاح محركات",
+        "026": "إيرادات خدمات ميكانيكية",
+        "027": "إيرادات إصلاح محركات",
     }
 
     def _pick_code(op_text: str) -> str:
         for kw in TOWDHEEB_KW:
             if kw in op_text:
-                return "028"
-        return "027"
+                return "027"
+        return "026"
 
     invalidate_finance_caches()
     entries = _fetch_journal_entries(

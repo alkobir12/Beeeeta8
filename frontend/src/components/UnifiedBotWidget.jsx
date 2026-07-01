@@ -16,26 +16,26 @@ import { PAYMENT_METHOD_LABELS, labelFromMap } from '../utils/displayLabels';
 const API = process.env.REACT_APP_BACKEND_URL;
 const WID = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
 
-// ─── خريطة الحسابات ────────────────────────────────────────────────────────
+// ─── خريطة الحسابات (الأكواد الحالية من الدليل الحي) ───────────────────────
 const ACCOUNTS = {
   '003': 'النقد',   '004': 'البنك',     '005': 'العملاء',
-  '006': 'نقاط بيع','027': 'خدمات ميكانيكية','028': 'إصلاح محركات',
-  '029': 'فرامل وتعليق','030': 'تكلفة الخدمات','035': 'المصروفات التشغيلية',
-  '036': 'مصروفات عامة','037': 'رواتب','042': 'ايراد قطع الورشه',
-  '0421': 'تكلفة قطع الورشة',
-  '2101': 'الموردون (آجل)', '211': 'فروقات ترحيل',
+  '006': 'نقاط بيع','026': 'خدمات ميكانيكية','027': 'إصلاح محركات',
+  '028': 'فرامل وتعليق','029': 'تكلفة الخدمات','034': 'المصروفات التشغيلية',
+  '035': 'مصروفات عامة','036': 'رواتب','041': 'ايراد قطع الورشه',
+  '167': 'تكلفة قطع الورشة',
+  '2101': 'الموردون (آجل)', '166': 'فروقات ترحيل',
 };
 
 // حسابات خاصة تظهر في قائمة الاختيار
 const SPECIAL_ACCOUNTS = [
-  { code: '042', name: 'ايراد قطع الورشه', group: 'الورشة' },
-  { code: '0421', name: 'تكلفة قطع الورشة', group: 'الورشة' },
-  { code: '027', name: 'إيرادات خدمات ميكانيكية', group: 'الورشة' },
-  { code: '028', name: 'إيرادات إصلاح محركات', group: 'الورشة' },
-  { code: '029', name: 'إيرادات فرامل وتعليق', group: 'الورشة' },
-  { code: '035', name: 'المصروفات التشغيلية', group: 'مصروفات' },
-  { code: '036', name: 'مصروفات عامة وإدارية', group: 'مصروفات' },
-  { code: '037', name: 'رواتب', group: 'مصروفات' },
+  { code: '041', name: 'ايراد قطع الورشه', group: 'الورشة' },
+  { code: '167', name: 'تكلفة قطع الورشة', group: 'الورشة' },
+  { code: '026', name: 'إيرادات خدمات ميكانيكية', group: 'الورشة' },
+  { code: '027', name: 'إيرادات إصلاح محركات', group: 'الورشة' },
+  { code: '028', name: 'إيرادات فرامل وتعليق', group: 'الورشة' },
+  { code: '034', name: 'المصروفات التشغيلية', group: 'مصروفات' },
+  { code: '035', name: 'مصروفات عامة وإدارية', group: 'مصروفات' },
+  { code: '036', name: 'رواتب إدارية', group: 'مصروفات' },
   { code: '005', name: 'العملاء (ذمم مدينة)', group: 'حسابات' },
   { code: '2101', name: 'الموردون (آجل)', group: 'حسابات' },
 ];
@@ -52,7 +52,7 @@ const SMART_TEMPLATES = [
     desc: 'صيانة / خدمة ميكانيكية',
     getLines: (pm, amt) => [
       { account: PAYMENT_ACCOUNT[pm] || '004', name: ACCOUNTS[PAYMENT_ACCOUNT[pm]] || 'البنك', debit: amt, credit: 0 },
-      { account: '027', name: 'خدمات ميكانيكية', debit: 0, credit: amt },
+      { account: '026', name: 'خدمات ميكانيكية', debit: 0, credit: amt },
     ],
     opType: 'sale',
   },
@@ -64,7 +64,7 @@ const SMART_TEMPLATES = [
     desc: 'قطع غيار ورشة',
     getLines: (pm, amt) => [
       { account: PAYMENT_ACCOUNT[pm] || '004', name: ACCOUNTS[PAYMENT_ACCOUNT[pm]] || 'البنك', debit: amt, credit: 0 },
-      { account: '042', name: 'ايراد قطع الورشه', debit: 0, credit: amt },
+      { account: '041', name: 'ايراد قطع الورشه', debit: 0, credit: amt },
     ],
     opType: 'sale',
   },
@@ -75,7 +75,7 @@ const SMART_TEMPLATES = [
     color: '#fb923c',
     desc: 'مصروف تشغيلي / إداري',
     getLines: (pm, amt) => [
-      { account: '036', name: 'مصروفات عامة', debit: amt, credit: 0 },
+      { account: '035', name: 'مصروفات عامة', debit: amt, credit: 0 },
       { account: PAYMENT_ACCOUNT[pm] || '004', name: ACCOUNTS[PAYMENT_ACCOUNT[pm]] || 'البنك', debit: 0, credit: amt },
     ],
     opType: 'expense',
@@ -87,7 +87,7 @@ const SMART_TEMPLATES = [
     color: '#34d399',
     desc: 'رواتب الموظفين / العمال',
     getLines: (pm, amt) => [
-      { account: '037', name: 'رواتب', debit: amt, credit: 0 },
+      { account: '036', name: 'رواتب', debit: amt, credit: 0 },
       { account: PAYMENT_ACCOUNT[pm] || '004', name: ACCOUNTS[PAYMENT_ACCOUNT[pm]] || 'البنك', debit: 0, credit: amt },
     ],
     opType: 'expense',
@@ -100,7 +100,7 @@ const SMART_TEMPLATES = [
     desc: 'خدمة بالآجل (ذمة مدينة)',
     getLines: (_pm, amt) => [
       { account: '005', name: 'العملاء (ذمم مدينة)', debit: amt, credit: 0 },
-      { account: '027', name: 'خدمات ميكانيكية', debit: 0, credit: amt },
+      { account: '026', name: 'خدمات ميكانيكية', debit: 0, credit: amt },
     ],
     opType: 'sale',
     forcePayment: 'credit',
@@ -112,7 +112,7 @@ const SMART_TEMPLATES = [
     color: '#64748b',
     desc: 'شراء قطع / مواد من مورد',
     getLines: (pm, amt) => [
-      { account: '030', name: 'تكلفة الخدمات', debit: amt, credit: 0 },
+      { account: '029', name: 'تكلفة الخدمات', debit: amt, credit: 0 },
       { account: pm === 'credit' ? '2101' : PAYMENT_ACCOUNT[pm] || '004',
         name: pm === 'credit' ? 'الموردون (آجل)' : ACCOUNTS[PAYMENT_ACCOUNT[pm]] || 'البنك', debit: 0, credit: amt },
     ],
@@ -468,7 +468,7 @@ export default function UnifiedBotWidget() {
   const currentTemplate = useMemo(() => SMART_TEMPLATES.find(t => t.id === selectedTemplate), [selectedTemplate]);
 
   const templateRecentMap = useMemo(() => {
-    const isPartsLike = (op) => /قطع|part/i.test(String(op?.notes || op?.description || '')) || String(op?.accountingAccountCode || '').trim() === '042';
+    const isPartsLike = (op) => /قطع|part/i.test(String(op?.notes || op?.description || '')) || ['041', '042'].includes(String(op?.accountingAccountCode || '').trim());
     const isSalaryLike = (op) => /راتب|رواتب|salary/i.test(String(op?.notes || op?.description || '')) || String(op?.accountingAccountCode || '').trim() === '037';
     const rows = Array.isArray(recentOps) ? recentOps : [];
 

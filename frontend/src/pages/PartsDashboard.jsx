@@ -51,7 +51,7 @@ const WORKSHOP_ACCOUNT_TARGETS = [
     icon: Wrench,
     color: '#22c55e',
     accountType: 'revenue',
-    codes: ['042'],
+    codes: ['041', '042'],
     keywords: ['ايراد قطع الورشه', 'إيراد قطع الورشة', 'ايراد قطع الورشة', 'إيراد قطع الورشه'],
   },
   {
@@ -60,7 +60,7 @@ const WORKSHOP_ACCOUNT_TARGETS = [
     icon: Receipt,
     color: '#f97316',
     accountType: 'expense',
-    codes: ['0421'],
+    codes: ['167', '0421'],
     keywords: ['تكلفة قطع الورشة', 'تكلفة قطع الورشه'],
   },
   {

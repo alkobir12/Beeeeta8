@@ -94,14 +94,24 @@ UNPAID_STATUSES = {"unpaid", "credit", "partial", "deferred", "pending"}
 
 
 def _account_type(code: Any) -> str:
-    """نوع الحساب من الكود — يطابق _infer_account_type_from_code في routes_finance."""
+    """نوع الحساب — من جدول accounts الحي أولاً (SSOT)، ثم fallback بالنطاقات الحالية."""
+    code_s = str(code or "").strip()
     try:
-        n = int(str(code or "").strip())
+        from core.chart_resolver import type_of
+        t = type_of(code_s)
+        if t in ("revenue", "expense"):
+            return t
+        if t:
+            return "other"
+    except Exception:
+        pass
+    try:
+        n = int(code_s)
     except (ValueError, TypeError):
         return "other"
-    if 25 <= n <= 29 or 4000 <= n <= 4999:
+    if n == 41 or 24 <= n <= 28 or 4000 <= n <= 4999:
         return "revenue"
-    if 30 <= n <= 59 or 5000 <= n <= 6999:
+    if n == 167 or 29 <= n <= 48 or 5000 <= n <= 6999:
         return "expense"
     return "other"
 

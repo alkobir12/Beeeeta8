@@ -166,12 +166,12 @@ const WorkshopSupplierPartPicker = ({ item, onChange, partsCatalog = [], rowId, 
           if (val === '__manual__') {
             onChange('linkedPartManualEntry', true);
             onChange('linkedPart', '');
-            onChange('revenueAccountCode', '042');
+            onChange('revenueAccountCode', '041');
             return;
           }
           onChange('linkedPartManualEntry', false);
           onChange('linkedPart', val);
-          onChange('revenueAccountCode', '042');
+          onChange('revenueAccountCode', '041');
         }}
         className="w-full text-xs sm:text-sm rounded-lg p-2"
         style={{
@@ -197,7 +197,7 @@ const WorkshopSupplierPartPicker = ({ item, onChange, partsCatalog = [], rowId, 
           onChange={(e) => {
             onChange('linkedPartManualEntry', true);
             onChange('linkedPart', e.target.value);
-            onChange('revenueAccountCode', '042');
+            onChange('revenueAccountCode', '041');
           }}
           className="w-full text-xs sm:text-sm rounded-lg p-2"
           style={{
