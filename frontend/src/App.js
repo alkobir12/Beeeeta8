@@ -54,6 +54,7 @@ const JournalEntries = lazy(() => import("./pages/JournalEntries"));
 const ComprehensiveFinancial = lazy(() => import("./pages/ComprehensiveFinancial"));
 const AIFinancial = lazy(() => import("./pages/AIFinancial"));
 const FirewallPanel = lazy(() => import("./pages/FirewallPanel"));
+const FinancialControl = lazy(() => import("./pages/FinancialControl"));
 const SystemAudit = lazy(() => import("./pages/SystemAudit"));
 const MoltBot = lazy(() => import("./pages/MoltBotStudio"));
 const DebtFollowUp = lazy(() => import("./pages/DebtFollowUp"));
@@ -233,6 +234,7 @@ function App() {
                   <Route path="accounting/comprehensive" element={<ComprehensiveFinancial />} />
                   <Route path="accounting/journal-entries" element={<JournalEntries />} />
                   <Route path="accounting/firewall" element={<FirewallPanel />} />
+                  <Route path="financial-control" element={<FinancialControl />} />
 
                   <Route path="ai-financial" element={<Navigate to="/accounting/firewall" replace />} />
                   <Route path="system-audit" element={<SystemAudit />} />

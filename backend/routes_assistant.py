@@ -52,6 +52,10 @@ async def assistant_chat(request: Request, payload: Dict[str, Any] = Body(...)):
     msg = (payload.get("message") or "").strip()
     if not msg:
         raise HTTPException(status_code=400, detail="message required")
+    # 🔐 الهوية الحقيقية من JWT — مرساة الأربع أعين (لا تُؤخذ من الجسم القابل للانتحال)
+    from core import rbac as _rbac
+    _ident = _rbac.extract_identity(request, payload)
+    real_proposer = _ident.get("name") or payload.get("proposer")
     try:
         result = await assistant_kernel.chat(
             session_id=payload.get("session_id"),
@@ -60,7 +64,7 @@ async def assistant_chat(request: Request, payload: Dict[str, Any] = Body(...)):
             force_agent=payload.get("force_agent"),
             use_ai=bool(payload.get("use_ai", True)),
             model=payload.get("model"),
-            proposer=payload.get("proposer"),  # 🆕 Phase 3C — Four-Eyes anchor
+            proposer=real_proposer,  # 🆕 Four-Eyes anchor من التوكن الموقّع
         )
         return {"success": True, "data": result}
     except Exception as e:
@@ -173,6 +177,10 @@ async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body
     if not msg:
         raise HTTPException(status_code=400, detail="message required")
 
+    from core import rbac as _rbac
+    _ident = _rbac.extract_identity(request, payload)
+    real_proposer = _ident.get("name") or payload.get("proposer")
+
     async def _stream():
         def _evt(event_type: str, data: Dict[str, Any]) -> str:
             return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
@@ -190,7 +198,7 @@ async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body
                 force_agent=payload.get("force_agent"),
                 use_ai=bool(payload.get("use_ai", True)),
                 model=payload.get("model"),
-                proposer=payload.get("proposer"),  # 🆕 Phase 3C
+                proposer=real_proposer,  # 🆕 Four-Eyes anchor من التوكن الموقّع
             )
 
             for tr in result.get("tool_results") or []:

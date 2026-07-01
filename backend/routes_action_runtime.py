@@ -141,11 +141,19 @@ async def runtime_approve(approval_id: str, request: Request, payload: Optional[
 
 
 @router.post("/approvals/{approval_id}/reject")
-async def runtime_reject(approval_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
+async def runtime_reject(approval_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
     payload = payload or {}
+    # RBAC: المُعتمِد أو صاحب الطلب نفسه (إلغاء ذاتي مسموح — عكس الاعتماد الذاتي)
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    actor_ident = actor.name or actor.id or ""
+    approval = next((a for a in action_runtime.list_approvals(limit=200) if a.get("id") == approval_id), None)
+    requester = (approval or {}).get("requester") or (approval or {}).get("proposer")
+    if actor_ident != requester:
+        rbac.require(rbac.can_approve(actor))
     result = action_runtime.reject_approval(
         approval_id=approval_id,
-        approver=payload.get("approver"),
+        approver=actor_ident or payload.get("approver"),
         reason=payload.get("reason", ""),
     )
     if "error" in result:
@@ -264,14 +272,13 @@ async def runtime_alias_power(payload: Dict[str, Any] = Body(...)):
 
 
 @router.post("/approve/{approval_id}")
-async def runtime_alias_approve(approval_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
-    """Alias: POST /api/runtime/approve/{approval_id}
-
-    Returns {status, draft, approval}. Uses "bot_reviewer" as default
-    approver so the Four-Eyes guard passes against the "bot_tester" proposer.
-    """
+async def runtime_alias_approve(approval_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
+    """Alias: POST /api/runtime/approve/{approval_id} — RBAC-guarded (أربع أعين حقيقي)."""
     payload = payload or {}
-    approver = payload.get("approver") or "bot_reviewer"
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    rbac.require(rbac.can_approve(actor))
+    approver = actor.name or actor.id or "anonymous"
     result = action_runtime.approve(approval_id=approval_id, approver=approver)
     if "error" in result:
         code = 403 if result["error"] == "four_eyes_violation" else 400
@@ -284,12 +291,15 @@ async def runtime_alias_approve(approval_id: str, payload: Optional[Dict[str, An
 
 
 @router.post("/commit/{draft_id}")
-async def runtime_alias_commit(draft_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
-    """Alias: POST /api/runtime/commit/{draft_id} → flat {execution_id, result, status}."""
+async def runtime_alias_commit(draft_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
+    """Alias: POST /api/runtime/commit/{draft_id} — RBAC-guarded."""
     payload = payload or {}
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    rbac.require(rbac.can_approve(actor))
     result = action_runtime.commit(
         draft_id=draft_id,
-        committer=payload.get("committer") or "bot_reviewer",
+        committer=actor.name or actor.id or payload.get("committer"),
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result)
@@ -302,12 +312,15 @@ async def runtime_alias_commit(draft_id: str, payload: Optional[Dict[str, Any]] 
 
 
 @router.post("/rollback/{execution_id}")
-async def runtime_alias_rollback(execution_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
-    """Alias: POST /api/runtime/rollback/{execution_id} → flat {status, execution_id}."""
+async def runtime_alias_rollback(execution_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
+    """Alias: POST /api/runtime/rollback/{execution_id} — RBAC-guarded."""
     payload = payload or {}
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    rbac.require(rbac.can_approve(actor))
     result = action_runtime.rollback(
         execution_id=execution_id,
-        rollbacker=payload.get("rollbacker") or "bot_reviewer",
+        rollbacker=actor.name or actor.id or payload.get("rollbacker"),
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -425,7 +438,7 @@ async def runtime_get_active_visits(limit: int = Query(default=50, le=200)):
 
 
 @router.post("/execute")
-async def runtime_execute_unified(payload: Dict[str, Any] = Body(...)):
+async def runtime_execute_unified(request: Request, payload: Dict[str, Any] = Body(...)):
     """POST /api/runtime/execute  — the L16 single-shot endpoint.
 
     Body: {"text": "...", "proposer": "?", "session_id": "?"}
@@ -443,9 +456,11 @@ async def runtime_execute_unified(payload: Dict[str, Any] = Body(...)):
     text = (payload.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="text required")
+    # 🔐 الهوية الحقيقية من JWT — مرساة الأربع أعين
+    ident = rbac.extract_identity(request, payload)
     result = await execute_text(
         text,
-        proposer=payload.get("proposer"),
+        proposer=ident.get("name") or payload.get("proposer"),
         session_id=payload.get("session_id"),
         auto_approver=payload.get("auto_approver") or "auto:policy",
     )

@@ -8,7 +8,8 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { ShieldAlert, ScanLine, FileCheck2, RefreshCw, AlertTriangle, Eye, ClipboardCheck, X } from 'lucide-react';
+import { ShieldAlert, ScanLine, FileCheck2, RefreshCw, AlertTriangle, Eye, ClipboardCheck, X, Bot } from 'lucide-react';
+import { KatrinaApprovalsTab } from '../components/KatrinaApprovalsTab';
 
 const API = (process.env.REACT_APP_BACKEND_URL || '') + '/api/financial-control';
 
@@ -53,6 +54,13 @@ const STATUS_LABELS = {
 
 export default function FinancialControl() {
   const [tab, setTab] = useState('findings');
+  const [katrinaCount, setKatrinaCount] = useState(null);
+
+  useEffect(() => {
+    axios.get(`${(process.env.REACT_APP_BACKEND_URL || '')}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 } })
+      .then(({ data }) => setKatrinaCount((data?.data || []).length))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="p-6 max-w-7xl mx-auto" dir="rtl" data-testid="financial-control-page">
@@ -70,6 +78,7 @@ export default function FinancialControl() {
         {[
           { k: 'findings',  label: 'التدقيق والاكتشافات', icon: ScanLine },
           { k: 'approvals', label: 'الموافقات', icon: FileCheck2 },
+          { k: 'katrina',   label: 'اعتمادات كاترينا', icon: Bot, badge: katrinaCount },
           { k: 'matrix',    label: 'مصفوفة الموافقات', icon: ClipboardCheck },
         ].map(t => (
           <button
@@ -83,12 +92,18 @@ export default function FinancialControl() {
             }`}
           >
             <t.icon size={16} /> {t.label}
+            {t.badge > 0 && (
+              <span data-testid="katrina-pending-badge" className="ml-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-black inline-flex items-center justify-center">
+                {t.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {tab === 'findings' && <FindingsTab />}
       {tab === 'approvals' && <ApprovalsTab />}
+      {tab === 'katrina' && <KatrinaApprovalsTab onCountChange={setKatrinaCount} />}
       {tab === 'matrix' && <MatrixTab />}
     </div>
   );

@@ -125,6 +125,7 @@ export const ROUTE_PERMISSIONS = [
   { pattern: /^\/finance\//, module: 'reports', action: 'view' },
   { pattern: /^\/accounting\/journal-entries/, module: 'journal_entries', action: 'view' },
   { pattern: /^\/accounting\//, module: 'reports', action: 'view' },
+  { pattern: /^\/financial-control/, module: 'reports', action: 'view', roles: ['admin', 'manager', 'supervisor'] },
   { pattern: /^\/ai-financial/, module: 'reports', action: 'view' },
   { pattern: /^\/system-audit/, module: 'reports', action: 'view' },
   { pattern: /^\/archive/, module: 'archive', action: 'view' },
@@ -148,6 +149,7 @@ export const resolveRoutePermission = (path) => {
 
 export const hasRoutePermission = (session, routeRule) => {
   if (!routeRule) return true;
+  if (Array.isArray(routeRule.roles) && routeRule.roles.includes(String(session?.role || '').toLowerCase())) return true;
   if (Array.isArray(routeRule.anyOf)) return hasAnyPermission(session, routeRule.anyOf);
   return hasPermission(session, routeRule.module, routeRule.action || 'view');
 };

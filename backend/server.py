@@ -617,6 +617,11 @@ app.include_router(action_runtime_router)
 from routes_financial_actions import router as financial_actions_router
 app.include_router(financial_actions_router)
 
+# 🆕 مركز الرقابة المالية (findings + approvals matrix + four-eyes)
+from financial_control.router import router as financial_control_router, set_db as set_db_financial_control
+set_db_financial_control(db)
+app.include_router(financial_control_router)
+
 # 🆕 Phase 3A — register slowapi limiter so @limiter.limit() actually fires.
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler

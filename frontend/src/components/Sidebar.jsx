@@ -101,6 +101,7 @@ const Sidebar = ({
         { path: '/accounting/comprehensive', label: `📊 ${t('nav.financial_statements')}`, enabled: true, permission: { module: 'reports', action: 'view' } },
         { path: '/accounting/journal-entries', label: `📖 ${t('nav.journal')}`, enabled: true, permission: { module: 'journal_entries', action: 'view' } },
         { path: '/accounting/firewall', label: `🛡️ ${i18n.language === 'ar' ? 'جدار حماية المحاسبة' : 'Accounting Firewall'}`, enabled: true, permission: { module: 'reports', action: 'view' } },
+        { path: '/financial-control', label: `✅ ${i18n.language === 'ar' ? 'الرقابة والاعتمادات' : 'Financial Control'}`, enabled: true, permission: { module: 'reports', action: 'view' }, roles: ['admin', 'manager', 'supervisor'] },
         { path: '/finance/taxes', label: t('nav.taxes'), enabled: true, permission: { module: 'reports', action: 'view' } },
       ]
     },
@@ -269,12 +270,13 @@ const Sidebar = ({
       return null;
     }
 
-    const canAccessItem = !item.permission || hasPermission(session, item.permission.module, item.permission.action);
+    const roleAllows = (entry) => Array.isArray(entry.roles) && entry.roles.includes(String(session?.role || '').toLowerCase());
+    const canAccessItem = roleAllows(item) || !item.permission || hasPermission(session, item.permission.module, item.permission.action);
 
     if (item.group && item.children) {
       const visibleChildren = item.children.filter((child) => {
         if (child.enabled === false) return false;
-        return !child.permission || hasPermission(session, child.permission.module, child.permission.action);
+        return roleAllows(child) || !child.permission || hasPermission(session, child.permission.module, child.permission.action);
       });
 
       if (!visibleChildren.length) return null;

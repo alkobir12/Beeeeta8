@@ -235,6 +235,16 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
     """🏦 Resolve the real party / original entry for a financial action and build
     the echo-back summary (type + entity + amount + affected accounts). Enforces
     Principle ①: no guessing — missing/ambiguous data → ask the user."""
+
+    def _sem() -> Dict[str, str]:
+        fallback = {"ar": "005", "revenue_mech": "026", "admin_expense": "035"}
+        try:
+            from core.chart_resolver import semantic_codes
+            sem = semantic_codes()
+            return {k: sem.get(k) or v for k, v in fallback.items()}
+        except Exception:
+            return fallback
+
     payload = action.payload or {}
     act = action.action
 
@@ -258,9 +268,10 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
         if not amount:
             return {"error": "missing_fields", "entity": "financial",
                     "ask": f"💰 كم مبلغ المصروف «{desc}»؟"}
+        sem = _sem()
         return {"enrich": {"_target_label": desc, "_echo": {
             "type": "مصروف", "entity": payload.get("supplier") or desc, "amount": amount,
-            "accounts": "مدين: مصروفات (030) / دائن: النقد أو البنك"}}}
+            "accounts": f"مدين: مصروفات عامة وإدارية ({sem['admin_expense']}) / دائن: النقد أو البنك"}}}
 
     # create_invoice / collect_payment → resolve the customer
     name = str(payload.get("customer") or payload.get("customer_name") or payload.get("name") or "").strip()
@@ -274,21 +285,22 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
         return res
     row = res["row"]
     cust_name = row.get("name") or row.get("phone") or row.get("id")
+    sem = _sem()
     if act == "collect_payment":
         amount = payload.get("amount") or payload.get("total")
         if not amount:
             return {"error": "missing_fields", "entity": "financial",
                     "ask": f"💰 كم مبلغ الدفعة المُحصّلة من «{cust_name}»؟"}
         echo = {"type": "تحصيل دفعة", "entity": cust_name, "amount": amount,
-                "accounts": "مدين: النقد/البنك / دائن: ذمم العملاء (005)"}
+                "accounts": f"مدين: النقد/البنك / دائن: ذمم العملاء ({sem['ar']})"}
     else:  # create_invoice
         amount = payload.get("total") or payload.get("amount")
         if not amount and not payload.get("items"):
             return {"error": "missing_fields", "entity": "financial",
                     "ask": f"💰 ما إجمالي الفاتورة للعميل «{cust_name}»؟"}
         pm = payload.get("payment_method") or "credit"
-        accounts = ("مدين: ذمم العملاء (005) / دائن: الإيرادات (025)" if pm == "credit"
-                    else "مدين: النقد/الشبكة / دائن: الإيرادات (025)")
+        accounts = (f"مدين: ذمم العملاء ({sem['ar']}) / دائن: إيرادات خدمات ({sem['revenue_mech']})" if pm == "credit"
+                    else f"مدين: النقد/الشبكة / دائن: إيرادات خدمات ({sem['revenue_mech']})")
         echo = {"type": "فاتورة", "entity": cust_name, "amount": amount, "accounts": accounts}
     return {"enrich": {"customer": cust_name, "customer_id": row.get("id"),
                        "_target_label": cust_name, "_echo": echo}}

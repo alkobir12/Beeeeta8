@@ -997,7 +997,19 @@ def list_approvals(status: Optional[str] = None, limit: int = 50) -> List[Dict[s
         if status:
             items = [a for a in items if a.get("status") == status]
         items.sort(key=lambda d: d.get("created_at", 0), reverse=True)
-        return items[:limit]
+        # enrich with originating draft (action + payload + proposer) for UI rendering
+        enriched: List[Dict[str, Any]] = []
+        for a in items[:limit]:
+            draft = STATE["drafts"].get(a.get("draft_id")) or {}
+            enriched.append({
+                **a,
+                "action": draft.get("action"),
+                "payload": draft.get("payload") or {},
+                "proposer": draft.get("proposer"),
+                "session_id": draft.get("session_id"),
+                "draft_status": draft.get("status"),
+            })
+        return enriched
 
 
 def list_executions(status: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
