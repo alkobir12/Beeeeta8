@@ -70,6 +70,9 @@ export default function FinanceAlertsWidget({
 
               <span className="text-[11px] font-semibold text-slate-200 whitespace-nowrap">مراقب المحاسبة</span>
 
+              {loading && (
+                <span className="rounded-full bg-slate-800/80 border border-slate-700 text-[10px] px-1.5 py-0.5 w-14 h-4 animate-pulse inline-block" data-testid="alerts-health-chip-skeleton" />
+              )}
               {health && !loading && (
                 <span
                   data-testid="alerts-health-chip"
