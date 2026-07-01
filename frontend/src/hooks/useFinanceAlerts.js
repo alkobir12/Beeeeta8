@@ -9,7 +9,13 @@ export function useFinanceAlerts() {
     enabled: !!workshopId,
     queryFn: async () => {
       const res = await financeAPI.getAlerts({ workshop_id: workshopId });
-      return res.data?.data?.alerts || [];
+      const d = res.data?.data || {};
+      return {
+        alerts: d.alerts || [],
+        health: d.health || null,
+        cash_flow: d.cash_flow || null,
+        profitability: d.profitability || null,
+      };
     },
     // NOTE: In production we disable auto-polling to prevent tab reloads / memory pressure on some devices.
     // Users can still refresh manually from the widget.

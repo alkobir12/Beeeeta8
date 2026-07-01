@@ -30,7 +30,7 @@ const SEV = {
 const SEV_LABEL = { high: 'عالي', medium: 'متوسط', low: 'منخفض' };
 
 export default function FinanceAlertsWidget({
-  enabledPaths = ['/operations', '/accounting/chart-of-accounts', '/accounting/comprehensive', '/ai-financial'],
+  enabledPaths = ['/', '/operations', '/accounting/chart-of-accounts', '/accounting/comprehensive', '/ai-financial', '/debts-followup'],
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,7 +38,9 @@ export default function FinanceAlertsWidget({
   const enabled = useMemo(() => enabledPaths.includes(path), [enabledPaths, path]);
 
   const [isOpen, setIsOpen] = useState(false);
-  const { data: alerts = [], isFetching, refetch, dataUpdatedAt } = useFinanceAlerts();
+  const { data, isFetching, refetch, dataUpdatedAt } = useFinanceAlerts();
+  const alerts = data?.alerts || [];
+  const health = data?.health || null;
   const loading = isFetching;
   const lastUpdated = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
 
@@ -67,6 +69,22 @@ export default function FinanceAlertsWidget({
               )}
 
               <span className="text-[11px] font-semibold text-slate-200 whitespace-nowrap">مراقب المحاسبة</span>
+
+              {health && !loading && (
+                <span
+                  data-testid="alerts-health-chip"
+                  title="درجة الصحة المالية — نفس مصدر جدار الحماية"
+                  className={`rounded-full border text-[10px] px-1.5 py-0.5 font-semibold ${
+                    health.score >= 90
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : health.score >= 60
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                        : 'bg-red-500/20 text-red-300 border-red-500/30'
+                  }`}
+                >
+                  🛡️ {health.score}/100
+                </span>
+              )}
 
               {!loading && alerts.length > 0 && (
                 <div className="flex items-center gap-1.5">

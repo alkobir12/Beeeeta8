@@ -57,6 +57,7 @@ _ACTION_TO_RUNTIME = {
     "create_customer": "customer",
     "create_vehicle": "vehicle",
     "create_visit": "visit",
+    "create_supplier": "supplier",
     "close_visits": "close_visits",
     "delete_operation": "delete_operation",
     "delete_customer": "delete_customer",
@@ -115,6 +116,21 @@ async def execute_text(
     if action.action == "unknown":
         action = _regex_fallback_action(text)
 
+    # 🛡️ Governance: no guessing — a creation without its essential identity
+    # field goes back to the user instead of committing junk rows ("بدون اسم").
+    if action.action in ("create_customer", "create_supplier"):
+        if not str((action.payload or {}).get("name") or "").strip():
+            is_cust = action.action == "create_customer"
+            return {
+                "status": "needs_clarification",
+                "reason": "missing_fields",
+                "entity": "customer" if is_cust else "supplier",
+                "candidates": [],
+                "ask": ("👤 ما اسم " + ("العميل" if is_cust else "المورّد")
+                        + "؟ الاسم مطلوب قبل الإضافة — زوّدني به وسأجهّز التأكيد."),
+                "action": action.model_dump(),
+            }
+
     # 🆕 Resolve the target row for delete/update BEFORE acting, so the
     # approval card shows the real entity and commits never run blind.
     if action.action in _RESOLVE_TARGET_ACTIONS:
@@ -162,6 +178,7 @@ def _regex_fallback_action(text: str) -> Action:
         "customer": "create_customer",
         "vehicle": "create_vehicle",
         "visit": "create_visit",
+        "supplier": "create_supplier",
         "operation": "create_visit",  # operation = visit-with-service in this domain
     }
     action_name = kind_to_action.get(intent_kind)
@@ -338,34 +355,117 @@ async def execute_action(
             "policy": "manual_review_required",
         }
 
-    # 6) Safe → auto-approve + auto-commit
+    # 6) Safe → echo-back + explicit user confirmation (Phase C governance).
+    #    The draft + approval exist but NOTHING is committed until the user
+    #    replies «نعم» (kernel routes that to confirm_pending below).
     req = action_runtime.request_approval(
         draft_id=draft["id"], requester=proposer_id,
     )
     if "error" in req:
         return {"status": "error", "reason": req["error"], "draft": draft}
 
-    approved = action_runtime.approve(
-        approval_id=req["approval_id"], approver=auto_approver,
-    )
-    if "error" in approved:
-        _log.warning("auto-approve failed: %s", approved.get("error"))
-        return {"status": "error", "reason": approved["error"], "draft": draft}
-
-    committed = action_runtime.commit(
-        draft_id=draft["id"], committer=auto_approver,
-    )
-    if "error" in committed:
-        return {"status": "error", "reason": committed["error"], "draft": draft}
+    pending = {
+        "draft_id": draft["id"],
+        "approval_id": req["approval_id"],
+        "action": action.action,
+        "proposer": proposer_id,
+    }
+    if session_id:
+        try:
+            from core import shared_memory
+            shared_memory.set_context(session_id, "pending_confirm", pending)
+        except Exception:
+            pass
 
     return {
-        "status": "committed",
+        "status": "awaiting_confirmation",
         "action": action.model_dump(),
         "draft": draft,
+        "approval": req,
+        "confirm_text": _confirm_text(action),
+        "policy": "confirm_first",
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase C — user confirmation helpers («نعم» / «لا»)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_CONFIRM_LABELS = {
+    "create_customer": "إضافة عميل", "create_vehicle": "إضافة مركبة",
+    "create_visit": "فتح زيارة", "create_supplier": "إضافة مورّد",
+    "update_customer": "تعديل عميل", "update_vehicle": "تعديل مركبة",
+}
+
+_FIELD_LABELS = {
+    "name": "الاسم", "phone": "الجوال", "customer_phone": "جوال العميل",
+    "customer_name": "اسم العميل", "plate": "اللوحة", "brand": "الماركة",
+    "model": "الموديل", "year": "السنة", "vehicle_type": "نوع المركبة",
+    "service": "الخدمة", "price": "السعر", "amount": "المبلغ", "reason": "السبب",
+    "category": "التخصص", "payment_terms": "شروط الدفع", "email": "البريد",
+    "address": "العنوان", "status": "الحالة", "vehicle_plate": "لوحة المركبة",
+}
+
+
+def _confirm_text(action: Action) -> str:
+    payload = action.payload or {}
+    label = _CONFIRM_LABELS.get(action.action, action.action)
+
+    def _fmt(d: Dict[str, Any]) -> list:
+        rows = []
+        for k, v in (d or {}).items():
+            if v in (None, "", []) or str(k).startswith("_") or k in ("match", "set", "raw"):
+                continue
+            rows.append(f"• {_FIELD_LABELS.get(k, k)}: {v}")
+        return rows
+
+    lines = [f"📋 **تأكيد {label}** — راجع البيانات قبل الحفظ:"]
+    if action.action.startswith("update_"):
+        tgt = payload.get("_target_label")
+        if tgt:
+            lines.append(f"• الهدف: {tgt}")
+        lines += _fmt(payload.get("match") or {})
+        st = payload.get("set") or {}
+        if st:
+            lines.append("التعديلات الجديدة:")
+            lines += _fmt(st)
+    else:
+        lines += _fmt(payload)
+    lines.append("")
+    lines.append("✋ لن يُحفظ أي شيء قبل موافقتك — رد بـ «نعم» للتنفيذ أو «لا» للإلغاء.")
+    return "\n".join(lines)
+
+
+def confirm_pending(pending: Dict[str, Any], *, approver: str = "auto:policy") -> Dict[str, Any]:
+    """يُثبّت مسودة آمنة بعد تأكيد المستخدم الصريح («نعم»)."""
+    approved = action_runtime.approve(
+        approval_id=pending["approval_id"], approver=approver,
+    )
+    if "error" in approved and approved.get("error") != "already_approved":
+        return {"status": "error", "reason": approved["error"]}
+    committed = action_runtime.commit(
+        draft_id=pending["draft_id"], committer=approver,
+    )
+    if "error" in committed:
+        return {"status": "error", "reason": committed["error"]}
+    return {
+        "status": "committed",
+        "action": {"action": pending.get("action"), "payload": {}},
         "result": committed.get("result"),
         "execution_id": committed.get("execution_id"),
-        "policy": "auto_safe",
+        "policy": "user_confirmed",
     }
+
+
+def cancel_pending(pending: Dict[str, Any], *, approver: str = "auto:policy") -> Dict[str, Any]:
+    """يرفض/يلغي مسودة آمنة بعد رفض المستخدم («لا»)."""
+    try:
+        action_runtime.reject_approval(
+            approval_id=pending["approval_id"], approver=approver, reason="user_cancelled",
+        )
+    except Exception:
+        pass
+    return {"status": "cancelled", "action": {"action": pending.get("action")}}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -77,6 +77,34 @@ def _alert_id(prefix: str, *parts) -> str:
     return f"{prefix}-{hashlib.md5(raw.encode('utf-8')).hexdigest()[:12]}"
 
 
+# حسابات الذمم — نفس أكواد routes_finance (مصدر موحّد)
+AR_ACCOUNT_CODES = {"005", "1103", "113"}
+AP_ACCOUNT_CODES = {"2101", "211"}
+
+# أنواع العمليات المالية التي يجب أن يقابلها قيد محاسبي
+FINANCIAL_OP_TYPES = {
+    "sale", "service", "instant_sale", "purchase", "expense", "cash_expense",
+    "salary", "collect_customer", "receipt_voucher", "payment_order", "pay_supplier",
+}
+
+
+def _account_type(code: Any) -> str:
+    """نوع الحساب من الكود — يطابق _infer_account_type_from_code في routes_finance."""
+    try:
+        n = int(str(code or "").strip())
+    except (ValueError, TypeError):
+        return "other"
+    if 25 <= n <= 29 or 4000 <= n <= 4999:
+        return "revenue"
+    if 30 <= n <= 59 or 5000 <= n <= 6999:
+        return "expense"
+    return "other"
+
+
+def _line_code(ln: Dict[str, Any]) -> str:
+    return str(ln.get("account") or ln.get("account_code") or ln.get("code") or "").strip()
+
+
 # ------------------------- Supabase Helpers -------------------------
 
 def _supa():
@@ -568,6 +596,193 @@ class FirewallEngine:
         return alerts
 
     # =========================================================
+    # 7️⃣.b Profitability (من القيود — نفس مصدر قائمة الدخل)
+    # =========================================================
+    def analyze_profitability(self) -> Dict[str, Any]:
+        """الإيراد/المصروف/الهامش خلال آخر 30 يوم من journal_entries."""
+        now = _now()
+        start = now - timedelta(days=30)
+        revenue = Decimal("0")
+        expenses = Decimal("0")
+        for entry in self._journals():
+            if str(entry.get("source") or "").strip().lower() == "period_close":
+                continue
+            dt = _parse_iso(entry.get("date") or entry.get("created_at"))
+            if not dt or dt < start:
+                continue
+            for ln in (entry.get("lines") or []):
+                if not isinstance(ln, dict):
+                    continue
+                acc_type = _account_type(_line_code(ln))
+                debit = _to_decimal(ln.get("debit"))
+                credit = _to_decimal(ln.get("credit"))
+                if acc_type == "revenue":
+                    revenue += credit - debit
+                elif acc_type == "expense":
+                    expenses += debit - credit
+        net = revenue - expenses
+        margin = float(net / revenue * 100) if revenue > 0 else None
+        return {
+            "period_days": 30,
+            "revenue": _round_2(revenue),
+            "expenses": _round_2(expenses),
+            "net_income": _round_2(net),
+            "margin_pct": round(margin, 1) if margin is not None else None,
+        }
+
+    def detect_profitability_issues(self, prof: Dict[str, Any]) -> List[Dict[str, Any]]:
+        alerts = []
+        revenue = float(prof.get("revenue") or 0)
+        expenses = float(prof.get("expenses") or 0)
+        margin = prof.get("margin_pct")
+        if revenue > 0 and margin is not None:
+            if margin < 10:
+                aid = _alert_id("low-margin", "30d")
+                if aid not in self._dismissed_ids:
+                    alerts.append({
+                        "id": aid, "category": "profitability", "severity": SEV_HIGH,
+                        "title": "هامش ربح منخفض",
+                        "description": f"الهامش الحالي {margin:.1f}% خلال آخر 30 يوم.",
+                        "root_cause": "راجع التسعير والمصروفات وهوامش قطع الغيار.",
+                        "financial_impact": _round_2(prof.get("net_income")),
+                        "affected_accounts": ["الإيرادات", "المصروفات"],
+                        "related_entries": [],
+                        "evidence": dict(prof),
+                        "auto_fix": FIX_NONE,
+                        "auto_fix_preview": {"message": "راجع التسعير والمصروفات وهوامش قطع الغيار."},
+                        "created_at": _now().isoformat(),
+                    })
+            elif margin < 20:
+                aid = _alert_id("mid-margin", "30d")
+                if aid not in self._dismissed_ids:
+                    alerts.append({
+                        "id": aid, "category": "profitability", "severity": SEV_LOW,
+                        "title": "هامش ربح متوسط",
+                        "description": f"الهامش الحالي {margin:.1f}% خلال آخر 30 يوم.",
+                        "root_cause": "توجد فرصة لتحسين الربحية.",
+                        "financial_impact": 0,
+                        "affected_accounts": ["الإيرادات"],
+                        "related_entries": [],
+                        "evidence": dict(prof),
+                        "auto_fix": FIX_NONE,
+                        "auto_fix_preview": {"message": "توجد فرصة لتحسين الربحية."},
+                        "created_at": _now().isoformat(),
+                    })
+        if revenue > 0 and expenses > revenue:
+            aid = _alert_id("op-loss", "30d")
+            if aid not in self._dismissed_ids:
+                alerts.append({
+                    "id": aid, "category": "profitability", "severity": SEV_HIGH,
+                    "title": "المصروفات أعلى من الإيرادات",
+                    "description": "هناك خسارة تشغيلية خلال آخر 30 يوم.",
+                    "root_cause": "تحقق من تسجيل الإيرادات/المصروفات وصحة التصنيف.",
+                    "financial_impact": _round_2(expenses - revenue),
+                    "affected_accounts": ["الإيرادات", "المصروفات"],
+                    "related_entries": [],
+                    "evidence": dict(prof),
+                    "auto_fix": FIX_NONE,
+                    "auto_fix_preview": {"message": "تحقق من تسجيل الإيرادات/المصروفات وصحة التصنيف."},
+                    "created_at": _now().isoformat(),
+                })
+        return alerts
+
+    # =========================================================
+    # 7️⃣.c Operations without Journal Entries (missing accounting)
+    # =========================================================
+    def detect_missing_journal_entries(self) -> List[Dict[str, Any]]:
+        refs = {str(e.get("reference_id") or "").strip() for e in self._journals()}
+        missing = [
+            op for op in self._operations()
+            if str(op.get("type") or "").lower() in FINANCIAL_OP_TYPES
+            and float(op.get("total") or 0) > 0
+            and str(op.get("id") or "") not in refs
+        ]
+        if not missing:
+            return []
+        ids = sorted(str(op.get("id") or "") for op in missing)
+        aid = _alert_id("missing-journals", *ids)
+        if aid in self._dismissed_ids:
+            return []
+        total_impact = sum(float(op.get("total") or 0) for op in missing)
+        return [{
+            "id": aid, "category": "integrity", "severity": SEV_HIGH,
+            "title": "عمليات مالية بدون قيود محاسبية",
+            "description": (f"{len(missing)} عملية مالية بمجموع {_round_2(total_impact)} ر.س "
+                            "لا يقابلها أي قيد في دفتر اليومية."),
+            "root_cause": "القيود لم تُنشأ عند تسجيل العملية أو حُذفت لاحقًا.",
+            "financial_impact": _round_2(total_impact),
+            "affected_accounts": ["دفتر اليومية"],
+            "related_entries": ids[:20],
+            "evidence": {
+                "missing_count": len(missing),
+                "operations": [
+                    {"id": str(op.get("id") or "")[:8], "type": op.get("type"),
+                     "total": _round_2(op.get("total") or 0)}
+                    for op in missing[:10]
+                ],
+            },
+            "auto_fix": FIX_GUIDED,
+            "auto_fix_preview": {
+                "type": "fix_missing_journals",
+                "endpoint": "POST /api/operations/integrity/fix-all",
+                "message": "شغّل «تصحيح القيود المفقودة» من مركز جدار الحماية لإعادة إنشاء القيود.",
+            },
+            "created_at": _now().isoformat(),
+        }]
+
+    # =========================================================
+    # 7️⃣.d Open Receivables / Payables (من القيود)
+    # =========================================================
+    def detect_open_receivables(self) -> List[Dict[str, Any]]:
+        alerts = []
+        ar = Decimal("0")
+        ap = Decimal("0")
+        for entry in self._journals():
+            for ln in (entry.get("lines") or []):
+                if not isinstance(ln, dict):
+                    continue
+                code = _line_code(ln)
+                debit = _to_decimal(ln.get("debit"))
+                credit = _to_decimal(ln.get("credit"))
+                if code in AR_ACCOUNT_CODES:
+                    ar += debit - credit
+                if code in AP_ACCOUNT_CODES:
+                    ap += credit - debit
+        if ar > 0:
+            aid = _alert_id("ar-open", "all")
+            if aid not in self._dismissed_ids:
+                alerts.append({
+                    "id": aid, "category": "receivables", "severity": SEV_MEDIUM,
+                    "title": "ذمم مدينة مفتوحة",
+                    "description": f"يوجد آجل (غير محصل) بقيمة {_round_2(ar):,.2f} على حساب ذمم العملاء.",
+                    "root_cause": "تابع التحصيل أو اربطها بفاتورة/سداد.",
+                    "financial_impact": _round_2(ar),
+                    "affected_accounts": ["ذمم العملاء"],
+                    "related_entries": [],
+                    "evidence": {"ar_total": _round_2(ar)},
+                    "auto_fix": FIX_NONE,
+                    "auto_fix_preview": {"message": "تابع التحصيل أو اربطها بفاتورة/سداد."},
+                    "created_at": _now().isoformat(),
+                })
+        if ap > 0:
+            aid = _alert_id("ap-open", "all")
+            if aid not in self._dismissed_ids:
+                alerts.append({
+                    "id": aid, "category": "payables", "severity": SEV_MEDIUM,
+                    "title": "ذمم دائنة مفتوحة",
+                    "description": f"يوجد آجل (غير مسدد) بقيمة {_round_2(ap):,.2f} على حساب ذمم الموردين.",
+                    "root_cause": "راجع التزامات الموردين وجدول السداد.",
+                    "financial_impact": _round_2(ap),
+                    "affected_accounts": ["ذمم الموردين"],
+                    "related_entries": [],
+                    "evidence": {"ap_total": _round_2(ap)},
+                    "auto_fix": FIX_NONE,
+                    "auto_fix_preview": {"message": "راجع التزامات الموردين وجدول السداد."},
+                    "created_at": _now().isoformat(),
+                })
+        return alerts
+
+    # =========================================================
     # 8️⃣ Cash Flow Analysis (Risk)
     # =========================================================
     def analyze_cash_flow(self) -> Dict[str, Any]:
@@ -629,8 +844,9 @@ class FirewallEngine:
         # 6) cash flow positive (10 points)
         scores["positive_cash_flow"] = 10 if not cash_flow.get("is_negative") else 0
 
-        # 7) audit coverage (5 points) — أي قيد له reference ولكن مع COGS لإيرادات → يعكس صحة التدفق
-        scores["audit_coverage"] = 5  # placeholder بسيط؛ نُحسّنه لاحقاً
+        # 7) profitability (5 points) — هامش/خسارة تشغيلية خلال آخر 30 يوم
+        prof_issues = sum(1 for a in alerts if a.get("category") == "profitability" and a.get("severity") in (SEV_CRITICAL, SEV_HIGH))
+        scores["profitability"] = 5 if prof_issues == 0 else 0
 
         # 8) AR overdue (5 points)
         overdue = sum(1 for a in alerts if a.get("category") == "overdue")
@@ -686,6 +902,11 @@ class FirewallEngine:
         all_alerts.extend(self.detect_expense_anomalies())
         all_alerts.extend(self.detect_orphan_journals())
         all_alerts.extend(self.detect_suspicious_entries())
+        # 🆕 مؤشرات موحّدة (كانت سابقًا في /api/finance/alerts فقط — مصدر واحد الآن)
+        profitability = self.analyze_profitability()
+        all_alerts.extend(self.detect_profitability_issues(profitability))
+        all_alerts.extend(self.detect_missing_journal_entries())
+        all_alerts.extend(self.detect_open_receivables())
 
         # رتّب حسب الخطورة
         sev_order = {SEV_CRITICAL: 0, SEV_HIGH: 1, SEV_MEDIUM: 2, SEV_LOW: 3, SEV_INFO: 4}
@@ -721,6 +942,7 @@ class FirewallEngine:
             "counts_by_category": dict(counts_by_category),
             "counts_by_severity": dict(counts_by_severity),
             "cash_flow": cash_flow,
+            "profitability": profitability,
             "live_activity": live,
             "stats": {
                 "total_journals": len(self._journals()),

@@ -171,6 +171,16 @@ _QUESTION_LEAD_RE = re.compile(
     r"why|what|how|when|where|who|show|find|search|list)",
     re.IGNORECASE,
 )
+# Phase C — bare confirmation / cancellation replies for a pending safe draft.
+_CONFIRM_RE = re.compile(
+    r"^\s*(?:نعم|أكّ?د|اكّ?د|تمام|موافق|ماشي|أوكي|اوكي|اوك|أوك|ok|okay|yes|"
+    r"نفّ?ذ|اعتمد|إعتمد|أجل|ايوه|ايوا|إيه|اي\s*نعم|صح|أكيد|اكيد|كمّ?ل|أكمل|اكمل)\s*[.!؟]*\s*$",
+    re.IGNORECASE,
+)
+_CANCEL_RE = re.compile(
+    r"^\s*(?:لا|كلا|إلغاء|الغاء|ألغِ?|الغِ?|تجاهل|وقف|أوقف|تراجع|cancel|no|stop)\s*[.!؟]*\s*$",
+    re.IGNORECASE,
+)
 
 
 def looks_like_action(text: str) -> bool:
@@ -211,6 +221,7 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
     action = (exec_res.get("action") or {}).get("action") or "unknown"
     label = {
         "create_customer": "عميل", "create_vehicle": "مركبة", "create_visit": "زيارة",
+        "create_supplier": "مورّد",
         "delete_operation": "حذف عملية", "close_visits": "إغلاق الزيارات",
         "delete_customer": "حذف عميل", "delete_vehicle": "حذف مركبة",
         "update_customer": "تعديل عميل", "update_vehicle": "تعديل مركبة",
@@ -238,6 +249,10 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
                 response_text = f"⚠️ **{label} موجود مسبقاً** — {name}\nلم أُنشئ نسخة مكررة."
             else:
                 response_text = f"✅ **تم بنجاح** — {label}: {name}\n📌 حُفظ في قاعدة البيانات."
+    elif status == "awaiting_confirmation":
+        # Phase C — safe action echo-back: nothing saved until the user says «نعم».
+        response_text = exec_res.get("confirm_text") or (
+            f"📋 بانتظار تأكيدك ({label}) — رد بـ «نعم» للتنفيذ أو «لا» للإلغاء.")
     else:  # pending_approval
         approval_id = (exec_res.get("approval") or {}).get("approval_id")
         draft_id = (exec_res.get("draft") or {}).get("id")
@@ -291,7 +306,8 @@ def _build_clarification_response(*, sid: str, message: str, exec_res: Dict[str,
     to disambiguate instead of guessing (data-safety)."""
     reason = exec_res.get("reason")
     entity = exec_res.get("entity")
-    ent_ar = "عميل" if entity == "customer" else "مركبة"
+    ent_ar = {"customer": "عميل", "vehicle": "مركبة", "supplier": "مورّد",
+              "financial": "طرف مالي"}.get(entity, "سجل")
     cands = exec_res.get("candidates") or []
     ask = exec_res.get("ask")
     if ask:
@@ -321,6 +337,22 @@ def _build_clarification_response(*, sid: str, message: str, exec_res: Dict[str,
     }
 
 
+
+
+def _plain_chat_response(*, sid: str, text: str, intent: str = "action",
+                         status: Optional[str] = None) -> Dict[str, Any]:
+    """رد نصي بسيط من مسار التنفيذ (بدون LLM)."""
+    shared_memory.append_message(sid, "assistant", text, meta={"intent": intent, "status": status})
+    return {
+        "session_id": sid, "agent": "Assistant", "assistant_name": ASSISTANT_NAME,
+        "assistant_version": ASSISTANT_VERSION, "intent": intent,
+        "tool_results": [], "response": text, "cards": [],
+        "context_snapshot": {}, "recent_actions": shared_memory.get_recent_actions(sid, limit=10),
+        "ai_used": False, "model_used": None, "read_only": False, "mode": intent,
+        "executed": ({"status": status, "action": None, "entity_id": None, "approval_id": None}
+                     if status else None),
+        "power": None,
+    }
 
 
 # ---------- LLM Helper ----------
@@ -410,13 +442,18 @@ def _system_prompt() -> str:
         "  • **ممنوع منعاً باتاً اختراع أي أرقام أو قيود أو حسابات.** لا تُنشئي قيداً محاسبياً افتراضياً، ولا ميزان مراجعة من عندك، ولا 'قيد رقم X' وهمي — اعرضي فقط ما ترجعه الأدوات فعلاً من قاعدة البيانات.\n"
         "  • إذا لم تتوفّر البيانات أو رجعت الأداة فارغة → قولي بوضوح «لا تتوفّر بيانات كافية» أو «لم أجد قيوداً مطابقة»، **ولا تخمّني المصدر ولا تلفّقي تفسيراً**.\n"
         "  • قد يختلف الرقم الإجمالي في تقرير (مثل التدفق النقدي) عن مجموع العمليات المفردة — إن ظهر فرق، وضّحي أنه **فرق في طريقة الاحتساب** واقترحي فتح صفحة القيود المحاسبية للتفصيل؛ **لا تختلقي عمليات أو قيوداً لتغطية الفرق**.\n"
-        "  • فرّقي بصراحة بين «تمثيل توضيحي» و«بيانات فعلية»، ولا تعرضي أي تمثيل توضيحي وكأنه قيد حقيقي مسجّل في النظام.\n\n"
+        "  • فرّقي بصراحة بين «تمثيل توضيحي» و«بيانات فعلية»، ولا تعرضي أي تمثيل توضيحي وكأنه قيد حقيقي مسجّل في النظام.\n"
+        "  • **ممنوع منعاً باتاً الادعاء بتنفيذ أي عملية كتابة** (إضافة/تعديل/حذف عميل/مورد/مركبة/فاتورة...). "
+        "التنفيذ يتم حصراً عبر محرك التنفيذ، ورسالة «✅ تم بنجاح» تصدر من النظام نفسه — ليست منكِ. "
+        "إذا وصلك طلب تنفيذ إلى هنا فهذا يعني أن المحرك لم يلتقطه: قولي بوضوح «لم يُنفَّذ بعد» "
+        "واطلبي إعادة الصياغة كأمر مباشر في رسالة واحدة (مثال: 'اضف مورد باسم راكان جوال 0501001220'). "
+        "**لا تقولي أبداً «تم» أو «جاري الإضافة» أو «سأضيفه» من عندك.**\n\n"
         "📊 **التعامل مع النتائج**:\n"
         "  • نتيجة فارغة → قولي مباشرة 'لا توجد بيانات' بدون اعتذار.\n"
         "  • نتيجة ناجحة → نسّقيها (جدول Markdown/قائمة) وبفواصل آلاف للأرقام.\n\n"
         "⚙️ **التنفيذ ونموذج المستويين (حوكمة القدرات)**:\n"
         "  • تفهمين وتقترحين أي أمر (عميل/مركبة/جوال/فاتورة/دفعة/مصروف/عكس/حذف). التأكيد حاجز أمان على لحظة التثبيت فقط.\n"
-        "  • **المستوى ١ (منخفض الخطر)**: إنشاء/تعديل عميل، مركبة، جوال، والقراءة → تأكيد سريع منكِ ثم تثبيت.\n"
+        "  • **المستوى ١ (منخفض الخطر)**: إنشاء/تعديل عميل، مورّد، مركبة، زيارة → النظام يعرض ملخص echo-back ويطلب من المستخدم الرد بـ«نعم» قبل الحفظ (لا حفظ صامت).\n"
         "  • **المستوى ٢ (عالي الخطر)**: المالية (فاتورة/دفعة/مصروف/عكس) والحذف والإغلاق الجماعي → **أربع أعين** (اعتماد بشري مختلف) + بطاقة echo-back كاملة.\n"
         "  • 🔴 **الخط الأحمر**: لا يُثبَّت أي قيد مالي تلقائياً أبداً — لا auto-commit مالي تحت أي ظرف.\n"
         "  • قبل أي تثبيت اعرضي echo-back: النوع + الكيان الحقيقي المُحلَّل من القاعدة + المبلغ + الحسابات المتأثرة. عند الغموض/عدم التطابق → اسألي، لا تخمّني.\n"
@@ -450,6 +487,32 @@ async def chat(
     sid = session_id or f"session-{uuid.uuid4().hex[:10]}"
     shared_memory.append_message(sid, "user", message)
 
+    # 🆕 Phase C — resolve a pending safe-action confirmation («نعم»/«لا») BEFORE
+    # any intent parsing, so a bare confirmation commits the REAL draft instead
+    # of falling into the LLM (which must never claim execution success).
+    pending_confirm = shared_memory.get_context(sid, "pending_confirm")
+    if pending_confirm:
+        from core import unified_executor as _ux
+        if _CONFIRM_RE.match(message or ""):
+            shared_memory.set_context(sid, "pending_confirm", None)
+            exec_res = _ux.confirm_pending(pending_confirm)
+            if exec_res.get("status") == "committed":
+                return _build_action_chat_response(sid=sid, message=message, exec_res=exec_res)
+            return _plain_chat_response(
+                sid=sid,
+                text=(f"⚠️ تعذّر التثبيت: {exec_res.get('reason') or 'خطأ غير متوقع'} — "
+                      "أعد صياغة الطلب من جديد."),
+                intent="action", status="error",
+            )
+        if _CANCEL_RE.match(message or ""):
+            shared_memory.set_context(sid, "pending_confirm", None)
+            _ux.cancel_pending(pending_confirm)
+            return _plain_chat_response(
+                sid=sid, text="🚫 تم الإلغاء — لم يُحفظ أي شيء.",
+                intent="action", status="cancelled",
+            )
+        # أي رسالة أخرى → تُعامل طبيعياً (قد تكون تعديلاً على الطلب)
+
     # 🆕 Phase 3B Round 2 — Power Mode (multi-intent + drafts).
     # If the message starts with "/power", we bypass the LLM and instead return
     # a batch of draft cards (read-only proposals — Phase 3C will commit).
@@ -480,7 +543,7 @@ async def chat(
         except Exception as e:
             _log.warning("unified action execution failed: %s", redact(str(e), max_len=120))
             exec_res = None
-        if exec_res and exec_res.get("status") in ("committed", "pending_approval"):
+        if exec_res and exec_res.get("status") in ("committed", "pending_approval", "awaiting_confirmation"):
             return _build_action_chat_response(sid=sid, message=message, exec_res=exec_res)
         if exec_res and exec_res.get("status") == "needs_clarification":
             return _build_clarification_response(sid=sid, message=message, exec_res=exec_res)

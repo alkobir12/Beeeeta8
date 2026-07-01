@@ -35,6 +35,7 @@ ALLOWED_ACTIONS = {
     "create_customer",
     "create_vehicle",
     "create_visit",          # staging or Supabase visits table
+    "create_supplier",       # 🆕 add a supplier (name required)
     "close_visits",          # bulk close — implemented as a vehicles status flip
     "get_active_visits",     # read-only query, returns immediately
     "delete_operation",      # delete a specific operation by ID — requires approval
@@ -75,6 +76,7 @@ _SYSTEM_PROMPT = (
     "  • أرقام الجوال السعودية تبدأ بـ 05 (10 أرقام). إذا كان الرقم ناقصاً (مثل 0574747) اقبله مع رفع علم incomplete=true.\n\n"
     "Actions المسموح بها:\n"
     "  • create_customer  — payload: {name?, phone?, email?, address?, vehicle_plate?}\n"
+    "  • create_supplier  — payload: {name, phone?, category?, payment_terms?} (إضافة مورّد جديد)\n"
     "  • create_vehicle   — payload: {plate?, brand?, model?, year?, vehicle_type?, customer_name?, customer_phone?}\n"
     "  • create_visit     — payload: {plate?, vehicle_type?, year?, customer_name?, customer_phone?, service?, price?, reason?}\n"
     "  • close_visits     — payload: {} (يُغلق كل الزيارات النشطة)\n"

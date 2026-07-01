@@ -124,9 +124,14 @@ def detect_intent_kind(cmd: str) -> str:
 # 4) Entity extraction (numbers / plates / phones / amounts / names)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_PLATE_RE = re.compile(r"\b(\d{3,4}\s*[A-Za-z\u0600-\u06FF]{1,4}|\d{4,5})\b")
-_PHONE_RE = re.compile(r"\b(05\d{8}|9665\d{8}|\+9665\d{8})\b")
+_PLATE_RE = re.compile(r"\b(\d{3,4}\s*(?!(?:جوال|هاتف|تلفون|ريال|رس|باسم|سعر|سنه|سنة)(?:\s|$))[A-Za-z\u0600-\u06FF]{1,4}|\d{4,5})\b")
+_PHONE_RE = re.compile(r"\b(05\d{7,9}|9665\d{7,9}|\+9665\d{7,9})\b")
 _AMOUNT_RE = re.compile(r"\b(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:ر\.?س|ريال|sar|sr)?\b", re.IGNORECASE)
+# مبلغ مسبوق بكلمة مفتاحية (بقيمة/بمبلغ/بسعر...) — أعلى ثقة، يمنع خلط الجوال/اللوحة بالمبلغ
+_AMOUNT_KEYWORD_RE = re.compile(
+    r"(?:بقيمه|بقيمة|بمبلغ|بسعر|قيمتها|قيمته|قيمة|قيمه|مبلغ|سعر)\s*[:：]?\s*(\d[\d,]*(?:\.\d{1,2})?)",
+    re.IGNORECASE,
+)
 # Arabic personal name heuristic: 1-4 words of Arabic letters, no digits
 _ARABIC_NAME_RE = re.compile(r"([\u0621-\u064A]{2,}(?:\s+[\u0621-\u064A]+){0,3})")
 
@@ -137,29 +142,40 @@ def extract_entities(cmd: str, intent_kind: str) -> Dict[str, Any]:
     if not cmd:
         return out
 
-    # Plate / vehicle ID
-    if intent_kind in ("vehicle", "visit", "operation"):
-        m = _PLATE_RE.search(cmd)
-        if m:
-            out["plate"] = m.group(1).strip()
+    cleaned = cmd
 
-    # Phone
-    pm = _PHONE_RE.search(cmd)
+    # Phone FIRST (tolerates 9-digit typos so they never leak into amount/plate)
+    pm = _PHONE_RE.search(cleaned)
     if pm:
         out["phone"] = pm.group(1)
-
-    # Amount (skip phones / plates already matched)
-    cleaned = cmd
-    if pm:
         cleaned = cleaned.replace(pm.group(0), " ")
-    if "plate" in out:
-        cleaned = cleaned.replace(out["plate"], " ")
-    am = _AMOUNT_RE.search(cleaned)
-    if am and intent_kind in ("collection", "payment", "invoice", "operation"):
-        try:
-            out["amount"] = float(am.group(1).replace(",", ""))
-        except (ValueError, TypeError):
-            pass
+
+    # Keyword amount (بقيمة/بمبلغ/بسعر ...) — runs BEFORE plate so "بقيمة 4500"
+    # never gets misread as a plate number.
+    if intent_kind in ("collection", "payment", "invoice", "operation"):
+        akm = _AMOUNT_KEYWORD_RE.search(cleaned)
+        if akm:
+            try:
+                out["amount"] = float(akm.group(1).replace(",", ""))
+                cleaned = cleaned.replace(akm.group(0), " ")
+            except (ValueError, TypeError):
+                pass
+
+    # Plate / vehicle ID (on the cleaned text — phone/amount already removed)
+    if intent_kind in ("vehicle", "visit", "operation"):
+        m = _PLATE_RE.search(cleaned)
+        if m:
+            out["plate"] = m.group(1).strip()
+            cleaned = cleaned.replace(out["plate"], " ")
+
+    # Fallback amount (no keyword)
+    if "amount" not in out and intent_kind in ("collection", "payment", "invoice", "operation"):
+        am = _AMOUNT_RE.search(cleaned)
+        if am:
+            try:
+                out["amount"] = float(am.group(1).replace(",", ""))
+            except (ValueError, TypeError):
+                pass
 
     # Arabic name (only for customer/supplier intents)
     if intent_kind in ("customer", "supplier"):

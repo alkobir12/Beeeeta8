@@ -262,6 +262,7 @@ export const AssistantProvider = ({ children }) => {
         const r = d.result || {};
         const labels = {
           create_customer: 'عميل', create_vehicle: 'مركبة', create_visit: 'زيارة',
+          create_supplier: 'مورّد',
           delete_operation: 'حذف عملية', delete_customer: 'حذف عميل', delete_vehicle: 'حذف مركبة',
           update_customer: 'تعديل عميل', update_vehicle: 'تعديل مركبة',
         };
@@ -285,16 +286,22 @@ export const AssistantProvider = ({ children }) => {
           }));
         } catch (e) { /* noop */ }
       } else if (d.status === 'needs_clarification') {
-        const entAr = d.entity === 'customer' ? 'عميل' : 'مركبة';
-        const cands = d.candidates || [];
-        if (d.reason === 'not_found') {
-          summary = `🔎 لم أجد ${entAr} مطابقاً. تأكّد من الاسم أو رقم الجوال/اللوحة وحاول مجدداً.`;
+        if (d.ask) {
+          summary = d.ask;
         } else {
-          const lines = cands.map((c) => (d.entity === 'customer'
-            ? `• ${c.name} — ${c.phone || 'بدون جوال'}`
-            : `• لوحة ${c.plate} — ${c.brand || ''} ${c.model || ''}`)).join('\n');
-          summary = `⚠️ وجدت أكثر من ${entAr} مطابق — أيّهم تقصد؟\n${lines}\n\nحدّد بالاسم الكامل أو رقم الجوال/اللوحة.`;
+          const entAr = d.entity === 'customer' ? 'عميل' : d.entity === 'supplier' ? 'مورّد' : 'مركبة';
+          const cands = d.candidates || [];
+          if (d.reason === 'not_found') {
+            summary = `🔎 لم أجد ${entAr} مطابقاً. تأكّد من الاسم أو رقم الجوال/اللوحة وحاول مجدداً.`;
+          } else {
+            const lines = cands.map((c) => (d.entity === 'customer'
+              ? `• ${c.name} — ${c.phone || 'بدون جوال'}`
+              : `• لوحة ${c.plate} — ${c.brand || ''} ${c.model || ''}`)).join('\n');
+            summary = `⚠️ وجدت أكثر من ${entAr} مطابق — أيّهم تقصد؟\n${lines}\n\nحدّد بالاسم الكامل أو رقم الجوال/اللوحة.`;
+          }
         }
+      } else if (d.status === 'awaiting_confirmation') {
+        summary = d.confirm_text || '📋 بانتظار تأكيدك — رد بـ «نعم» للتنفيذ أو «لا» للإلغاء.';
       } else if (d.status === 'pending_approval') {
         summary = `⏳ **بانتظار اعتمادك** — العملية حساسة (${action}).`;
         cards = [{

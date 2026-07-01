@@ -70,7 +70,7 @@ STATE: Dict[str, Dict[str, Any]] = {
 # 2) State machine constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-VALID_ACTIONS = {"customer", "vehicle", "visit", "close_visits", "delete_operation",
+VALID_ACTIONS = {"customer", "vehicle", "visit", "supplier", "close_visits", "delete_operation",
                  "delete_customer", "delete_vehicle", "update_customer", "update_vehicle",
                  "invoice", "payment", "expense", "reverse"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
@@ -817,6 +817,71 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
             _audit("COMMIT_FINANCIAL", draft_id=draft_id, execution_id=execution_id,
                    action=action, journal_id=(fres or {}).get("journal_id"), committer=committer)
             return {"execution_id": execution_id, "result": fres}
+
+        # ── 🆕 supplier — synchronous write to the same store the suppliers API uses ──
+        #    (Supabase `suppliers` table doesn't exist → the domain repo falls back to
+        #    the file-backed mem store `uploads/suppliers.json`; we write there too.)
+        if action == "supplier":
+            name = str(payload.get("name") or "").strip()
+            if not name:
+                return {"error": "missing_supplier_name"}
+            phone = str(payload.get("phone") or "").strip()
+            try:
+                from server import _mem_read, _mem_write
+                rows = _mem_read("suppliers") or []
+                dup = None
+                for r in rows:
+                    same_name = str(r.get("name") or "").strip() == name
+                    r_phone = str(r.get("phone") or "").strip()
+                    if same_name and (not phone or not r_phone or r_phone == phone):
+                        dup = r
+                        break
+                if dup:
+                    result_data = {**dup, "_duplicate": True, "_action": "create_supplier"}
+                    execution_id = uuid.uuid4().hex[:12]
+                    STATE["executions"][execution_id] = {
+                        "id": execution_id, "draft_id": draft_id, "result": result_data,
+                        "status": "executed", "committer": committer or "anonymous",
+                        "committed_at": time.time(),
+                    }
+                    draft["status"] = "committed"
+                    draft["execution_id"] = execution_id
+                    _audit("COMMIT_DUPLICATE_SKIPPED", draft_id=draft_id, execution_id=execution_id,
+                           table="suppliers", existing_id=dup.get("id"))
+                    return {"execution_id": execution_id, "result": result_data}
+
+                supplier = {
+                    "id": str(uuid.uuid4()),
+                    "name": name[:120],
+                    "phone": phone[:32] or None,
+                    "category": payload.get("category") or None,
+                    "paymentTerms": payload.get("payment_terms") or payload.get("paymentTerms") or None,
+                    "rating": 5.0,
+                    "createdAt": datetime.now(timezone.utc).isoformat(),
+                    "source": "katrina",
+                }
+                rows.append(supplier)
+                _mem_write("suppliers", rows)
+                try:
+                    import perf_cache
+                    perf_cache.invalidate("partner_fin_map")
+                    perf_cache.invalidate("ops_for_partner_fin")
+                except Exception:
+                    pass
+                execution_id = uuid.uuid4().hex[:12]
+                STATE["executions"][execution_id] = {
+                    "id": execution_id, "draft_id": draft_id, "result": supplier,
+                    "status": "executed", "committer": committer or "anonymous",
+                    "committed_at": time.time(),
+                }
+                draft["status"] = "committed"
+                draft["execution_id"] = execution_id
+                _audit("COMMIT_SUPPLIER", draft_id=draft_id, execution_id=execution_id,
+                       entity_id=supplier["id"], committer=committer)
+                return {"execution_id": execution_id, "result": supplier}
+            except Exception as e:
+                _log.exception("supplier commit failed: %s", redact(str(e), max_len=120))
+                return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
 
         # Map action → table
         table = {"customer": "customers", "vehicle": "vehicles", "visit": "visits"}[action]

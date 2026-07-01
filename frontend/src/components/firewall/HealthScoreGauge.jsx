@@ -77,6 +77,7 @@ const labelize = (key) => {
     data_integrity: 'نزاهة البيانات',
     positive_cash_flow: 'تدفق إيجابي',
     audit_coverage: 'تغطية التدقيق',
+    profitability: 'الربحية',
     overdue_control: 'متابعة المتأخرات',
   };
   return map[key] || key;
