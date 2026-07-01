@@ -119,14 +119,17 @@ export const RecentOperationsWidget = ({ variant = 'drawer', limit = 8, filterAc
         <span data-testid="recent-ops-count" className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold">
           {items.length}
         </span>
-        <button
+        <span
+          role="button"
+          tabIndex={0}
           onClick={(e) => { e.stopPropagation(); fetchExecutions(); }}
-          className="p-1 rounded hover:bg-white/30 dark:hover:bg-black/30 transition-colors"
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); fetchExecutions(); } }}
+          className="p-1 rounded hover:bg-white/30 dark:hover:bg-black/30 transition-colors cursor-pointer"
           title="تحديث"
           data-testid="recent-ops-refresh"
         >
           <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
-        </button>
+        </span>
         {collapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
       </button>
 
