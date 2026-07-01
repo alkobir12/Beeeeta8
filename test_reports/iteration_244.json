@@ -1,0 +1,37 @@
+{
+  "summary": "Iter 244 verified: account-code realignment to LIVE Supabase chart + dry_run fix-all + finance reports single-source-of-truth. Backend 8/8 pytest green (test_finance_alignment_iter244.py). Frontend: login مدير works; /operations shows alerts-health-chip='🛡️ 100/100' + '1 متوسط' single AR alert; /accounting/comprehensive default view shows صافي الدخل ١٣,٥٥٠ ر.س + آجل ١٣,٥٥٠; ميزان المراجعة tab lists 005 العملاء (ذمم مدينة) Dr 13,550 and 026 إيرادات خدمات ميكانيكية Cr 2,050 (and 027 present), total Dr = Cr = 13,550, difference 0; قائمة الدخل tab shows إجمالي البيع ١٣,٥٥٠ / آجل غير مسدد ١٣,٥٥٠; chart-of-accounts shows 005 العملاء ١٣,٥٥٠; /debts-followup shows ذمم العملاء (آجل) ١٣,٥٥٠ ر.س across 8 customers. No stale codes (1103/4101/042/0421) found in the report bodies (see caveat below).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/ (Dashboard) — RecentOperationsWidget", "issues": ["React DOM warning: 'validateDOMNesting(...) <button> cannot appear as a descendant of <button>' — pre-existing minor DOM structure issue in RecentOperationsWidget, non-blocking but should be cleaned up when convenient."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_finance_alignment_iter244.py",
+    "/app/test_reports/pytest/pytest_iter244.xml"
+  ],
+  "action_items": [
+    "Optional: fix nested-<button> React DOM warning in RecentOperationsWidget (dashboard console noise)."
+  ],
+  "critical_code_review_comments": [
+    "Reports endpoints use snake_case totals: /api/finance/reports/trial-balance returns totals={total_debit,total_credit} not {debits,credits}. Consider standardizing key names across endpoints to reduce consumer surprises.",
+    "Comprehensive Financial page (single-page tabbed view at /accounting/comprehensive) is the sole entry to reports — no direct routes like /accounting/trial-balance exist. That's fine but worth documenting for QA/testers to avoid 404 assumptions.",
+    "Substring code detection is fragile (e.g., stale code '1103' can incidentally match inside UUIDs/timestamps). Frontend should render account codes in bounded elements with data-testid=`account-code-{code}` so tests can positively assert exact matches — recommend adding a helper span with data-testid on each account row.",
+    "Alerts payload shape: /api/finance/alerts and /api/firewall/dashboard both return the required unified fields (source='firewall_engine', health.score=100, exactly 1 alert, cash_flow.inflow=0, profitability.revenue=13550) — single source of truth confirmed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_finance_alignment_iter244.py (new — 8 tests, all passing)"
+  ],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "100% (11/11 acceptance items verified visually + via body text)"},
+  "test_credentials": "POST /api/auth/login {\"username\":\"مدير\"} → access_token; workshop_id=finmodule-sync",
+  "seed_data_creation": "None. All backend calls were READ-ONLY except one {\"dry_run\": true} preview to /api/operations/integrity/fix-all (safe, no writes) and one empty {} call which returned fixed=0/missing_before=0 (idempotent — no side effects). No suppliers/customers/accounts/operations created or modified.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression suite: /app/backend/tests/test_finance_alignment_iter244.py — covers alerts source/health/alert-count/cash_flow/profitability, firewall-dashboard vs finance-alerts parity, fix-all dry_run + idempotent empty-body call, and trial-balance/income-statement/balance-sheet/ar-customers totals=13,550 with LIVE chart names. Trial balance totals use keys total_debit/total_credit; balance sheet uses assets & liabilities_plus_equity. Reports page is /accounting/comprehensive with tabs (نظرة عامة، الميزانية، قائمة الدخل، التدفقات النقدية، ميزان المراجعة، الذمم، الموازنة، مطابقة العمليات) — there are NO separate /accounting/trial-balance or /accounting/balance-sheet routes. Numbers in UI are rendered in Arabic-Indic digits (١٣,٥٥٠), so text assertions must accept both '13,550' and '١٣,٥٥٠'.",
+  "rca of the issue": "N/A — no defects found. The account-code realignment to the live Supabase chart is consistent end-to-end: backend reports (005/026/027) match UI trial-balance rows, ذمم العملاء = 13,550 across 8 customers matches /api/finance/reports/ar-customers and /debts-followup, income statement revenue = 13,550, balance sheet is balanced 13,550=13,550 with net-income rolled into equity, and firewall_engine is the single source of truth for the AR alert with health=100."
+}

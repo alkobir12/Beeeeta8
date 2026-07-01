@@ -58,7 +58,10 @@ def _parse_iso(d: Any) -> Optional[datetime]:
         return None
     s = str(d)
     try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
     except Exception:
         try:
             return datetime.strptime(s[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -417,7 +420,10 @@ class FirewallEngine:
             items = meta.get("items") if isinstance(meta, dict) else []
             if not isinstance(items, list) or not items:
                 continue
-            visit_total = _to_decimal(sum(_to_decimal(it.get("total") or 0) for it in items if isinstance(it, dict)))
+            visit_total = _to_decimal(sum(
+                _to_decimal(it.get("total") or (_to_decimal(it.get("price") or 0) * _to_decimal(it.get("quantity") or it.get("qty") or 1)))
+                for it in items if isinstance(it, dict)
+            ))
             op = ops_by_visit.get(str(visit.get("id")))
             if not op:
                 continue

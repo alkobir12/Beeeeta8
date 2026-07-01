@@ -577,6 +577,7 @@ async def get_balance_sheet(
         assets_accounts = []
         liabilities_accounts = []
         equity_accounts = []
+        net_income_period = 0.0
 
         for code, row in balances_map.items():
             debit = _safe_float(row.get("debit"))
@@ -587,6 +588,12 @@ async def get_balance_sheet(
                 balance = debit - credit
             elif acc_type in {"liability", "equity"}:
                 balance = credit - debit
+            elif acc_type == "revenue":
+                net_income_period += credit - debit
+                continue
+            elif acc_type == "expense":
+                net_income_period -= debit - credit
+                continue
             else:
                 continue
 
@@ -610,6 +617,16 @@ async def get_balance_sheet(
         total_assets = sum(acc["balance"] for acc in assets_accounts)
         total_liabilities = sum(acc["balance"] for acc in liabilities_accounts)
         total_equity = sum(acc["balance"] for acc in equity_accounts)
+
+        # صافي دخل الفترة يُرحَّل لحقوق الملكية (توازن الميزانية: أصول = خصوم + حقوق)
+        if abs(net_income_period) >= 0.005:
+            equity_accounts.append({
+                "id": "023",
+                "code": "023",
+                "name": "صافي الربح/الخسارة (الفترة)",
+                "balance": round(net_income_period, 2),
+            })
+            total_equity += net_income_period
         
         return {
             "success": True,
