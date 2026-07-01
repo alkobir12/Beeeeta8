@@ -87,6 +87,11 @@ FINANCIAL_OP_TYPES = {
     "salary", "collect_customer", "receipt_voucher", "payment_order", "pay_supplier",
 }
 
+# طرق الدفع الآجلة — تخص الذمم ولا تدخل في التدفق النقدي
+CREDIT_METHODS = {"credit", "deferred", "اجل", "آجل", "ذمة", "ذمم"}
+# حالات سداد تعني أن النقد لم يُقبض بعد
+UNPAID_STATUSES = {"unpaid", "credit", "partial", "deferred", "pending"}
+
 
 def _account_type(code: Any) -> str:
     """نوع الحساب من الكود — يطابق _infer_account_type_from_code في routes_finance."""
@@ -748,34 +753,55 @@ class FirewallEngine:
                     ar += debit - credit
                 if code in AP_ACCOUNT_CODES:
                     ap += credit - debit
-        if ar > 0:
+        # 🔧 عمليات آجلة لم تُقيَّد بعد — ذمم فعلية حتى لو غاب القيد (تُستثنى المقيّدة لمنع الازدواج)
+        refs = {str(e.get("reference_id") or "").strip() for e in self._journals()}
+        ar_ops = Decimal("0")
+        ap_ops = Decimal("0")
+        for op in self._operations():
+            method = str(op.get("payment_method") or "").strip().lower()
+            ps = str(op.get("payment_status") or "").strip().lower()
+            if method not in CREDIT_METHODS and ps not in UNPAID_STATUSES:
+                continue
+            if str(op.get("id") or "") in refs:
+                continue
+            t = str(op.get("type") or "").lower()
+            amount = _to_decimal(op.get("total") or 0)
+            if t in {"sale", "service", "instant_sale"}:
+                ar_ops += amount
+            elif t in {"purchase", "expense"}:
+                ap_ops += amount
+        ar_total = ar + ar_ops
+        ap_total = ap + ap_ops
+        if ar_total > 0:
             aid = _alert_id("ar-open", "all")
             if aid not in self._dismissed_ids:
+                extra = f" (منها {_round_2(ar_ops):,.2f} من عمليات آجلة غير مقيّدة)" if ar_ops > 0 else ""
                 alerts.append({
                     "id": aid, "category": "receivables", "severity": SEV_MEDIUM,
                     "title": "ذمم مدينة مفتوحة",
-                    "description": f"يوجد آجل (غير محصل) بقيمة {_round_2(ar):,.2f} على حساب ذمم العملاء.",
+                    "description": f"يوجد آجل (غير محصل) بقيمة {_round_2(ar_total):,.2f} على العملاء{extra}.",
                     "root_cause": "تابع التحصيل أو اربطها بفاتورة/سداد.",
-                    "financial_impact": _round_2(ar),
+                    "financial_impact": _round_2(ar_total),
                     "affected_accounts": ["ذمم العملاء"],
                     "related_entries": [],
-                    "evidence": {"ar_total": _round_2(ar)},
+                    "evidence": {"ar_from_journals": _round_2(ar), "ar_from_unjournalized_credit_ops": _round_2(ar_ops)},
                     "auto_fix": FIX_NONE,
                     "auto_fix_preview": {"message": "تابع التحصيل أو اربطها بفاتورة/سداد."},
                     "created_at": _now().isoformat(),
                 })
-        if ap > 0:
+        if ap_total > 0:
             aid = _alert_id("ap-open", "all")
             if aid not in self._dismissed_ids:
+                extra = f" (منها {_round_2(ap_ops):,.2f} من عمليات آجلة غير مقيّدة)" if ap_ops > 0 else ""
                 alerts.append({
                     "id": aid, "category": "payables", "severity": SEV_MEDIUM,
                     "title": "ذمم دائنة مفتوحة",
-                    "description": f"يوجد آجل (غير مسدد) بقيمة {_round_2(ap):,.2f} على حساب ذمم الموردين.",
+                    "description": f"يوجد آجل (غير مسدد) بقيمة {_round_2(ap_total):,.2f} للموردين{extra}.",
                     "root_cause": "راجع التزامات الموردين وجدول السداد.",
-                    "financial_impact": _round_2(ap),
+                    "financial_impact": _round_2(ap_total),
                     "affected_accounts": ["ذمم الموردين"],
                     "related_entries": [],
-                    "evidence": {"ap_total": _round_2(ap)},
+                    "evidence": {"ap_from_journals": _round_2(ap), "ap_from_unjournalized_credit_ops": _round_2(ap_ops)},
                     "auto_fix": FIX_NONE,
                     "auto_fix_preview": {"message": "راجع التزامات الموردين وجدول السداد."},
                     "created_at": _now().isoformat(),
@@ -797,9 +823,10 @@ class FirewallEngine:
                 continue
             t = str(op.get("type") or "").lower()
             amount = _to_decimal(op.get("total") or 0)
-            ps = str(op.get("payment_status") or "").lower()
-            is_paid = ps in {"paid", "paid_full", ""}  # cash-immediate ops
-            if not is_paid:
+            # 🔧 الآجل يخص الذمم — لا يدخل في التدفق النقدي إطلاقاً
+            method = str(op.get("payment_method") or "").strip().lower()
+            ps = str(op.get("payment_status") or "").strip().lower()
+            if method in CREDIT_METHODS or ps in UNPAID_STATUSES:
                 continue
             if t in {"sale", "service", "instant_sale", "collect_customer", "receipt_voucher"}:
                 inflow += amount
