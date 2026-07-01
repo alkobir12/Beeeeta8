@@ -2110,46 +2110,110 @@ async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={}
         # 3) Find operations missing journal entries
         missing = [o for o in ops if str(o.get("id") or "") not in existing_je and float(o.get("total") or 0) > 0]
 
-        # 4) Create journal entries for each
+        dry_run = bool(payload.get("dry_run") or payload.get("preview"))
+
+        # 4) Build (and optionally post) journal entries — accrual basis:
+        #    credit sales → AR (1103) not Cash; credit purchases → AP (2101) not Cash
+        from firewall_engine import CREDIT_METHODS, UNPAID_STATUSES
+        SALE_TYPES = ("sale", "service", "instant_sale", "collect_customer", "receipt_voucher")
+        EXPENSE_TYPES = ("purchase", "expense", "cash_expense", "salary", "payment_order", "pay_supplier")
+
+        preview = []
         fixed = []
         errors = []
-        for op in missing[:50]:  # limit to 50 at a time
+        for op in missing[:50]:
             op_id = str(op.get("id") or "")
             op_type = (op.get("type") or "").lower()
-            total = float(op.get("total") or 0)
+            total = round(float(op.get("total") or 0), 2)
             if total <= 0:
                 continue
-            # Determine debit/credit accounts based on operation type
-            if op_type in ("sale", "service", "instant_sale", "collect_customer", "receipt_voucher"):
-                debit_account = "1101"   # Cash/Bank
-                credit_account = "4101"  # Revenue
-            elif op_type in ("purchase", "expense", "cash_expense", "salary", "payment_order", "pay_supplier"):
-                debit_account = "5101"   # Expense
-                credit_account = "1101"  # Cash/Bank
-            else:
-                debit_account = "1101"
-                credit_account = "4101"
+            method = str(op.get("payment_method") or "").strip().lower()
+            ps = str(op.get("payment_status") or "").strip().lower()
+            is_credit = method in CREDIT_METHODS or ps in UNPAID_STATUSES
+            partner = str(op.get("partner_name") or "").strip()
 
+            if op_type in SALE_TYPES:
+                if is_credit:
+                    debit_account, debit_name = "1103", "ذمم مدينة عملاء"
+                    nature = "بيع آجل"
+                else:
+                    debit_account, debit_name = "1101", "الصندوق/البنك"
+                    nature = "بيع نقدي"
+                credit_account, credit_name = "4101", "إيرادات خدمات"
+            elif op_type in EXPENSE_TYPES:
+                debit_account, debit_name = "5101", "مصروفات"
+                nature = "مصروف/شراء"
+                if is_credit:
+                    credit_account, credit_name = "2101", "ذمم دائنة موردين"
+                    nature = "شراء آجل"
+                else:
+                    credit_account, credit_name = "1101", "الصندوق/البنك"
+            else:
+                debit_account, debit_name = ("1103", "ذمم مدينة عملاء") if is_credit else ("1101", "الصندوق/البنك")
+                credit_account, credit_name = "4101", "إيرادات خدمات"
+                nature = "غير مصنف"
+
+            desc_party = f" — {partner}" if partner else ""
             je_payload = {
                 "reference_id": op_id,
-                "date": op.get("createdAt") or op.get("created_at") or __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                "date": op.get("op_date") or op.get("created_at") or op.get("createdAt") or __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
                 "total": total,
                 "source": "integrity_auto_fix",
-                "description": f"قيد تصحيحي تلقائي — عملية {op_type} بمبلغ {total:.2f}",
-                "transaction_type": "auto_fix",
+                "description": f"قيد تصحيحي — {nature}{desc_party} (فاتورة {op.get('invoice_number') or op_id[:8]})",
+                "transaction_type": "credit_sale" if (is_credit and op_type in SALE_TYPES) else "auto_fix",
                 "workshop_id": op.get("workshopId") or op.get("workshop_id") or "finmodule-sync",
+                "party_label": partner or None,
                 "lines": [
-                    {"account_id": debit_account, "debit": total, "credit": 0, "description": f"مدين — {op_type}"},
-                    {"account_id": credit_account, "debit": 0, "credit": total, "description": f"دائن — {op_type}"},
+                    {"account": debit_account, "account_name": debit_name, "debit": total, "credit": 0, "description": f"مدين — {nature}"},
+                    {"account": credit_account, "account_name": credit_name, "debit": 0, "credit": total, "description": f"دائن — {nature}"},
                 ],
             }
+
+            if dry_run:
+                preview.append({
+                    "op_id": op_id,
+                    "invoice_number": op.get("invoice_number"),
+                    "type": op_type,
+                    "payment_method": method or None,
+                    "partner_name": partner or None,
+                    "date": je_payload["date"],
+                    "nature": nature,
+                    "total": total,
+                    "entry": {
+                        "description": je_payload["description"],
+                        "debit": {"account": debit_account, "name": debit_name, "amount": total},
+                        "credit": {"account": credit_account, "name": credit_name, "amount": total},
+                    },
+                })
+                continue
+
             try:
                 from core import accounting_engine
-                result = accounting_engine.post_entry(je_payload)
+                result = accounting_engine.post_entry(je_payload, fallback=False)
                 if result:
                     fixed.append({"op_id": op_id, "type": op_type, "total": total, "je_id": result[0].get("id")})
+                else:
+                    errors.append({"op_id": op_id, "error": "engine_rejected"})
             except Exception as fix_err:
                 errors.append({"op_id": op_id, "error": str(fix_err)[:100]})
+
+        if dry_run:
+            total_impact = round(sum(p["total"] for p in preview), 2)
+            by_nature: Dict[str, float] = {}
+            for p in preview:
+                by_nature[p["nature"]] = round(by_nature.get(p["nature"], 0) + p["total"], 2)
+            return {
+                "success": True,
+                "data": {
+                    "dry_run": True,
+                    "total_operations": len(ops),
+                    "missing_count": len(missing),
+                    "preview_entries": preview,
+                    "total_impact": total_impact,
+                    "summary_by_nature": by_nature,
+                    "note": "معاينة فقط — لم يُحفظ أي قيد في قاعدة البيانات.",
+                }
+            }
 
         return {
             "success": True,
