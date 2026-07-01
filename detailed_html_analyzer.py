@@ -11,7 +11,7 @@ from datetime import datetime
 
 class DetailedHTMLAnalyzer:
     def __init__(self):
-        self.base_url = "https://garage-erp-arabic.preview.emergentagent.com"
+        self.base_url = "https://erp-compliance-check.preview.emergentagent.com"
         self.api_url = f"{self.base_url}/api"
         self.session = requests.Session()
         

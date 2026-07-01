@@ -17,7 +17,7 @@ from datetime import datetime
 from decimal import Decimal
 
 # Backend URL
-BASE_URL = "https://garage-erp-arabic.preview.emergentagent.com/api"
+BASE_URL = "https://erp-compliance-check.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 # Test results storage
@@ -662,7 +662,7 @@ def main():
     print("\n" + "=" * 80)
     print("  اختبار نهائي backend لنظام ERP المحاسبي")
     print("  Final Backend Testing for ERP Accounting System")
-    print("  URL: https://garage-erp-arabic.preview.emergentagent.com")
+    print("  URL: https://erp-compliance-check.preview.emergentagent.com")
     print("=" * 80)
     
     # Run all scenarios

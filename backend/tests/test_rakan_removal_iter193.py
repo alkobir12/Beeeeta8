@@ -13,7 +13,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://garage-erp-arabic.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-compliance-check.preview.emergentagent.com").rstrip("/")
 WORKSHOP_ID = "finmodule-sync"
 
 RAKAN_CODES = {"043", "044", "053", "054", "055", "056", "057", "058", "21010001"}

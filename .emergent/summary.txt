@@ -132,7 +132,7 @@ rootdir: /app
 plugins: asyncio-1.3.0, anyio-4.12.1
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
 collected 1262 items
-🔍 Testing Backend API at: https://garage-erp-arabic.preview.emergentagent.com/api
+🔍 Testing Backend API at: https://erp-compliance-check.preview.emergentagent.com/api
 ================================================================================
 
 ================================================================================

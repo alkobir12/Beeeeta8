@@ -30,7 +30,7 @@
   "updated_files": [],
   "success_rate": {"backend": "n/a (frontend-only per request)", "frontend": "100% (10/10 critical checks)"},
   "test_credentials": "Admin: username 'مدير' (name-only, click دخول).",
-  "seed_data_creation": "Created during iter234:\n  Vehicles: (1) id=c8be305d-d5e5-4132-9dac-14076fea4287 plate='9911' brand='تويوتا' model='كورولا' year=2020 — created by 🚀 button via /api/runtime/execute (axios).\n  Customers: NONE this iteration (duplicate-detection short-circuited 'ماجد التجريبي' because it already exists from iter233). Iter233 leftovers still in DB: خالد المطيري, تجريبي ٢, سعود الاختبار, ماجد التجريبي.",
+  "seed_data_creation": "Created during iter234:\n  Vehicles: (1) id=erp-compliance-check plate='9911' brand='تويوتا' model='كورولا' year=2020 — created by 🚀 button via /api/runtime/execute (axios).\n  Customers: NONE this iteration (duplicate-detection short-circuited 'ماجد التجريبي' because it already exists from iter233). Iter233 leftovers still in DB: خالد المطيري, تجريبي ٢, سعود الاختبار, ماجد التجريبي.",
   "retest_needed": false,
   "should_main_agent_self_test": true,
   "context_for_next_testing_agent": "Axios migration verified for both sendMessage (non-streaming chat path) and handleExecute (🚀 button → /api/runtime/execute). Four error strings absent across all flows. The same rrweb fetch-body bug is still visible in platform code (emergent-main.js JWT login) but does not affect the assistant/runtime paths. If you reopen this for retest: customer 'ماجد التجريبي' already exists, so any create-customer test will short-circuit to duplicate; use a different name. Vehicle plate 9911 already exists too — use a different plate.",

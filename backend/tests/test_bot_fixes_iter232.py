@@ -8,7 +8,7 @@
 import os
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://garage-erp-arabic.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://erp-compliance-check.preview.emergentagent.com").rstrip("/")
 CHAT = f"{BASE_URL}/api/assistant/chat"
 EXEC = f"{BASE_URL}/api/runtime/execute"
 
