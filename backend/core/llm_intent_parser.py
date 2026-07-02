@@ -49,6 +49,7 @@ ALLOWED_ACTIONS = {
     "collect_payment",       # collect/settle a payment from a customer
     "create_expense",        # record an expense / supplier payment
     "reverse_entry",         # reverse (contra) a prior journal entry — no hard delete
+    "create_purchase",       # 🛒 شراء من مورد (بنود متعددة + طريقة دفع + ضريبة)
     "get_customers",         # read-only query
     "get_vehicles",          # read-only query
 }
@@ -93,7 +94,23 @@ _SYSTEM_PROMPT = (
     "  • create_invoice   — payload: {customer, total?, items?, payment_method?(credit/cash/card), date?} (إصدار فاتورة لعميل)\n"
     "  • collect_payment  — payload: {customer, amount, payment_method?(cash/bank/card), date?} (تحصيل/سداد دفعة من عميل)\n"
     "  • create_expense   — payload: {description, amount, category?, supplier?, payment_method?(cash/bank)} (تسجيل مصروف/دفعة لمورد)\n"
-    "  • reverse_entry    — payload: {journal_id?|reference_id?, reason?} (عكس قيد سابق — قيد عكسي)\n\n"
+    "  • reverse_entry    — payload: {journal_id?|reference_id?, reason?} (عكس قيد سابق — قيد عكسي)\n"
+    "  🛒 شراء من مورد (يحتاج اعتماد أربع أعين):\n"
+    "  • create_purchase  — payload يُبنى كمخطط JSON موحّد لعملية شراء بغض النظر عن عدد البنود.\n"
+    "     الشكل: {\n"
+    "        \"supplier\":{\"name\":\"...\",\"is_new\":false,\"id\":null},\n"
+    "        \"payment_method\":\"cash|transfer|credit\",\n"
+    "        \"vat\":{\"mode\":\"none|excluded|included\",\"rate\":0.15,\"inclusive\":false},\n"
+    "        \"items\":[{\"name\":\"...\",\"price\":0.0,\"qty\":1,\"matched_id\":null}, ...],\n"
+    "        \"assumptions\":[\"⚠️ افترضت: نقدي\", \"🔗 طابقت \\\"مستوييها\\\" ← \\\"قلب مستوبيشي L200\\\"\"],\n"
+    "        \"missing\":[]\n"
+    "     }\n"
+    "     🔴 قاعدة صارمة: **مهما تعدّدت البنود/الأصناف في نص المستخدم، أنتج مسودة واحدة فقط**\n"
+    "        بجميع البنود داخل مصفوفة items — لا تُفكّك الأمر إلى مسودات متعددة.\n"
+    "     - الافتراضات الحتمية: بدون طريقة دفع صريحة → cash + وسم في assumptions.\n"
+    "                          بدون ضريبة صريحة → mode=none + وسم في assumptions.\n"
+    "     - الفصل بين الشراء والمصروف: بنود بكمية وسعر لأصناف مخزنية → create_purchase.\n"
+    "                                   مبلغ عام بلا أصناف (إيجار/فاتورة كهرباء) → create_expense.\n\n"
     "قواعد الإخراج (مهمّة):\n"
     "  1. أرجع JSON واحد بدون ```\n"
     "  2. الشكل: {\"action\":\"...\", \"entity\":\"...\", \"payload\":{...}}\n"
@@ -127,6 +144,24 @@ _SYSTEM_PROMPT = (
     "  • 'سجل مصروف إيجار 1200'  → {\"action\":\"create_expense\",\"payload\":{\"description\":\"إيجار\",\"amount\":1200}}\n"
     "  • 'اعكس القيد رقم abc123 السبب خطأ إدخال'\n"
     "    → {\"action\":\"reverse_entry\",\"payload\":{\"journal_id\":\"abc123\",\"reason\":\"خطأ إدخال\"}}\n"
+    "  • 'اشتري من راكان قلب مستوبيشي L200 بسعر 1300. نقدي'\n"
+    "    → {\"action\":\"create_purchase\",\"payload\":{\n"
+    "        \"supplier\":{\"name\":\"راكان\",\"is_new\":true,\"id\":null},\n"
+    "        \"payment_method\":\"cash\",\n"
+    "        \"vat\":{\"mode\":\"none\",\"rate\":0.15,\"inclusive\":false},\n"
+    "        \"items\":[{\"name\":\"قلب مستوبيشي L200\",\"price\":1300,\"qty\":1,\"matched_id\":null}],\n"
+    "        \"assumptions\":[\"⚠️ افترضت: بدون ضريبة\"],\n"
+    "        \"missing\":[]}}\n"
+    "  • 'شراء من المورد سالم: فلاتر زيت 5 حبات ب25، بواجي 4 ب12، تحويل'\n"
+    "    → {\"action\":\"create_purchase\",\"payload\":{\n"
+    "        \"supplier\":{\"name\":\"سالم\",\"is_new\":false,\"id\":null},\n"
+    "        \"payment_method\":\"transfer\",\n"
+    "        \"vat\":{\"mode\":\"none\",\"rate\":0.15,\"inclusive\":false},\n"
+    "        \"items\":[\n"
+    "           {\"name\":\"فلاتر زيت\",\"price\":25,\"qty\":5,\"matched_id\":null},\n"
+    "           {\"name\":\"بواجي\",\"price\":12,\"qty\":4,\"matched_id\":null}\n"
+    "        ],\n"
+    "        \"assumptions\":[\"⚠️ افترضت: بدون ضريبة\"], \"missing\":[]}}\n"
     "\n🔒 مبدأ المصدر الحقيقي: لا تخترع أسماء عملاء أو مبالغ. استخرج فقط ما ورد نصًّا. "
     "إن لم يُذكر مبلغ لمصروف/دفعة/فاتورة فاتركه فارغًا (سيُطلب لاحقًا) — لا تخمّنه.\n"
 )

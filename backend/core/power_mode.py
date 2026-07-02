@@ -57,26 +57,37 @@ def strip_power_prefix(text: str) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2) Multi-intent splitting
+# 2) Multi-intent splitting — 🚫 DEPRECATED after Unified Engine (2026-07-03)
 # ─────────────────────────────────────────────────────────────────────────────
-
-# Split on: newline | Arabic comma | Arabic semicolon | dot | " ثم " | " and " | " و " (only when surrounded by spaces)
+# القرار الهندسي (خطة توحيد المحرك — المرحلة 1):
+#   المسار الوحيد لتحليل النية هو `llm_intent_parser.parse_intent_with_llm`.
+#   المقسِّم النصي القديم كان يقطع على النقطة (`1300.`) ويُنتج 4 مسودات لأمر
+#   واحد → تم تعطيله هنا: الدالة تُعيد الآن الرسالة كأمر منفرد.
+# الـ regex يبقى كأثر توثيقي، والدالة `diagnose(...)` لا زالت تستخدمه — لن يُعتمد
+# عليه في أي مسار كتابة حي.
 _SPLIT_RE = re.compile(r"\s*(?:\n+|،|؛|\.(?:\s|$)|\bثم\b|\band\b|\s+و\s+)\s*", re.IGNORECASE)
 
 
 def extract_commands(text: str) -> List[str]:
-    """Splits a free-text request into atomic sub-commands.
+    """يعيد الرسالة كأمر واحد فقط (مصدر حقيقة موحّد).
 
-    Examples
-    --------
-    >>> extract_commands("سجل عميل احمد، أضف مركبة 1234، افتح زيارة")
-    ['سجل عميل احمد', 'أضف مركبة 1234', 'افتح زيارة']
+    قبل توحيد المحرك كان يقسّم على `_SPLIT_RE` — الآن التحليل الشامل يقع على
+    عاتق `llm_intent_parser`، فيرجع الأمر كاملاً كتلة واحدة حفاظاً على
+    السياق (بنود متعددة، تواريخ، أسعار عشرية `1300.`، إلخ).
     """
     raw = (text or "").strip()
     if not raw:
         return []
+    return [raw]
+
+
+def _legacy_extract_commands(text: str) -> List[str]:
+    """المقسِّم القديم — يُحتفظ به فقط لأدوات التشخيص/الاختبار (`diagnose`).
+    لا يُستخدم في مسار الكتابة الحي."""
+    raw = (text or "").strip()
+    if not raw:
+        return []
     parts = [p.strip() for p in _SPLIT_RE.split(raw) if p and p.strip()]
-    # Drop tiny noise tokens (< 3 chars) that have no verb / noun
     parts = [p for p in parts if len(p) >= 3 or any(c.isalpha() for c in p)]
     return parts
 
@@ -93,6 +104,8 @@ _INTENT_PATTERNS: List[Tuple[str, re.Pattern[str]]] = [
     ("collection", re.compile(r"\b(?:تحصيل|اقبض|قبض|حصّل|دفع\s*(?:ال)?عميل|سدد\s*(?:ال)?عميل|دفعة\s*من)\b", re.IGNORECASE)),
     ("payment", re.compile(r"\b(?:ادفع|دفع\s*(?:ال)?مورد|سداد\s*(?:ال)?مورد|سند\s*صرف|اصرف|اصرفي)\b", re.IGNORECASE)),
     ("invoice", re.compile(r"\b(?:فاتورة|invoice|بيع\s+ل|بع\s+ل|اصدر\s+فاتورة|كشف\s+حساب)\b", re.IGNORECASE)),
+    # 🛒 شراء من مورد — أفعال شراء مع مورد/اسم/بضاعة
+    ("purchase", re.compile(r"(?:اشتري|اشترى|شرا|شراء|شريت|شرينا|اشرِ|أشتري)\b", re.IGNORECASE)),
     # Action verbs that create something — these MUST run BEFORE part_search
     # so "اضف ... سعر ٥٥" doesn't get misclassified as a price lookup.
     # `operation` catches service words (توضيب/تنجيد/صبغ/...) so "اضف صالون

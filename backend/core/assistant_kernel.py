@@ -155,7 +155,8 @@ _ACTION_VERB_RE = re.compile(
     r"(?:^|\s)(?:سجّ?ل|اضف|أضف|اضيف|أضيف|ضيف|ضع|حط|انشئ|أنشئ|انشاء|افتح|أفتح|"
     r"اصدر|أصدر|اعمل|سوّ?ي|احذف|أحذف|امسح|شيل|الغ|ألغ|اغلق|أغلق|اقفل|"
     r"حصّ?ل|سدّ?د|اعكس|أعكس|فوتر|"
-    r"عدّ?ل|غيّ?ر|حدّ?ث|register|create|add|delete|close|open|update)"
+    r"اشتري|اشترى|شرا|شراء|شريت|شرينا|"
+    r"عدّ?ل|غيّ?ر|حدّ?ث|register|create|add|delete|close|open|update|purchase|buy)"
     r"(?:ها|ه|هم|هن|ني|نا|وا|وه|ي|ين)?(?=\s|$)",
     re.IGNORECASE,
 )
@@ -228,6 +229,7 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
         "update_customer": "تعديل عميل", "update_vehicle": "تعديل مركبة",
         "create_invoice": "فاتورة", "collect_payment": "تحصيل دفعة",
         "create_expense": "مصروف", "reverse_entry": "قيد عكسي",
+        "create_purchase": "شراء",
     }.get(action, action)
     cards: List[Dict[str, Any]] = []  # 🆕 collected from each tool result
     entity_id = None
@@ -263,11 +265,31 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
         if echo:
             amt = echo.get("amount")
             amt_line = f"\n💰 المبلغ: {amt}" if amt not in (None, "", 0) else ""
+            # 🛒 عرض بنود الشراء (اسم × سعر × كمية) إن وُجدت — مسودة واحدة، بنود متعددة
+            items_block = ""
+            items = echo.get("items") or []
+            if action == "create_purchase" and items:
+                lines_ = ["📦 البنود:"]
+                for it in items:
+                    n = it.get("name") or "—"
+                    p = it.get("price") or 0
+                    q = it.get("qty") or 1
+                    tl = it.get("line_total") or (float(p) * float(q))
+                    match = " 🔗" if it.get("matched_id") else ""
+                    lines_.append(f"  • {n} — {p:,.2f} × {q} = {tl:,.2f}{match}")
+                items_block = "\n" + "\n".join(lines_)
+            # 🏷️ افتراضات موسومة (⚠️/🔗/🆕)
+            assumptions = echo.get("assumptions") or []
+            assumptions_block = ""
+            if assumptions:
+                assumptions_block = "\n" + "\n".join(assumptions)
             response_text = (
                 "⏳ **بانتظار اعتماد طرف ثانٍ (أربع أعين)** — عملية مالية حسّاسة.\n"
                 f"🧾 النوع: {echo.get('type') or label}\n"
-                f"👤 الطرف: {echo.get('entity') or '—'}{amt_line}\n"
-                f"📒 الأثر المحاسبي: {echo.get('accounts') or '—'}\n"
+                f"👤 الطرف: {echo.get('entity') or '—'}{amt_line}"
+                f"{items_block}\n"
+                f"📒 الأثر المحاسبي: {echo.get('accounts') or '—'}"
+                f"{assumptions_block}\n"
                 "🔴 لن يُثبَّت أي قيد مالي دون اعتماد بشري مختلف."
             )
         else:
@@ -532,28 +554,19 @@ async def chat(
             )
         # أي رسالة أخرى → تُعامل طبيعياً (قد تكون تعديلاً على الطلب)
 
-    # 🆕 Phase 3B Round 2 — Power Mode (multi-intent + drafts).
-    # If the message starts with "/power", we bypass the LLM and instead return
-    # a batch of draft cards (read-only proposals — Phase 3C will commit).
-    power_block: Optional[Dict[str, Any]] = None
-    if power_mode.detect_mode(message) == "power":
-        power_block = await power_mode.power_process(
-            session_id=sid,
-            message=message,
-            # 🆕 Phase 3C: thread the user identity through so Four-Eyes works.
-            proposer=proposer,
-        )
-        # Record in shared_memory for the audit trail
-        shared_memory.track_action(sid, "power_mode", {
-            "executed": power_block.get("executed", 0),
-            "commands": power_block.get("commands", [])[:5],
-        })
+    # 🔄 التوحيد (خطة 2026-07-03): كل الرسائل — /power أو عادية — تمرّ عبر
+    # `unified_executor.execute_text()` كمصدر حقيقة وحيد. المقسِّم النصي القديم
+    # (`power_mode.power_process`) تم تعطيله كي لا يُنتج مسودات متعددة لأمر واحد.
+    power_prefix_hit = power_mode.detect_mode(message) == "power"
+    if power_prefix_hit:
+        message = power_mode.strip_power_prefix(message)
+        shared_memory.track_action(sid, "power_mode_shortcut", {"unified": True})
 
     # 🆕 L16 (كاترينا) — Unified action execution. If the message is a WRITE
     # command (create/delete/close/...), execute it directly through the
     # Unified Execution Engine and return a confirmation. This is the backend
     # safety-net that guarantees execution even if the frontend router missed it.
-    if not power_block and looks_like_action(message):
+    if power_prefix_hit or looks_like_action(message):
         try:
             from core import unified_executor
             exec_res = await unified_executor.execute_text(
@@ -673,35 +686,6 @@ async def chat(
 
     # 7) Persist assistant message + classify the message intent
     intent = _classify_intent(message)
-    # 🆕 If we ran Power Mode, augment the assistant message with a summary
-    if power_block:
-        drafts = power_block.get("drafts") or []
-        # Inject draft cards into the cards stream so the UI renders them
-        cards.extend(drafts)
-        # Prepend a short Markdown summary to make the chat reply useful
-        summary_lines = [
-            f"⚡ **Power Mode** — جهّزت {len(drafts)} مسوّدة (read-only):",
-        ]
-        for i, d in enumerate(drafts, 1):
-            kind = d.get("intent_kind") or "?"
-            label = (d.get("data") or {}).get("label") or kind
-            extra_bits = []
-            data = d.get("data") or {}
-            if data.get("name"):
-                extra_bits.append(data["name"])
-            if data.get("plate"):
-                extra_bits.append(f"لوحة {data['plate']}")
-            if data.get("amount"):
-                extra_bits.append(f"{data['amount']:,.2f} ر.س")
-            if data.get("_resolved_from"):
-                extra_bits.append(f"(من سياق: {data['_resolved_from'].get('title','')})")
-            extras = " — ".join([str(x) for x in extra_bits if x]) or "بدون تفاصيل"
-            summary_lines.append(f"  {i}. **{label}** — {extras}")
-        summary_lines.append("")
-        summary_lines.append("> 🛡️ المسوّدات للمراجعة فقط — التنفيذ الفعلي يحتاج موافقة (Phase 3C).")
-        power_summary = "\n".join(summary_lines)
-        response_text = f"{power_summary}\n\n{response_text}" if response_text else power_summary
-        intent = "power_mode"
 
     shared_memory.append_message(sid, "assistant", response_text, meta={
         "tools": [t.get("tool") for t in tool_results],
@@ -788,11 +772,10 @@ async def chat(
         "ai_used": ai_used_flag,
         "model_used": model_used,
         "read_only": True,
-        # 🆕 Round 2: expose power-mode metadata so the UI can render the
-        # "drafts" tray (count + per-command summary). When `mode == 'normal'`
-        # this block is null.
-        "mode": (power_block or {}).get("mode", "normal"),
-        "power": power_block,
+        # بعد توحيد المحرك (2026-07-03): مسار /power يمر عبر unified_executor —
+        # لا يوجد سياق `power_block` منفصل بعد الآن.
+        "mode": "power_shortcut" if power_prefix_hit else "normal",
+        "power": None,
         "developer_mode": _dev_active,  # 🧠 RRR
     }
 

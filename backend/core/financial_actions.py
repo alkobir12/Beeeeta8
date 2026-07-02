@@ -20,6 +20,8 @@ from core.accounting_engine import DEFAULT_WORKSHOP_ID, get_engine
 _FALLBACK_CODES = {
     "cash": "003", "bank": "004", "pos": "006", "ar": "005", "ap": "2101",
     "revenue_mech": "026", "admin_expense": "035",
+    "inventory_parts": "007",   # 🛒 المخزون (لمعالجة الشراء)
+    "vat_input": "0451",        # 🧾 ضريبة القيمة المضافة — المدخلات (fallback؛ يُنشأ لاحقاً)
 }
 
 
@@ -183,7 +185,129 @@ def create_expense(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4) قيد عكسي (Reversal / Contra-entry) — No Hard Delete
+# 4) شراء من مورد (Purchase from Supplier) — مخزون مدين + دائن حسب طريقة الدفع
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _purchase_credit_account(method: Optional[str], supplier: Optional[str]) -> tuple[str, str]:
+    """يحدد الحساب الدائن للشراء بحسب طريقة الدفع.
+    نقدي→الصندوق(003) · تحويل→البنك(004) · آجل→الموردون(2101 + اسم المورد)."""
+    sem = _codes()
+    m = str(method or "cash").strip().lower()
+    if m in ("credit", "اجل", "آجل", "deferred", "on_account"):
+        return sem["ap"], f"مورد — {supplier or 'مفتوح'}"
+    if m in ("bank", "transfer", "bank_transfer", "تحويل", "بنك", "حوالة"):
+        return sem["bank"], "البنك"
+    return sem["cash"], "النقد"
+
+
+def _compute_purchase_totals(items: List[Dict[str, Any]], vat: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """يحسب صافي/ضريبة/إجمالي الشراء بـ Decimal تحت `vat_policy` (بلا سماحية)."""
+    from decimal import Decimal
+    from core.vat_policy import compute_vat_split
+
+    # حساب صافي البنود بالـ Decimal دون سماحية
+    net = Decimal("0.00")
+    normalized: List[Dict[str, Any]] = []
+    for it in items or []:
+        try:
+            price = Decimal(str(it.get("price") or 0))
+            qty = Decimal(str(it.get("qty") or it.get("quantity") or 1))
+        except Exception:
+            price, qty = Decimal("0"), Decimal("1")
+        line = (price * qty)
+        net += line
+        normalized.append({
+            "name": str(it.get("name") or "").strip(),
+            "price": float(price),
+            "qty": float(qty),
+            "line_total": float(line),
+            "matched_id": it.get("matched_id"),
+        })
+
+    vat_cfg = vat or {"mode": "none"}
+    split = compute_vat_split(net, vat_cfg)   # {net, vat, gross}
+    return {
+        "items": normalized,
+        "net": split["net"],
+        "vat_amount": split["vat"],
+        "gross": split["gross"],
+        "vat_mode": str(vat_cfg.get("mode") or "none"),
+        "vat_rate": float(vat_cfg.get("rate") or 0),
+    }
+
+
+def create_purchase(
+    *,
+    supplier: Optional[str],
+    items: List[Dict[str, Any]],
+    payment_method: str = "cash",
+    vat: Optional[Dict[str, Any]] = None,
+    date: Optional[str] = None,
+    reference_id: Optional[str] = None,
+    workshop_id: str = DEFAULT_WORKSHOP_ID,
+    actor: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """شراء بضاعة/قطع غيار من مورد.
+
+    مدين: المخزون (007) بالصافي [+ ضريبة المدخلات (VAT) إن وُجدت].
+    دائن: النقد (003) أو البنك (004) أو الموردون (2101) حسب `payment_method`.
+    """
+    if not items:
+        return {"posted": False, "error": "no_items"}
+
+    totals = _compute_purchase_totals(items, vat)
+    net = totals["net"]
+    vat_amt = totals["vat_amount"]
+    gross = totals["gross"]
+    if gross <= 0:
+        return {"posted": False, "error": "invalid_amount"}
+
+    entry_date = date or _now_iso()
+    sem = _codes()
+    credit_acc, credit_name = _purchase_credit_account(payment_method, supplier)
+
+    lines: List[Dict[str, Any]] = [
+        {"account": sem["inventory_parts"], "account_name": "مخزون قطع غيار",
+         "debit": net, "credit": 0},
+    ]
+    if vat_amt and float(vat_amt) > 0:
+        # ملاحظة: نستخدم كود ضريبة المدخلات إن وُجد ضمن chart_resolver مستقبلاً؛
+        # حالياً نضيفه كبند مدين باسم واضح (كود fallback: 0451) — التوازن سيبقى صحيحاً.
+        lines.append({
+            "account": (sem.get("vat_input") or "0451"),
+            "account_name": "ضريبة القيمة المضافة — المدخلات",
+            "debit": vat_amt, "credit": 0,
+        })
+    lines.append({"account": credit_acc, "account_name": credit_name,
+                  "debit": 0, "credit": gross})
+
+    item_count = len(totals["items"])
+    desc_supplier = supplier or "مفتوح"
+    desc = f"شراء — {desc_supplier} ({item_count} بند)"
+
+    result = get_engine().post(
+        lines=lines, date=entry_date, description=desc, total=gross,
+        source="purchase", transaction_type="purchase", reference_id=reference_id,
+        workshop_id=workshop_id, party=supplier, items=totals["items"], actor=actor,
+        extra={
+            "party_label": desc_supplier,
+            "party_type": "supplier",
+            "payment_method": payment_method,
+            "vat_mode": totals["vat_mode"],
+            "net_amount": float(net),
+            "vat_amount": float(vat_amt),
+        },
+    )
+    if isinstance(result, dict):
+        result.setdefault("total", float(gross))
+        result["net"] = float(net)
+        result["vat"] = float(vat_amt)
+        result["items_count"] = item_count
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5) قيد عكسي (Reversal / Contra-entry) — No Hard Delete
 # ─────────────────────────────────────────────────────────────────────────────
 
 def reverse_entry(

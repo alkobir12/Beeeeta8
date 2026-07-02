@@ -68,6 +68,39 @@ def distribute_vat(amounts: List[Any], rate: Decimal = VAT_RATE) -> Dict[str, An
             "settlement": settlement, "total_base": total_base}
 
 
+def compute_vat_split(amount: Any, cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Decimal]:
+    """يقسم مبلغاً واحداً إلى (net, vat, gross) وفق `cfg.mode`.
+
+    - mode='none' → لا ضريبة (net=gross=amount, vat=0)
+    - mode='excluded' → amount هو الصافي، الضريبة تُضاف فوقه.
+    - mode='included' → amount هو الإجمالي (يحوي الضريبة داخله).
+    """
+    base = _dec(amount)
+    mode = str((cfg or {}).get("mode") or "none").strip().lower()
+    try:
+        rate = _dec((cfg or {}).get("rate") or VAT_RATE)
+    except Exception:
+        rate = VAT_RATE
+
+    if base <= 0 or mode == "none" or rate == 0:
+        return {"net": base, "vat": Decimal("0.00"), "gross": base}
+
+    if mode == "included":
+        # amount = net * (1 + rate)  ⇒  net = amount / (1 + rate)
+        factor = Decimal("1") + rate
+        net = (base / factor).quantize(CENT, rounding=ROUND_HALF_UP)
+        vat = (base - net).quantize(CENT, rounding=ROUND_HALF_UP)
+        gross = base
+    else:  # excluded (default when a rate is set)
+        net = base
+        vat = (base * rate).quantize(CENT, rounding=ROUND_HALF_UP)
+        gross = (net + vat).quantize(CENT, rounding=ROUND_HALF_UP)
+
+    return {"net": net, "vat": vat, "gross": gross}
+
+
+
+
 def build_settlement_line(diff: Any, n_lines: int) -> Optional[Dict[str, Any]]:
     """بند تسوية واحد فقط — سقفه هللات معدودة (CENT × عدد البنود).
 

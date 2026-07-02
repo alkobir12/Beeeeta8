@@ -17,7 +17,8 @@ are deliberately distinct.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+import re
+from typing import Any, Dict, List, Optional
 
 from core import action_runtime
 from core.llm_intent_parser import Action, parse_intent_with_llm
@@ -43,6 +44,7 @@ RISKY_ACTIONS = {
     "collect_payment",
     "create_expense",
     "reverse_entry",
+    "create_purchase",       # 🛒 شراء من مورد — إجراء مالي كامل بأربع أعين
 }
 
 # Read-only actions — no draft created, no approval needed.
@@ -68,6 +70,7 @@ _ACTION_TO_RUNTIME = {
     "collect_payment": "payment",
     "create_expense": "expense",
     "reverse_entry": "reverse",
+    "create_purchase": "purchase",
 }
 
 # Actions whose target must be resolved (to a concrete DB row) before we act.
@@ -76,6 +79,7 @@ _RESOLVE_TARGET_ACTIONS = {
     "delete_vehicle", "update_vehicle",
     # 🏦 financial: resolve the real party / original entry + build echo-back
     "create_invoice", "collect_payment", "create_expense", "reverse_entry",
+    "create_purchase",   # 🛒 حساب الإجمالي + اقتراح توجيه محاسبي + وسم الافتراضات
 }
 
 
@@ -204,7 +208,7 @@ def _resolve_target(action: Action) -> Dict[str, Any]:
       • {"error": "not_found"|"ambiguous"|"missing_fields", "entity": ..., "candidates": [...], "ask": ...}
     """
     # 🏦 Financial actions resolve the real party / original entry + build echo-back.
-    if action.action in ("create_invoice", "collect_payment", "create_expense", "reverse_entry"):
+    if action.action in ("create_invoice", "collect_payment", "create_expense", "reverse_entry", "create_purchase"):
         return _resolve_financial_target(action)
 
     payload = action.payload or {}
@@ -228,6 +232,133 @@ def _resolve_target(action: Action) -> Dict[str, Any]:
                   "_target_label": row.get("plate_number") or row.get("plate") or row.get("id")}
     if is_update:
         enrich["set"] = payload.get("set") or {}
+    return {"enrich": enrich}
+
+
+def _resolve_purchase_target(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """🛒 يحسب إجمالي الشراء + يقترح التوجيه المحاسبي + يوسم الافتراضات.
+
+    منطق:
+      - المورد اختياري: بدون اسم → دائن حساب "مورد — مفتوح" (لا يوقف الدفع النقدي/التحويل).
+      - `items[]`: يجب أن يحوي بنداً واحداً على الأقل بسعر > 0. وإلا يُطلب توضيح.
+      - `payment_method` افتراضياً 'cash' (يُوسم كافتراض).
+      - `vat.mode` افتراضياً 'none' (يُوسم كافتراض).
+    """
+    supplier_raw = payload.get("supplier")
+    if isinstance(supplier_raw, dict):
+        supplier_name = str(supplier_raw.get("name") or "").strip()
+        supplier_is_new = bool(supplier_raw.get("is_new"))
+        supplier_id = supplier_raw.get("id")
+    else:
+        supplier_name = str(supplier_raw or "").strip()
+        supplier_is_new = False
+        supplier_id = None
+
+    items = payload.get("items") or []
+    if not isinstance(items, list) or not items:
+        return {"error": "missing_fields", "entity": "purchase",
+                "ask": "🛒 ما البنود المشتراة؟ زوّدني بقائمة: اسم القطعة، السعر، الكمية."}
+
+    # 1) حساب الإجمالي بـ Decimal (توازن نهائي عبر AccountingEngine)
+    from decimal import Decimal
+    try:
+        from core.vat_policy import compute_vat_split
+    except Exception:
+        compute_vat_split = None  # type: ignore
+
+    net_dec = Decimal("0.00")
+    normalized_items = []
+    for it in items:
+        try:
+            price = Decimal(str(it.get("price") or 0))
+            qty = Decimal(str(it.get("qty") or it.get("quantity") or 1))
+        except Exception:
+            price, qty = Decimal("0"), Decimal("1")
+        line = (price * qty)
+        net_dec += line
+        normalized_items.append({
+            "name": str(it.get("name") or "").strip(),
+            "price": float(price), "qty": float(qty),
+            "line_total": float(line), "matched_id": it.get("matched_id"),
+        })
+    if net_dec <= 0:
+        return {"error": "missing_fields", "entity": "purchase",
+                "ask": "💰 لا أستطيع حساب إجمالي الشراء — تأكد من ذكر السعر والكمية لكل بند."}
+
+    vat_cfg = payload.get("vat") or {"mode": "none"}
+    if compute_vat_split:
+        split = compute_vat_split(net_dec, vat_cfg)
+        net_amt = float(split["net"])
+        vat_amt = float(split["vat"])
+        gross_amt = float(split["gross"])
+    else:
+        net_amt = float(net_dec)
+        vat_amt = 0.0
+        gross_amt = net_amt
+
+    # 2) بناء التوجيه المحاسبي (echo-back)
+    try:
+        from core.chart_resolver import semantic_codes
+        sem = semantic_codes()
+    except Exception:
+        sem = {"inventory_parts": "007", "cash": "003", "bank": "004", "ap": "2101"}
+    pm = str(payload.get("payment_method") or "cash").strip().lower()
+    if pm in ("credit", "اجل", "آجل", "deferred"):
+        credit_line = f"دائن: الموردون ({sem.get('ap', '2101')} — {supplier_name or 'مفتوح'})"
+    elif pm in ("bank", "transfer", "bank_transfer", "تحويل", "بنك"):
+        credit_line = f"دائن: البنك ({sem.get('bank', '004')})"
+    else:
+        credit_line = f"دائن: النقد ({sem.get('cash', '003')})"
+    debit_line = f"مدين: مخزون قطع غيار ({sem.get('inventory_parts', '007')}) بالصافي"
+    if vat_amt > 0:
+        debit_line += f" + ضريبة المدخلات {vat_amt:,.2f}"
+    accounts_summary = f"{debit_line} · {credit_line}"
+
+    # 3) وسوم الافتراضات (⚠️/🔗/🆕) — بدون تكرار حتى لو أضاف LLM بعضاً منها
+    assumptions: List[str] = list(payload.get("assumptions") or [])
+
+    def _add(msg: str) -> None:
+        # منع التكرار بمقارنة النص المطبَّع (بعد إزالة الرموز/الفراغات الزائدة)
+        key = re.sub(r"[\W_]+", "", str(msg)).lower()
+        for existing in assumptions:
+            if re.sub(r"[\W_]+", "", str(existing)).lower() == key:
+                return
+        assumptions.append(msg)
+
+    if not payload.get("payment_method"):
+        _add("⚠️ افترضت: نقدي")
+    if not payload.get("vat") or str((payload.get("vat") or {}).get("mode") or "none") == "none":
+        _add("⚠️ افترضت: بدون ضريبة")
+    if supplier_is_new and supplier_name:
+        _add(f"🆕 مورد جديد: {supplier_name} (سيُنشأ بالإضافة)")
+    for it in normalized_items:
+        if it.get("matched_id"):
+            _add(f"🔗 طابقت البند: {it['name']}")
+
+    echo = {
+        "type": "شراء",
+        "entity": supplier_name or "مورد مفتوح",
+        "amount": gross_amt,
+        "net": net_amt,
+        "vat": vat_amt,
+        "vat_mode": str(vat_cfg.get("mode") or "none"),
+        "payment_method": pm,
+        "items_count": len(normalized_items),
+        "items": normalized_items,
+        "accounts": accounts_summary,
+        "assumptions": assumptions,
+    }
+    enrich = {
+        "supplier": supplier_name or None,
+        "supplier_id": supplier_id,
+        "supplier_is_new": supplier_is_new,
+        "items": normalized_items,
+        "payment_method": pm,
+        "vat": vat_cfg,
+        "_target_label": supplier_name or "مورد مفتوح",
+        "_echo": echo,
+        "_assumptions": assumptions,
+    }
     return {"enrich": enrich}
 
 
@@ -258,6 +389,9 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
         return {"enrich": {"_target_label": label, "_echo": {
             "type": "قيد عكسي", "entity": label, "amount": None,
             "accounts": "عكس القيد الأصلي (مدين↔دائن) — الأصل محفوظ"}}}
+
+    if act == "create_purchase":
+        return _resolve_purchase_target(payload)
 
     if act == "create_expense":
         desc = str(payload.get("description") or payload.get("category") or "").strip()
@@ -407,6 +541,7 @@ _CONFIRM_LABELS = {
     "create_customer": "إضافة عميل", "create_vehicle": "إضافة مركبة",
     "create_visit": "فتح زيارة", "create_supplier": "إضافة مورّد",
     "update_customer": "تعديل عميل", "update_vehicle": "تعديل مركبة",
+    "create_purchase": "تسجيل شراء",
 }
 
 _FIELD_LABELS = {
@@ -422,6 +557,41 @@ _FIELD_LABELS = {
 def _confirm_text(action: Action) -> str:
     payload = action.payload or {}
     label = _CONFIRM_LABELS.get(action.action, action.action)
+
+    # 🛒 صياغة مضغوطة خاصة بالشراء — يعرض جدول البنود + الافتراضات
+    if action.action == "create_purchase":
+        echo = payload.get("_echo") or {}
+        items = echo.get("items") or payload.get("items") or []
+        supplier = echo.get("entity") or payload.get("supplier") or "مورد مفتوح"
+        gross = echo.get("amount")
+        net = echo.get("net")
+        vat = echo.get("vat")
+        pm_ar = {"cash": "نقدي", "bank": "تحويل", "transfer": "تحويل",
+                 "credit": "آجل", "آجل": "آجل"}.get(str(echo.get("payment_method") or "cash").lower(), "نقدي")
+        lines = [
+            f"🛒 **تأكيد {label}** — من: **{supplier}** · دفع: **{pm_ar}**",
+            "",
+            "📦 البنود:",
+        ]
+        for it in items:
+            n = it.get("name") or "—"
+            p = it.get("price") or 0
+            q = it.get("qty") or 1
+            tl = it.get("line_total") or (float(p) * float(q))
+            match_tag = " 🔗" if it.get("matched_id") else ""
+            lines.append(f"  • {n} — {p:,.2f} × {q} = {tl:,.2f}{match_tag}")
+        lines.append("")
+        if vat and float(vat) > 0:
+            lines.append(f"💰 الصافي: {net:,.2f} · ضريبة: {vat:,.2f} · **الإجمالي: {gross:,.2f}**")
+        else:
+            lines.append(f"💰 **الإجمالي: {gross:,.2f} ر.س**")
+        acc = echo.get("accounts")
+        if acc:
+            lines.append(f"🧾 القيد: {acc}")
+        for a in (echo.get("assumptions") or payload.get("_assumptions") or []):
+            lines.append(a)
+        lines += ["", "✋ لن يُحفظ أي شيء قبل موافقة المُعتمِد الثاني — سيظهر ضمن «اعتمادات كاترينا»."]
+        return "\n".join(lines)
 
     def _fmt(d: Dict[str, Any]) -> list:
         rows = []

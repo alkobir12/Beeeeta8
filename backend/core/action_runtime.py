@@ -72,7 +72,7 @@ STATE: Dict[str, Dict[str, Any]] = {
 
 VALID_ACTIONS = {"customer", "vehicle", "visit", "supplier", "close_visits", "delete_operation",
                  "delete_customer", "delete_vehicle", "update_customer", "update_vehicle",
-                 "invoice", "payment", "expense", "reverse"}
+                 "invoice", "payment", "expense", "reverse", "purchase"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -334,6 +334,58 @@ def _fetch_all(table: str) -> List[Dict[str, Any]]:
         except Exception as e:
             _log.warning("fetch_all %s failed: %s", table, redact(str(e), max_len=80))
     return list(DB.get(table, {}).values())
+
+
+def _upsert_parts_from_purchase(items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """يرفع كميات القطع بعد اعتماد الشراء (best-effort).
+
+    - إن كان لبند `matched_id` → يزيد `quantity` للسجل الحالي.
+    - وإلا → يُنشئ سجلاً جديداً في جدول `parts` بالكمية والسعر المشترى.
+    الإخفاق (اتصال، جدول غير موجود...) لا يوقف الترحيل — يُسجَّل تحذيراً.
+    """
+    result = {"restocked": 0, "created": 0, "skipped": 0}
+    client = _supabase_client()
+    if not client:
+        result["skipped"] = len(items or [])
+        return result
+    for it in (items or []):
+        try:
+            qty = int(float(it.get("qty") or it.get("quantity") or 1))
+            name = str(it.get("name") or "").strip()
+            price = float(it.get("price") or 0)
+            mid = it.get("matched_id")
+            if mid:
+                row = (client.table("parts").select("id, quantity").eq("id", mid)
+                       .limit(1).execute().data or [None])[0]
+                if row:
+                    new_q = int(row.get("quantity") or 0) + qty
+                    client.table("parts").update({
+                        "quantity": new_q,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    }).eq("id", mid).execute()
+                    result["restocked"] += 1
+                    continue
+            # إنشاء صنف جديد إذا لا يوجد مطابقة
+            if name:
+                client.table("parts").insert({
+                    "id": str(uuid.uuid4()),
+                    "name": name[:120],
+                    "quantity": qty,
+                    "price": price,
+                    "min_stock": 1,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }).execute()
+                result["created"] += 1
+            else:
+                result["skipped"] += 1
+        except Exception as _e:
+            _log.debug("part upsert failed for %s: %s",
+                       redact(str(it.get('name')), max_len=40),
+                       redact(str(_e), max_len=80))
+            result["skipped"] += 1
+    return result
+
+
 
 
 def resolve_customer_target(criteria: Dict[str, Any]) -> Dict[str, Any]:
@@ -920,7 +972,7 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
 
         # ── 🏦 Financial actions — committed THROUGH the central accounting engine ──
         #    (Governance: single writer, never auto-commit, immutable audit.)
-        if action in ("payment", "expense", "reverse"):
+        if action in ("payment", "expense", "reverse", "purchase"):
             try:
                 from core import financial_actions as _fa
                 fa_actor = {"user_id": committer or "system"}
@@ -944,6 +996,26 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                         reference_id=payload.get("reference_id"),
                         actor=fa_actor,
                     )
+                elif action == "purchase":
+                    # 🛒 شراء من مورد — مدين المخزون / دائن بحسب طريقة الدفع.
+                    fres = _fa.create_purchase(
+                        supplier=(payload.get("supplier") or {}).get("name")
+                                 if isinstance(payload.get("supplier"), dict)
+                                 else payload.get("supplier"),
+                        items=payload.get("items") or [],
+                        payment_method=payload.get("payment_method") or "cash",
+                        vat=payload.get("vat"),
+                        date=payload.get("date"),
+                        reference_id=payload.get("reference_id"),
+                        actor=fa_actor,
+                    )
+                    # 🆕 تحديث كميات المخزون (best-effort) — لا يوقف الترحيل عند الفشل.
+                    if isinstance(fres, dict) and (fres.get("posted") or fres.get("journal_id")):
+                        try:
+                            _upsert_parts_from_purchase(payload.get("items") or [])
+                        except Exception as _iee:
+                            _log.debug("parts stock update skipped: %s",
+                                       redact(str(_iee), max_len=80))
                 else:  # reverse
                     fres = _fa.reverse_entry(
                         journal_id=payload.get("journal_id"),
