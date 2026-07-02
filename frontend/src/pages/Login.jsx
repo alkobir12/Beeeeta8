@@ -114,11 +114,21 @@ const Login = () => {
     try {
       setLoading(true);
       const API_URL = `${resolveBackendBase()}/api`;
-      
-      // Fetch users to simulate login (as per existing logic) with timeout
+
+      // 🔒 التوثيق أولاً: POST /api/auth/login (عام) يتحقق من المستخدم ويصدر JWT.
+      // بعدها نجلب /users بالتوكن — deny-by-default يمنع جلبها بدون توثيق.
+      const token = await loginAndIssueToken(name.trim()).catch(() => null);
+      if (!token) {
+        toast({ title: 'خطأ', description: 'اسم المستخدم غير معروف أو الحساب معطل', variant: 'destructive' });
+        return;
+      }
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 8000);
-      const response = await fetch(`${API_URL}/users`, { signal: controller.signal });
+      const response = await fetch(`${API_URL}/users`, {
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${token}` },
+      });
       clearTimeout(timeout);
       if (!response.ok) throw new Error('Server error');
       
@@ -129,48 +139,52 @@ const Login = () => {
         .some((value) => String(value || '').trim().toLowerCase() === loginName));
 
       if (!user) {
-        if (name.trim() === 'مدير') {
-          const fallbackUser = {
-            id: 'local-admin',
-            name: 'مدير',
-            phone: '',
-            email: '',
-            role: 'admin',
-            permissions: fallbackPermissions,
-            isActive: true,
-            guidanceEnabled: true,
-          };
-          const session = { 
-            id: fallbackUser.id,
-            name: fallbackUser.name,
-            phone: fallbackUser.phone,
-            email: fallbackUser.email,
-            role: fallbackUser.role,
-            permissions: fallbackUser.permissions,
-            guidanceEnabled: fallbackUser.guidanceEnabled !== false,
-            loginTime: new Date().toISOString()
-          };
-
-          try {
-            document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-            document.cookie = `session=${encodeURIComponent(JSON.stringify(session))}; path=/`;
-          } catch (e) {
-            // ignore
-          }
-          localStorage.setItem('session', JSON.stringify(session));
-          localStorage.setItem('user', JSON.stringify(fallbackUser));
-          await loginAndIssueToken(fallbackUser.name).catch(() => {});
-          window.dispatchEvent(new Event('sessionUpdated'));
-          toast({ title: 'مرحباً بك', description: `أهلاً بعودتك، ${fallbackUser.name}` });
-          await Promise.all([
-            warmOperationsCache(`${resolveBackendBase()}/api`),
-            warmAccountsCache(`${resolveBackendBase()}/api`),
-          ]);
-          prefetchCriticalData();
-          window.location.assign(`${window.location.origin}/`);
-          return;
+        // موثّق عبر JWT لكن غير موجود في قائمة /users — نبني الجلسة من التوكن نفسه
+        let role = 'technician';
+        try {
+          const meResp = await fetch(`${API_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (meResp.ok) role = (await meResp.json())?.role || role;
+        } catch (e) {
+          // ignore
         }
-        toast({ title: 'خطأ', description: 'المستخدم غير موجود', variant: 'destructive' });
+        const jwtUser = {
+          id: `jwt-${name.trim()}`,
+          name: name.trim(),
+          phone: '',
+          email: '',
+          role,
+          permissions: normalizePermissions(null, role),
+          isActive: true,
+          guidanceEnabled: true,
+        };
+        const session = {
+          id: jwtUser.id,
+          name: jwtUser.name,
+          phone: '',
+          email: '',
+          role,
+          permissions: jwtUser.permissions,
+          guidanceEnabled: true,
+          loginTime: new Date().toISOString(),
+        };
+        try {
+          document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+          document.cookie = `session=${encodeURIComponent(JSON.stringify(session))}; path=/`;
+        } catch (e) {
+          // ignore
+        }
+        localStorage.setItem('session', JSON.stringify(session));
+        localStorage.setItem('user', JSON.stringify(jwtUser));
+        window.dispatchEvent(new Event('sessionUpdated'));
+        toast({ title: 'مرحباً بك', description: `أهلاً بعودتك، ${jwtUser.name}` });
+        await Promise.all([
+          warmOperationsCache(`${resolveBackendBase()}/api`),
+          warmAccountsCache(`${resolveBackendBase()}/api`),
+        ]);
+        prefetchCriticalData();
+        window.location.assign(`${window.location.origin}/`);
         return;
       }
 

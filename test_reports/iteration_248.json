@@ -1,0 +1,38 @@
+{
+  "summary": "Iter 248 — E2E validation of session-start reminder, duplicate-prevention, pre-approval auditor notes, Arabic historical queries, and regressions. 10/10 backend pytest tests PASS; 5/5 frontend flows PASS (login for احمد1/فرج1/مدير, Katrina drawer reminder with 3 ApprovalCards, approver reject-from-chat).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_katrina_iter248.py",
+    "/app/test_reports/pytest/iter248.xml",
+    "/app/test_reports/iter248_reminder.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Duplicate prevention check uses action+entity+amount+pending filter — solid and returns the existing ApprovalCard with a clear ♻️ header. No new pending draft created (confirmed via pending count before/after).",
+    "Pre-approval auditor block (🕵️ ملاحظات المدقق قبل الاعتماد) is included on the FIRST creation of a draft but NOT re-shown on the dedup response — good UX, avoids noise.",
+    "Session-start reminder correctly filters approvals awaiting THIS approver's decision (احمد1 sees مدير's drafts, not his own) and renders up to 3 ApprovalCards in chat with live approve/reject buttons.",
+    "GET /api/runtime/approvals returns {success, data:[...]} — inconsistent with plain list expectation in a few older tests. Consider standardising or documenting; new tests handle both shapes.",
+    "Approve endpoint expects the outer approval `id` (not `draft_id`). Chat responses do expose `executed.id` but that maps to draft_id — confusing naming. Consider renaming or including both explicitly in tool_results for downstream consumers."
+  ],
+  "updated_files": ["/app/backend/tests/test_katrina_iter248.py"],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% (5/5)"},
+  "test_credentials": "name-only login: مدير (admin/approver), احمد1 (supervisor/approver), فرج1 (accountant/no-approve). See /app/memory/test_credentials.md",
+  "seed_data_creation": "Test purchases created with unique amounts (60-89 range for dup test, 100-599 for four-eyes) and cancelled via contextual cancel where possible; a rejected legacy card via the frontend reminder-reject flow also occurred (planned - one draft by مدير was rejected by احمد1).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "GET /api/runtime/approvals?status=pending returns {success:true, data:[{id, draft_id, requester, status, payload:{...}}]}. Approve endpoint uses outer `id`. Chat is at POST /api/assistant/chat with {message, session_id, language}; response wrapped {success, data:{response, tool_results, ...}}. Duplicate detection triggers ♻️ **طلب مطابق معلق بالفعل** message. Auditor block shown only on first-time creation. Reminder detected via '🔔' or 'تذكير' in response text. Drawer testids: unified-assistant-fab, assistant-input, assistant-send-btn, [data-testid^='assistant-card-ApprovalCard']. LLM replies take 10-40s.",
+  "verified_flows": [
+    "POST /api/auth/login {username: 'احمد1'} → 200 with access_token (previously 401 on UI)",
+    "Frontend Login.jsx: احمد1/فرج1/مدير all reach dashboard (/), NOT /login",
+    "POST /api/assistant/chat 'مرحبا' as احمد1 → response contains '🔔 تذكير' and 3 ApprovalCards rendered in drawer",
+    "Approver decision from chat: reject succeeded on مدير-created card (four-eyes valid)",
+    "Duplicate prevention: 2x identical purchase → 2nd response has '♻️ طلب مطابق معلق بالفعل' and pending count unchanged",
+    "Auditor pre-approval notes: first purchase response contains '🕵️' / 'المدقق' section",
+    "Historical query 'كم عملية صارت الشهر الماضي؟' → operations.search returns period info without crash",
+    "Historical query 'بحث عمليات قبل شهر' → responds cleanly, no traceback",
+    "Contextual cancel 'الغي آخر عملية شراء' → 'تم إلغاء المسودة المعلقة' works",
+    "Four-Eyes: مدير approving own draft → 403 four_eyes_violation",
+    "اعتمادات كاترينا intent → pending list returned with card-style content"
+  ]
+}

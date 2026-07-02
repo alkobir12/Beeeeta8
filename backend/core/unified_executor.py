@@ -440,6 +440,22 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
                        "_target_label": cust_name, "_echo": echo}}
 
 
+def _find_duplicate_pending(runtime_action: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """🛡️ منع تكرار طلبات الاعتماد: يرجع مسودة معلقة مطابقة (نفس الإجراء + الجهة + المبلغ)."""
+    from core.draft_audit import _amount_of, _entity_of
+    amt = _amount_of(payload)
+    ent = _entity_of(payload)
+    if amt <= 0 and not ent:
+        return None
+    for d in action_runtime.list_drafts(status="pending_approval", limit=30):
+        if d.get("action") != runtime_action:
+            continue
+        p2 = d.get("payload") or {}
+        if abs(_amount_of(p2) - amt) < 0.01 and _entity_of(p2) == ent:
+            return d
+    return None
+
+
 async def execute_action(
     action: Action,
     *,
@@ -481,6 +497,21 @@ async def execute_action(
 
     # 4) Create draft (always — even for auto-committed actions)
     proposer_id = proposer or "auto:llm"
+    needs_manual_approval = requires_approval(action)
+
+    # 🛡️ طلب مطابق معلق بالفعل → نعيد بطاقته بدل إنشاء نسخة مكررة
+    if needs_manual_approval:
+        dup = _find_duplicate_pending(runtime_action, action.payload)
+        if dup is not None:
+            return {
+                "status": "pending_approval",
+                "duplicate": True,
+                "action": action.model_dump(),
+                "draft": dup,
+                "approval": {"approval_id": dup.get("last_approval_id")},
+                "policy": "duplicate_pending",
+            }
+
     draft = action_runtime.create_draft(
         action=runtime_action,
         payload=action.payload,
@@ -488,17 +519,24 @@ async def execute_action(
         session_id=session_id,
     )
 
-    # 5) Risky → manual approval gate
-    if requires_approval(action):
+    # 5) Risky → manual approval gate (+ 🕵️ مدقق المسودات قبل الاعتماد)
+    if needs_manual_approval:
         approval = action_runtime.request_approval(
             draft_id=draft["id"], requester=proposer_id,
         )
+        try:
+            from core.draft_audit import audit_draft_with_findings
+            audit_notes = await audit_draft_with_findings(
+                runtime_action, action.payload, draft_id=draft["id"])
+        except Exception:
+            audit_notes = []
         return {
             "status": "pending_approval",
             "action": action.model_dump(),
             "draft": draft,
             "approval": approval,
             "policy": "manual_review_required",
+            "audit_notes": audit_notes,
         }
 
     # 6) Safe → echo-back + explicit user confirmation (Phase C governance).

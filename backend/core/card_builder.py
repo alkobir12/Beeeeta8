@@ -297,16 +297,36 @@ def approval_card(approval: Dict[str, Any]) -> Dict[str, Any]:
     """Approval = a runtime approval awaiting (or having received) a decision."""
     aid = approval.get("id") or approval.get("approval_id") or "a"
     status = approval.get("status") or "pending"
+    draft_action = approval.get("action") or ""
+    label = {
+        "purchase": "شراء", "create_purchase": "شراء",
+        "invoice": "فاتورة", "create_invoice": "فاتورة",
+        "payment": "دفعة", "collect_payment": "دفعة",
+        "expense": "مصروف", "create_expense": "مصروف",
+        "reverse_entry": "قيد عكسي", "delete_operation": "حذف عملية",
+        "visit": "زيارة", "create_visit": "زيارة",
+    }.get(draft_action, draft_action)
+    echo = (approval.get("payload") or {}).get("_echo") or {}
+    amt = echo.get("amount")
+    bits = [b for b in (
+        label or None,
+        echo.get("entity"),
+        (f"{amt} ر.س" if amt not in (None, "", 0) else None),
+    ) if b]
+    title = "موافقة — " + (" · ".join(str(b) for b in bits) if bits else status)
     return {
         "type": "ApprovalCard",
         "id": str(aid),
-        "title": f"موافقة — {status}",
+        "title": title,
         "status": status,
         "data": {
             "approval_id": aid,
             "draft_id": approval.get("draft_id"),
             "status": status,
+            "action": draft_action,
+            "echo": echo,
             "requester": approval.get("requester"),
+            "proposer": approval.get("proposer"),
             "approver": approval.get("approver"),
             "created_at": approval.get("created_at"),
         },

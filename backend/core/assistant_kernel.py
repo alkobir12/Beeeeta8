@@ -345,7 +345,19 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
     else:  # pending_approval
         approval_id = (exec_res.get("approval") or {}).get("approval_id")
         draft_id = (exec_res.get("draft") or {}).get("id")
+        is_duplicate = bool(exec_res.get("duplicate"))
         payload = ((exec_res.get("action") or {}).get("payload") or {})
+        if is_duplicate:
+            # المسودة الموجودة هي مصدر الحقيقة — نعرض بياناتها لا بيانات الطلب الجديد
+            payload = (exec_res.get("draft") or {}).get("payload") or payload
+        audit_notes = exec_res.get("audit_notes") or []
+        audit_block = ""
+        if audit_notes:
+            audit_block = ("\n🕵️ **ملاحظات المدقق قبل الاعتماد:**\n"
+                           + "\n".join(f"  {n}" for n in audit_notes))
+        header = ("♻️ **طلب مطابق معلق بالفعل** — لن أُنشئ نسخة مكررة، هذه بطاقة الطلب الموجود:\n"
+                  if is_duplicate else
+                  "⏳ **بانتظار اعتماد طرف ثانٍ (أربع أعين)** — عملية مالية حسّاسة.\n")
         tgt = payload.get("_target_label")
         echo = payload.get("_echo") or {}
         if echo:
@@ -370,22 +382,23 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
             if assumptions:
                 assumptions_block = "\n" + "\n".join(assumptions)
             response_text = (
-                "⏳ **بانتظار اعتماد طرف ثانٍ (أربع أعين)** — عملية مالية حسّاسة.\n"
-                f"🧾 النوع: {echo.get('type') or label}\n"
+                header
+                + f"🧾 النوع: {echo.get('type') or label}\n"
                 f"👤 الطرف: {echo.get('entity') or '—'}{amt_line}"
                 f"{items_block}\n"
                 f"📒 الأثر المحاسبي: {echo.get('accounts') or '—'}"
-                f"{assumptions_block}\n"
+                f"{assumptions_block}{audit_block}\n"
                 "🔴 لن يُثبَّت أي قيد مالي دون اعتماد بشري مختلف."
             )
         else:
-            response_text = (f"⏳ **بانتظار اعتمادك** — هذه عملية حساسة "
-                             f"({label}{': ' + str(tgt) if tgt else ''}).")
+            response_text = (f"{header}🧾 عملية حساسة "
+                             f"({label}{': ' + str(tgt) if tgt else ''}).{audit_block}")
         cards = [{
             "type": "ApprovalCard", "id": approval_id,
             "title": f"موافقة — {label}", "status": "pending",
             "data": {"approval_id": approval_id, "draft_id": draft_id, "status": "pending",
-                     "action": action, "echo": echo, "payload": payload},
+                     "action": action, "echo": echo, "payload": payload,
+                     "audit_notes": audit_notes, "duplicate": is_duplicate},
             "actions": _build_approval_actions(action, draft_id, approval_id, payload, echo),
         }]
     shared_memory.append_message(sid, "assistant", response_text, meta={
@@ -622,7 +635,7 @@ def _system_prompt() -> str:
     )
 
 
-async def chat(
+async def _chat_impl(
     *,
     session_id: Optional[str] = None,
     message: str,
@@ -633,7 +646,7 @@ async def chat(
     proposer: Optional[str] = None,  # 🆕 Phase 3C — Four-Eyes anchor (current user)
     proposer_role: Optional[str] = None,  # 🧠 RRR — دور المستخدم من JWT (admin فقط يفعّل)
 ) -> Dict[str, Any]:
-    """Main entry point for the assistant.
+    """Core chat logic — يُستدعى عبر chat() الذي يضيف تذكير المعلقات.
 
     Args:
       model: 'gpt' → Emergent gpt-4o-mini (default), 'ollama' → local llama3.2:3b.
@@ -958,6 +971,61 @@ def kernel_stats() -> Dict[str, Any]:
         "tools_registered": len(tool_router.list_tools()),
         "ai_enabled": bool(_emergent_llm_key()),
     }
+
+
+def _build_pending_reminder(*, proposer: Optional[str],
+                            proposer_role: Optional[str]) -> Optional[Dict[str, Any]]:
+    """🔔 تذكير أول رسالة بالجلسة: اعتمادات تنتظر قرار المستخدم + مسوداته المعلقة."""
+    from core import action_runtime
+    from core.rbac import APPROVER_ROLES
+    from core.card_builder import cards_from_approvals
+    pending = action_runtime.list_approvals(status="pending", limit=50)
+    if not pending:
+        return None
+    mine = [a for a in pending if proposer and a.get("proposer") == proposer]
+    is_approver = (proposer_role or "").strip().lower() in APPROVER_ROLES
+    for_me = [a for a in pending if a.get("proposer") != proposer] if is_approver else []
+    if not mine and not for_me:
+        return None
+    lines = ["🔔 **تذكير — عمليات معلقة لم تُستكمل:**"]
+    if for_me:
+        lines.append(f"  ⏳ **{len(for_me)}** بانتظار **قرارك** — اعتمد/ارفض من البطاقات أدناه مباشرة.")
+    if mine:
+        lines.append(f"  📝 **{len(mine)}** أنشأتها أنت وتنتظر معتمداً آخر (أربع أعين).")
+    lines.append("  💡 اكتب «اعتمادات كاترينا» للقائمة كاملة، أو «الغي آخر عملية» لسحب مسودتك.")
+    return {"text": "\n".join(lines), "cards": cards_from_approvals(for_me[:3])}
+
+
+async def chat(
+    *,
+    session_id: Optional[str] = None,
+    message: str,
+    workshop_id: Optional[str] = None,
+    force_agent: Optional[str] = None,
+    use_ai: bool = True,
+    model: Optional[str] = None,
+    proposer: Optional[str] = None,
+    proposer_role: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Main entry point — يلفّ _chat_impl ويضيف تذكير المعلقات في أول رسالة بالجلسة."""
+    prior_msgs = len(shared_memory.get_messages(session_id, limit=2)) if session_id else 0
+    resp = await _chat_impl(
+        session_id=session_id, message=message, workshop_id=workshop_id,
+        force_agent=force_agent, use_ai=use_ai, model=model,
+        proposer=proposer, proposer_role=proposer_role,
+    )
+    if prior_msgs == 0 and resp.get("intent") != "developer_mode":
+        try:
+            has_approval_cards = any(
+                (c or {}).get("type") == "ApprovalCard" for c in (resp.get("cards") or []))
+            reminder = None if has_approval_cards else _build_pending_reminder(
+                proposer=proposer, proposer_role=proposer_role)
+            if reminder:
+                resp["response"] = f"{reminder['text']}\n\n---\n\n{resp.get('response') or ''}"
+                resp["cards"] = reminder["cards"] + (resp.get("cards") or [])
+        except Exception:
+            pass
+    return resp
 
 
 # ---------- Deprecated (kept for backward compat with /api/assistant/* routes) ----------

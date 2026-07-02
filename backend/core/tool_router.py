@@ -519,14 +519,83 @@ async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5
     }
 
 
+# 🗓️ فهم النطاق الزمني العربي («قبل شهر»، «الشهر الماضي»، «آخر اسبوع»...)
+_AR_UNIT_DAYS = {
+    "يوم": 1, "ايام": 1, "أيام": 1, "يومين": 2,
+    "اسبوع": 7, "أسبوع": 7, "اسابيع": 7, "أسابيع": 7, "اسبوعين": 14, "أسبوعين": 14,
+    "شهر": 30, "شهور": 30, "اشهر": 30, "أشهر": 30, "شهرين": 60,
+    "سنه": 365, "سنة": 365,
+}
+
+
+def _extract_date_range(q: str):
+    """يرجع (start_dt, end_dt, cleaned_query) أو None إذا لا توجد إشارة زمنية."""
+    import re as _re
+    from datetime import datetime, timedelta
+    t = q or ""
+    now = datetime.now()
+
+    def _clean(rgx):
+        return _re.sub(rgx, " ", t, flags=_re.IGNORECASE).strip(" ،,")
+
+    m = _re.search(r"الشهر\s+(?:الماضي|اللي\s+فات|السابق)", t)
+    if m:
+        first_this = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        start = (first_this - timedelta(days=1)).replace(day=1)
+        return start, first_this, _clean(r"الشهر\s+(?:الماضي|اللي\s+فات|السابق)")
+    m = _re.search(r"(?:الاسبوع|الأسبوع)\s+(?:الماضي|اللي\s+فات|السابق)", t)
+    if m:
+        return now - timedelta(days=14), now - timedelta(days=7), _clean(
+            r"(?:الاسبوع|الأسبوع)\s+(?:الماضي|اللي\s+فات|السابق)")
+    m = _re.search(r"هذا\s+الشهر|الشهر\s+الحالي", t)
+    if m:
+        return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0), now, _clean(
+            r"هذا\s+الشهر|الشهر\s+الحالي")
+    if _re.search(r"(?:^|\s)(?:امس|أمس|البارح[ةه]?)(?:\s|$)", t):
+        y = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        return y, y + timedelta(days=1), _clean(r"(?:امس|أمس|البارح[ةه]?)")
+    if _re.search(r"(?:^|\s)اليوم(?:\s|$)", t):
+        return now.replace(hour=0, minute=0, second=0, microsecond=0), now, _clean(r"اليوم")
+    unit_re = "|".join(_AR_UNIT_DAYS)
+    m = _re.search(rf"(?:آخر|اخر|خلال)\s*(\d+)?\s*({unit_re})", t)
+    if m:
+        days = _AR_UNIT_DAYS[m.group(2)] * (int(m.group(1)) if m.group(1) else 1)
+        return now - timedelta(days=days), now, _clean(rf"(?:آخر|اخر|خلال)\s*\d*\s*(?:{unit_re})")
+    m = _re.search(rf"قبل\s*(\d+)?\s*({unit_re})", t)
+    if m:
+        days = _AR_UNIT_DAYS[m.group(2)] * (int(m.group(1)) if m.group(1) else 1)
+        margin = max(3, int(days * 0.25))
+        center = now - timedelta(days=days)
+        return center - timedelta(days=margin), center + timedelta(days=margin), _clean(
+            rf"قبل\s*\d*\s*(?:{unit_re})")
+    return None
+
+
+def _parse_op_dt(o: Dict[str, Any]):
+    from datetime import datetime
+    s = str(o.get("createdAt") or o.get("created_at") or o.get("date") or "")
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).replace(tzinfo=None)
+    except Exception:
+        try:
+            return datetime.fromisoformat(s[:19])
+        except Exception:
+            return None
+
+
 async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 10) -> Dict[str, Any]:
-    """🔍 بحث عمليات بالاسم (عميل/مورد) أو النوع — يرجع كل عمليات الشخص المحدد."""
+    """🔍 بحث عمليات بالاسم/النوع + نطاق زمني عربي («قبل شهر»، «الشهر الماضي»...)."""
     import os
     import httpx
+    q = (query or "").strip()
+    date_range = _extract_date_range(q)
+    fetch_limit = 500 if date_range else 200
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
         async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
-            r = await client.get(f"{base}/api/operations", params={"limit": 200})
+            r = await client.get(f"{base}/api/operations", params={"limit": fetch_limit})
             ops = r.json() if r.status_code == 200 else []
     except Exception as e:
         return {"error": str(e)}
@@ -534,7 +603,18 @@ async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "
         ops = ops.get("data") or ops.get("items") or []
     if not isinstance(ops, list):
         ops = []
-    q = (query or "").strip()
+    period_label = None
+    if date_range:
+        start_dt, end_dt, q = date_range
+        # إزالة أفعال/حشو زمني متبقٍ حتى لا تفلتر النتائج بالاسم خطأً
+        import re as _re0
+        q = _re0.sub(
+            r"(?:^|\s)(?:صار|صارت|تم|تمت|حدث|حدثت|سوّ?يت|سوت|كان|كانت|اللي|التي|الذي|فيه|عندنا|لدينا|موجود[ةه]?)(?=\s|$)",
+            " ", q)
+        q = " ".join(q.split())
+        period_label = f"{start_dt:%Y-%m-%d} → {end_dt:%Y-%m-%d}"
+        ops = [o for o in ops
+               if (lambda d: d is not None and start_dt <= d <= end_dt)(_parse_op_dt(o))]
     if q:
         import re as _re
         from core.arabic_nlp import arabic_match, extract_entities
@@ -569,6 +649,7 @@ async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "
     total_amount = sum(float(o.get("total") or 0) for o in ops)
     return {
         "query": query,
+        "period": period_label,
         "count": len(ops),
         "total_amount": round(total_amount, 2),
         "items": [{
