@@ -41,6 +41,16 @@ const payloadSummary = (p = {}) => {
   return parts.length ? parts.join(' · ') : JSON.stringify(p).slice(0, 120);
 };
 
+// الأثر المحاسبي المتوقع (من echo البوت إن وُجد)
+const accountingEffect = (p = {}) => p?._echo?.accounts || null;
+
+// تسمية ودّية للمُقترِح — الاعتمادات السابقة قبل ربط الهوية تظهر auto:llm
+const proposerLabel = (proposer) => {
+  const s = String(proposer || '').trim();
+  if (!s || s === 'auto:llm' || s === 'auto:policy') return 'كاترينا (طلب آلي)';
+  return s;
+};
+
 export function KatrinaApprovalsTab({ onCountChange }) {
   const [rows, setRows] = useState([]);
   const [filter, setFilter] = useState('pending');
@@ -62,6 +72,10 @@ export function KatrinaApprovalsTab({ onCountChange }) {
   useEffect(() => { load(); }, [load]);
 
   const act = async (id, kind) => {
+    if (kind === 'approve') {
+      const ok = window.confirm('سيتم اعتماد هذه العملية وتنفيذها فوراً في السجلات. هل أنت متأكد؟\n\nملاحظة: لا يمكنك اعتماد طلبٍ اقترحتَه بنفسك (مبدأ الأربع أعين).');
+      if (!ok) return;
+    }
     setBusy(true); setMsg(null);
     try {
       if (kind === 'approve') {
@@ -146,8 +160,13 @@ export function KatrinaApprovalsTab({ onCountChange }) {
                   </span>
                 </div>
                 <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">{payloadSummary(a.payload)}</div>
+                {accountingEffect(a.payload) && (
+                  <div className="text-xs text-indigo-600 dark:text-indigo-300 mt-1 font-mono" data-testid={`katrina-effect-${a.id}`}>
+                    🧾 {accountingEffect(a.payload)}
+                  </div>
+                )}
                 <div className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                  <Clock size={12} /> {fmtDate(a.created_at)} · المُقترِح: {a.proposer || a.requester || '—'}
+                  <Clock size={12} /> {fmtDate(a.created_at)} · المُقترِح: {proposerLabel(a.proposer || a.requester)}
                 </div>
               </div>
               {a.status === 'pending' && (

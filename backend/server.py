@@ -461,6 +461,7 @@ def _rate_bucket(path: str, method: str):
 
 
 from starlette.datastructures import MutableHeaders
+from auth_guard import authenticate as _auth_authenticate
 
 
 class SecurityHeadersAndRateLimitMiddleware:
@@ -499,7 +500,27 @@ class SecurityHeadersAndRateLimitMiddleware:
         path = scope.get("path", "")
         method = scope.get("method", "GET")
         headers_in = self._headers(scope)
+        origin = headers_in.get("origin")
 
+        def _send_json(status_code: int, payload: dict):
+            import json as _json
+
+            async def _do(send_):
+                body = _json.dumps(payload).encode("utf-8")
+                out_headers = [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode("latin-1")),
+                ]
+                if origin and ("*" in allow_origins or origin in allow_origins):
+                    ao = "*" if "*" in allow_origins else origin
+                    out_headers.append((b"access-control-allow-origin", ao.encode("latin-1")))
+                    out_headers.append((b"access-control-allow-credentials", b"true"))
+                    out_headers.append((b"vary", b"Origin"))
+                await send_({"type": "http.response.start", "status": status_code, "headers": out_headers})
+                await send_({"type": "http.response.body", "body": body})
+            return _do
+
+        # ── 1) Rate limiting ─────────────────────────────────────────────
         bucket = _rate_bucket(path, method)
         if bucket is not None:
             bucket_name, limit = bucket
@@ -511,14 +532,14 @@ class SecurityHeadersAndRateLimitMiddleware:
             count = _RATE_STATE.get(key, 0) + 1
             _RATE_STATE[key] = count
             if count > limit:
-                resp = JSONResponse(
-                    status_code=429,
-                    content={"success": False, "error": "Rate limit exceeded. Please try again shortly."},
-                )
-                await resp(scope, receive, send)
+                await _send_json(429, {"success": False, "error": "Rate limit exceeded. Please try again shortly."})(send)
                 return
 
-        origin = headers_in.get("origin")
+        # ── 2) Auth guard — يفرض JWT على كل /api/* عدا القائمة البيضاء ────
+        auth_result = _auth_authenticate(path, method, headers_in)
+        if auth_result is None:
+            await _send_json(401, {"success": False, "error": "Not authenticated", "detail": "Not authenticated"})(send)
+            return
 
         async def send_wrapper(message):
             if message["type"] == "http.response.start":

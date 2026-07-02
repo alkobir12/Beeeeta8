@@ -8,23 +8,29 @@ export const normalizeWhatsAppPhone = (phone) =>
 
 export const buildDebtWhatsAppMessage = (entity, entityType) => {
   const name = entity?.name || 'العميل';
-  const debit = Number(entity?.debitBalance || 0).toFixed(2);
-  const credit = Number(entity?.creditBalance || 0).toFixed(2);
-  const ajel = Number(entity?.ajelBalance || entity?.overdueBalance || 0).toFixed(2);
-  const settled = Number(entity?.settledAmount || 0).toFixed(2);
+  const debit = Number(entity?.debitBalance || 0);
+  const credit = Number(entity?.creditBalance || 0);
+  const ajel = Number(entity?.ajelBalance || entity?.overdueBalance || 0);
+  const settled = Number(entity?.settledAmount || 0);
+  const net = debit - credit || ajel;
   const typeLabel = entityType === 'supplier' ? 'المورد' : 'العميل';
+  const fmt = (n) => Number(n || 0).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const today = new Date().toLocaleDateString('ar-SA');
 
-  return [
-    `السلام عليكم ${name}`,
-    `نرفق لكم ملخص حساب ${typeLabel}:`,
-    `• مدين: ${debit} ر.س`,
-    `• دائن: ${credit} ر.س`,
-    `• آجل مستحق: ${ajel} ر.س`,
-    `• إجمالي السداد المسجل: ${settled} ر.س`,
-    '',
-    'نأمل مراجعة الرصيد والتواصل معنا لإتمام التسوية.',
-    'شاكرين تعاونكم.',
-  ].join('\n');
+  const lines = [
+    `السلام عليكم ${name} 🌟`,
+    `كشف حساب ${typeLabel} — ${today}`,
+    '━━━━━━━━━━━━━━━',
+  ];
+  if (debit > 0) lines.push(`• إجمالي المستحق (مدين): ${fmt(debit)} ر.س`);
+  if (credit > 0) lines.push(`• دفعات/رصيد دائن: ${fmt(credit)} ر.س`);
+  if (ajel > 0) lines.push(`• آجل مستحق حالياً: ${fmt(ajel)} ر.س`);
+  if (settled > 0) lines.push(`• إجمالي ما تم سداده: ${fmt(settled)} ر.س`);
+  lines.push('━━━━━━━━━━━━━━━');
+  lines.push(`💰 الرصيد المستحق: ${fmt(Math.abs(net))} ر.س`);
+  lines.push('');
+  lines.push('نأمل مراجعة الرصيد والتواصل معنا لإتمام التسوية. شاكرين تعاونكم 🙏');
+  return lines.join('\n');
 };
 
 export const buildDebtWhatsAppDraft = (entity, entityType) => {

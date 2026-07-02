@@ -12,6 +12,7 @@ Phase 3C state machine still owns commits.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -192,8 +193,14 @@ async def parse_intent_with_llm(text: str, *, session_id: Optional[str] = None) 
             system_message=_SYSTEM_PROMPT,
         ).with_model("anthropic", "claude-sonnet-4-6")
         msg = UserMessage(text=text.strip())
-        raw = await chat.send_message(msg)
+        raw = await asyncio.wait_for(
+            chat.send_message(msg),
+            timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "45")),
+        )
         raw = str(raw or "").strip()
+    except asyncio.TimeoutError:
+        _log.warning("LLM intent parse timed out")
+        return Action(action="unknown", payload={})
     except Exception as e:
         _log.warning("LLM call failed: %s", redact(str(e), max_len=120))
         return Action(action="unknown", payload={})

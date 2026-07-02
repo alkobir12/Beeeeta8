@@ -17,6 +17,7 @@ Tools are ALL read-only:
 """
 
 from __future__ import annotations
+import asyncio
 import os
 import re
 import uuid
@@ -389,8 +390,14 @@ async def _llm_chat(
         if history:
             history_text = "\n".join([f"{m['role']}: {m['content']}" for m in history[-10:]])
             msg_text = f"السياق السابق للمحادثة:\n{history_text}\n\nالسؤال الحالي:\n{user_message}"
-        response = await chat.send_message(UserMessage(text=msg_text))
+        response = await asyncio.wait_for(
+            chat.send_message(UserMessage(text=msg_text)),
+            timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "45")),
+        )
         return str(response or "").strip()
+    except asyncio.TimeoutError:
+        _log.warning("LLM call timed out after %ss", os.environ.get("LLM_TIMEOUT_SECONDS", "45"))
+        return ""
     except Exception as e:
         # Phase 3A: replace `print` with structured logger; never leak raw user content.
         _log.warning("LLM call failed: %s", redact(str(e), max_len=160))
