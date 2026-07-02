@@ -194,3 +194,28 @@ rrr off=إيقاف ✅ | الجلسات العادية غير متأثرة (deve
 ### توصية للمرحلة 2
 الحقن الكامل يقارب حد الـ timeout — يُرجّح top-k retrieval انتقائي (حسب شرط المستخدم:
 بعد تعريف قواعد الترقية Short→Long→Knowledge كتابةً).
+
+## 2 يوليو 2026 — RRR: حل مشكلة 55s/60s جذرياً + اكتشاف وإصلاح تجمد النظام
+### اكتشاف جوهري أثناء التشخيص
+`emergentintegrations.LlmChat.send_message` يستدعي `litellm.completion` (sync!) داخل
+async → **الـ event loop كان يتجمد بالكامل طوال توليد أي رد LLM** (قياس: /api/health
+أخذ 15-30 ثانية أثناء التوليد). أثّر على كل مستخدمي النظام أثناء أي رد بوت.
+### الإصلاحات
+1. **إصلاح التجمد**: نقل نداء LLM إلى thread منفصل (asyncio.to_thread + asyncio.run)
+   في assistant_kernel._llm_chat و llm_intent_parser → اللوب حر (health = 15ms أثناء التوليد).
+2. **تقليص سياق RRR**: PRD مضغوط (عناوين+Backlog+Status)، CHANGELOG آخر إدخالين+عناوين،
+   API contracts مدمجة methods/path، Schema أسماء جداول/أعمدة فقط →
+   **~7.3K token (كان 14.6K)**.
+3. **SSE heartbeat**: حدث progress كل 10 ثوانٍ أثناء التوليد (routes_assistant._stream).
+4. **اكتشاف قيد منصة**: الـ ingress يقطع أي طلب عند 60s بالضبط حتى مع بث نشط.
+   **الحل الجذري — Job/Poll recovery**: البث يعلن job_id أولاً؛ النتيجة تُخزَّن في
+   _CHAT_JOBS عند اكتمال المهمة (تستمر حتى لو انقطع العميل)؛
+   GET /api/assistant/chat/result/{job_id} للاسترداد؛ الواجهة (AssistantProvider)
+   تستطلع تلقائياً كل 3s عند انقطاع البث ("الرد طويل — جارٍ استكماله…").
+5. **مهلة LLM لوضع المطور**: 150s (LLM_TIMEOUT_SECONDS_DEV) — العادي يبقى 60s.
+6. **زر «نسخ Proposal»** في UnifiedAssistantDrawer — يظهر على أي رسالة تحوي Proposal.
+7. **قواعد الترقية Short→Long→Knowledge** المعتمدة نصاً موثقة في ROADMAP.md (شرط المرحلة 2).
+### التحقق E2E
+- محلياً: heartbeats كل 10s حتى done بعد 87s ✅
+- عبر ingress: بث ينقطع عند 60s → poll يعيد الرد الكامل (12,917 حرف Proposal بوضع المطور) ✅
+- اللوب حر أثناء التوليد: health 15ms (كان 15,000-30,000ms) ✅

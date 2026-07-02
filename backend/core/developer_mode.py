@@ -37,30 +37,69 @@ def _read_file(path: str, max_chars: int = _MAX_FILE_CHARS) -> str:
         return ""
 
 
+def _md_compact(text: str, keep_sections: tuple = ()) -> str:
+    """يضغط Markdown: كل العناوين تبقى، ومحتوى الأقسام المُدرجة في keep_sections فقط يبقى كاملاً."""
+    out: List[str] = []
+    keep_mode = False
+    for line in (text or "").splitlines():
+        if line.startswith("#"):
+            title = line.lstrip("# ").strip()
+            keep_mode = any(k in title for k in keep_sections)
+            out.append(line)
+        elif keep_mode and line.strip():
+            out.append(line)
+    return "\n".join(out)
+
+
+def _changelog_compact(text: str, keep_last: int = 2) -> str:
+    """آخر N إدخالات كاملة + عناوين ما قبلها فقط (الإدخالات تبدأ بـ '## ')."""
+    entries: List[List[str]] = []
+    cur: List[str] = []
+    for line in (text or "").splitlines():
+        if line.startswith("## "):
+            if cur:
+                entries.append(cur)
+            cur = [line]
+        elif cur:
+            cur.append(line)
+    if cur:
+        entries.append(cur)
+    if not entries:
+        return ""
+    older = [e[0] for e in entries[:-keep_last]]
+    recent = ["\n".join(e) for e in entries[-keep_last:]]
+    parts = []
+    if older:
+        parts.append("قرارات/إصلاحات سابقة (عناوين):\n" + "\n".join(older))
+    parts.extend(recent)
+    return "\n\n".join(parts)
+
+
 def _api_contracts() -> str:
-    """قائمة مسارات API الحية من تطبيق FastAPI (عقود فعلية لا موثّقة يدوياً)."""
+    """عقود API الحية مضغوطة: دمج methods لكل مسار + حذف بادئة /api."""
     try:
         import sys
         app_mod = sys.modules.get("server")
         app = getattr(app_mod, "app", None)
         if app is None:
             return ""
-        lines: List[str] = []
+        by_path: Dict[str, set] = {}
         for r in app.routes:
-            path = getattr(r, "path", "")
-            if not str(path).startswith("/api"):
+            path = str(getattr(r, "path", ""))
+            if not path.startswith("/api"):
                 continue
-            methods = ",".join(sorted(m for m in (getattr(r, "methods", None) or []) if m != "HEAD"))
-            lines.append(f"{methods} {path}")
-        lines.sort(key=lambda s: s.split(" ", 1)[-1])
-        return f"عدد المسارات: {len(lines)}\n" + "\n".join(lines[:300])
+            methods = {m for m in (getattr(r, "methods", None) or []) if m != "HEAD"}
+            by_path.setdefault(path[4:] or "/", set()).update(methods)
+        lines = [f"{'|'.join(sorted(ms))} {p}" for p, ms in sorted(by_path.items())]
+        return (f"عدد المسارات: {len(lines)} (البادئة /api محذوفة)\n"
+                + "\n".join(lines[:250]))
     except Exception as e:
         _log.debug("api contracts failed: %s", redact(str(e), max_len=80))
         return ""
 
 
 def _db_snapshot() -> str:
-    """أعداد الجداول الحية (Supabase) + مجموعات MongoDB."""
+    """Schema كأسماء فقط: جدول → أعمدة + عدد الصفوف (بلا أي بيانات)."""
     parts: List[str] = []
     try:
         from supabase_service import SupabaseService
@@ -70,8 +109,9 @@ def _db_snapshot() -> str:
             for t in ("operations", "journal_entries", "customers", "vehicles",
                       "vehicle_visits", "accounts"):
                 try:
-                    res = client.table(t).select("id", count="exact").limit(1).execute()
-                    parts.append(f"  • {t}: {res.count} صف")
+                    res = client.table(t).select("*", count="exact").limit(1).execute()
+                    cols = ", ".join((res.data[0] if res.data else {}).keys())
+                    parts.append(f"  • {t} ({res.count} صف): {cols}")
                 except Exception:
                     parts.append(f"  • {t}: غير متاح")
     except Exception:
@@ -117,10 +157,10 @@ def _architecture_summary() -> str:
     except Exception:
         pass
     try:
-        pages = sorted(os.listdir("/app/frontend/src/pages"))
-        comps = sorted(f for f in os.listdir("/app/frontend/src/components") if not f.startswith("."))
+        pages = sorted(os.listdir("/app/frontend/src/pages"))[:30]
+        comps = sorted(f for f in os.listdir("/app/frontend/src/components") if not f.startswith("."))[:25]
         out.append("frontend/src/pages/: " + ", ".join(pages))
-        out.append("frontend/src/components/: " + ", ".join(comps[:40]))
+        out.append("frontend/src/components/ (أول 25): " + ", ".join(comps))
     except Exception:
         pass
     return "\n".join(out)
@@ -134,12 +174,14 @@ def build_dev_context(force: bool = False) -> Dict[str, Any]:
 
     t0 = time.time()
     sections: List[tuple] = [
-        ("PRD (متطلبات المنتج + Backlog)", _read_file(f"{_MEMORY_DIR}/PRD.md")),
-        ("CHANGELOG (القرارات/الأخطاء/الإصلاحات السابقة)", _read_file(f"{_MEMORY_DIR}/CHANGELOG.md")),
-        ("ROADMAP (خارطة الطريق)", _read_file(f"{_MEMORY_DIR}/ROADMAP.md")),
+        ("PRD موجز (عناوين + Backlog + الحالة المعروفة)",
+         _md_compact(_read_file(f"{_MEMORY_DIR}/PRD.md"), keep_sections=("Backlog", "Known Status"))),
+        ("CHANGELOG (آخر إدخالين كاملين + عناوين السابق)",
+         _changelog_compact(_read_file(f"{_MEMORY_DIR}/CHANGELOG.md"), keep_last=2)),
+        ("ROADMAP (خارطة الطريق)", _read_file(f"{_MEMORY_DIR}/ROADMAP.md", max_chars=3000)),
         ("بنية الملفات (Architecture)", _architecture_summary()),
-        ("عقود API الحية", _api_contracts()),
-        ("قاعدة البيانات (Schema حية)", _db_snapshot()),
+        ("عقود API الحية (مضغوطة)", _api_contracts()),
+        ("Schema (أسماء جداول/أعمدة فقط)", _db_snapshot()),
         ("محرك التنفيذ والتدقيق (Runtime)", _runtime_snapshot()),
     ]
     blocks: List[str] = []

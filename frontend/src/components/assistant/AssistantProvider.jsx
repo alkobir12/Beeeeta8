@@ -410,6 +410,7 @@ export const AssistantProvider = ({ children }) => {
         const reader = resp.body.getReader();
         const decoder = new TextDecoder('utf-8');
         let buffer = '';
+        let jobId = null;
         try {
           while (true) {
             const { value, done } = await reader.read();
@@ -425,7 +426,9 @@ export const AssistantProvider = ({ children }) => {
               const event = evMatch[1];
               let payload = null;
               try { payload = JSON.parse(dataMatch[1]); } catch (e) { /* keep null */ }
-              if (event === 'progress' && payload?.label) {
+              if (event === 'job' && payload?.job_id) {
+                jobId = payload.job_id;
+              } else if (event === 'progress' && payload?.label) {
                 setStreamingPhase(payload.label);
               } else if (event === 'done') {
                 data = payload;
@@ -438,6 +441,26 @@ export const AssistantProvider = ({ children }) => {
           // Always release the reader so the connection cleans up gracefully
           // and we never trigger "Body disturbed or locked" on retry.
           try { reader.releaseLock(); } catch (e) { /* ignore */ }
+        }
+        // 💓 حد الـ ingress يقطع البث عند 60s — النتيجة تُستكمل في الخادم
+        // ونستردها بالاستطلاع عبر job_id (ردود وضع المطور الطويلة).
+        if (!data && jobId) {
+          setStreamingPhase('الرد طويل — جارٍ استكماله…');
+          const t0 = Date.now();
+          while (!data && Date.now() - t0 < 180000) {
+            await new Promise((r) => setTimeout(r, 3000));
+            try {
+              const jr = await axios.get(`${API_URL}/assistant/chat/result/${jobId}`);
+              if (jr.data?.status === 'done') {
+                data = jr.data.result;
+              } else if (jr.data?.status === 'error') {
+                throw Object.assign(new Error(jr.data?.error || 'assistant_failed'), { _final: true });
+              }
+            } catch (e) {
+              if (e?._final) throw e;
+              // خطأ شبكة عابر → نواصل الاستطلاع
+            }
+          }
         }
         if (!data) throw new Error('stream ended without done event');
       } else {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, X, Send, Sparkles, AlertTriangle, RefreshCw, Settings, Trash2, Mic, Volume2, VolumeX } from 'lucide-react';
+import { Bot, X, Send, Sparkles, AlertTriangle, RefreshCw, Settings, Trash2, Mic, Volume2, VolumeX, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLocation } from 'react-router-dom';
@@ -94,6 +94,7 @@ export const UnifiedAssistantDrawer = () => {
 
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState(null);
   const messagesEndRef = useRef(null);
   const location = useLocation();
   const pageSuggestions = useMemo(() => getSuggestionsForPath(location?.pathname || '/'), [location?.pathname]);
@@ -450,6 +451,22 @@ export const UnifiedAssistantDrawer = () => {
                       <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
                         {m.content || m.text || ''}
                       </ReactMarkdown>
+                      {/* 📋 نسخ Proposal — يظهر فقط عندما تحتوي الرسالة اقتراح كود */}
+                      {/proposal/i.test(m.content || m.text || '') && (
+                        <button
+                          data-testid={`copy-proposal-btn-${i}`}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(m.content || m.text || '');
+                              setCopiedIdx(i);
+                              setTimeout(() => setCopiedIdx(null), 2000);
+                            } catch (e) { /* clipboard unavailable */ }
+                          }}
+                          className="mt-2 flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-800 transition-colors"
+                        >
+                          {copiedIdx === i ? <><Check size={11} /> نُسخ ✓</> : <><Copy size={11} /> نسخ Proposal</>}
+                        </button>
+                      )}
                     </div>
                   ) : (
                     m.content || m.text

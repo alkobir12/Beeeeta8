@@ -17,6 +17,8 @@ Endpoints:
 import asyncio
 import json
 import os
+import time
+import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
@@ -156,6 +158,19 @@ async def assistant_audit_recent(limit: int = Query(default=50, le=200)):
 # ============================================================================
 
 
+# 🗂️ نتائج الدردشة الطويلة — حد الـ ingress يقطع أي طلب عند 60s حتى مع بث نشط.
+# الحل: البث يعلن job_id أولاً، والنتيجة تُخزَّن هنا عند اكتمال المهمة (حتى لو
+# انقطع العميل)، فيستردها العميل عبر GET /chat/result/{job_id}.
+_CHAT_JOBS: Dict[str, Dict[str, Any]] = {}
+_CHAT_JOBS_TTL = 900.0
+
+
+def _jobs_gc() -> None:
+    now = time.time()
+    for k in [k for k, v in _CHAT_JOBS.items() if now - v.get("ts", 0) > _CHAT_JOBS_TTL]:
+        _CHAT_JOBS.pop(k, None)
+
+
 @router.post("/chat/stream")
 @limiter.limit(_CHAT_RATE)
 async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body(...)):
@@ -187,12 +202,16 @@ async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body
             return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
         try:
+            job_id = uuid.uuid4().hex[:12]
+            _jobs_gc()
+            _CHAT_JOBS[job_id] = {"status": "pending", "ts": time.time()}
+            yield _evt("job", {"job_id": job_id})
             yield _evt("progress", {"phase": "thinking", "label": "يفهم سؤالك…"})
             await asyncio.sleep(0.05)
             yield _evt("progress", {"phase": "tools", "label": "جارٍ تشغيل الأدوات…"})
             await asyncio.sleep(0.05)
 
-            result = await assistant_kernel.chat(
+            result_task = asyncio.create_task(assistant_kernel.chat(
                 session_id=payload.get("session_id"),
                 message=msg,
                 workshop_id=payload.get("workshop_id"),
@@ -201,7 +220,24 @@ async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body
                 model=payload.get("model"),
                 proposer=real_proposer,  # 🆕 Four-Eyes anchor من التوكن الموقّع
                 proposer_role=_ident.get("role_hint"),  # 🧠 RRR — الدور من JWT
-            )
+            ))
+
+            # تخزين النتيجة عند الاكتمال — يستمر حتى لو انقطع اتصال العميل
+            def _store_job(t: "asyncio.Task"):
+                try:
+                    _CHAT_JOBS[job_id] = {"status": "done", "result": t.result(), "ts": time.time()}
+                except Exception as e:  # noqa: BLE001
+                    _CHAT_JOBS[job_id] = {"status": "error",
+                                          "error": redact(str(e), max_len=200), "ts": time.time()}
+            result_task.add_done_callback(_store_job)
+            # 💓 heartbeat كل 10 ثوانٍ أثناء توليد الرد الطويل — يمنع قطع
+            # اتصال SSE الخامل من الـ ingress (ردود وضع المطور قد تتجاوز 60s)
+            while True:
+                try:
+                    result = await asyncio.wait_for(asyncio.shield(result_task), timeout=10.0)
+                    break
+                except asyncio.TimeoutError:
+                    yield _evt("progress", {"phase": "working", "label": "جارٍ إعداد الرد…"})
 
             for tr in result.get("tool_results") or []:
                 yield _evt("tool", {"tool": tr.get("tool"), "success": tr.get("success", False)})
@@ -223,6 +259,15 @@ async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body
             "Connection": "keep-alive",
         },
     )
+
+
+@router.get("/chat/result/{job_id}")
+async def assistant_chat_result(job_id: str):
+    """🗂️ استرداد نتيجة دردشة طويلة بعد انقطاع البث (حد الـ ingress 60s)."""
+    j = _CHAT_JOBS.get(job_id)
+    if not j:
+        return {"success": False, "status": "not_found"}
+    return {"success": True, **{k: v for k, v in j.items() if k != "ts"}}
 
 
 @router.get("/dashboard")

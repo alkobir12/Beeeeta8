@@ -194,7 +194,8 @@ async def parse_intent_with_llm(text: str, *, session_id: Optional[str] = None) 
         ).with_model("anthropic", "claude-sonnet-4-6")
         msg = UserMessage(text=text.strip())
         raw = await asyncio.wait_for(
-            chat.send_message(msg),
+            # ⚠️ litellm.completion داخل المكتبة sync — thread منفصل حتى لا يتجمد اللوب
+            asyncio.to_thread(lambda: asyncio.run(chat.send_message(msg))),
             timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")),
         )
         raw = str(raw or "").strip()

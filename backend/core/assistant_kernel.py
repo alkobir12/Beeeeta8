@@ -371,6 +371,7 @@ async def _llm_chat(
     max_tokens: int = 800,
     model_provider: str = "anthropic",
     model_name: str = "claude-sonnet-4-6",
+    timeout_seconds: Optional[float] = None,
 ) -> str:
     api_key = _emergent_llm_key()
     if not api_key:
@@ -391,8 +392,11 @@ async def _llm_chat(
             history_text = "\n".join([f"{m['role']}: {m['content']}" for m in history[-10:]])
             msg_text = f"السياق السابق للمحادثة:\n{history_text}\n\nالسؤال الحالي:\n{user_message}"
         response = await asyncio.wait_for(
-            chat.send_message(UserMessage(text=msg_text)),
-            timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")),
+            # ⚠️ litellm.completion داخل المكتبة sync — thread منفصل حتى لا يتجمد اللوب
+            asyncio.to_thread(
+                lambda: asyncio.run(chat.send_message(UserMessage(text=msg_text)))
+            ),
+            timeout=timeout_seconds or float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")),
         )
         return str(response or "").strip()
     except asyncio.TimeoutError:
@@ -647,6 +651,9 @@ async def chat(
                 system_message=system_msg,
                 user_message=message,
                 history=history[:-1],
+                # 🧠 RRR: الردود الهندسية (Proposals) طويلة — مهلة أوسع في وضع المطور
+                timeout_seconds=(float(os.environ.get("LLM_TIMEOUT_SECONDS_DEV", "150"))
+                                 if _dev_active else None),
             )
             if response_text:
                 model_used = "emergent/claude-sonnet-4-6"
