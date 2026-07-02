@@ -219,3 +219,33 @@ async → **الـ event loop كان يتجمد بالكامل طوال تولي
 - محلياً: heartbeats كل 10s حتى done بعد 87s ✅
 - عبر ingress: بث ينقطع عند 60s → poll يعيد الرد الكامل (12,917 حرف Proposal بوضع المطور) ✅
 - اللوب حر أثناء التوليد: health 15ms (كان 15,000-30,000ms) ✅
+
+## 2 يوليو 2026 — تنفيذ PRD Decimal Accounting Validation v1.1 (كامل) ✅
+قرارات المستخدم: VAT بنية جاهزة فقط (التفعيل الحي لاحقاً)؛ حساب جديد «فروق تقريب
+ضريبية» code=179 (expense) — 166 مرفوض؛ الإعداد vat_rounding_account=179 في
+MongoDB settings (عمود Supabase workshop_settings غير قابل للإضافة عبر PostgREST).
+### المنفّذ — accounting_engine.py
+- `_dec()`: تحويل حدّي صارم → Decimal مكمم للهللة ROUND_HALF_UP؛ يرفض abc/null/
+  NaN/Infinity/bool برسالة «Invalid monetary value: X» (Rules 1/6/7 — لا صفر صامت).
+- `_line_amount()`: جانب مفقود (None/'') = صفر بنيوي — موثق أنه ليس تحويلاً صامتاً.
+- `post()`: Rule 2 (لا سالب)، Rule 3/4 (لا صفر إلا Memo is_memo=True)، Rule 5
+  (توازن صارم == بلا سماحية — القديم كان 0.01)، سقف 9,999,999.99 (سياسة التخزين).
+- حد التخزين: Decimal → float(quantized) عند التسلسل فقط؛ الحساب كله Decimal.
+- **Hash Stability (PRD §9)**: `_norm_amount` بقي حرفياً للبصمة فقط + توثيق التحذير.
+- `post_entry`: الـ fallback المباشر أصبح لأخطاء write_failed فقط —
+  أخطاء التحقق تُرفض نهائياً (كان يُدرج القيود المرفوضة مباشرة — مخالفة أُغلقت!).
+- `reverse()`: يمرر القيم الخام للمحرك + يحفظ original_date/reason/reversed_of؛
+  بصمة جديدة دائماً؛ بنود Memo تُستثنى من العكس.
+### الجديد — core/vat_policy.py
+distribute_vat (توزيع بالتقريب لكل بند + فرق التسوية) + build_settlement_line
+(بند واحد، سقف CENT×عدد البنود، حساب 179 حصراً من الإعدادات) + VatConfigError
+(الغياب = خطأ تهيئة صريح، لا افتراضي).
+### الاختبارات — tests/test_decimal_prd_v1_1.py: **58/58 ✅**
+Decimal (precision/parsing/validation/strict-balance) + Hash Regression بـ4 بصمات
+حقيقية مثبتة من دفتر الأستاذ + Workshop (فاتورة مختلطة/VAT+تسوية/خصم قبل الضريبة
+1006.25/عكس/دفعات جزئية) + Security (تكرار/سالب/صفر/Memo/سقف/توافق قديم) +
+Config (غياب الإعداد=خطأ صريح) + Stress (10k بند <5s، KPI تحقق <50ms، ثبات بصمة
+500 تكرار، 8 threads تكرار متزامن=قيد واحد).
+### الانحدار
+اختبار السلامة 13/13 ✅ + فاتورة E2E عبر البوت (INV001266 750.50 آجل → أربع أعين →
+قيد متوازن بدقة) ✅ ثم نُظفت بيانات الاختبار.

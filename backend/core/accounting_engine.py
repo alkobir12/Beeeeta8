@@ -59,10 +59,58 @@ def _norm_text(value: Any) -> str:
 
 
 def _norm_amount(value: Any) -> float:
+    """⚠️ للبصمة (tx_hash) فقط — Hash Stability Constraint (PRD Decimal v1.1 §9).
+
+    يبقى بسلوك float التاريخي حرفياً لضمان ثبات بصمات القيود القديمة.
+    للحساب المالي استخدم `_dec` حصراً — خلط الدورين = مخالفة حرجة.
+    """
     try:
         return round(float(str(value).replace(",", "")), 2)
     except (TypeError, ValueError):
         return 0.0
+
+
+# ── PRD Decimal v1.1 — الحساب المالي بـ Decimal حصراً بعد نقطة الدخول ──
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP  # noqa: E402
+
+CENT = Decimal("0.01")
+MAX_AMOUNT = Decimal("9999999.99")  # سقف التمثيل الآمن لسياسة التخزين (PRD §3)
+
+
+def _dec(value: Any) -> Decimal:
+    """تحويل حدّي صارم إلى Decimal مُكمّم للهللة (Rules 1/6/7 — لا صفر صامت)."""
+    def _invalid() -> ValueError:
+        return ValueError(f"Invalid monetary value: {value!r}")
+    if isinstance(value, bool) or value is None:
+        raise _invalid()
+    if isinstance(value, Decimal):
+        d = value
+    elif isinstance(value, (int, float)):
+        try:
+            d = Decimal(str(value))
+        except InvalidOperation:
+            raise _invalid() from None
+    else:
+        s = str(value).strip().replace(",", "")
+        if not s:
+            raise _invalid()
+        try:
+            d = Decimal(s)
+        except InvalidOperation:
+            raise _invalid() from None
+    if d.is_nan() or d.is_infinite():
+        raise _invalid()
+    return d.quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+def _line_amount(value: Any) -> Decimal:
+    """جانب مفقود في بند ثنائي العمود (None/سلسلة فارغة) = صفر بنيوي.
+
+    هذا تطبيع بنيوي لا «تحويل صامت» — القيم التالفة الفعلية ترفضها `_dec`.
+    """
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return Decimal("0.00")
+    return _dec(value)
 
 
 def _norm_time(value: Any, granularity: str = "minute") -> str:
@@ -91,7 +139,10 @@ def _party_from_desc(description: Any) -> str:
 
 
 def _normalize_lines(lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """توحيد بنود القيد إلى الشكل القياسي: account / account_name / debit / credit."""
+    """توحيد بنود القيد: account / account_name / debit / credit (Decimal) / is_memo.
+
+    يرفع ValueError عند أي قيمة مالية تالفة (Rule 6 — لا تحويل صامت).
+    """
     out: List[Dict[str, Any]] = []
     for ln in lines or []:
         if not isinstance(ln, dict):
@@ -100,9 +151,10 @@ def _normalize_lines(lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         out.append({
             "account": str(account).strip(),
             "account_name": str(ln.get("account_name") or ln.get("name") or "").strip(),
-            "debit": _norm_amount(ln.get("debit")),
-            "credit": _norm_amount(ln.get("credit")),
+            "debit": _line_amount(ln.get("debit")),
+            "credit": _line_amount(ln.get("credit")),
             "description": str(ln.get("description") or "").strip() or None,
+            "is_memo": bool(ln.get("is_memo")),
         })
     return out
 
@@ -299,17 +351,45 @@ class AccountingEngine:
           {"posted": False, "idempotent": True, "journal_id": ...}  # مكرر
           {"posted": False, "error": "unbalanced"|"empty_lines"|"write_failed", ...}
         """
-        norm_lines = _normalize_lines(lines)
+        try:
+            norm_lines = _normalize_lines(lines)
+        except ValueError as ve:  # Rule 6/7 — رفض صريح، لا صفر صامت
+            _log.warning("invalid monetary value rejected: %s", redact(str(ve), max_len=100))
+            return {"posted": False, "error": "invalid_value", "detail": str(ve)}
         if not norm_lines:
             return {"posted": False, "error": "empty_lines"}
 
-        debit = round(sum(ln["debit"] for ln in norm_lines), 2)
-        credit = round(sum(ln["credit"] for ln in norm_lines), 2)
-        if abs(debit - credit) > 0.01:
-            _log.warning("unbalanced entry rejected debit=%s credit=%s", debit, credit)
-            return {"posted": False, "error": "unbalanced", "debit": debit, "credit": credit}
+        posting_lines = [ln for ln in norm_lines if not ln["is_memo"]]
+        if not posting_lines:
+            return {"posted": False, "error": "empty_lines",
+                    "detail": "Memo-only entries are not posted to the ledger."}
+        for ln in posting_lines:
+            # Rule 2 — لا قيم سالبة
+            if ln["debit"] < 0 or ln["credit"] < 0:
+                return {"posted": False, "error": "negative_amount",
+                        "detail": "Negative posting amounts are not allowed."}
+            # Rule 3/4 — لا بنود ترحيل بصفر (بنود Memo مستثناة أعلاه)
+            if ln["debit"] == 0 and ln["credit"] == 0:
+                return {"posted": False, "error": "zero_posting",
+                        "detail": "Zero posting amount is not allowed."}
+            # سياسة التخزين §3 — سقف التمثيل الآمن
+            if ln["debit"] > MAX_AMOUNT or ln["credit"] > MAX_AMOUNT:
+                return {"posted": False, "error": "amount_out_of_range",
+                        "detail": f"Amount exceeds supported range ({MAX_AMOUNT})."}
 
-        entry_total = round(float(total), 2) if total is not None else debit
+        # Rule 5 — توازن صارم بلا أي سماحية (حتى فرق هللة يُرفض)
+        total_debit = sum((ln["debit"] for ln in posting_lines), Decimal("0.00"))
+        total_credit = sum((ln["credit"] for ln in posting_lines), Decimal("0.00"))
+        if total_debit != total_credit:
+            _log.warning("unbalanced entry rejected debit=%s credit=%s", total_debit, total_credit)
+            return {"posted": False, "error": "unbalanced",
+                    "debit": float(total_debit), "credit": float(total_credit),
+                    "detail": "Total Debit must equal Total Credit exactly (no tolerance)."}
+
+        try:
+            entry_total = _dec(total) if total is not None else total_debit
+        except ValueError as ve:
+            return {"posted": False, "error": "invalid_value", "detail": str(ve)}
         entry_date = date or _now_iso()
 
         tx_hash = self.compute_tx_hash(
@@ -323,7 +403,7 @@ class AccountingEngine:
             "source": source,
             "transaction_type": transaction_type,
             "party": party,
-            "total": entry_total,
+            "total": float(entry_total),
             "actor": (actor or {}).get("user_id"),
         })
         if not claim["claimed"]:
@@ -335,13 +415,23 @@ class AccountingEngine:
                 "message": "القيد موجود مسبقًا — لم يُكرَّر",
             }
 
+        # حدّ التخزين (Storage Policy §3): Decimal مُكمّم → float للتسلسل فقط
+        storage_lines = [{
+            "account": ln["account"],
+            "account_name": ln["account_name"],
+            "debit": float(ln["debit"]),
+            "credit": float(ln["credit"]),
+            "description": ln["description"],
+            **({"is_memo": True} if ln["is_memo"] else {}),
+        } for ln in norm_lines]
+
         payload: Dict[str, Any] = {
             "id": entry_id or str(uuid.uuid4()),
             "workshop_id": workshop_id,
             "date": entry_date,
             "description": description or "",
-            "lines": norm_lines,
-            "total": entry_total,
+            "lines": storage_lines,
+            "total": float(entry_total),
             "source": source,
             "transaction_type": transaction_type,
             "reference_id": reference_id,
@@ -354,10 +444,11 @@ class AccountingEngine:
             journal_id = (data[0].get("id") if data else None) or payload["id"]
             self.identity.mark_posted(tx_hash, journal_id)
             self._audit("JOURNAL_POSTED", tx_hash=tx_hash, journal_id=journal_id,
-                        total=entry_total, source=source, reference_id=reference_id,
+                        total=float(entry_total), source=source, reference_id=reference_id,
                         actor=(actor or {}).get("user_id"))
             return {"posted": True, "journal_id": journal_id, "tx_hash": tx_hash,
-                    "total": entry_total, "debit": debit, "credit": credit}
+                    "total": float(entry_total),
+                    "debit": float(total_debit), "credit": float(total_credit)}
         except Exception as e:
             # حرّر البصمة كي تنجح إعادة المحاولة
             self.identity.release(tx_hash)
@@ -421,9 +512,10 @@ class AccountingEngine:
         if res.get("idempotent"):
             _log.info("duplicate journal entry prevented (ref=%s)", entry.get("reference_id"))
             return [{**entry, "id": res.get("journal_id")}]
-        # رفض المحرك (مثلاً غير متوازن) → تراجع لإدراج مباشر كي لا تُفقد البيانات
-        if fallback:
-            _log.warning("engine rejected entry (%s) — fallback direct insert", res.get("error"))
+        # PRD Decimal v1.1: أخطاء التحقق (توازن/قيم تالفة/سالب/صفر) تُرفض نهائياً —
+        # لا إدراج مباشر. الـ fallback مسموح فقط لفشل الكتابة (بنية تحتية).
+        if fallback and res.get("error") == "write_failed":
+            _log.warning("engine write failed — fallback direct insert (infra only)")
             try:
                 payload = dict(entry)
                 payload.setdefault("id", str(uuid.uuid4()))
@@ -431,6 +523,8 @@ class AccountingEngine:
             except Exception as e:
                 _log.exception("fallback insert failed: %s", redact(str(e), max_len=120))
                 return None
+        _log.warning("engine rejected entry (%s) — no fallback: %s",
+                     res.get("error"), redact(str(res.get("detail") or ""), max_len=120))
         return None
 
     # ── قراءة قيد أصلي من Supabase (للعكس/التدقيق) ──
@@ -482,9 +576,9 @@ class AccountingEngine:
             rev_lines = [{
                 "account": ln.get("account"),
                 "account_name": ln.get("account_name"),
-                "debit": _norm_amount(ln.get("credit")),
-                "credit": _norm_amount(ln.get("debit")),
-            } for ln in (orig.get("lines") or [])]
+                "debit": ln.get("credit"),
+                "credit": ln.get("debit"),
+            } for ln in (orig.get("lines") or []) if not ln.get("is_memo")]
             if not rev_lines:
                 out.append({"original_id": oid, "reversed": False, "error": "no_lines"})
                 continue
@@ -499,7 +593,8 @@ class AccountingEngine:
                 workshop_id=orig.get("workshop_id") or workshop_id,
                 party=orig.get("party_label") or orig.get("party"),
                 actor=actor,
-                extra={"reversed_of": oid, "reversal_reason": reason or None},
+                extra={"reversed_of": oid, "reversal_reason": reason or None,
+                       "original_date": orig.get("date")},
             )
             self._audit("JOURNAL_REVERSED", original_id=oid,
                         reversal_id=res.get("journal_id"), reason=reason or None,
