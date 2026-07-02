@@ -71,6 +71,17 @@ export function KatrinaApprovalsTab({ onCountChange }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // 🔗 ترابط حي — مسودة جديدة/إلغاء من شات كاترينا يحدّث القائمة فوراً
+  useEffect(() => {
+    const handler = () => load();
+    window.addEventListener('finance:updated', handler);
+    window.addEventListener('runtime:changed', handler);
+    return () => {
+      window.removeEventListener('finance:updated', handler);
+      window.removeEventListener('runtime:changed', handler);
+    };
+  }, [load]);
+
   const act = async (id, kind) => {
     if (kind === 'approve') {
       const ok = window.confirm('سيتم اعتماد هذه العملية وتنفيذها فوراً في السجلات. هل أنت متأكد؟\n\nملاحظة: لا يمكنك اعتماد طلبٍ اقترحتَه بنفسك (مبدأ الأربع أعين).');

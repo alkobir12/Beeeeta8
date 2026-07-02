@@ -50,6 +50,14 @@ const Suppliers = () => {
     fetchSuppliers();
   }, []);
 
+  // 🔗 ترابط حي — شراء/إضافة مورّد من شات كاترينا يحدّث القائمة فوراً
+  useEffect(() => {
+    const handler = () => fetchSuppliers();
+    window.addEventListener('finance:updated', handler);
+    return () => window.removeEventListener('finance:updated', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchSuppliers = async () => {
     try {
       setLoading(true);

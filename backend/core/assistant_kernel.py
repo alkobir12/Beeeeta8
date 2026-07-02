@@ -63,8 +63,8 @@ _TOOL_PATTERNS = [
     (re.compile(r"(زيار[ةه]\s*نشط|مركبات\s*مفتوح|active\s*visits|كم\s*زيار|مركبات\s*داخل|قائم[ةه]\s*العمل)", re.IGNORECASE), "workshop.active_visits"),
     # Natural Language Search (top debtors / overdue / biggest)
     (re.compile(r"(اكثر\s*(?:ال)?عملاء\s*مديوني|أكثر\s*(?:ال)?عملاء\s*مديوني|اعلي\s*(?:ال)?مدينين|أعلى\s*(?:ال)?مدينين|اكبر\s*مدينين|أكبر\s*مدينين|كبار\s*(?:ال)?مدينين|الفواتير\s*المتأخر|فواتير\s*متأخر|آجل\s*متأخر|اكبر\s*(?:ال)?عمليات|أكبر\s*(?:ال)?عمليات|اعلي\s*مبيعات|أعلى\s*مبيعات|اقل\s*(?:ال)?مركبات\s*نشاط|أقل\s*(?:ال)?مركبات\s*نشاط|مركبات\s*راكد)", re.IGNORECASE), "nl.search"),
-    # Pending approvals
-    (re.compile(r"(موافقات\s*معلق|اعتمادات\s*معلق|بانتظار\s*(?:ال)?اعتماد|pending\s*approvals?|تحت\s*المراجع|تنتظر\s*موافق)", re.IGNORECASE), "runtime.pending_approvals"),
+    # Pending approvals — لهجات ومسميات مختلفة (اعتمادات كاترينا / المسوّدات المعلّقة / إلخ)
+    (re.compile(r"(اعتمادات\s*(?:كاترينا|معلق|كاتري)|موافقات\s*(?:معلق|بانتظار)|المسوّ?دات\s*(?:المعلّ?ق|بانتظار)|الطلبات\s*المعلّ?قه?|بانتظار\s*(?:ال)?(?:اعتماد|موافقه?|موافقة)|pending\s*approvals?|تحت\s*المراجع|تنتظر\s*موافق|تحتاج\s*اعتماد|كم\s*(?:في|عندي)\s*اعتماد|في\s*(?:ال)?اعتمادات|شوف\s*(?:ال)?اعتمادات)", re.IGNORECASE), "runtime.pending_approvals"),
     # Audit trail
     (re.compile(r"(سجل\s*(?:ال)?تدقيق|audit\s*trail|آخر\s*(?:ال)?أحداث|أحداث\s*النظام|من\s*غيّر|تتبع\s*التغيير)", re.IGNORECASE), "runtime.audit_recent"),
     # Services + Parts catalog awareness
@@ -157,7 +157,7 @@ _ACTION_VERB_RE = re.compile(
     r"حصّ?ل|سدّ?د|اعكس|أعكس|فوتر|"
     r"اشتري|اشترى|شرا|شراء|شريت|شرينا|"
     r"عدّ?ل|غيّ?ر|حدّ?ث|register|create|add|delete|close|open|update|purchase|buy)"
-    r"(?:ها|ه|هم|هن|ني|نا|وا|وه|ي|ين)?(?=\s|$)",
+    r"(?:تها|ته|تهم|تم|ت|ها|ه|هم|هن|ني|نا|وا|وه|ي|ين)?(?=\s|$)",
     re.IGNORECASE,
 )
 # Dialect "I want to <do>" → treat as an action even without a leading verb.
@@ -181,6 +181,15 @@ _CONFIRM_RE = re.compile(
 )
 _CANCEL_RE = re.compile(
     r"^\s*(?:لا|كلا|إلغاء|الغاء|ألغِ?|الغِ?|تجاهل|وقف|أوقف|تراجع|cancel|no|stop)\s*[.!؟]*\s*$",
+    re.IGNORECASE,
+)
+# 🆕 «الغي آخر عملية / المسودة المعلقة» — سحب سياقي لآخر مسودة بانتظار الاعتماد
+_CANCEL_DRAFT_VERB_RE = re.compile(
+    r"(?:^|\s)(?:الغ|ألغ|إلغاء|الغاء|اسحب|إسحب|تراجع)", re.IGNORECASE,
+)
+_CANCEL_DRAFT_MARKER_RE = re.compile(
+    r"(?:آخر|اخر|الأخيره?|الاخيره?|الأخيرة|الاخيرة|مسوّ?ده?|المسوّ?ده?|مسودة|المسودة|"
+    r"معلّ?ق|المعلّ?ق|بانتظار|قيد\s*الانتظار)",
     re.IGNORECASE,
 )
 
@@ -451,6 +460,48 @@ def _plain_chat_response(*, sid: str, text: str, intent: str = "action",
     }
 
 
+def _try_cancel_last_draft(*, sid: str, message: str,
+                           proposer: Optional[str]) -> Optional[Dict[str, Any]]:
+    """«الغي آخر عملية» → سحب آخر مسودة معلقة من هذه الجلسة (أو لنفس المُنشئ)
+    بدل مطالبة المستخدم بـ journal_id. يرجع None إذا لا توجد مسودة معلقة."""
+    from core import action_runtime
+    drafts = action_runtime.list_drafts(status="pending_approval", session_id=sid, limit=10)
+    if not drafts and proposer:
+        drafts = [d for d in action_runtime.list_drafts(status="pending_approval", limit=30)
+                  if d.get("proposer") == proposer]
+    if not drafts:
+        return None
+    if "شرا" in (message or ""):
+        purchases = [d for d in drafts if d.get("action") in ("create_purchase", "purchase")]
+        if purchases:
+            drafts = purchases
+    draft = drafts[0]
+    approval_id = draft.get("last_approval_id")
+    if approval_id:
+        action_runtime.reject_approval(
+            approval_id=approval_id, approver=proposer or "chat",
+            reason="سحب من المُنشئ عبر المحادثة",
+        )
+    label = {
+        "create_purchase": "شراء", "purchase": "شراء", "create_invoice": "فاتورة",
+        "invoice": "فاتورة", "collect_payment": "تحصيل دفعة", "payment": "دفعة",
+        "create_expense": "مصروف", "expense": "مصروف",
+        "reverse_entry": "قيد عكسي", "delete_operation": "حذف عملية",
+        "create_visit": "زيارة", "visit": "زيارة",
+    }.get(draft.get("action"), draft.get("action") or "عملية")
+    echo = (draft.get("payload") or {}).get("_echo") or {}
+    detail = f" — {echo.get('entity')}" if echo.get("entity") else ""
+    amt = echo.get("amount")
+    if amt not in (None, "", 0):
+        detail += f" (المبلغ: {amt})"
+    text = (f"🚫 **تم إلغاء المسودة المعلقة** — {label}{detail}\n"
+            "لم يُثبَّت أي قيد مالي، وسُجّل السحب في سجل التدقيق.")
+    resp = _plain_chat_response(sid=sid, text=text, intent="action", status="cancelled")
+    resp["executed"] = {"status": "cancelled", "action": draft.get("action"),
+                        "entity_id": draft.get("id"), "approval_id": approval_id}
+    return resp
+
+
 # ---------- LLM Helper ----------
 
 def _emergent_llm_key() -> Optional[str]:
@@ -626,6 +677,13 @@ async def chat(
                 intent="action", status="cancelled",
             )
         # أي رسالة أخرى → تُعامل طبيعياً (قد تكون تعديلاً على الطلب)
+
+    # 🆕 سحب سياقي: «الغي آخر عملية/المسودة المعلقة» → إلغاء آخر مسودة معلقة
+    # في هذه الجلسة بدل الدخول في مسار delete_operation ومطالبة المستخدم بـ id.
+    if _CANCEL_DRAFT_VERB_RE.search(message or "") and _CANCEL_DRAFT_MARKER_RE.search(message or ""):
+        cancel_resp = _try_cancel_last_draft(sid=sid, message=message, proposer=proposer)
+        if cancel_resp is not None:
+            return cancel_resp
 
     # 🔄 التوحيد (خطة 2026-07-03): كل الرسائل — /power أو عادية — تمرّ عبر
     # `unified_executor.execute_text()` كمصدر حقيقة وحيد. المقسِّم النصي القديم

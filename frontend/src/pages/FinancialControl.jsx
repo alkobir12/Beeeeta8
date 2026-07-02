@@ -55,11 +55,23 @@ const STATUS_LABELS = {
 export default function FinancialControl() {
   const [tab, setTab] = useState('findings');
   const [katrinaCount, setKatrinaCount] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    axios.get(`${(process.env.REACT_APP_BACKEND_URL || '')}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 } })
-      .then(({ data }) => setKatrinaCount((data?.data || []).length))
-      .catch(() => {});
+    const refreshCount = () => {
+      axios.get(`${(process.env.REACT_APP_BACKEND_URL || '')}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 } })
+        .then(({ data }) => setKatrinaCount((data?.data || []).length))
+        .catch(() => {});
+    };
+    refreshCount();
+    // 🔗 ترابط حي مع البوت وباقي الصفحات — أي كتابة/مسودة/اعتماد تحدّث الصفحة فوراً
+    const handler = () => { setRefreshKey((k) => k + 1); refreshCount(); };
+    window.addEventListener('finance:updated', handler);
+    window.addEventListener('runtime:changed', handler);
+    return () => {
+      window.removeEventListener('finance:updated', handler);
+      window.removeEventListener('runtime:changed', handler);
+    };
   }, []);
 
   return (
@@ -101,10 +113,12 @@ export default function FinancialControl() {
         ))}
       </div>
 
-      {tab === 'findings' && <FindingsTab />}
-      {tab === 'approvals' && <ApprovalsTab />}
-      {tab === 'katrina' && <KatrinaApprovalsTab onCountChange={setKatrinaCount} />}
-      {tab === 'matrix' && <MatrixTab />}
+      <div key={refreshKey}>
+        {tab === 'findings' && <FindingsTab />}
+        {tab === 'approvals' && <ApprovalsTab />}
+        {tab === 'katrina' && <KatrinaApprovalsTab onCountChange={setKatrinaCount} />}
+        {tab === 'matrix' && <MatrixTab />}
+      </div>
     </div>
   );
 }

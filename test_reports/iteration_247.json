@@ -1,0 +1,33 @@
+{
+  "summary": "Iter 247 — Full backend+frontend E2E validation of Katrina Chat-to-CRUD, Four-Eyes, contextual cancel, and live-linkage. All 5 backend pytest tests PASS and all 4 frontend E2E flows PASS.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_katrina_iter247.py",
+    "/app/test_reports/pytest/iter247.xml",
+    "/app/test_reports/screenshots_iter247/"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Purchase draft cards render the full contextual action set (approve, reject, transfer, add-VAT-15%, add-supplier) — buttons rely on backend-provided endpoints (good, no hardcoded URLs).",
+    "Live linkage (finance:updated + runtime:changed) works well: badge count updated in real time (15→16→15) without page reload while drawer was open.",
+    "The 'اعتمادات كاترينا' intent correctly triggers runtime.pending_approvals tool and returns a rich Markdown table + ApprovalCards (not a generic LLM answer)."
+  ],
+  "updated_files": ["/app/backend/tests/test_katrina_iter247.py"],
+  "success_rate": {"backend": "100% (5/5)", "frontend": "100% (4/4)"},
+  "test_credentials": "name-only login: مدير (admin/approver), احمد1 (supervisor/approver), فرج1 (accountant/no-approve)",
+  "seed_data_creation": "Test purchases created during runs (auto-cancelled by cancel-flow test). Additional pending drafts left in DB (expected, requires Four-Eyes approval to clear).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Preview URL: https://erp-compliance-check.preview.emergentagent.com. Chat responses wrapped {success, data}; assistant response text lives at data.response (not data.reply). Tool results at data.tool_results[].tool. Purchase intent field is 'question' when it invokes a tool; 'action' when it creates a draft with executed.status=pending_approval. FAB testid: unified-assistant-fab; input: assistant-input; send: assistant-send-btn; approval cards match [data-testid^='assistant-card-ApprovalCard'].",
+  "verified_flows": [
+    "POST /api/assistant/chat present-tense purchase → executed.status=pending_approval, no NameError",
+    "POST /api/assistant/chat past-tense purchase → also pending_approval (not parts search)",
+    "POST /api/assistant/chat 'اعتمادات كاترينا' → tool runtime.pending_approvals invoked, rich table returned",
+    "Contextual cancel in same session → 'تم إلغاء المسودة المعلقة', no journal_id prompt",
+    "Four-Eyes: مدير self-approve → 403 four_eyes_violation; احمد1 approve → 200",
+    "Frontend /financial-control loads with all 4 tabs + katrina badge",
+    "Bot ApprovalCard renders with contextual actions (اعتماد/رفض/تحويل بنكي/إضافة ضريبة 15%/إضافة المورد)",
+    "Live linkage: badge auto-updated 15→16 after purchase, 16→15 after cancel — no manual reload"
+  ]
+}

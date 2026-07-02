@@ -237,7 +237,10 @@ export const UnifiedAssistantDrawer = () => {
             summary = `✅ تم: ${action.label}`;
           }
           // Reactive binding — refresh related pages
-          try { window.dispatchEvent(new CustomEvent('finance:updated', { detail: { source: 'card_action', action: action.id } })); } catch (e) { /* noop */ }
+          try {
+            window.dispatchEvent(new CustomEvent('finance:updated', { detail: { source: 'card_action', action: action.id } }));
+            window.dispatchEvent(new CustomEvent('runtime:changed', { detail: { source: 'card_action', action: action.id } }));
+          } catch (e) { /* noop */ }
         } else {
           summary = `⚠️ ${resultData?.detail || resultData?.error || 'فشل تنفيذ العملية'}`;
         }

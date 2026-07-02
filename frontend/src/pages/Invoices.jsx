@@ -40,7 +40,11 @@ const Invoices = () => {
       fetchData();
     };
     window.addEventListener('vehicleUpdated', handler);
-    return () => window.removeEventListener('vehicleUpdated', handler);
+    window.addEventListener('finance:updated', handler);
+    return () => {
+      window.removeEventListener('vehicleUpdated', handler);
+      window.removeEventListener('finance:updated', handler);
+    };
   }, []);
 
 

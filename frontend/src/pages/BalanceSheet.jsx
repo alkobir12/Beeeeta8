@@ -26,6 +26,14 @@ const BalanceSheet = () => {
     fetchData();
   }, [asOfDate, workshopId]);
 
+  // 🔗 ترابط حي — أي قيد مالي جديد (من البوت أو الصفحات) يحدّث الميزانية فوراً
+  useEffect(() => {
+    const handler = () => { if (workshopId) fetchData(); };
+    window.addEventListener('finance:updated', handler);
+    return () => window.removeEventListener('finance:updated', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchData = async () => {
     try {
       setLoading(true);

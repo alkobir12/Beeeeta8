@@ -23,6 +23,26 @@ const STORAGE_KEY = 'assistant.session_id';
 
 const AssistantContext = createContext(null);
 
+// 🔗 ترابط حي — يبثّ أحداث التحديث لكل الصفحات بعد أي كتابة/مسودة/إلغاء من البوت.
+function _dispatchRefreshEvents(executed) {
+  if (!executed || !executed.status) return;
+  const detail = {
+    source: 'assistant_chat',
+    action: executed.action,
+    entity_id: executed.entity_id,
+    approval_id: executed.approval_id,
+    status: executed.status,
+  };
+  try {
+    if (executed.status === 'committed') {
+      window.dispatchEvent(new CustomEvent('finance:updated', { detail }));
+    }
+    if (['committed', 'pending_approval', 'cancelled', 'rejected'].includes(executed.status)) {
+      window.dispatchEvent(new CustomEvent('runtime:changed', { detail }));
+    }
+  } catch (e) { /* noop */ }
+}
+
 export const AssistantProvider = ({ children }) => {
   const [sessionId, setSessionId] = useState(() => {
     try { return localStorage.getItem(STORAGE_KEY) || ''; } catch (e) { return ''; }
@@ -214,13 +234,7 @@ export const AssistantProvider = ({ children }) => {
         meta: { agent: data.agent, tool_results: data.tool_results, ai_used: data.ai_used, model_used: data.model_used, cards: data.cards || [] },
         ts: Date.now() / 1000,
       }]);
-      if (data.executed && data.executed.status === 'committed') {
-        try {
-          window.dispatchEvent(new CustomEvent('finance:updated', {
-            detail: { source: 'assistant_chat', action: data.executed.action, entity_id: data.executed.entity_id },
-          }));
-        } catch (e) { /* noop */ }
-      }
+      _dispatchRefreshEvents(data.executed);
       _maybeSpeak(data.response);
       return data;
     } catch (e) {
@@ -304,6 +318,11 @@ export const AssistantProvider = ({ children }) => {
         summary = d.confirm_text || '📋 بانتظار تأكيدك — رد بـ «نعم» للتنفيذ أو «لا» للإلغاء.';
       } else if (d.status === 'pending_approval') {
         summary = `⏳ **بانتظار اعتمادك** — العملية حساسة (${action}).`;
+        try {
+          window.dispatchEvent(new CustomEvent('runtime:changed', {
+            detail: { source: 'assistant', action, status: 'pending_approval', approval_id: d.approval?.approval_id },
+          }));
+        } catch (e) { /* noop */ }
         cards = [{
           type: 'ApprovalCard',
           id: d.approval?.approval_id,
@@ -500,13 +519,7 @@ export const AssistantProvider = ({ children }) => {
       };
       setMessages((prev) => [...prev, assistantMsg]);
       // 🆕 Reactive binding: if the kernel executed a write via /chat, refresh pages.
-      if (data.executed && data.executed.status === 'committed') {
-        try {
-          window.dispatchEvent(new CustomEvent('finance:updated', {
-            detail: { source: 'assistant_chat', action: data.executed.action, entity_id: data.executed.entity_id },
-          }));
-        } catch (e) { /* noop */ }
-      }
+      _dispatchRefreshEvents(data.executed);
       _maybeSpeak(data.response);
       return data;
     } catch (e) {

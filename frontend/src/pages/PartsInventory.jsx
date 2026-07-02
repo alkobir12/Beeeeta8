@@ -127,6 +127,14 @@ const PartsInventory = () => {
 
   useEffect(() => { loadParts(); }, []);
 
+  // 🔗 ترابط حي — شراء قطع من شات كاترينا يحدّث المخزون فوراً
+  useEffect(() => {
+    const handler = () => loadParts();
+    window.addEventListener('finance:updated', handler);
+    return () => window.removeEventListener('finance:updated', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     loadAccounts();
     loadBusinessAccounts();
