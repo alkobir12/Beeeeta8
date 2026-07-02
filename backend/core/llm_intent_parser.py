@@ -195,7 +195,7 @@ async def parse_intent_with_llm(text: str, *, session_id: Optional[str] = None) 
         msg = UserMessage(text=text.strip())
         raw = await asyncio.wait_for(
             chat.send_message(msg),
-            timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "45")),
+            timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")),
         )
         raw = str(raw or "").strip()
     except asyncio.TimeoutError:

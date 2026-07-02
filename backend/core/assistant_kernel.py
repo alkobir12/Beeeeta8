@@ -392,11 +392,11 @@ async def _llm_chat(
             msg_text = f"السياق السابق للمحادثة:\n{history_text}\n\nالسؤال الحالي:\n{user_message}"
         response = await asyncio.wait_for(
             chat.send_message(UserMessage(text=msg_text)),
-            timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "45")),
+            timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")),
         )
         return str(response or "").strip()
     except asyncio.TimeoutError:
-        _log.warning("LLM call timed out after %ss", os.environ.get("LLM_TIMEOUT_SECONDS", "45"))
+        _log.warning("LLM call timed out after %ss", os.environ.get("LLM_TIMEOUT_SECONDS", "60"))
         return ""
     except Exception as e:
         # Phase 3A: replace `print` with structured logger; never leak raw user content.
