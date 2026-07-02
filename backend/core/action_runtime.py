@@ -527,6 +527,132 @@ def _find_duplicate_vehicle(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def patch_draft(
+    *,
+    draft_id: str,
+    ops: List[Dict[str, Any]],
+    actor: Optional[str] = None,
+) -> Dict[str, Any]:
+    """🛠️ يعدّل payload لمسودة معلّقة قبل الاعتماد (المرحلة 2).
+
+    العمليات المدعومة:
+      • {"op":"set_payment_method","value":"cash|transfer|credit"}
+      • {"op":"set_vat_mode","value":"none|excluded|included","rate":0.15?}
+      • {"op":"add_item","item":{"name":..,"price":..,"qty":..}}
+      • {"op":"remove_item","index":0}
+      • {"op":"set_supplier_name","name":"..."}
+      • {"op":"set_supplier_id","id":"..."}  (بعد اعتماد إضافة المورد يُثبّت is_new=False)
+
+    قيود:
+      - المسودة لا بد أن تكون في حالة (`draft`|`pending_approval`) — بعد الاعتماد/الالتزام
+        يُرفض التعديل كامل الاحتراز (No hard edit after commit).
+      - كل تعديل ماليّ يُعيد تشغيل الـ resolver ليُحدّث `_echo` و`_assumptions`.
+    """
+    if not ops:
+        return {"error": "no_ops"}
+    with _LOCK:
+        draft = STATE["drafts"].get(draft_id)
+        if not draft:
+            return {"error": "draft_not_found"}
+        if draft["status"] not in ("draft", "pending_approval"):
+            return {"error": "immutable_state", "current": draft["status"]}
+        if draft.get("action") != "purchase":
+            return {"error": "unsupported_action", "action": draft.get("action")}
+
+        payload = dict(draft.get("payload") or {})
+        supplier = payload.get("supplier")
+        if not isinstance(supplier, dict):
+            supplier = {"name": str(supplier or "").strip() or None,
+                        "is_new": False, "id": None}
+        items = list(payload.get("items") or [])
+        vat = dict(payload.get("vat") or {"mode": "none", "rate": 0.15, "inclusive": False})
+
+        applied: List[str] = []
+        for op in ops:
+            name = str((op or {}).get("op") or "").strip()
+            if name == "set_payment_method":
+                v = str(op.get("value") or "").strip().lower()
+                if v not in ("cash", "transfer", "credit", "bank", "آجل", "تحويل", "نقدي"):
+                    return {"error": "invalid_payment_method", "value": v}
+                # normalize dialects
+                v = {"آجل": "credit", "تحويل": "transfer", "نقدي": "cash", "bank": "transfer"}.get(v, v)
+                payload["payment_method"] = v
+                applied.append(f"payment_method={v}")
+            elif name == "set_vat_mode":
+                mode = str(op.get("value") or "none").strip().lower()
+                if mode not in ("none", "excluded", "included"):
+                    return {"error": "invalid_vat_mode", "value": mode}
+                vat["mode"] = mode
+                if op.get("rate") is not None:
+                    try:
+                        vat["rate"] = float(op["rate"])
+                    except (TypeError, ValueError):
+                        pass
+                payload["vat"] = vat
+                applied.append(f"vat_mode={mode}")
+            elif name == "add_item":
+                it = op.get("item") or {}
+                if not it.get("name"):
+                    return {"error": "invalid_item", "detail": "name is required"}
+                items.append({
+                    "name": str(it["name"]).strip()[:120],
+                    "price": float(it.get("price") or 0),
+                    "qty": float(it.get("qty") or it.get("quantity") or 1),
+                    "matched_id": it.get("matched_id"),
+                })
+                payload["items"] = items
+                applied.append(f"item_added:{items[-1]['name']}")
+            elif name == "remove_item":
+                if "index" not in op:
+                    return {"error": "index_required"}
+                try:
+                    idx = int(op["index"])
+                except (TypeError, ValueError):
+                    return {"error": "invalid_index", "value": op.get("index")}
+                if idx < 0 or idx >= len(items):
+                    return {"error": "index_out_of_range", "index": idx}
+                removed = items.pop(idx)
+                payload["items"] = items
+                applied.append(f"item_removed:{removed.get('name')}")
+            elif name == "set_supplier_name":
+                supplier["name"] = str(op.get("name") or "").strip() or None
+                payload["supplier"] = supplier
+                applied.append(f"supplier_name={supplier['name']}")
+            elif name == "set_supplier_id":
+                supplier["id"] = op.get("id")
+                supplier["is_new"] = False
+                payload["supplier"] = supplier
+                applied.append(f"supplier_id={supplier['id']}")
+            else:
+                return {"error": "unknown_op", "op": name}
+
+        # إعادة تشغيل الـ resolver لتحديث _echo + _assumptions
+        try:
+            from core.unified_executor import _resolve_purchase_target
+            res = _resolve_purchase_target(payload)
+        except Exception as e:
+            _log.warning("resolver failed after patch: %s", redact(str(e), max_len=100))
+            res = None
+        if res and "error" not in res:
+            enrich = res.get("enrich") or {}
+            payload.update({k: v for k, v in enrich.items() if k.startswith("_") or k in ("supplier", "items", "payment_method", "vat")})
+
+        draft["payload"] = payload
+        draft["patched_at"] = time.time()
+        _audit("DRAFT_PATCHED", draft_id=draft_id, ops=applied, actor=actor)
+        try:
+            from core import runtime_store
+            runtime_store.save_draft(STATE, draft_id)
+        except Exception:
+            pass
+        return {"draft": draft, "applied": applied}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5b) Draft creation (called by Power Mode build_draft())
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 def create_draft(
     *,
     action: str,

@@ -105,6 +105,95 @@ async def runtime_discard_draft(draft_id: str, request: Request, payload: Option
     return {"success": True, "data": d}
 
 
+# ─── 🛠️ Phase 2 — Draft patching (inline edits from the chat card) ────────
+
+@router.post("/drafts/{draft_id}/patch")
+async def runtime_patch_draft(draft_id: str, request: Request, payload: Dict[str, Any] = Body(...)):
+    """يُطبّق قائمة عمليات تعديل صغيرة على مسودة معلّقة (شراء) قبل الاعتماد.
+
+    الجسم: `{"ops": [{"op":"set_payment_method","value":"cash"}, ...]}`
+    القيود: المسودة يجب أن تكون في `draft` أو `pending_approval` — ولا يُقبل تعديل بعد الالتزام.
+    الأذونات: المُقترِح نفسه، أو من يملك صلاحية الاعتماد.
+    """
+    d = action_runtime.get_draft(draft_id)
+    if not d:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    actor_ident = actor.name or actor.id or ""
+    if actor_ident != d.get("proposer"):
+        rbac.require(rbac.can_approve(actor))
+    ops = payload.get("ops") or []
+    if not isinstance(ops, list) or not ops:
+        raise HTTPException(status_code=400, detail="ops must be a non-empty list")
+    result = action_runtime.patch_draft(draft_id=draft_id, ops=ops, actor=actor_ident)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result)
+    return {"success": True, "data": result}
+
+
+@router.post("/drafts/{draft_id}/spawn_supplier")
+async def runtime_spawn_supplier(draft_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
+    """🆕 ينشئ سجل مورّد فوراً من مسودة شراء معلّقة، ثم يُلحق `supplier.id`
+    بمسودة الشراء (يُبطل الوسم `is_new=true`).
+
+    الأذونات: المُقترِح أو من يملك صلاحية الاعتماد. يُلتزم فوراً (auto-commit)
+    باعتبار زر «➕ إضافة المورد» هو التأكيد الصريح للمستخدم.
+    """
+    payload = payload or {}
+    d = action_runtime.get_draft(draft_id)
+    if not d:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if d.get("action") != "purchase":
+        raise HTTPException(status_code=400, detail="not_a_purchase_draft")
+    if d["status"] not in ("draft", "pending_approval"):
+        raise HTTPException(status_code=400, detail=f"immutable_state:{d['status']}")
+
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    actor_ident = actor.name or actor.id or "auto:phase2"
+    if actor_ident != d.get("proposer"):
+        rbac.require(rbac.can_approve(actor))
+
+    src_supplier = (d.get("payload") or {}).get("supplier") or {}
+    if isinstance(src_supplier, str):
+        src_supplier = {"name": src_supplier}
+    name = str(src_supplier.get("name") or "").strip() or (payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="supplier_name_missing")
+
+    # 1) create supplier draft + auto-approve + commit (زر واحد صريح = تأكيد المستخدم)
+    supplier_draft = action_runtime.create_draft(
+        action="supplier",
+        payload={"name": name, "phone": payload.get("phone")},
+        proposer=actor_ident,
+        session_id=d.get("session_id"),
+    )
+    req = action_runtime.request_approval(draft_id=supplier_draft["id"], requester=actor_ident)
+    if "error" in req:
+        raise HTTPException(status_code=400, detail=req)
+    approver_id = f"auto:phase2:{actor_ident or 'anon'}"
+    apr = action_runtime.approve(approval_id=req["approval_id"], approver=approver_id)
+    if "error" in apr and apr.get("error") != "already_approved":
+        raise HTTPException(status_code=400, detail=apr)
+    committed = action_runtime.commit(draft_id=supplier_draft["id"], committer=approver_id)
+    if isinstance(committed, dict) and "error" in committed:
+        raise HTTPException(status_code=400, detail=committed)
+
+    new_supplier_id = (committed.get("result") or {}).get("id")
+
+    # 2) update the purchase draft with the new supplier id (is_new=False)
+    patch_res = action_runtime.patch_draft(
+        draft_id=draft_id,
+        ops=[
+            {"op": "set_supplier_name", "name": name},
+            {"op": "set_supplier_id", "id": new_supplier_id},
+        ],
+        actor=actor_ident,
+    )
+    return {"success": True, "data": {"supplier": committed.get("result"), "purchase": patch_res.get("draft")}}
+
+
 # ─── Approvals ──────────────────────────────────────────────────────────────
 
 

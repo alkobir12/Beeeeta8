@@ -164,5 +164,15 @@
     "rating": 5.0,
     "createdAt": "2026-07-01T21:26:19.711033+00:00",
     "source": "katrina"
+  },
+  {
+    "id": "95060edd-e6a5-4c49-8897-f0ef3d504515",
+    "name": "مورد اختبار",
+    "phone": null,
+    "category": null,
+    "paymentTerms": null,
+    "rating": 5.0,
+    "createdAt": "2026-07-02T21:17:02.052300+00:00",
+    "source": "katrina"
   }
 ]

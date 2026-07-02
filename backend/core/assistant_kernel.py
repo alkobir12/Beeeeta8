@@ -217,6 +217,83 @@ def looks_like_action(text: str) -> bool:
     return False
 
 
+def _build_approval_actions(action: str, draft_id: str, approval_id: str,
+                            payload: Dict[str, Any], echo: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """يُنشئ قائمة الأزرار السياقية لبطاقة الاعتماد. الأزرار الأساسية (اعتماد/رفض) دائماً.
+    الأزرار الإضافية تظهر فقط لنية الشراء (المرحلة 2)."""
+    actions: List[Dict[str, Any]] = [
+        {"id": "approve", "label": "✓ اعتماد", "intent": "runtime",
+         "endpoint": f"/api/runtime/approvals/{approval_id}/approve", "method": "POST"},
+        {"id": "reject", "label": "✗ رفض", "intent": "runtime",
+         "endpoint": f"/api/runtime/approvals/{approval_id}/reject", "method": "POST"},
+    ]
+    if action != "create_purchase":
+        return actions
+
+    # 🛒 أزرار سياقية للشراء
+    pm = str((echo or {}).get("payment_method") or payload.get("payment_method") or "cash").lower()
+    # زر تبديل طريقة الدفع (يظهر الطريقة البديلة الأكثر شيوعاً)
+    if pm == "cash":
+        actions.append({
+            "id": "switch_transfer", "label": "↔ تحويل بنكي",
+            "intent": "runtime",
+            "endpoint": f"/api/runtime/drafts/{draft_id}/patch", "method": "POST",
+            "body": {"ops": [{"op": "set_payment_method", "value": "transfer"}]},
+        })
+    elif pm == "transfer":
+        actions.append({
+            "id": "switch_cash", "label": "↔ نقدي",
+            "intent": "runtime",
+            "endpoint": f"/api/runtime/drafts/{draft_id}/patch", "method": "POST",
+            "body": {"ops": [{"op": "set_payment_method", "value": "cash"}]},
+        })
+    else:  # credit → toggle to cash as the safest default
+        actions.append({
+            "id": "switch_cash", "label": "↔ نقدي",
+            "intent": "runtime",
+            "endpoint": f"/api/runtime/drafts/{draft_id}/patch", "method": "POST",
+            "body": {"ops": [{"op": "set_payment_method", "value": "cash"}]},
+        })
+
+    # زر تبديل الضريبة (none ↔ excluded 15%)
+    vat = payload.get("vat") or {}
+    vat_mode = str(vat.get("mode") or "none").lower()
+    if vat_mode == "none":
+        actions.append({
+            "id": "add_vat", "label": "➕ إضافة ضريبة 15%",
+            "intent": "runtime",
+            "endpoint": f"/api/runtime/drafts/{draft_id}/patch", "method": "POST",
+            "body": {"ops": [{"op": "set_vat_mode", "value": "excluded", "rate": 0.15}]},
+        })
+    else:
+        actions.append({
+            "id": "remove_vat", "label": "🚫 بدون ضريبة",
+            "intent": "runtime",
+            "endpoint": f"/api/runtime/drafts/{draft_id}/patch", "method": "POST",
+            "body": {"ops": [{"op": "set_vat_mode", "value": "none"}]},
+        })
+
+    # زر «إضافة المورد» يظهر إما بوسم is_new صريح من الـ LLM/resolver، أو عندما
+    # يوجد اسم مورد بلا id مربوط (حالة الشراء من مورد جديد افتراضياً).
+    supplier = payload.get("supplier") or {}
+    if isinstance(supplier, str):
+        supplier = {"name": supplier}
+    supplier_name = str(supplier.get("name") or "").strip()
+    supplier_id = supplier.get("id")
+    supplier_is_new = bool(supplier.get("is_new") or payload.get("supplier_is_new"))
+    if supplier_name and (supplier_is_new or not supplier_id):
+        actions.append({
+            "id": "add_supplier",
+            "label": f"➕ إضافة المورد «{supplier_name}»",
+            "intent": "runtime",
+            "endpoint": f"/api/runtime/drafts/{draft_id}/spawn_supplier",
+            "method": "POST",
+            "body": {"name": supplier_name},
+        })
+
+    return actions
+
+
 def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, Any]) -> Dict[str, Any]:
     """Format a Unified-Executor result as a chat reply (confirmation + cards)."""
     status = exec_res.get("status")
@@ -298,13 +375,9 @@ def _build_action_chat_response(*, sid: str, message: str, exec_res: Dict[str, A
         cards = [{
             "type": "ApprovalCard", "id": approval_id,
             "title": f"موافقة — {label}", "status": "pending",
-            "data": {"approval_id": approval_id, "draft_id": draft_id, "status": "pending"},
-            "actions": [
-                {"id": "approve", "label": "✓ اعتماد", "intent": "runtime",
-                 "endpoint": f"/api/runtime/approvals/{approval_id}/approve", "method": "POST"},
-                {"id": "reject", "label": "✗ رفض", "intent": "runtime",
-                 "endpoint": f"/api/runtime/approvals/{approval_id}/reject", "method": "POST"},
-            ],
+            "data": {"approval_id": approval_id, "draft_id": draft_id, "status": "pending",
+                     "action": action, "echo": echo, "payload": payload},
+            "actions": _build_approval_actions(action, draft_id, approval_id, payload, echo),
         }]
     shared_memory.append_message(sid, "assistant", response_text, meta={
         "intent": "action", "action": action, "status": status,
