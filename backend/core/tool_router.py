@@ -39,6 +39,21 @@ class WriteToolBlockedError(RuntimeError):
     """Raised when a write tool is registered or invoked while the flag is off."""
 
 
+# 🔐 auth_guard يفرض JWT على كل /api/* — أدوات البوت تستدعي API داخلياً،
+# لذا نصكّ توكن خدمة موقّعاً (نفس السر) ونرفقه بكل استدعاء داخلي.
+_INT_TOKEN: Dict[str, Any] = {"token": None, "exp": 0.0}
+
+
+def _int_headers() -> Dict[str, str]:
+    import time
+    now = time.time()
+    if not _INT_TOKEN["token"] or now > _INT_TOKEN["exp"]:
+        from auth_jwt import create_access_token
+        _INT_TOKEN["token"] = create_access_token("katrina-internal", role="admin")
+        _INT_TOKEN["exp"] = now + 30 * 60
+    return {"Authorization": f"Bearer {_INT_TOKEN['token']}"}
+
+
 def register_tool(
     name: str,
     *,
@@ -159,7 +174,7 @@ async def _finance_ar_summary(workshop_id: str = "finmodule-sync") -> Dict[str, 
     import httpx
     base = os.getenv("BACKEND_INTERNAL_URL") or "http://localhost:8001"
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=10, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/customers")
             customers = r.json() if r.status_code == 200 else []
     except Exception:
@@ -188,7 +203,7 @@ async def _accounting_journal_entries(workshop_id: str = "finmodule-sync", limit
     except Exception:
         n = 15
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.get(
                 f"{base}/api/finance/journal-entries",
                 params={"workshop_id": workshop_id or "finmodule-sync", "limit": n},
@@ -255,7 +270,7 @@ async def _customers_search(workshop_id: str = "finmodule-sync", query: str = ""
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             params = {"search": query} if query else {}
             r = await client.get(f"{base}/api/customers", params=params)
             customers = r.json() if r.status_code == 200 else []
@@ -277,7 +292,7 @@ async def _customers_search(workshop_id: str = "finmodule-sync", query: str = ""
         # nickname like "ابو مصري" / "أبو المصري" still resolves.
         if not filtered:
             try:
-                async with httpx.AsyncClient(timeout=15.0) as client:
+                async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
                     r2 = await client.get(f"{base}/api/customers")
                     all_customers = r2.json() if r2.status_code == 200 else []
                 if isinstance(all_customers, list):
@@ -312,7 +327,7 @@ async def _vehicles_search(workshop_id: str = "finmodule-sync", query: str = "",
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/vehicles")
             vehicles = r.json() if r.status_code == 200 else []
     except Exception as e:
@@ -354,7 +369,7 @@ async def _parts_search(workshop_id: str = "finmodule-sync", query: str = "", li
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/parts")
             parts = r.json() if r.status_code == 200 else []
     except Exception as e:
@@ -415,7 +430,7 @@ async def _inventory_low_stock(workshop_id: str = "finmodule-sync", limit: int =
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/parts")
             parts = r.json() if r.status_code == 200 else []
     except Exception as e:
@@ -450,7 +465,7 @@ async def _finance_payables_summary(workshop_id: str = "finmodule-sync", limit: 
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/suppliers")
             suppliers = r.json() if r.status_code == 200 else []
     except Exception as e:
@@ -478,7 +493,7 @@ async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/operations", params={"limit": max(limit, 5)})
             ops = r.json() if r.status_code == 200 else []
     except Exception as e:
@@ -492,7 +507,7 @@ async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5
     return {
         "count": len(ops),
         "items": [{
-            "id": (o.get("id") or "")[:8],
+            "invoice_number": o.get("invoiceNumber") or o.get("invoice_number") or "",
             "type": o.get("type"),
             "total": float(o.get("total") or 0),
             "payment_method": o.get("paymentMethod") or o.get("payment_method"),
@@ -510,7 +525,7 @@ async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/operations", params={"limit": 200})
             ops = r.json() if r.status_code == 200 else []
     except Exception as e:
@@ -521,16 +536,34 @@ async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "
         ops = []
     q = (query or "").strip()
     if q:
-        from core.arabic_nlp import arabic_match
-        ops = [
-            o for o in ops
-            if arabic_match(
-                q,
-                o.get("partnerName"), o.get("customerName"), o.get("supplierName"),
-                o.get("notes"), o.get("description"), o.get("type"),
-                o.get("invoiceNumber"), o.get("invoice_number"),
-            )
-        ]
+        import re as _re
+        from core.arabic_nlp import arabic_match, extract_entities
+
+        def _norm_inv(s):
+            return _re.sub(r"[\s\-#]", "", str(s or "")).lower()
+
+        inv_tokens = [_norm_inv(t) for t in (extract_entities(q).get("invoice") or []) if t]
+        matched = []
+        if inv_tokens:
+            for o in ops:
+                inv = _norm_inv(o.get("invoiceNumber") or o.get("invoice_number"))
+                if inv and any(t in inv for t in inv_tokens):
+                    matched.append(o)
+        if matched:
+            ops = matched
+        else:
+            # كلمات عامة (فاتورة/عملية/رقم) لا يجب أن تُشترط في حقول العملية نفسها
+            q2 = _re.sub(r"(فاتورة|فاتوره|عملية|عمليه|رقم|invoice|inv)", " ", q, flags=_re.IGNORECASE)
+            q2 = _re.sub(r"\s+", " ", q2).strip() or q
+            ops = [
+                o for o in ops
+                if arabic_match(
+                    q2,
+                    o.get("partnerName"), o.get("customerName"), o.get("supplierName"),
+                    o.get("notes"), o.get("description"), o.get("type"),
+                    o.get("invoiceNumber"), o.get("invoice_number"),
+                )
+            ]
     ops = ops[:limit]
     from core.card_builder import cards_from_operations
     total_amount = sum(float(o.get("total") or 0) for o in ops)
@@ -539,7 +572,7 @@ async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "
         "count": len(ops),
         "total_amount": round(total_amount, 2),
         "items": [{
-            "id": (o.get("id") or "")[:8],
+            "invoice_number": o.get("invoiceNumber") or o.get("invoice_number") or "",
             "type": o.get("type"),
             "total": float(o.get("total") or 0),
             "payment_method": o.get("paymentMethod") or o.get("payment_method"),
@@ -558,7 +591,7 @@ async def _firewall_operation_integrity(workshop_id: Optional[str] = None, limit
         import os
         import httpx
         base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
             r = await client.post(f"{base}/api/operations/integrity/check", json={})
             result = r.json()
     except Exception as e:
@@ -629,7 +662,7 @@ async def _nl_search(workshop_id: str = "finmodule-sync", query: str = "", limit
     # 1) Top debtors
     if any(k in qn for k in ("اكثر العملاء مديونيه", "اعلي المدينين", "اعلى مدين", "اكبر مدينين", "كبار المدينين")):
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
                 r = await client.get(f"{base}/api/customers")
                 customers = r.json() if r.status_code == 200 else []
         except Exception as e:
@@ -651,7 +684,7 @@ async def _nl_search(workshop_id: str = "finmodule-sync", query: str = "", limit
     # 2) Overdue invoices
     if any(k in qn for k in ("الفواتير المتاخره", "فواتير متاخره", "اجل متاخر", "متاخره")):
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
                 r = await client.get(f"{base}/api/operations?type=sale&limit=200")
                 ops = r.json() if r.status_code == 200 else []
         except Exception as e:
@@ -676,7 +709,7 @@ async def _nl_search(workshop_id: str = "finmodule-sync", query: str = "", limit
     # 3) Idle vehicles
     if any(k in qn for k in ("اقل المركبات نشاطا", "مركبات راكده", "مركبات بدون زيارات")):
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
                 r = await client.get(f"{base}/api/vehicles")
                 vehs = r.json() if r.status_code == 200 else []
         except Exception as e:
@@ -697,7 +730,7 @@ async def _nl_search(workshop_id: str = "finmodule-sync", query: str = "", limit
     # 4) Top recent biggest operations
     if any(k in qn for k in ("اكبر العمليات", "اكبر صفقات", "اعلي مبيعات", "كبري العمليات")):
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
                 r = await client.get(f"{base}/api/operations?limit=100")
                 ops = r.json() if r.status_code == 200 else []
         except Exception as e:

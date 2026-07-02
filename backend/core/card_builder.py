@@ -140,6 +140,7 @@ def operation_card(operation: Dict[str, Any]) -> Dict[str, Any]:
     """Generic operation card (for non-sale operations: purchases, expenses, …)."""
     op_id = operation.get("id") or ""
     op_type = operation.get("type") or "operation"
+    inv_no = operation.get("invoiceNumber") or operation.get("invoice_number") or ""
     type_label = {
         "sale": "بيع",
         "purchase": "شراء",
@@ -150,9 +151,10 @@ def operation_card(operation: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "type": "OperationCard",
         "id": _short(op_id, 12),
-        "title": f"{type_label} — {_sar(operation.get('total'))}",
+        "title": f"{inv_no + ' — ' if inv_no else ''}{type_label} — {_sar(operation.get('total'))}",
         "data": {
             "id": op_id,
+            "invoice_number": inv_no,
             "type": op_type,
             "type_label": type_label,
             "amount": float(operation.get("total") or 0),

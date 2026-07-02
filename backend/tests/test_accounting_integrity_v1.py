@@ -16,6 +16,9 @@ with open("/app/frontend/.env") as f:
             API = line.split("=", 1)[1].strip()
 WID = "finmodule-sync"
 
+_tok = requests.post(f"{API}/api/auth/login", json={"username": "مدير"}, timeout=30).json()["access_token"]
+HDRS = {"Authorization": f"Bearer {_tok}"}
+
 from supabase_service import SupabaseService
 supa = SupabaseService().client
 
@@ -35,9 +38,9 @@ acc_names = {str(a["code"]).strip(): str(a["name"]).strip() for a in accounts}
 acc_types = {str(a["code"]).strip(): str(a["type"]).strip() for a in accounts}
 
 # ── 1) مصدر حقيقة واحد: alerts == firewall dashboard ──
-r1 = requests.get(f"{API}/api/finance/alerts", params={"workshop_id": WID}, timeout=30).json()
+r1 = requests.get(f"{API}/api/finance/alerts", params={"workshop_id": WID}, timeout=30, headers=HDRS).json()
 d1 = r1.get("data") or r1
-r2 = requests.get(f"{API}/api/firewall/dashboard", params={"workshop_id": WID}, timeout=30).json()
+r2 = requests.get(f"{API}/api/firewall/dashboard", params={"workshop_id": WID}, timeout=30, headers=HDRS).json()
 d2 = r2.get("data") or r2
 a1 = sorted(a.get("id", "") for a in (d1.get("alerts") or []))
 a2 = sorted(a.get("id", "") for a in (d2.get("alerts") or []))
@@ -90,7 +93,7 @@ check(6, "التدفق النقدي يستثني الآجل", float(cf.get("infl
       f"inflow={cf.get('inflow')} رغم آجل={credit_total}")
 
 # ── 7) ميزان المراجعة متوازن ──
-tb = requests.get(f"{API}/api/finance/reports/trial-balance", params={"workshop_id": WID}, timeout=30).json()
+tb = requests.get(f"{API}/api/finance/reports/trial-balance", params={"workshop_id": WID}, timeout=30, headers=HDRS).json()
 tbd = tb.get("data") or tb
 tb_rows = tbd if isinstance(tbd, list) else (tbd.get("accounts") or tbd.get("rows") or [])
 tb_d = sum(float(r.get("debit") or 0) for r in tb_rows)
@@ -98,13 +101,13 @@ tb_c = sum(float(r.get("credit") or 0) for r in tb_rows)
 check(7, "ميزان المراجعة متوازن", abs(tb_d - tb_c) < 0.05, f"مدين={tb_d:,.2f} دائن={tb_c:,.2f}")
 
 # ── 8) قائمة الدخل: الإيراد=13550 والتصنيف صحيح ──
-inc = requests.get(f"{API}/api/finance/reports/income-statement", params={"workshop_id": WID}, timeout=30).json()
+inc = requests.get(f"{API}/api/finance/reports/income-statement", params={"workshop_id": WID}, timeout=30, headers=HDRS).json()
 incd = inc.get("data") or inc
 rev = float(incd.get("total_revenue") or incd.get("revenue") or (incd.get("totals") or {}).get("revenue") or 0)
 check(8, "قائمة الدخل تعكس الإيراد المستحق", abs(rev - 13550.0) < 0.05, f"revenue={rev:,.2f} (متوقع 13,550)")
 
 # ── 9) دفتر الذمم == إجمالي الآجل ──
-ar = requests.get(f"{API}/api/finance/reports/ar-customers", params={"workshop_id": WID}, timeout=30).json()
+ar = requests.get(f"{API}/api/finance/reports/ar-customers", params={"workshop_id": WID}, timeout=30, headers=HDRS).json()
 ard = ar.get("data") or ar
 ar_total = None
 if isinstance(ard, dict):
@@ -131,7 +134,7 @@ for e in jes:
 check(10, "أكواد القيود موجودة في الدليل الحي", not bad_codes, f"أكواد غير معروفة: {sorted(set(bad_codes))}")
 
 # ── 11) الميزانية العمومية متوازنة ──
-bs = requests.get(f"{API}/api/finance/reports/balance-sheet", params={"workshop_id": WID}, timeout=30).json()
+bs = requests.get(f"{API}/api/finance/reports/balance-sheet", params={"workshop_id": WID}, timeout=30, headers=HDRS).json()
 bst = (bs.get("data") or {}).get("totals") or {}
 assets = float(bst.get("assets") or 0)
 liab_eq = float(bst.get("liabilities_plus_equity") or 0)
@@ -139,7 +142,7 @@ check(11, "الميزانية: أصول = خصوم + حقوق", assets > 0 and a
       f"أصول={assets:,.2f} خصوم+حقوق={liab_eq:,.2f}")
 
 # ── 12) منع التكرار (Idempotency): إعادة fix-all لا تكرر ──
-fx = requests.post(f"{API}/api/operations/integrity/fix-all", json={}, timeout=60).json()
+fx = requests.post(f"{API}/api/operations/integrity/fix-all", json={}, timeout=60, headers=HDRS).json()
 fxd = fx.get("data") or {}
 check(12, "إعادة التشغيل لا تكرر القيود (Idempotency)",
       int(fxd.get("missing_before") or 0) == 0 and int(fxd.get("fixed") or 0) == 0,

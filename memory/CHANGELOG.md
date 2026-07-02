@@ -150,3 +150,23 @@ Per BOT CAPABILITY GOVERNANCE + DECISIONS (start A+B, stop for review, then C):
 - Accounting integrity 100%: 50 recent journal entries all balanced (dr==cr); single-writer holds;
   reverse contra preserves original; site REST regression intact; safe entity actions still auto-commit.
 - Phase C (L1 quick-confirm for safe entity actions) intentionally deferred for user review.
+
+## 2 July 2026 — إصلاح جذري: البوت كان "أعمى" بعد تفعيل حارس المصادقة
+المشكلة (أبلغ عنها المستخدم): كاترينا لا ترى أي بيانات — بحث INV001214 يرجع "لا توجد نتائج"
+رغم وجود الفاتورة. السبب الجذري: auth_guard أصبح يفرض JWT على كل /api/* بينما أدوات البوت
+(tool_router) تستدعي API الداخلي بلا توكن → 401 → قوائم فارغة.
+- tool_router: توكن خدمة داخلي `_int_headers()` (كاترينا-internal, admin) مُرفق بكل 15 استدعاء httpx داخلي.
+- operations.search: استخراج رقم الفاتورة من الاستعلام (extract_entities) + مطابقة inv-number
+  متسامحة (شرطات/مسافات/حالة)، وكلمات عامة (فاتورة/رقم/عملية) لا تُشترط في الحقول.
+- بطاقات/نتائج العمليات ترجع invoice_number (INVxxxxx) بدل بادئة UUID — تحسين UX مطلوب سابقاً.
+- زيارة عبر البوت: تُنشئ الآن سجل العميل الحقيقي في customers (كانت الاسم فقط على المركبة)
+  وتمرر الماركة (brand) للمركبة (كانت تُحفظ "غير محدد").
+- فاتورة عبر البوت: اسم الخدمة يُقرأ من items[0].name/description (كان يسقط إلى "خدمة").
+- test_accounting_integrity_v1.py: تسجيل دخول + تمرير JWT (كان يفشل 401 بعد الحماية).
+### التحقق (يدوي كامل E2E)
+- بحث INV001214 عبر /api/assistant/chat → وجدها بكامل التفاصيل + بطاقة بعنوان INV001214 ✅
+- زيارة كاملة عبر البوت (عميل+جوال+تويوتا كامري+لوحة+خدمة 3200 آجل) → «نعم» →
+  customers + vehicles(brand=تويوتا) + vehicle_visits(بند 3200) ✅
+- فاتورة مالية 500 آجل → أربع أعين (مدير يقترح، احمد1 يعتمد) → operations(INV001265) +
+  قيد متوازن 005/026 عبر katrina_operation ✅ (نُظّفت بيانات الاختبار بعدها)
+- اختبار سلامة المحاسبة v1.0: 13/13 ✅ — الواجهة تعمل (لوحة التحكم + بوت عائم) ✅

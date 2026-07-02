@@ -227,6 +227,16 @@ def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
     #    can't resolve/create a vehicle to link the visit to.
     if client and table == "visits":
         try:
+            # 🧾 أنشئ/اربط سجل العميل الحقيقي أيضاً (وليس فقط اسمه على المركبة)
+            cust_name = str(data.get("customer_name") or data.get("name") or "").strip()
+            cust_phone = str(data.get("customer_phone") or data.get("phone") or "").strip()
+            if cust_name:
+                found = resolve_customer_target({"name": cust_name, "phone": cust_phone or None})
+                if not found.get("row"):
+                    try:
+                        upsert_entity("customers", {"name": cust_name, "phone": cust_phone or None})
+                    except Exception:
+                        pass
             vehicle_id = _resolve_or_create_vehicle_for_visit(data)
             if vehicle_id:
                 notes_obj: Dict[str, Any] = {
@@ -405,6 +415,7 @@ def _resolve_or_create_vehicle_for_visit(data: Dict[str, Any]) -> Optional[str]:
     if plate:
         veh = upsert_entity("vehicles", {
             "plate": plate,
+            "brand": data.get("brand"),
             "model": data.get("vehicle_type") or data.get("model"),
             "year": data.get("year"),
             "name": data.get("customer_name") or data.get("name"),
@@ -577,6 +588,139 @@ def reject_approval(*, approval_id: str, approver: Optional[str] = None, reason:
 # ─────────────────────────────────────────────────────────────────────────────
 # 7) Commit engine — REAL execution
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def _commit_sale_operation(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """🏦 إنشاء عملية بيع/خدمة كاملة عبر نفس مسار الواجهة.
+
+    تُنشئ: عميل (إن لزم) + مركبة (إن وُجدت لوحة) + عملية (operations) + قيد محاسبي.
+    فتظهر فوراً في: العمليات، لوحة التحكم، مركز التحكم المالي، والذمم.
+
+    ⚠️ كل الأرقام حتمية من إدخال المستخدم — لا حساب/توليد من الذكاء الاصطناعي.
+    """
+    from supabase_service import SupabaseService
+    supa = SupabaseService()
+
+    customer_name = str(payload.get("customer") or payload.get("customer_name")
+                        or payload.get("partner_name") or "").strip()
+    phone = str(payload.get("customer_phone") or payload.get("phone") or "").strip()
+    plate = str(payload.get("plate") or payload.get("plate_number") or "").strip()
+    vehicle_model = str(payload.get("vehicle_type") or payload.get("model")
+                        or payload.get("vehicle_model") or "").strip()
+    service = str(payload.get("service") or payload.get("item") or "").strip()
+    if not service:
+        for it in (payload.get("items") or []):
+            n = str((it or {}).get("name") or (it or {}).get("description") or "").strip()
+            if n:
+                service = n
+                break
+    service = service or "خدمة"
+    payment_method = str(payload.get("payment_method") or "credit").strip().lower()
+    is_cash = payment_method in ("cash", "نقدي", "فوري", "كاش", "نقدا", "نقداً")
+
+    try:
+        total = round(float(str(payload.get("total") or payload.get("amount")
+                                or payload.get("price") or 0).replace(",", "")), 2)
+    except (ValueError, TypeError):
+        total = 0.0
+    if total <= 0:
+        return {"error": "invalid_amount"}
+
+    # ── resolve/create customer (credit requires a named customer) ──
+    partner_id = None
+    if customer_name:
+        found = resolve_customer_target({"name": customer_name, "phone": phone or None})
+        if found.get("row"):
+            partner_id = found["row"].get("id")
+            customer_name = found["row"].get("name") or customer_name
+        else:
+            cust = upsert_entity("customers", {"name": customer_name, "phone": phone or None})
+            if isinstance(cust, dict):
+                partner_id = cust.get("id")
+                customer_name = cust.get("name") or customer_name
+    elif is_cash:
+        customer_name = "عميل نقدي"
+    else:
+        return {"error": "missing_customer"}
+
+    # ── resolve/create vehicle when a plate is given ──
+    vehicle_id = None
+    if plate:
+        vfound = resolve_vehicle_target({"plate": plate})
+        if vfound.get("row"):
+            vehicle_id = vfound["row"].get("id")
+        else:
+            veh = upsert_entity("vehicles", {
+                "plate": plate, "model": vehicle_model or None,
+                "name": customer_name, "phone": phone or None,
+            })
+            if isinstance(veh, dict):
+                vehicle_id = veh.get("id")
+
+    workshop_id = payload.get("workshop_id") or payload.get("workshopId") or "finmodule-sync"
+    op_payload = {
+        "type": "service",
+        "partnerType": "customer",
+        "partnerId": partner_id,
+        "partnerName": customer_name,
+        "vehicleId": vehicle_id,
+        "items": [{
+            "itemType": "service", "name": service, "quantity": 1, "qty": 1,
+            "price": total, "total": total, "billingType": "workshop",
+        }],
+        "paymentMethod": "cash" if is_cash else "credit",
+        "paymentStatus": "paid" if is_cash else "unpaid",
+        "workshopId": workshop_id,
+        "notes": f"عملية عبر كاترينا — {service}",
+        "source": "katrina",
+    }
+    if payload.get("odometer") or payload.get("mileage"):
+        op_payload["notes"] += f" — العداد: {payload.get('odometer') or payload.get('mileage')}"
+
+    try:
+        op = supa.operations_create(op_payload)
+    except Exception as e:
+        _log.exception("bot operation create failed: %s", redact(str(e), max_len=140))
+        return {"error": "operation_create_failed", "detail": redact(str(e), max_len=120)}
+
+    op_id = op.get("id")
+    journal_id = None
+    try:
+        import routes_extended as _re
+        op_row = {
+            "id": op_id, "type": "service",
+            "partner_name": customer_name, "partner_type": "customer",
+            "partnerName": customer_name, "paymentMethod": op_payload["paymentMethod"],
+            "vehicle_id": vehicle_id, "vehicleId": vehicle_id,
+            "items": op_payload["items"], "subtotal": total, "total": total,
+            "payment_method": op_payload["paymentMethod"],
+            "payment_status": op_payload["paymentStatus"],
+            "invoice_number": op.get("invoiceNumber"),
+            "op_date": op.get("date"), "workshop_id": workshop_id,
+        }
+        built = _re._build_operation_journal_entry(op_row, workshop_id)
+        entries = built if isinstance(built, list) else ([built] if built else [])
+        for entry in entries:
+            entry["reference_id"] = op_id
+            entry["source"] = "katrina_operation"
+            res = _re._safe_insert_journal_entry(supa, entry)
+            if res and not journal_id:
+                first = res[0] if isinstance(res, list) else res
+                journal_id = (first or {}).get("id")
+        try:
+            _re._invalidate_ops_caches()
+            _re._invalidate_finance_caches_safe()
+        except Exception:
+            pass
+    except Exception as e:
+        _log.exception("bot operation journal failed: %s", redact(str(e), max_len=140))
+
+    return {
+        "posted": True, "operation_id": op_id, "invoice_number": op.get("invoiceNumber"),
+        "journal_id": journal_id, "total": total, "partner_name": customer_name,
+        "payment_method": op_payload["paymentMethod"], "service": service,
+        "vehicle_id": vehicle_id, "customer_id": partner_id,
+    }
 
 
 def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
@@ -756,23 +900,31 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                    table=tbl, entity_id=ent_id, fields=list(changes.keys()), committer=committer)
             return {"execution_id": execution_id, "result": result_data}
 
+        # ── 🏦 Sale/Service (invoice) → إنشاء عملية كاملة (تظهر في كل الصفحات المالية) ──
+        if action == "invoice":
+            fres = _commit_sale_operation(payload)
+            if isinstance(fres, dict) and fres.get("error"):
+                return {"error": fres.get("error"), "detail": fres}
+            execution_id = uuid.uuid4().hex[:12]
+            STATE["executions"][execution_id] = {
+                "id": execution_id, "draft_id": draft_id, "result": fres,
+                "status": "executed", "committer": committer or "anonymous",
+                "committed_at": time.time(),
+            }
+            draft["status"] = "committed"
+            draft["execution_id"] = execution_id
+            _audit("COMMIT_SALE_OPERATION", draft_id=draft_id, execution_id=execution_id,
+                   operation_id=fres.get("operation_id"), journal_id=fres.get("journal_id"),
+                   total=fres.get("total"), committer=committer)
+            return {"execution_id": execution_id, "result": fres}
+
         # ── 🏦 Financial actions — committed THROUGH the central accounting engine ──
         #    (Governance: single writer, never auto-commit, immutable audit.)
-        if action in ("invoice", "payment", "expense", "reverse"):
+        if action in ("payment", "expense", "reverse"):
             try:
                 from core import financial_actions as _fa
                 fa_actor = {"user_id": committer or "system"}
-                if action == "invoice":
-                    fres = _fa.create_invoice(
-                        customer=payload.get("customer") or payload.get("customer_name") or "",
-                        items=payload.get("items"),
-                        total=payload.get("total") or payload.get("amount"),
-                        payment_method=payload.get("payment_method") or "credit",
-                        date=payload.get("date"),
-                        reference_id=payload.get("reference_id"),
-                        actor=fa_actor,
-                    )
-                elif action == "payment":
+                if action == "payment":
                     fres = _fa.collect_payment(
                         customer=payload.get("customer") or payload.get("customer_name") or "",
                         amount=payload.get("amount") or payload.get("total"),
