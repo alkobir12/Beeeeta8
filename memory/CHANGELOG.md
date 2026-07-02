@@ -170,3 +170,27 @@ Per BOT CAPABILITY GOVERNANCE + DECISIONS (start A+B, stop for review, then C):
 - فاتورة مالية 500 آجل → أربع أعين (مدير يقترح، احمد1 يعتمد) → operations(INV001265) +
   قيد متوازن 005/026 عبر katrina_operation ✅ (نُظّفت بيانات الاختبار بعدها)
 - اختبار سلامة المحاسبة v1.0: 13/13 ✅ — الواجهة تعمل (لوحة التحكم + بوت عائم) ✅
+
+## 2 July 2026 — Katrina Developer Mode (RRR) — المرحلة 1 ✅
+قرارات المستخدم المعتمدة: (1) Proposals فقط — كاترينا لا تلمس ملفات الكود إطلاقاً،
+Git/pytest خارج النطاق نهائياً. (2) المرحلة 1 فقط ثم قياس قبل المرحلة 2.
+(3) rrr مقصور على admin. شرطان: أي Prompt Learning مستقبلي يتضمن prompt_version + rollback؛
+وMemory Engine لا يُبنى قبل تعريف قواعد الترقية Short→Long→Knowledge كتابةً.
+### المنفّذ
+- core/developer_mode.py (جديد): trigger «rrr»/«rrr off»، admin-only من JWT role،
+  بناء سياق مؤسسي كامل (PRD/CHANGELOG/ROADMAP/بنية الملفات/عقود API الحية من FastAPI/
+  Schema حي من Supabase+Mongo/حالة محرك التنفيذ والتدقيق) مع كاش 5 دقائق وقياسات.
+- assistant_kernel: اعتراض rrr قبل أي مسار + حقن dev_system_addendum في system prompt
+  عند التفعيل + علم developer_mode في الرد + معامل proposer_role.
+- routes_assistant: تمرير role_hint من JWT في /chat و /chat/stream.
+### القياسات (المطلوبة لقرار المرحلة 2)
+- حجم السياق: ~14,644 token (43,932 حرف) | زمن بناء السياق: ~3.0s (force) ثم كاش.
+- زمن استجابة سؤال هندسي في الوضع: ~55s (claude-sonnet-4-6، ضمن حد 60s timeout — حدّي).
+- الجودة: تحليل ديون تقنية دقيق من السياق الحقيقي + Proposal بالتنسيق المتفق
+  (ملف/موضع/diff/مبرر/خطورة/فائدة/خطة اختبار) بدون ادعاء تنفيذ.
+### التحقق E2E
+rrr(admin)=تفعيل+شاشة ✅ | rrr(فرج1/accountant)=رفض ✅ | سؤال هندسي=Proposal صحيح ✅ |
+rrr off=إيقاف ✅ | الجلسات العادية غير متأثرة (developer_mode:False) ✅
+### توصية للمرحلة 2
+الحقن الكامل يقارب حد الـ timeout — يُرجّح top-k retrieval انتقائي (حسب شرط المستخدم:
+بعد تعريف قواعد الترقية Short→Long→Knowledge كتابةً).

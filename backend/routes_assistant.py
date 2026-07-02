@@ -65,6 +65,7 @@ async def assistant_chat(request: Request, payload: Dict[str, Any] = Body(...)):
             use_ai=bool(payload.get("use_ai", True)),
             model=payload.get("model"),
             proposer=real_proposer,  # 🆕 Four-Eyes anchor من التوكن الموقّع
+            proposer_role=_ident.get("role_hint"),  # 🧠 RRR — الدور من JWT
         )
         return {"success": True, "data": result}
     except Exception as e:
@@ -199,6 +200,7 @@ async def assistant_chat_stream(request: Request, payload: Dict[str, Any] = Body
                 use_ai=bool(payload.get("use_ai", True)),
                 model=payload.get("model"),
                 proposer=real_proposer,  # 🆕 Four-Eyes anchor من التوكن الموقّع
+                proposer_role=_ident.get("role_hint"),  # 🧠 RRR — الدور من JWT
             )
 
             for tr in result.get("tool_results") or []:

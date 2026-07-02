@@ -481,6 +481,7 @@ async def chat(
     use_ai: bool = True,
     model: Optional[str] = None,  # 🆕 'gpt' (Emergent default) | 'ollama' (local)
     proposer: Optional[str] = None,  # 🆕 Phase 3C — Four-Eyes anchor (current user)
+    proposer_role: Optional[str] = None,  # 🧠 RRR — دور المستخدم من JWT (admin فقط يفعّل)
 ) -> Dict[str, Any]:
     """Main entry point for the assistant.
 
@@ -493,6 +494,13 @@ async def chat(
     """
     sid = session_id or f"session-{uuid.uuid4().hex[:10]}"
     shared_memory.append_message(sid, "user", message)
+
+    # 🧠 Developer Mode (RRR) — Phase 1: اعتراض الأمر قبل أي مسار آخر (admin فقط)
+    from core import developer_mode as _dev
+    dev_resp = _dev.handle_trigger(sid, message, role=proposer_role)
+    if dev_resp is not None:
+        return _plain_chat_response(sid=sid, text=dev_resp["text"],
+                                    intent="developer_mode", status=dev_resp.get("status"))
 
     # 🆕 Phase C — resolve a pending safe-action confirmation («نعم»/«لا») BEFORE
     # any intent parsing, so a bare confirmation commits the REAL draft instead
@@ -599,6 +607,10 @@ async def chat(
     system_msg = _system_prompt() + "\n\n" + context_text
     if brief_text:
         system_msg += "\n\n" + brief_text
+    # 🧠 RRR — حقن السياق المؤسسي الكامل عندما يكون وضع المطور مفعّلاً
+    _dev_active = _dev.is_active(sid)
+    if _dev_active:
+        system_msg += "\n\n" + _dev.dev_system_addendum()
 
     # 4) Append tool results
     if tool_results:
@@ -774,6 +786,7 @@ async def chat(
         # this block is null.
         "mode": (power_block or {}).get("mode", "normal"),
         "power": power_block,
+        "developer_mode": _dev_active,  # 🧠 RRR
     }
 
 
