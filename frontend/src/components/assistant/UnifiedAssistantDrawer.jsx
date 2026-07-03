@@ -94,6 +94,7 @@ export const UnifiedAssistantDrawer = () => {
 
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [dailySummaryOn, setDailySummaryOn] = useState(() => localStorage.getItem('assistant_daily_summary') !== 'off');
   const [copiedIdx, setCopiedIdx] = useState(null);
   const messagesEndRef = useRef(null);
   const location = useLocation();
@@ -369,13 +370,28 @@ export const UnifiedAssistantDrawer = () => {
             <span className="text-[11px] text-slate-600 dark:text-slate-300">
               {messages.length} رسالة في الجلسة
             </span>
-            <button
-              data-testid="assistant-reset-btn"
-              onClick={() => { resetSession(); setShowSettings(false); }}
-              className="text-[11px] px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold inline-flex items-center gap-1"
-            >
-              <Trash2 size={10} /> مسح المحادثة
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                data-testid="assistant-daily-summary-toggle"
+                onClick={() => {
+                  const cur = localStorage.getItem('assistant_daily_summary') !== 'off';
+                  localStorage.setItem('assistant_daily_summary', cur ? 'off' : 'on');
+                  setDailySummaryOn(!cur);
+                }}
+                className={`text-[11px] px-2 py-1 rounded font-bold inline-flex items-center gap-1 ${
+                  dailySummaryOn ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-slate-400 hover:bg-slate-500 text-white'
+                }`}
+              >
+                📅 الملخص اليومي: {dailySummaryOn ? 'مفعّل' : 'موقوف'}
+              </button>
+              <button
+                data-testid="assistant-reset-btn"
+                onClick={() => { resetSession(); setShowSettings(false); }}
+                className="text-[11px] px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold inline-flex items-center gap-1"
+              >
+                <Trash2 size={10} /> مسح المحادثة
+              </button>
+            </div>
           </div>
           {/* 🆕 Model selector */}
           {availableModels && availableModels.length > 0 && (

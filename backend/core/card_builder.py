@@ -305,6 +305,7 @@ def approval_card(approval: Dict[str, Any]) -> Dict[str, Any]:
         "expense": "مصروف", "create_expense": "مصروف",
         "reverse_entry": "قيد عكسي", "delete_operation": "حذف عملية",
         "visit": "زيارة", "create_visit": "زيارة",
+        "memory_promote": "ترقية للمعرفة",
     }.get(draft_action, draft_action)
     echo = (approval.get("payload") or {}).get("_echo") or {}
     amt = echo.get("amount")

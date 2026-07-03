@@ -220,6 +220,7 @@ export const AssistantProvider = ({ children }) => {
         use_ai: true,
         model: model || 'sonnet',
         proposer,
+        daily_summary: localStorage.getItem('assistant_daily_summary') !== 'off',
       }, { timeout: 120000 });
       const data = res.data?.success ? res.data.data : null;
       if (!data) throw new Error(res.data?.error || 'assistant_failed');
@@ -412,6 +413,7 @@ export const AssistantProvider = ({ children }) => {
             use_ai: useAi,
             model: model || 'sonnet',
             proposer,
+            daily_summary: localStorage.getItem('assistant_daily_summary') !== 'off',
           }),
         });
         // 🆕 Phase 3C.10 — robust SSE reader. We must verify `resp.ok` BEFORE
@@ -497,6 +499,7 @@ export const AssistantProvider = ({ children }) => {
           use_ai: useAi,
           model: model || 'sonnet',
           proposer,
+          daily_summary: localStorage.getItem('assistant_daily_summary') !== 'off',
         }, { timeout: 120000 });
         if (!res.data?.success) {
           throw new Error(res.data?.error || 'assistant_failed');

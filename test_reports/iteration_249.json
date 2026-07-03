@@ -1,0 +1,56 @@
+{
+  "summary": "Iter 249 — Full E2E validation of PDPL redaction, RRR Memory Engine (5 rules), Daily Summary (per-day + role-based + toggle), and regression of all Katrina flows. Backend: 122/123 legacy pytest + 5/6 new tests PASS (1 skipped legitimately, 1 legacy failure is a duplicate-pending detection false-positive from stale draft — dedup itself works). Frontend: settings toggle + memory stats + drawer all verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "tests/test_purchase_intent_phase1.py::test_execute_text_purchase_produces_ONE_pending_approval",
+        "issue": "Fails with policy='duplicate_pending' instead of 'manual_review_required' — caused by stale identical pending draft from prior iterations (dedup is working correctly). Test needs unique amount per run, not an app bug."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter249_memory_daily.py",
+    "/app/test_reports/pytest/iter249_regression.xml",
+    "/app/test_reports/pytest/iter249_memory_daily.xml",
+    "/app/test_reports/iter249_drawer.jpeg"
+  ],
+  "action_items": [
+    "(Optional/low priority) Fix test_execute_text_purchase_produces_ONE_pending_approval to use uuid-based unique amount so stale duplicate drafts don't false-flag it (or clean up test data between suites)."
+  ],
+  "critical_code_review_comments": [
+    "PDPL redaction verified end-to-end: customer search for 'غانم' returns LLM narrative with phone shown as '—' (masked). Cards remain unredacted as designed (local-only cards).",
+    "Memory promotion four-eyes flow rock-solid: مدير propose → memory_promote approval draft; مدير self-approve → 403 four_eyes_violation; احمد1 approve → 200; knowledge counter incremented 1→2. Stats command 'الذاكرة' returns full Markdown block including token budget (~31/2000).",
+    "Daily summary per-day gate confirmed: 2nd session same day for مدير does NOT re-emit summary. New day (2026-07-03) DID re-emit as expected (fresh day = fresh summary). daily_summary=false body param cleanly suppresses summary for فرج1.",
+    "Role gating verified: فرج1 (accountant) summary has NO revenue line and is ≤5 lines (observed 2 lines: date header + '✨ لا معلقات لديك').",
+    "Drawer settings toggle flips label between 'مفعّل' ↔ 'موقوف' and persists to localStorage assistant_daily_summary=on|off.",
+    "Toast notification container occasionally intercepts pointer events on FAB — a minor UX concern for automation and possibly real users clicking during first-load. JS click bypasses it. Consider pointer-events:none on toast wrapper.",
+    "Assistant response schema wraps {success, data:{response, tool_results, executed}}. memory_promote executed payload does not always surface the outer approval id in a single top-level field; downstream automation must fall back to /api/runtime/approvals list. Consider adding explicit executed.approval_id."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter249_memory_daily.py (new)"
+  ],
+  "success_rate": {
+    "backend": "99.2% (122/123 legacy + 5/6 new; 1 legacy stale-data false-positive, 1 legitimate skip)",
+    "frontend": "100% (drawer, settings toggle, memory stats command all verified)"
+  },
+  "test_credentials": "name-only login: مدير (admin/approver), احمد1 (supervisor/approver), فرج1 (accountant/no-approve). Ref /app/memory/test_credentials.md",
+  "seed_data_creation": "Added 1 knowledge entry via memory_promote approval (unique 'رقم صندوق البريد التجريبي هو <hex>') — kept as intended (harmless). No purchase drafts created this iteration.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Env date: 2026-07-03. Memory stats block regex marker: 'ذاكرة كاترينا'. To trigger memory_promote: 'احفظ في المعرفة: <fact>'. Approval id must be fetched from GET /api/runtime/approvals?status=pending (payload.action=='memory_promote'); executed.id in chat response maps to draft_id, NOT the outer approval id (documented in iter 248 as well). Daily-summary once-per-day is Mongo-backed via assistant_daily_state; per-day roll-over produces a fresh summary on the new date (correct). Frontend testids used: unified-assistant-fab, assistant-settings-btn, assistant-daily-summary-toggle, assistant-input, assistant-send-btn. localStorage key: assistant_daily_summary ('on'/'off'). Toast container can intercept FAB clicks — use JS click() as workaround.",
+  "verified_flows": [
+    "POST /api/assistant/chat 'الذاكرة' as مدير → returns memory stats (قصيرة/طويلة/معرفة/متنازع/حجم /2000)",
+    "'احفظ في المعرفة: <fact>' as مدير → pending memory_promote approval created",
+    "Self-approve by مدير → 403 four_eyes_violation",
+    "Approve by احمد1 → 200; knowledge counter incremented (1→2)",
+    "PDPL: 'ابحث عن عميل غانم' → LLM text shows phone as '—' (redacted); no raw 05XXXXXXXX in narrative",
+    "Daily summary NOT duplicated across sessions same day for مدير",
+    "daily_summary:false body param → summary suppressed for فرج1",
+    "فرج1 (accountant) summary contains NO revenue line and is ≤5 lines",
+    "Frontend: settings toggle flips مفعّل ↔ موقوف, persists localStorage assistant_daily_summary",
+    "Frontend: 'الذاكرة' in drawer renders full stats block",
+    "Regression pytest: 122/123 pass (test_purchase_intent_phase1/patch_phase2/katrina_iter247/iter248/decimal_prd_v1_1/memory_pdpl_phase2)"
+  ]
+}

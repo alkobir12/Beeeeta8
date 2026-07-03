@@ -541,15 +541,18 @@ async def _llm_chat(
         print(f"[AssistantKernel] LLM import failed: {e}")
         return ""
     try:
+        from core.pdpl_redactor import redact_pii
         chat = LlmChat(
             api_key=api_key,
             session_id=session_id,
-            system_message=system_message,
+            system_message=redact_pii(system_message),
         ).with_model(model_provider, model_name)
         msg_text = user_message
         if history:
             history_text = "\n".join([f"{m['role']}: {m['content']}" for m in history[-10:]])
             msg_text = f"السياق السابق للمحادثة:\n{history_text}\n\nالسؤال الحالي:\n{user_message}"
+        # 🔐 PDPL: تنقيح المعرّفات الشخصية قبل مغادرة النص للمزوّد الخارجي
+        msg_text = redact_pii(msg_text)
         response = await asyncio.wait_for(
             # ⚠️ litellm.completion داخل المكتبة sync — thread منفصل حتى لا يتجمد اللوب
             asyncio.to_thread(
@@ -698,6 +701,61 @@ async def _chat_impl(
         if cancel_resp is not None:
             return cancel_resp
 
+    # 🧠 Memory Engine (RRR المرحلة 2) — أوامر الذاكرة المباشرة
+    if re.match(r"^\s*(?:الذاكرة|حالة\s+الذاكرة|ذاكرتك)\s*[؟?]?\s*$", message or ""):
+        try:
+            from core import memory_engine
+            st = memory_engine.stats()
+            if not st.get("enabled"):
+                txt = "🧠 مخزن الذاكرة غير متاح حالياً (MongoDB)."
+            else:
+                txt = ("🧠 **ذاكرة كاترينا (المرحلة 2 — قواعد الترقية الخمس):**\n"
+                       f"  • قصيرة: **{st['short']}** | طويلة: **{st['long']}** | معرفة معتمدة: **{st['knowledge']}**\n"
+                       f"  • متنازع عليها (مجمّدة من الحقن): **{st['disputed']}**\n"
+                       f"  • حجم المعرفة المحقونة: ~**{st['knowledge_tokens']}/{st['cap']}** token\n"
+                       "  💡 «احفظ في المعرفة: <نص>» لترشيح معلومة — تدخل الذاكرة الدائمة "
+                       "بعد اعتماد بشري فقط (أربع أعين).")
+            return _plain_chat_response(sid=sid, text=txt, intent="question")
+        except Exception as e:
+            _log.warning("memory stats failed: %s", redact(str(e), max_len=80))
+
+    _mem_save = re.match(
+        r"^\s*(?:احفظي?|اعتمدي?|رشّ?حي?|أضيفي?|اضيفي?)\s*(?:في|إلى|الى|لل)?\s*"
+        r"(?:الذاكرة|المعرفة|ذاكرتك)\s*[:：]\s*(.+)$",
+        message or "", re.S)
+    if _mem_save:
+        try:
+            from core import memory_engine
+            res = memory_engine.propose_knowledge(
+                content=_mem_save.group(1).strip()[:500], proposer=proposer)
+            if res.get("error"):
+                return _plain_chat_response(
+                    sid=sid, intent="action",
+                    text=f"🚫 تعذّر الترشيح: {res.get('detail') or res['error']}")
+            ap = res.get("approval") or {}
+            approval_id = ap.get("approval_id")
+            draft_id = (res.get("draft") or {}).get("id")
+            resp = _plain_chat_response(
+                sid=sid, intent="action", status="pending_approval",
+                text=("🧠 **رُشّحت للمعرفة (Learning Candidate)** — لن تدخل ذاكرة كاترينا "
+                      "الدائمة إلا بعد اعتماد بشري من طرف ثانٍ (أربع أعين)."))
+            resp["cards"] = [{
+                "type": "ApprovalCard", "id": approval_id,
+                "title": "موافقة — ترقية للمعرفة", "status": "pending",
+                "data": {"approval_id": approval_id, "draft_id": draft_id,
+                         "status": "pending", "action": "memory_promote",
+                         "echo": {"type": "ترقية للمعرفة",
+                                  "entity": (res.get("memory") or {}).get("content", "")[:80]}},
+                "actions": _build_approval_actions("memory_promote", draft_id,
+                                                   approval_id, {}, {}),
+            }]
+            resp["executed"] = {"status": "pending_approval", "action": "memory_promote",
+                                "entity_id": draft_id, "approval_id": approval_id}
+            return resp
+        except Exception as e:
+            _log.warning("memory propose failed: %s", redact(str(e), max_len=80))
+
+
     # 🔄 التوحيد (خطة 2026-07-03): كل الرسائل — /power أو عادية — تمرّ عبر
     # `unified_executor.execute_text()` كمصدر حقيقة وحيد. المقسِّم النصي القديم
     # (`power_mode.power_process`) تم تعطيله كي لا يُنتج مسودات متعددة لأمر واحد.
@@ -764,10 +822,25 @@ async def _chat_impl(
     except Exception as _e:
         brief_text = ""
 
+    # 🧠 Memory Engine (RRR المرحلة 2): تسجيل فشل الأدوات + استرجاع انتقائي top-k
+    memory_block = ""
+    try:
+        from core import memory_engine as _mem
+        for _tr in tool_results:
+            if not _tr.get("success"):
+                _mem.record("tool_failure",
+                            f"فشل أداة {_tr.get('tool')}: {str(_tr.get('error'))[:120]}",
+                            session_id=sid, user=proposer)
+        memory_block = _mem.retrieve(message, k=5)
+    except Exception:
+        memory_block = ""
+
     # 3) System message (L5: single assistant, no agent persona)
     system_msg = _system_prompt() + "\n\n" + context_text
     if brief_text:
         system_msg += "\n\n" + brief_text
+    if memory_block:
+        system_msg += "\n\n" + memory_block
     # 🧠 RRR — حقن السياق المؤسسي الكامل عندما يكون وضع المطور مفعّلاً
     _dev_active = _dev.is_active(sid)
     if _dev_active:
@@ -1006,8 +1079,9 @@ async def chat(
     model: Optional[str] = None,
     proposer: Optional[str] = None,
     proposer_role: Optional[str] = None,
+    daily_summary: bool = True,
 ) -> Dict[str, Any]:
-    """Main entry point — يلفّ _chat_impl ويضيف تذكير المعلقات في أول رسالة بالجلسة."""
+    """Main entry point — يلفّ _chat_impl ويضيف الملخص اليومي + تذكير المعلقات في أول رسالة."""
     prior_msgs = len(shared_memory.get_messages(session_id, limit=2)) if session_id else 0
     resp = await _chat_impl(
         session_id=session_id, message=message, workshop_id=workshop_id,
@@ -1016,13 +1090,22 @@ async def chat(
     )
     if prior_msgs == 0 and resp.get("intent") != "developer_mode":
         try:
+            blocks: List[str] = []
+            # 📅 الملخص اليومي — أول رسالة في اليوم، أرقام من استعلامات مباشرة، حسب الدور
+            if daily_summary:
+                from core import daily_summary as _ds
+                summary = await _ds.build_daily_summary(user=proposer, role=proposer_role)
+                if summary:
+                    blocks.append(summary)
             has_approval_cards = any(
                 (c or {}).get("type") == "ApprovalCard" for c in (resp.get("cards") or []))
             reminder = None if has_approval_cards else _build_pending_reminder(
                 proposer=proposer, proposer_role=proposer_role)
             if reminder:
-                resp["response"] = f"{reminder['text']}\n\n---\n\n{resp.get('response') or ''}"
+                blocks.append(reminder["text"])
                 resp["cards"] = reminder["cards"] + (resp.get("cards") or [])
+            if blocks:
+                resp["response"] = "\n\n".join(blocks) + f"\n\n---\n\n{resp.get('response') or ''}"
         except Exception:
             pass
     return resp

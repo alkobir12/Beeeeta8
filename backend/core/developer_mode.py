@@ -141,6 +141,15 @@ def _runtime_snapshot() -> str:
         ]
         for ev in action_runtime.get_audit_trail(limit=8):
             lines.append(f"  • {ev.get('event')} — draft={ev.get('draft_id','')} approval={ev.get('approval_id','')}")
+        try:
+            from core import memory_engine
+            ms = memory_engine.stats()
+            if ms.get("enabled"):
+                lines.append(
+                    f"memory: short={ms['short']} long={ms['long']} knowledge={ms['knowledge']} "
+                    f"disputed={ms['disputed']} tokens={ms['knowledge_tokens']}/{ms['cap']}")
+        except Exception:
+            pass
         return "\n".join(lines)
     except Exception as e:
         return f"غير متاح: {redact(str(e), max_len=60)}"

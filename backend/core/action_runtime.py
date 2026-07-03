@@ -72,7 +72,7 @@ STATE: Dict[str, Dict[str, Any]] = {
 
 VALID_ACTIONS = {"customer", "vehicle", "visit", "supplier", "close_visits", "delete_operation",
                  "delete_customer", "delete_vehicle", "update_customer", "update_vehicle",
-                 "invoice", "payment", "expense", "reverse", "purchase"}
+                 "invoice", "payment", "expense", "reverse", "purchase", "memory_promote"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -96,6 +96,26 @@ def _audit(event: str, **kwargs) -> Dict[str, Any]:
     """
     row = {"event": event, "ts": time.time(), **kwargs}
     STATE["audit"].append(row)
+    # 🧠 Memory Engine قاعدة 1: القرارات والتصحيحات عناصر مصنفة تُسجل في short
+    try:
+        if event in ("APPROVAL_GRANTED", "APPROVAL_REJECTED") or event.startswith("COMMIT_"):
+            from core import memory_engine
+            d = STATE["drafts"].get(kwargs.get("draft_id") or "") or {}
+            echo = (d.get("payload") or {}).get("_echo") or {}
+            memory_engine.record(
+                "decision",
+                f"{event}: {d.get('action') or ''} {echo.get('entity') or ''} "
+                f"{echo.get('amount') or ''}".strip(),
+                session_id=d.get("session_id"),
+                user=kwargs.get("approver") or kwargs.get("committer"))
+        elif event == "DRAFT_PATCHED":
+            from core import memory_engine
+            memory_engine.record(
+                "correction",
+                f"تصحيح مسودة {kwargs.get('draft_id')}: {kwargs.get('ops')}",
+                user=kwargs.get("actor"))
+    except Exception:
+        pass
     try:
         from core import runtime_store
         runtime_store.append_audit(row)
@@ -925,6 +945,28 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
 
         if action not in VALID_ACTIONS:
             return {"error": "unknown_action", "action": action}
+
+        # ── memory_promote — ترقية Long→Knowledge بعد اعتماد بشري (Memory Engine قاعدة 3) ──
+        if action == "memory_promote":
+            try:
+                from core import memory_engine
+                res = memory_engine.promote_to_knowledge(payload.get("memory_id") or "")
+                if res.get("error"):
+                    return {"error": res["error"], "detail": res.get("detail")}
+                execution_id = uuid.uuid4().hex[:12]
+                STATE["executions"][execution_id] = {
+                    "id": execution_id, "draft_id": draft_id, "result": res,
+                    "status": "executed", "committer": committer or "anonymous",
+                    "committed_at": time.time(),
+                }
+                draft["status"] = "committed"
+                draft["execution_id"] = execution_id
+                _audit("COMMIT_MEMORY_PROMOTE", draft_id=draft_id, execution_id=execution_id,
+                       memory_id=payload.get("memory_id"), committer=committer)
+                return {"execution_id": execution_id, "result": res}
+            except Exception as e:
+                _log.exception("memory_promote commit failed: %s", redact(str(e), max_len=120))
+                return {"error": "commit_failed", "detail": redact(str(e), max_len=120)}
 
         # ── close_visits is a bulk update, not a per-row upsert ──
         if action == "close_visits":
