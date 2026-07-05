@@ -121,11 +121,20 @@ async def call_tool(name: str, **kwargs) -> Dict[str, Any]:
                 "(Phase 3A read-only contract)"
             ),
         }
+    from core import llm_traces
+    import time as _time
+    _t0 = _time.time()
     try:
         result = await tool["handler"](**kwargs)
+        llm_traces.add_tool_call(
+            tool=name, tool_input=kwargs, output_raw=result, success=True,
+            duration_ms=(_time.time() - _t0) * 1000, write=tool.get("write", False))
         return {"success": True, "tool": name, "agent": tool["agent"], "result": result, "write": tool.get("write", False)}
     except Exception as e:
         import traceback
+        llm_traces.add_tool_call(
+            tool=name, tool_input=kwargs, success=False, error=str(e),
+            duration_ms=(_time.time() - _t0) * 1000, write=tool.get("write", False))
         return {"success": False, "tool": name, "error": str(e), "trace": traceback.format_exc()[-400:]}
 
 

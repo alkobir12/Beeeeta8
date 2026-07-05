@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import time
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -553,6 +554,8 @@ async def _llm_chat(
             msg_text = f"السياق السابق للمحادثة:\n{history_text}\n\nالسؤال الحالي:\n{user_message}"
         # 🔐 PDPL: تنقيح المعرّفات الشخصية قبل مغادرة النص للمزوّد الخارجي
         msg_text = redact_pii(msg_text)
+        from core import llm_traces
+        _t0 = time.time()
         response = await asyncio.wait_for(
             # ⚠️ litellm.completion داخل المكتبة sync — thread منفصل حتى لا يتجمد اللوب
             asyncio.to_thread(
@@ -560,13 +563,25 @@ async def _llm_chat(
             ),
             timeout=timeout_seconds or float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")),
         )
+        llm_traces.add_llm_call(
+            purpose="chat", provider=model_provider, model=model_name,
+            system_message=redact_pii(system_message),
+            request_messages=[{"role": "user", "content": msg_text}],
+            response_raw=str(response or ""), duration_ms=(time.time() - _t0) * 1000,
+        )
         return str(response or "").strip()
     except asyncio.TimeoutError:
         _log.warning("LLM call timed out after %ss", os.environ.get("LLM_TIMEOUT_SECONDS", "60"))
+        from core import llm_traces
+        llm_traces.add_llm_call(purpose="chat", provider=model_provider, model=model_name,
+                                error="timeout")
         return ""
     except Exception as e:
         # Phase 3A: replace `print` with structured logger; never leak raw user content.
         _log.warning("LLM call failed: %s", redact(str(e), max_len=160))
+        from core import llm_traces
+        llm_traces.add_llm_call(purpose="chat", provider=model_provider, model=model_name,
+                                error=str(e)[:300])
         return ""
 
 
@@ -1082,12 +1097,19 @@ async def chat(
     daily_summary: bool = True,
 ) -> Dict[str, Any]:
     """Main entry point — يلفّ _chat_impl ويضيف الملخص اليومي + تذكير المعلقات في أول رسالة."""
+    from core import llm_traces
+    llm_traces.start_trace(session_id=session_id, user=proposer,
+                           role=proposer_role, channel="chat", message=message)
     prior_msgs = len(shared_memory.get_messages(session_id, limit=2)) if session_id else 0
-    resp = await _chat_impl(
-        session_id=session_id, message=message, workshop_id=workshop_id,
-        force_agent=force_agent, use_ai=use_ai, model=model,
-        proposer=proposer, proposer_role=proposer_role,
-    )
+    try:
+        resp = await _chat_impl(
+            session_id=session_id, message=message, workshop_id=workshop_id,
+            force_agent=force_agent, use_ai=use_ai, model=model,
+            proposer=proposer, proposer_role=proposer_role,
+        )
+    except Exception as e:
+        llm_traces.finish_trace(session_id=session_id, status="error", error=str(e))
+        raise
     if prior_msgs == 0 and resp.get("intent") != "developer_mode":
         try:
             blocks: List[str] = []
@@ -1108,6 +1130,13 @@ async def chat(
                 resp["response"] = "\n\n".join(blocks) + f"\n\n---\n\n{resp.get('response') or ''}"
         except Exception:
             pass
+    resp["trace_id"] = llm_traces.finish_trace(
+        session_id=resp.get("session_id"),
+        final_response=resp.get("response"),
+        intent=resp.get("intent"),
+        status=(resp.get("executed") or {}).get("status") or resp.get("status"),
+        executed=resp.get("executed"),
+    )
     return resp
 
 

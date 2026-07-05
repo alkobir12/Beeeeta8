@@ -4,6 +4,18 @@
 نظام إدارة ورشة سيارات متكامل (ERP) يدعم اللغة العربية، يضم وحدات محاسبية صارمة، نظام جرد ذكي، تتبع ذمم، ومدقق مالي بالذكاء الاصطناعي.
 هدف المرحلة الحالية: "Enterprise Operator" — ترحيل الحالات المؤقتة إلى قواعد بيانات دائمة، RBAC خلفي صارم، مبدأ أربع أعين حقيقي، محرك محاسبة مركزي (كاتب وحيد)، وإجراءات مالية عبر البوت بحوكمة كاملة.
 **وثيقة قبول جديدة**: «اختبار سلامة وترابط النظام المحاسبي v1.0» — 13 قاعدة صارمة (مصدر حقيقة واحد، توازن القيد المزدوج، دورة نقدي/آجل، ميزان مراجعة، قائمة دخل، تزامن UI/بوت/قاعدة، سلامة قاعدة البيانات).
+**وثيقة حاكمة جديدة (2026-07-05)**: «Katrina Verification Suite» (`/app/docs/diagnostics/KATRINA_VERIFICATION_SUITE.md`) — التحقق الفعلي L1→L16 + 3 ملاحق (Legacy Audit / Failure Modes / UI Consistency). قواعدها: كل نتيجة بدون trace_id مرفوضة، تشخيص خالص بلا إصلاح في الجولة الأولى، الشهادة = أعلى مستوى مكتمل 100% + امتحان المالك.
+
+## CHANGELOG — 2026-07-05 · Katrina Verification Suite: المرحلة 0 (llm_traces) + الملحق أ (Legacy Audit)
+**قرارات المستخدم المعتمدة:** L15 مصغّر (10 جلسات ذمم + 5 شراء) مع سباق الاعتماد كاملاً + توثيق أن الكامل شرط الجولة الثانية فوق L14 · L12 بمحاكاة أعطال بأربعة ضوابط (تأكيد قبل كل حقن، snapshot للقاعدة، flags قابلة للعكس، checklist استعادة بالتقرير).
+- 🔬 **نظام llm_traces (الشرط المسبق) — مكتمل ومختبَر (7/7 pytest + e2e curl)**:
+  - `core/llm_traces.py`: contextvar per-request → MongoDB `llm_traces`. يسجّل: user_message، llm_calls (system_message بعد PDPL + request_messages + response_raw + duration)، tool_calls_executed (input + output_raw + duration + write)، final_response، intent/status/executed، duration_ms.
+  - حقن في: `assistant_kernel.chat()` (بدء/إنهاء + `trace_id` في envelope الرد)، `_llm_chat` (purpose=chat)، `llm_intent_parser` (purpose=intent_parse)، `tool_router.call_tool` (كل الأدوات).
+  - `routes_traces.py`: `GET /api/traces/{id}` و`GET /api/traces?session_id=` و`GET /api/traces/stats` — أدوار الاعتماد فقط (403 لفرج1 ✅، 401 بلا توكن ✅).
+  - اختبارات: `/app/backend/tests/test_llm_traces_phase0.py` (7/7 — roundtrip، أدوات+LLM، no-op بلا trace، قصّ 60KB، مسار الخطأ، list، عزل contexts بين tasks).
+- 📋 **الملحق أ Legacy Audit — مكتمل** (`/app/docs/diagnostics/LEGACY_AUDIT.md`): 23 بنداً. أبرزها: 🔴 6 قيود SMART_POS حية بأسماء حسابات مجمّدة على الترقيم القديم (042 باسم «ايراد قطع الورشه» والحي «مصروفات البيت»، 045 باسم «045») + زوجا اشتباه تكرار (250×2، 111×2) · 🔴 ازدواج مصادر: الإيرادات ×4 حاسبات، الذمم ×3 تمثيلات (117 حساب عميل يتيم) · ❌ A2 المقسّم القديم `_legacy_extract_commands` معطَّل لا محذوف · ❌ A7 prompts في 15+ ملف بلا Registry · ✅ A5 صفر أدوات شبح (20/20 نجحت) · ✅ A8 الحرّاس سليمة. **صفر إصلاحات نُفّذت** (قاعدة الجولة الأولى).
+- 🔴 **عائق مفتوح**: رصيد Emergent LLM Key **نفد** أثناء الاختبار (Budget exceeded: 18.886/18.878) — مستويات L1→L15 (شات حقيقي) موقوفة حتى الشحن. llm_traces التقط الخطأ بأمانة في trace tr-cfbe1304c8ce.
+
 
 ## CHANGELOG — 2026-07-03 (ب) · إصلاحات P0 بعد المرحلة 2 + الإلغاء السياقي + الترابط الحي مع كل الصفحات
 **مختبَر 100% (iteration_247: خلفية 5/5 + واجهة 4/4 + 29 pytest انحدار)**

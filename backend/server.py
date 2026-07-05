@@ -631,6 +631,10 @@ app.include_router(firewall_router)
 from routes_assistant import router as assistant_router, limiter as assistant_limiter
 app.include_router(assistant_router)
 
+# 🔬 llm_traces — المرحلة 2 من بروتوكول التشريح (شرط Katrina Verification Suite)
+from routes_traces import router as traces_router
+app.include_router(traces_router)
+
 # 🆕 Phase 3C — Action Runtime (Approval Matrix + Commit + Rollback)
 from routes_action_runtime import router as action_runtime_router
 app.include_router(action_runtime_router)

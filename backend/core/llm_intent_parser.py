@@ -228,17 +228,31 @@ async def parse_intent_with_llm(text: str, *, session_id: Optional[str] = None) 
             system_message=_SYSTEM_PROMPT,
         ).with_model("anthropic", "claude-sonnet-4-6")
         msg = UserMessage(text=text.strip())
+        from core import llm_traces
+        import time as _time
+        _t0 = _time.time()
         raw = await asyncio.wait_for(
             # ⚠️ litellm.completion داخل المكتبة sync — thread منفصل حتى لا يتجمد اللوب
             asyncio.to_thread(lambda: asyncio.run(chat.send_message(msg))),
             timeout=float(os.environ.get("LLM_TIMEOUT_SECONDS", "60")),
         )
         raw = str(raw or "").strip()
+        llm_traces.add_llm_call(
+            purpose="intent_parse", provider="anthropic", model="claude-sonnet-4-6",
+            system_message=_SYSTEM_PROMPT,
+            request_messages=[{"role": "user", "content": text.strip()}],
+            response_raw=raw, duration_ms=(_time.time() - _t0) * 1000)
     except asyncio.TimeoutError:
         _log.warning("LLM intent parse timed out")
+        from core import llm_traces
+        llm_traces.add_llm_call(purpose="intent_parse", provider="anthropic",
+                                model="claude-sonnet-4-6", error="timeout")
         return Action(action="unknown", payload={})
     except Exception as e:
         _log.warning("LLM call failed: %s", redact(str(e), max_len=120))
+        from core import llm_traces
+        llm_traces.add_llm_call(purpose="intent_parse", provider="anthropic",
+                                model="claude-sonnet-4-6", error=str(e)[:300])
         return Action(action="unknown", payload={})
 
     parsed = _extract_json(raw)
