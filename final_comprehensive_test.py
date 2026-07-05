@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Configuration
-BASE_URL = "https://erp-compliance-check.preview.emergentagent.com/api"
+BASE_URL = "https://pdpl-memory-engine.preview.emergentagent.com/api"
 USERNAME = "مدير"
 
 class Colors:

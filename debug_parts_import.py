@@ -7,7 +7,7 @@ import requests
 import os
 from io import BytesIO
 
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://erp-compliance-check.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://pdpl-memory-engine.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 # Create CSV content

@@ -4,7 +4,7 @@
 import requests
 import json
 
-API_URL = "https://erp-compliance-check.preview.emergentagent.com/api"
+API_URL = "https://pdpl-memory-engine.preview.emergentagent.com/api"
 WID = "finmodule-sync"
 TOWDHEEB = ["توضيب", "تلميع مكينة", "توضيب مكينه"]
 
