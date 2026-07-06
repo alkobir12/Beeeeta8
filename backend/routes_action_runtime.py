@@ -42,12 +42,28 @@ _log = get_logger("routes.runtime")
 router = APIRouter(prefix="/api/runtime", tags=["runtime"])
 
 
+async def _require_approver(request: Request) -> "rbac.Actor":
+    """🔐 SEC-002: القراءات المالية على مستوى المنظمة (drafts/approvals/executions/
+    audit/db/stats) والإنشاء اليدوي للمسودات تكشف بيانات كل العملاء — لذا تتطلب دوراً
+    معتمِداً (admin/manager/supervisor). بلا توكن ⇒ 401، دور غير مخوّل ⇒ 403.
+    تذكير الشات يستخدم استدعاءات in-process فلا يتأثر بهذا التقييد."""
+    ident = rbac.extract_identity(request)
+    if not ident.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    actor = await rbac.resolve_actor(
+        user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"]
+    )
+    rbac.require(rbac.can_approve(actor))
+    return actor
+
+
 # ─── Drafts ─────────────────────────────────────────────────────────────────
 
 
 @router.post("/drafts")
-async def runtime_create_draft(payload: Dict[str, Any] = Body(...)):
+async def runtime_create_draft(request: Request, payload: Dict[str, Any] = Body(...)):
     """Manually register a draft (for testing or non-power-mode flows)."""
+    await _require_approver(request)
     action = (payload.get("action") or "").strip().lower()
     if action not in action_runtime.VALID_ACTIONS:
         raise HTTPException(status_code=400, detail=f"action must be one of {sorted(action_runtime.VALID_ACTIONS)}")
@@ -62,15 +78,18 @@ async def runtime_create_draft(payload: Dict[str, Any] = Body(...)):
 
 @router.get("/drafts")
 async def runtime_list_drafts(
+    request: Request,
     status: Optional[str] = Query(default=None),
     session_id: Optional[str] = Query(default=None),
     limit: int = Query(default=50, le=200),
 ):
+    await _require_approver(request)
     return {"success": True, "data": action_runtime.list_drafts(status=status, session_id=session_id, limit=limit)}
 
 
 @router.get("/drafts/{draft_id}")
-async def runtime_get_draft(draft_id: str):
+async def runtime_get_draft(draft_id: str, request: Request):
+    await _require_approver(request)
     d = action_runtime.get_draft(draft_id)
     if not d:
         raise HTTPException(status_code=404, detail="draft_not_found")
@@ -199,9 +218,11 @@ async def runtime_spawn_supplier(draft_id: str, request: Request, payload: Optio
 
 @router.get("/approvals")
 async def runtime_list_approvals(
+    request: Request,
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=50, le=200),
 ):
+    await _require_approver(request)
     return {"success": True, "data": action_runtime.list_approvals(status=status, limit=limit)}
 
 
@@ -270,9 +291,11 @@ async def runtime_commit(draft_id: str, request: Request, payload: Optional[Dict
 
 @router.get("/executions")
 async def runtime_list_executions(
+    request: Request,
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=50, le=200),
 ):
+    await _require_approver(request)
     return {"success": True, "data": action_runtime.list_executions(status=status, limit=limit)}
 
 
@@ -292,18 +315,21 @@ async def runtime_rollback(execution_id: str, request: Request, payload: Optiona
 
 
 @router.get("/audit")
-async def runtime_audit(limit: int = Query(default=100, le=500)):
+async def runtime_audit(request: Request, limit: int = Query(default=100, le=500)):
+    await _require_approver(request)
     return {"success": True, "data": action_runtime.get_audit_trail(limit=limit)}
 
 
 @router.get("/stats")
-async def runtime_stats():
+async def runtime_stats(request: Request):
+    await _require_approver(request)
     return {"success": True, "data": action_runtime.stats()}
 
 
 @router.get("/db/{table}")
-async def runtime_db_peek(table: str):
+async def runtime_db_peek(table: str, request: Request):
     """Peek at the in-memory staging DB. Phase 3C.2 will replace with Supabase."""
+    await _require_approver(request)
     if table not in action_runtime.DB:
         raise HTTPException(status_code=404, detail=f"unknown_table:{table}")
     rows = list(action_runtime.DB[table].values())
@@ -421,8 +447,9 @@ async def runtime_alias_rollback(execution_id: str, request: Request, payload: O
 
 
 @router.get("/report")
-async def runtime_alias_report():
+async def runtime_alias_report(request: Request):
     """Alias: GET /api/runtime/report → flat summary of the runtime state."""
+    await _require_approver(request)
     s = action_runtime.stats()
     return {
         "mode": "summary",

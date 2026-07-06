@@ -287,3 +287,19 @@ Config (غياب الإعداد=خطأ صريح) + Stress (10k بند <5s، KPI 
 **التحقق:** وكيل الاختبار — **100% (14/14)** (API + واجهة الدرج: ApprovalCard تظهر بدل «نعم»؛ «كل القيود» = 15 قيداً حقيقياً متوازناً 15,269 بلا أسماء وهمية؛ أربع أعين: المُنشئ لا يعتمد نفسه). كل مسودات الاختبار discarded.
 **اختبارات:** `backend/tests/test_bot_routing_hotfixes_iter251.py` (14/14 وحدة) + تقرير `test_reports/iteration_252.json`.
 **تحسين اختياري (backlog):** `executed.approval_id` في رد الشات ليس `draft_id` — إضافة `draft_id` للرد تُسهّل التنظيف/زر التراجع.
+
+## 24 فبراير 2026 — إصلاح ثغرات إعادة التدقيق الأمني (SEC-001/002/005) ✅
+**السياق:** إعادة تدقيق أمني (قراءة فقط) أكّدت أن الهوت فيكس السابقة صمدت (RBAC على tool/{name}،
+whatsapp write-gating، الأربع أعين، لا SSRF، لا أسرار مضمّنة). بقيت 3 ثغرات قابلة للاستغلال — أُصلحت كهوت فيكس معزولة:
+- **SEC-002 (High) — نقص تخويل على مستوى الوظيفة:** فني/محاسب كان يقرأ بيانات كل العملاء المالية.
+  أُضيف حارس `_require_approver` لنقاط القراءة في `routes_action_runtime.py` (drafts/approvals/executions/
+  audit/db/stats/report + POST /drafts اليدوي)، و RBAC كتابة مالية على
+  `server.py:/vehicles/{id}/save-parts-and-create-journal`. إثبات: no-token→401، فني/محاسب→403، admin→200/403 كتابة.
+  (تذكير الشات يستخدم استدعاءات in-process فلم يتأثر؛ واجهة المعتمِد FinancialControl تعمل.)
+- **SEC-001 (High) — XSS مخزَّن عبر الطباعة:** أُضيف تهريب HTML (server-side) لكل حقول المستخدم في
+  `arabic_quotation.generate_html` (علم حماية من التهريب المزدوج) — يغطّي كل مسارات `/api/documents/generate`.
+  إثبات: `<img onerror>`/`<script>` في اسم العميل/وصف البند تعود مُهرَّبة (`&lt;...`) خاملة.
+- **SEC-005 (Medium) — PII في llm_traces:** أُضيف `_safe()` (redact) على الرسائل/مدخلات ومخرجات الأدوات
+  في `core/llm_traces.py`. الهواتف/الإيميلات/الأسرار مُقنّعة (`***4567`/`a***@`) والأسماء/المبالغ (<9 أرقام) محفوظة للتشخيص.
+- **مؤجَّل (قرار مالك): SEC-003** دخول بلا كلمة مرور (قرار منتج — يتطلب تكامل مصادقة). P3 hardening: OTP 4 أرقام، كوكيز secure=False، توكن admin داخلي، محدِّد معدل داخل الذاكرة.
+- **اختبارات:** `backend/tests/test_security_reaudit_iter253.py` — 45/45 نجاح مع اختبارات 250+251.

@@ -185,6 +185,33 @@ class ArabicQuotationBuilder:
         """إنشاء HTML"""
         colors = self.themes.get(theme, self.themes["أزرق"])
 
+        # 🔐 SEC-001: تهريب (escape) كل الحقول القابلة للتحكم من المستخدم قبل الحقن في
+        # HTML — يمنع XSS المخزَّن (اسم عميل/وصف بند فيه <script>/<img onerror> يسرق
+        # التوكن عند الطباعة). نهرّب مرة واحدة فقط (علم حماية من التهريب المزدوج)،
+        # والحقول الرقمية تبقى كما هي.
+        if not getattr(self, "_html_escaped", False):
+            import html as _html
+
+            def _esc(v):
+                return _html.escape(str(v), quote=True) if isinstance(v, str) else v
+
+            for _it in self.quotation.get("items", []):
+                if isinstance(_it, dict) and isinstance(_it.get("description"), str):
+                    _it["description"] = _esc(_it["description"])
+            _cli = self.quotation.get("client") or {}
+            for _k in ("name", "company", "address", "phone", "email"):
+                if isinstance(_cli.get(_k), str):
+                    _cli[_k] = _esc(_cli[_k])
+            for _k in ("project_description", "number", "doc_title", "date"):
+                if isinstance(self.quotation.get(_k), str):
+                    self.quotation[_k] = _esc(self.quotation[_k])
+            self.quotation["terms"] = [_esc(_t) for _t in self.quotation.get("terms", [])]
+            for _k in ("name", "name_en", "slogan", "address", "phone", "email",
+                       "website", "commercial_register"):
+                if isinstance(self.company.get(_k), str):
+                    self.company[_k] = _esc(self.company[_k])
+            self._html_escaped = True
+
         # إنشاء صفوف البنود
         items_html = ""
         for i, item in enumerate(self.quotation["items"], 1):

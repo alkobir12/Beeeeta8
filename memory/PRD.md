@@ -174,7 +174,7 @@ React 18.3.1 (CRA) + FastAPI + Supabase (relational) + MongoDB (state/audit) + E
 
 ## حالة Katrina Verification Suite (24 فبراير 2026)
 - **بلاغ إنتاج مُصلَح ✅ (سداد لم يُثبَّت + اختلاق عملاء)**: FIX-1 توجيه صيغ المصدر المالية (تحصيل/خصم إداري) لمحرّك التنفيذ → ApprovalCard أربع أعين حقيقية بدل بطاقة «نعم» الوهمية؛ FIX-2 كاشف «القيود كاملة/كل القيود» + حاجز برومبت ضد الاختلاق. تحقق وكيل الاختبار 100% (14/14). اختبارات: test_bot_routing_hotfixes_iter251.py.
-- **تدقيق أمني (قراءة فقط) — قرار معلّق للمالك**: SEC-001 دخول بلا كلمة مرور (قرار منتج موثّق)، SEC-002 نقاط تتحقق من التوكن لا الدور، SEC-003 XSS مخزَّن عبر الطباعة، SEC-004 توكنات موافقة قابلة للتخمين، SEC-005 PII غير منقّح في llm_traces. لم يُصلَح شيء — بانتظار تصنيف المالك.
+- **تدقيق أمني (إعادة) — 3 ثغرات أُصلحت ✅**: SEC-002 (نقص تخويل على runtime reads + save-parts-journal → RBAC معتمِد/كتابة مالية)، SEC-001 (XSS طباعة → تهريب HTML server-side)، SEC-005 (PII في llm_traces → redact). إثبات + 45/45 اختبار (test_security_reaudit_iter253.py). **مؤجَّل بقرار المالك: SEC-003** دخول بلا كلمة مرور (قرار منتج — يحتاج تكامل مصادقة) + P3 hardening (OTP 4 أرقام، كوكيز secure=False، توكن admin داخلي، rate limiter داخل الذاكرة).
 - **هوت فيكس أمنية منفَّذة سابقاً ✅**: RBAC على tool/{name}، whatsapp.send write=True، الطباعة (هوية الورشة). اختبارات: test_security_hotfixes_iter250.py (7/7).
 - **L14 Provenance: ❌ رسوب (4/6)** — docs/diagnostics/L14_PROVENANCE_REPORT.md. حكم 8,905/9,850 = بند A6 (3 مصادر حقيقة). اكتشافات L14-D1..D4 + G3 موثقة بلا إصلاح.
 - **التالي بالترتيب الصارم**: L1→L7 ثم L8→L13 ثم ملحق ب ثم ملحق ج ثم L15 (تشخيص خالص + trace_id). بعدها Hybrid Router (Strategy A).

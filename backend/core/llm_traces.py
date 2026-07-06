@@ -51,6 +51,16 @@ def _cap(v: Any) -> Any:
     return s[:_FIELD_CAP] + f"…[truncated {len(s) - _FIELD_CAP} chars]"
 
 
+def _safe(v: Any) -> Any:
+    """🔐 SEC-005/PDPL: تنقيح المعرّفات الشخصية (هواتف/إيميلات) والأسرار (JWT/مفاتيح)
+    قبل تخزين محتوى الـtrace في Mongo، مع الإبقاء على الأسماء والمبالغ العادية
+    (< 9 أرقام) كي تظل قيمة التشريح/Provenance سليمة. يحافظ على None ويطبّق نفس الحد."""
+    if v is None:
+        return None
+    s = v if isinstance(v, str) else repr(v)
+    return redact(s, max_len=_FIELD_CAP)
+
+
 _current: "contextvars.ContextVar[Optional[Dict[str, Any]]]" = contextvars.ContextVar(
     "llm_trace", default=None)
 
@@ -65,7 +75,7 @@ def start_trace(*, session_id: Optional[str] = None, user: Optional[str] = None,
         "user": user,
         "role": role,
         "channel": channel,
-        "user_message": _cap(message),
+        "user_message": _safe(message),
         "llm_calls": [],
         "tool_calls_executed": [],
         "final_response": None,
@@ -94,10 +104,10 @@ def add_tool_call(*, tool: str, tool_input: Optional[Dict[str, Any]] = None,
         return
     tr["tool_calls_executed"].append({
         "tool": tool,
-        "input": {k: _cap(v) for k, v in (tool_input or {}).items()},
-        "output_raw": _cap(output_raw),
+        "input": {k: _safe(v) for k, v in (tool_input or {}).items()},
+        "output_raw": _safe(output_raw),
         "success": bool(success),
-        "error": _cap(error) if error else None,
+        "error": _safe(error) if error else None,
         "duration_ms": round(duration_ms, 1) if duration_ms is not None else None,
         "write": bool(write),
     })
@@ -115,14 +125,14 @@ def add_llm_call(*, purpose: str, provider: str, model: str,
         "purpose": purpose,
         "provider": provider,
         "model": model,
-        "system_message": _cap(system_message),
+        "system_message": _safe(system_message),
         "request_messages": [
-            {"role": m.get("role"), "content": _cap(m.get("content"))}
+            {"role": m.get("role"), "content": _safe(m.get("content"))}
             for m in (request_messages or [])
         ],
-        "response_raw": _cap(response_raw),
+        "response_raw": _safe(response_raw),
         "duration_ms": round(duration_ms, 1) if duration_ms is not None else None,
-        "error": _cap(error) if error else None,
+        "error": _safe(error) if error else None,
     })
 
 
@@ -137,13 +147,13 @@ def finish_trace(*, session_id: Optional[str] = None, final_response: Optional[s
     tr["duration_ms"] = round((time.time() - tr.pop("_t0", time.time())) * 1000, 1)
     if session_id:
         tr["session_id"] = session_id
-    tr["final_response"] = _cap(final_response)
+    tr["final_response"] = _safe(final_response)
     tr["intent"] = intent
     tr["status"] = status
     if executed is not None:
-        tr["executed"] = {k: _cap(v) if isinstance(v, str) else v
+        tr["executed"] = {k: _safe(v) if isinstance(v, str) else v
                           for k, v in executed.items()}
-    tr["error"] = _cap(error) if error else None
+    tr["error"] = _safe(error) if error else None
     col = _collection()
     if col is not None:
         try:

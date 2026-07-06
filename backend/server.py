@@ -1001,11 +1001,25 @@ async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate):
 @api_router.post("/vehicles/{vehicle_id}/save-parts-and-create-journal")
 async def save_vehicle_parts_and_create_journal(
     vehicle_id: str,
-    parts: List[dict]
+    parts: List[dict],
+    request: Request,
 ):
     """
     حفظ بنود المركبة + إنشاء قيد محاسبي + إنشاء فاتورة مفتوحة
     """
+    # 🔐 SEC-002: هذه النقطة تُنشئ عملية+قيد+فاتورة مباشرةً (تتجاوز الأربع أعين) —
+    # تتطلب صلاحية كتابة مالية صريحة. بلا توكن ⇒ 401، دور غير مخوّل ⇒ 403.
+    from core import rbac
+    ident = rbac.extract_identity(request)
+    if not ident.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    actor = await rbac.resolve_actor(
+        user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"]
+    )
+    allowed = rbac.check_permission(actor, "invoices", "create")
+    if not allowed.allowed:
+        allowed = rbac.check_permission(actor, "journal_entries", "create")
+    rbac.require(allowed)
     try:
         workshop_id = os.getenv("REACT_APP_WORKSHOP_ID", "workshop-1")
         
