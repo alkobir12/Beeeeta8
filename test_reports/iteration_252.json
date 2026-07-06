@@ -1,0 +1,38 @@
+{
+  "summary": "End-to-end verification of Katrina chat hotfixes (iter 252). Executed 14 API tests covering FIX-1, FIX-1b, FIX-1c four-eyes negative control, FIX-2 no-fabrication (2 variants), FIX-2b, bot<->pages linkage (AR summary, customer card, vehicle count=172, journal count=15, active visits, low stock, recent operations), deep-link/navigation card action integrity, and multi-turn session continuity — ALL 14 PASSED. Additionally confirmed via LIVE Katrina drawer UI: the message 'تحصيل من عبد العزيز العريني 2200 تحويل' produces a real ApprovalCard (approve/reject buttons visible), NOT the fake 'اكتب نعم' text. All test-created drafts were DISCARDED (rejected). No real financial actions committed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/runtime/drafts/{id}/discard", "issue": "The chat response's executed.approval_id is the APPROVAL id, not the draft_id. Callers (and my initial fixture) that pass approval_id to /drafts/{id}/discard get 404 draft_not_found. Consumers must fetch draft_id from GET /api/runtime/approvals. Recommend either (a) also returning draft_id in the chat executed payload, or (b) accepting either id in the discard endpoint."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_katrina_e2e_iter252.py",
+    "/app/test_reports/pytest/iter252_results.xml"
+  ],
+  "action_items": [
+    "(Optional/minor) Enrich chat response executed{} with draft_id (or accept both approval_id and draft_id in discard endpoint) — improves programmatic cleanup and any UI 'undo/discard' link on the ApprovalCard.",
+    "(Housekeeping) Pre-existing pending drafts queue has ~21 entries; not caused by this iter but worth a cleanup pass."
+  ],
+  "critical_code_review_comments": [
+    "assistant_kernel.py — the _FIN_MASDAR_RE branch correctly gates on amount presence and no leading interrogative; behavior verified live. Consider adding a unit list of the interrogative lead-ins in one constant to avoid drift.",
+    "unified_executor.py — RISKY_ACTIONS auto-forces pending_approval; four-eyes self-approve blocking is enforced (verified with 400/403 + 'المُنشئ ... بنفسه' message). Good.",
+    "tool_router._accounting_journal_entries — confirmed no fabrication; response respects 'لا توجد بيانات' honesty when tool returns empty (verified indirectly, no fabricated names appeared).",
+    "Minor DX: chat 'executed' payload could echo draft_id (alongside approval_id) to simplify client-side discard/cleanup flows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_katrina_e2e_iter252.py (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% (drawer + ApprovalCard render verified)"},
+  "test_credentials": "Name-only login used: مدير (admin/approver). Also referenced احمد1 (supervisor/approver) for four-eyes note. See /app/memory/test_credentials.md.",
+  "seed_data_creation": "None. Created 4 transient drafts during testing (3 during pytest + 1 during UI smoke); ALL discarded (status=rejected). No customer balances modified.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Test file /app/backend/tests/test_katrina_e2e_iter252.py can be reused. IMPORTANT: to discard drafts programmatically, do NOT use executed.approval_id — instead call GET /api/runtime/approvals?status=pending, map approval.id -> approval.draft_id, and POST /api/runtime/drafts/{draft_id}/discard with body {reason}. Also note pytest fixture cleanup depends on module-scope re-login; if API is slow (~4 min for 14 tests due to LLM latency), extend timeouts.",
+  "rca_of_the_issue": "Original bugs (1) payment not committed and (2) fabricated customers were RESOLVED by main agent's hotfixes to assistant_kernel.looks_like_action() (added masdar/noun financial pattern) and _system_prompt() (anti-fabrication rule) + tool_router.detect_tools() journal pattern expansion. Verified independently: masdar phrasing now correctly routes to unified_executor → pending_approval ApprovalCard (four-eyes) instead of the previous 'اكتب نعم' path that silently discarded intent; and 'كل القيود المحاسبية' now hits the real journal tool returning 15 balanced entries with zero fabricated names/refs."
+}

@@ -73,7 +73,7 @@ _TOOL_PATTERNS = [
     (re.compile(r"(الخدمات\s*المتوفرة|الخدمات\s*المتاحة|اظهر\s*(?:ال)?خدمات|أظهر\s*(?:ال)?خدمات|كم\s*سعر\s*(?:خدمة|تغيير|إصلاح|اصلاح|فحص)|سعر\s*خدمة|قائمة\s*(?:ال)?خدمات|service\s*list)", re.IGNORECASE), "services.search"),
     (re.compile(r"(قطع\s*(?:ال)?غيار|كم\s*(?:عندي|عندنا)\s*(?:قطعة|قطع)|كم\s*سعر\s*القطعة|بحث\s*(?:عن\s*)?قطعة|inventory\s*list|parts\s*list)", re.IGNORECASE), "parts.list"),
     # Accounting journal entries (real journal_entries table) — قيود يومية / دفتر اليومية / ميزان مراجعة
-    (re.compile(r"(قيد\s*محاسب|قيود\s*محاسب|دفتر\s*(?:ال)?يومي[ةه]?|قيود\s*(?:ال)?يومي|القيود\s*المالي|ميزان\s*(?:ال)?مراجع|journal\s*entr|القيود\s*في\s*(?:ال)?دفتر|القيد\s*رقم|تفاصيل\s*(?:ال)?قيد)", re.IGNORECASE), "accounting.journal_entries"),
+    (re.compile(r"(قيد\s*محاسب|قيود\s*محاسب|دفتر\s*(?:ال)?يومي[ةه]?|قيود\s*(?:ال)?يومي|القيود\s*المالي|ميزان\s*(?:ال)?مراجع|journal\s*entr|القيود\s*في\s*(?:ال)?دفتر|القيد\s*رقم|تفاصيل\s*(?:ال)?قيد|القيود\s*(?:ال)?محاسب|كل\s*(?:ال)?قيود|جميع\s*(?:ال)?قيود|(?:ال)?قيود\s*(?:ال)?كامل|كامل\s*(?:ال)?قيود|(?:اعرض|أعرض|عرض|اعطني|أعطني)\s*(?:ال)?قيود)", re.IGNORECASE), "accounting.journal_entries"),
 ]
 
 
@@ -167,6 +167,15 @@ _DIALECT_INTENT_RE = re.compile(
     r"احذف|امسح|شيل|اغلق|اقفل|ضيف|حط|اعمل|انشئ)",
     re.IGNORECASE,
 )
+# 🆕 Financial masdar/noun action forms the imperative verb regex misses
+# (e.g. «تحصيل من فلان 2200 تحويل»، «300 خصم إداري»). These route to
+# collect_payment / create_expense in the executor. Fires ONLY with a concrete
+# amount and no question lead — so «كم التحصيل؟» stays on the read path.
+_FIN_MASDAR_RE = re.compile(
+    r"(?:تحصيل|سداد|توريد|خصم\s*إ?داري|خصم\s*اداري|إسقاط\s*رصيد|اسقاط\s*رصيد|"
+    r"شطب\s*رصيد|إعفاء\s*رصيد|اعفاء\s*رصيد)",
+    re.IGNORECASE,
+)
 # Clear read/question lead-ins — keep these on the answering path.
 _QUESTION_LEAD_RE = re.compile(
     r"^\s*(?:ما|ماذا|كم|كيف|متى|اين|أين|هل|من\s|لماذا|ليش|وش|ايش|إيش|وين|ابحث|أبحث|"
@@ -222,6 +231,12 @@ def looks_like_action(text: str) -> bool:
         norm,
     ))
     is_question = bool(_QUESTION_LEAD_RE.search(raw))
+    # 🆕 Financial masdar command (تحصيل/سداد/خصم إداري/إسقاط رصيد) with a concrete
+    # amount and no question lead → EXECUTE (routes to collect_payment/create_expense).
+    # Fixes «التحصيل لا يُثبَّت»: the bare masdar was missed here, so the message fell to
+    # the LLM which faked a «اكتب نعم» card that could never commit.
+    if (_FIN_MASDAR_RE.search(raw) or _FIN_MASDAR_RE.search(norm)) and re.search(r"\d", norm) and not is_question:
+        return True
     if (has_phone or has_vehicle_year) and not is_question:
         return True
     return False
@@ -631,6 +646,7 @@ def _system_prompt() -> str:
         "  • إذا لم تتوفّر البيانات أو رجعت الأداة فارغة → قولي بوضوح «لا تتوفّر بيانات كافية» أو «لم أجد قيوداً مطابقة»، **ولا تخمّني المصدر ولا تلفّقي تفسيراً**.\n"
         "  • قد يختلف الرقم الإجمالي في تقرير (مثل التدفق النقدي) عن مجموع العمليات المفردة — إن ظهر فرق، وضّحي أنه **فرق في طريقة الاحتساب** واقترحي فتح صفحة القيود المحاسبية للتفصيل؛ **لا تختلقي عمليات أو قيوداً لتغطية الفرق**.\n"
         "  • فرّقي بصراحة بين «تمثيل توضيحي» و«بيانات فعلية»، ولا تعرضي أي تمثيل توضيحي وكأنه قيد حقيقي مسجّل في النظام.\n"
+        "  • **ممنوع منعاً باتاً اختلاق أسماء عملاء/موردين أو قيود وادّعاء أنها «من جلسة/رسالة سابقة».** أي اسم أو رقم قيد تعرضينه يجب أن يكون حاضراً في نتائج الأدوات في هذه اللحظة — إن لم يرجع من الأداة الآن فقولي «لم تُرجع الأداة قيوداً» وأحيلي لصفحة القيود المحاسبية، ولا تملئي الفراغ من ذاكرتك.\n"
         "  • **ممنوع منعاً باتاً الادعاء بتنفيذ أي عملية كتابة** (إضافة/تعديل/حذف عميل/مورد/مركبة/فاتورة...). "
         "التنفيذ يتم حصراً عبر محرك التنفيذ، ورسالة «✅ تم بنجاح» تصدر من النظام نفسه — ليست منكِ. "
         "إذا وصلك طلب تنفيذ إلى هنا فهذا يعني أن المحرك لم يلتقطه: قولي بوضوح «لم يُنفَّذ بعد» "
