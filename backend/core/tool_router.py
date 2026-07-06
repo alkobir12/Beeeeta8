@@ -873,9 +873,9 @@ async def _whatsapp_send_real(
     to: str = "",
     message: str = "",
 ) -> Dict[str, Any]:
-    """📲 إرسال رسالة واتساب حقيقية عبر Infobip (read-only من ناحية DB).
+    """📲 إرسال رسالة واتساب حقيقية عبر Infobip.
 
-    READ-ONLY: لا يُعدّل أي بيانات داخلية — فقط يستدعي خدمة خارجية.
+    WRITE tool: إرسال خارجي فعلي — تُسجَّل فقط تحت عقد BOT_ALLOW_WRITES=1.
     """
     from core.card_builder import whatsapp_card
     to_norm = (to or "").strip()
@@ -1123,13 +1123,17 @@ def _bootstrap() -> None:
         handler=_runtime_audit_recent,
         params={"workshop_id": "string?", "limit": "int?"},
     )
-    register_tool(
-        "whatsapp.send",
-        agent="WorkshopAgent",
-        description="📲 إرسال رسالة واتساب حقيقية عبر Infobip لرقم محدد.",
-        handler=_whatsapp_send_real,
-        params={"workshop_id": "string?", "to": "string", "message": "string"},
-    )
+    # 🛡️ Hotfix (ثغرة write): whatsapp.send أداة كتابة (إرسال خارجي فعلي عبر Infobip).
+    # عقد Phase 3A: أدوات الكتابة تُسجَّل فقط مع BOT_ALLOW_WRITES=1 — وإلا لا تتوفر إطلاقاً.
+    if _writes_allowed():
+        register_tool(
+            "whatsapp.send",
+            agent="WorkshopAgent",
+            description="📲 إرسال رسالة واتساب حقيقية عبر Infobip لرقم محدد.",
+            handler=_whatsapp_send_real,
+            params={"workshop_id": "string?", "to": "string", "message": "string"},
+            write=True,
+        )
     # 🆕 Phase 3C.9 — Services + Parts catalog awareness
     register_tool(
         "services.search",

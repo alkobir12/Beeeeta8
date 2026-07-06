@@ -121,7 +121,17 @@ async def assistant_tools(agent: Optional[str] = Query(default=None)):
 
 
 @router.post("/tool/{name}")
-async def assistant_call_tool(name: str, payload: Dict[str, Any] = Body(default=None)):
+async def assistant_call_tool(name: str, request: Request, payload: Dict[str, Any] = Body(default=None)):
+    # 🔐 Hotfix (ثغرة RBAC): كان المسار ينفّذ أي أداة لأي مستخدم مصادَق.
+    # الآن: هوية من JWT الموقَّع فقط + دور معتمد (admin/manager/supervisor) وإلا 401/403.
+    from core import rbac as _rbac
+    _ident = _rbac.extract_identity(request)
+    if not _ident.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    _actor = await _rbac.resolve_actor(
+        user_id=_ident["user_id"], name=_ident["name"], role_hint=_ident["role_hint"]
+    )
+    _rbac.require(_rbac.can_approve(_actor))
     args = payload or {}
     result = await tool_router.call_tool(name, **args)
     return result

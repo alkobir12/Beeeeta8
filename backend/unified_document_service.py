@@ -327,20 +327,20 @@ def create_unified_document_routes(router):
         settings: Optional[DocumentSettings] = None
 
     async def _load_workshop_profile_fallback() -> Dict:
-        """Best-effort fetch of workshop profile from the same backend.
+        """Best-effort fetch of workshop profile.
 
-        NOTE: use async http client to avoid blocking event loop.
+        🛡️ Hotfix: كان يستدعي /api/profile عبر HTTP داخلي بلا توكن → 401 دائماً
+        بعد تفعيل auth_guard → fallback فارغ. الآن نستدعي الدالة مباشرة (بلا HTTP).
         """
         try:
-            import httpx
+            from routes_workshop_config import get_workshop_profile
 
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                r = await client.get("http://127.0.0.1:8001/api/profile")
-                if r.status_code == 200:
-                    data = r.json() or {}
-                    if "commercialRegister" in data and "commercial_register" not in data:
-                        data["commercial_register"] = data.get("commercialRegister")
-                    return data
+            data = dict(await get_workshop_profile() or {})
+            if "commercialRegister" in data and "commercial_register" not in data:
+                data["commercial_register"] = data.get("commercialRegister")
+            if "taxNumber" in data and "tax_number" not in data:
+                data["tax_number"] = data.get("taxNumber")
+            return data
         except Exception:
             pass
         return {}
@@ -370,7 +370,9 @@ def create_unified_document_routes(router):
                 workshop_data = {}
 
             # Always merge stored profile as defaults, so missing legal fields (like commercial register) still appear.
-            workshop_data = {**(await _load_workshop_profile_fallback()), **workshop_data}
+            # 🛡️ Hotfix: القيم الفارغة القادمة من الواجهة ("" / None / []) لا تمسح بيانات البروفايل.
+            _caller_ws = {k: v for k, v in workshop_data.items() if v not in ("", None, [])}
+            workshop_data = {**(await _load_workshop_profile_fallback()), **_caller_ws}
 
             logging.info(f"Document generation request received: doc_type={doc_type}")
             logging.info(f"Workshop keys: {list((workshop_data or {}).keys())[:10]}")

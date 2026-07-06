@@ -172,6 +172,11 @@ React 18.3.1 (CRA) + FastAPI + Supabase (relational) + MongoDB (state/audit) + E
 - **P2**: ربط whatsapp.send بموجه نوايا البوت؛ deep-links سياقية (?pos= ?part=)؛ Ollama fallback معطوب في بيئة المعاينة
 - **P3**: تقسيم مكونات React الضخمة (VehicleDetails 4510 سطر، Operations 3835)؛ CRA→Vite
 
+## حالة Katrina Verification Suite (24 فبراير 2026)
+- **هوت فيكس أمنية منفَّذة ✅**: RBAC على tool/{name} (401/403/200 مثبتة)، whatsapp.send write=True (غير مسجلة مع BOT_ALLOW_WRITES=0 — مقصود)، الطباعة (هوية الورشة تظهر — fallback مباشر + فلترة القيم الفارغة). اختبارات: test_security_hotfixes_iter250.py (7/7).
+- **L14 Provenance: ❌ رسوب (4/6 + 1 جزئي + 1 فشل)** — تقرير كامل بـ 17 trace_id: docs/diagnostics/L14_PROVENANCE_REPORT.md. حكم 8,905/9,850: توجيه «اعرضي الذمم» لا يصل ar_summary (3 مصادر حقيقة متزامنة 11,150/1,731/10,300 = بند A6). اكتشافات L14-D1..D4 + G3 موثقة في LEGACY_AUDIT.md بلا إصلاح (حاكمية).
+- **التالي بالترتيب الصارم**: L1→L7 ثم L8→L13 ثم ملحق ب ثم ملحق ج ثم L15 (تشخيص خالص + trace_id لكل نتيجة). بعدها: Hybrid Router (Strategy A) — وهو المعالج الطبيعي لـ L14-D1/D3.
+
 ## Known Status
 - journal_entries (Supabase): 8 قيود آجل ✅ (13,550) — الصحة 100/100، تنبيه وحيد: ذمم مفتوحة. 0 اعتماد معلّق.
 - **أمان**: كل `/api/*` محمي بـJWT عبر حارس مصادقة عام. أدوات البوت الداخلية تستخدم توكن خدمة موقّعاً (tool_router._int_headers).
