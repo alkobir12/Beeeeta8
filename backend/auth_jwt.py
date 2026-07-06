@@ -20,6 +20,13 @@ JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
+# 🔐 P0 root-cause fix: the app is embedded in a cross-site iframe (Emergent preview).
+# Cookies with SameSite=Lax and no Secure are treated as third-party there and are NOT
+# sent → /api/auth/refresh (cookie-only) got 401. SameSite=None + Secure makes the
+# httpOnly cookies survive the iframe over HTTPS. Configurable via env for local HTTP dev.
+_COOKIE_SAMESITE = (os.environ.get("AUTH_COOKIE_SAMESITE") or "none").lower()
+_COOKIE_SECURE = (os.environ.get("AUTH_COOKIE_SECURE") or "true").lower() not in ("0", "false", "no")
+
 
 def _get_jwt_secret() -> str:
     secret = os.environ.get("JWT_SECRET")
@@ -148,14 +155,17 @@ class LoginPayload(BaseModel):
 
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
-    """httpOnly cookies — دفاع في العمق إضافةً إلى Bearer header."""
+    """httpOnly cookies — دفاع في العمق إضافةً إلى Bearer header.
+
+    🔐 SameSite=None + Secure (افتراضياً) كي تُرسَل داخل iframe المعاينة (cross-site).
+    """
     response.set_cookie(
-        key="access_token", value=access_token, httponly=True, secure=False,
-        samesite="lax", max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/",
+        key="access_token", value=access_token, httponly=True, secure=_COOKIE_SECURE,
+        samesite=_COOKIE_SAMESITE, max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60, path="/",
     )
     response.set_cookie(
-        key="refresh_token", value=refresh_token, httponly=True, secure=False,
-        samesite="lax", max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600, path="/",
+        key="refresh_token", value=refresh_token, httponly=True, secure=_COOKIE_SECURE,
+        samesite=_COOKIE_SAMESITE, max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600, path="/",
     )
 
 
@@ -194,9 +204,11 @@ async def login(payload: LoginPayload, response: Response):
 
 @router.post("/logout")
 async def logout(response: Response):
-    """مسح cookies الجلسة."""
-    response.delete_cookie(key="access_token", path="/")
-    response.delete_cookie(key="refresh_token", path="/")
+    """مسح cookies الجلسة — بنفس سمات SameSite/Secure كي تُحذف فعلاً."""
+    response.delete_cookie(key="access_token", path="/",
+                           samesite=_COOKIE_SAMESITE, secure=_COOKIE_SECURE)
+    response.delete_cookie(key="refresh_token", path="/",
+                           samesite=_COOKIE_SAMESITE, secure=_COOKIE_SECURE)
     return {"success": True, "message": "Logged out"}
 
 
@@ -224,6 +236,9 @@ async def refresh(request: Request, response: Response):
     _set_auth_cookies(response, access_token, new_refresh)
     return {
         "access_token": access_token,
+        # 🔐 P0: return the rotated refresh token so the SPA can keep a Bearer fallback
+        # working even when third-party cookies are blocked (Safari ITP / strict browsers).
+        "refresh_token": new_refresh,
         "token_type": "bearer",
         "username": resolved_name,
         "role": actor.role,

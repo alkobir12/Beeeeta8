@@ -320,3 +320,16 @@ whatsapp write-gating، الأربع أعين، لا SSRF، لا أسرار مض
 - **اختبارات:** `backend/tests/test_code_review_hotfixes_iter254.py` (9) — الإجمالي 54/54 مع 250/251/253.
 - **مؤجَّل (LOW، غير محجوب):** توحيد تنقيح executed، نمط الهاتف يقنّع مبالغ ≥9 أرقام، ذاكرة الجلسة/المسودات
   in-memory تُفقد عند إعادة التشغيل، تناقض RBAC على /power و/intent/execute (مقصود — مسار الاقتراح مفتوح للمصادَقين).
+
+## 24 فبراير 2026 — P0: إصلاح جذري لـ /api/auth/refresh (401 cascade) ✅
+**RCA الكامل:** `/app/docs/diagnostics/P0_AUTH_REFRESH_RCA.md`
+- **السبب الجذري:** التطبيق داخل iframe المعاينة (cross-site)؛ كوكيز الجلسة كانت `SameSite=Lax` بلا
+  `Secure` → لا تُرسَل في iframe → `/api/auth/refresh` (يعتمد الكوكي فقط) → 401 → سلسلة خروج.
+  أُثبت بـcurl: مع الكوكي 200، بلا الكوكي 401.
+- **الباك (`auth_jwt.py`):** كوكيز `SameSite=None; Secure` (قابلة للضبط عبر env) + `/refresh` يُرجع
+  refresh مُدوَّر في الجسم + `/logout` يحذف بنفس السمات.
+- **الواجهة (`authToken.js`):** تخزين refresh + fallback عبر `Authorization: Bearer` + single-flight
+  + طابور + منع حلقات + Logout منظّم (بثّ `auth:session-expired` + توجيه واحد لـ/login) مع تصفير العلم عند نجاح الدخول.
+- **إثبات حي:** بعد الدخول refresh=200، stats=200، اللوحة تحمّل كاملة. (401 قبل الدخول = متوقّع.)
+- **اختبارات:** `backend/tests/test_auth_refresh_iter255.py` (5/5) — الإجمالي 59/59.
+- **مؤجّل لـP1:** تدوير refresh حقيقي (jti + كشف إعادة استخدام + تخزين خادمي).

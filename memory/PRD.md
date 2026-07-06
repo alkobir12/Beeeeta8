@@ -179,6 +179,14 @@ React 18.3.1 (CRA) + FastAPI + Supabase (relational) + MongoDB (state/audit) + E
 - **L14 Provenance: ❌ رسوب (4/6)** — docs/diagnostics/L14_PROVENANCE_REPORT.md. حكم 8,905/9,850 = بند A6 (3 مصادر حقيقة). اكتشافات L14-D1..D4 + G3 موثقة بلا إصلاح.
 - **التالي بالترتيب الصارم**: L1→L7 ثم L8→L13 ثم ملحق ب ثم ملحق ج ثم L15 (تشخيص خالص + trace_id). بعدها Hybrid Router (Strategy A).
 
+## أولويات المالك (24 فبراير 2026) — تسلسل إلزامي، لا انتقال قبل إغلاق المرحلة
+- **P0 — إصلاح /api/auth/refresh جذرياً ✅ مكتمل**: RCA في docs/diagnostics/P0_AUTH_REFRESH_RCA.md. السبب: كوكيز SameSite=Lax لا تعيش في iframe المعاينة → refresh 401. الحل: SameSite=None;Secure + Bearer fallback + single-flight + طابور + منع حلقات + logout منظّم. 5/5 اختبار + تحقق حي. **بانتظار إغلاق المالك للمرحلة.**
+- **P1 — SEC-003 نظام مصادقة Production** (التالي): Email/Password (bcrypt) + PIN بعد أول دخول + Google SSO + Remember Device + Refresh Rotation (jti + reuse detection + تخزين خادمي) + إدارة جلسات + Audit Log. Passwordless يصبح خياراً لا الوحيد. **يتطلب استدعاء دليل التكامل + أسئلة توضيحية (أُرسلت 5) قبل التنفيذ.**
+- **P2 — إكمال Katrina L8→L15**: Regression + trace_id + Replay لكل سيناريو مهم.
+- **P3 — Hybrid Router**: كل الأوامر المالية عبر Router حتمي ثم Validation ثم Accounting Engine؛ منع أي LLM من إنشاء/تعديل قيود مباشرة.
+- **P4 — نقل الحالة من الذاكرة لقاعدة البيانات**: drafts, conversations, quotation state, pending actions, workflow state.
+- **P5 — تطوير التتبع**: Correlation ID، Parent/Child Trace، Latency، Cost، Tokens، User ID، Role، Decision Path، Tool Calls.
+
 ## Known Status
 - journal_entries (Supabase): 8 قيود آجل ✅ (13,550) — الصحة 100/100، تنبيه وحيد: ذمم مفتوحة. 0 اعتماد معلّق.
 - **أمان**: كل `/api/*` محمي بـJWT عبر حارس مصادقة عام. أدوات البوت الداخلية تستخدم توكن خدمة موقّعاً (tool_router._int_headers).
