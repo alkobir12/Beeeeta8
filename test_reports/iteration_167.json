@@ -1,104 +1,37 @@
 {
-  "timestamp": "2026-06-05T19:27:42.783834",
-  "passed": 22,
-  "failed": 1,
-  "total": 23,
-  "revenue_distribution": {
-    "026": 4369.0,
-    "027": 2500.0
-  },
+  "timestamp": "2026-07-06T01:20:03.248765",
+  "passed": 0,
+  "failed": 7,
+  "total": 7,
+  "revenue_distribution": {},
   "details": [
     {
-      "ok": true,
+      "ok": false,
       "label": "GET /api/vehicles → 200"
     },
     {
-      "ok": true,
-      "label": "مركبات موجودة"
-    },
-    {
-      "ok": true,
-      "label": "حقل fileNumber موجود في المركبات"
-    },
-    {
-      "ok": true,
+      "ok": false,
       "label": "GET /api/operations → 200"
     },
     {
-      "ok": true,
-      "label": "عمليات موجودة"
-    },
-    {
-      "ok": true,
-      "label": "يوجد عمليات آجل قابلة للسداد"
-    },
-    {
-      "ok": true,
-      "label": "confirm-payment يعمل"
-    },
-    {
-      "ok": true,
+      "ok": false,
       "label": "GET /api/finance/journal-entries → 200"
     },
     {
-      "ok": true,
-      "label": "قيود يومية موجودة"
-    },
-    {
-      "ok": true,
-      "label": "لا أكواد قديمة في القيود"
-    },
-    {
-      "ok": true,
-      "label": "جميع القيود متوازنة"
-    },
-    {
       "ok": false,
-      "label": "حساب 042 (ايراد قطع الورشه) موجود في القيود"
-    },
-    {
-      "ok": true,
       "label": "GET /api/finance/chart-of-accounts → 200"
     },
     {
-      "ok": true,
-      "label": "حسابات الدليل موجودة"
-    },
-    {
-      "ok": true,
-      "label": "حساب العملاء 005 موجود"
-    },
-    {
-      "ok": true,
+      "ok": false,
       "label": "إنشاء أمر سداد من الذمم"
     },
     {
-      "ok": true,
+      "ok": false,
       "label": "income-statement → 200"
     },
     {
-      "ok": true,
-      "label": "revenue > 0"
-    },
-    {
-      "ok": true,
-      "label": "net_income > 0"
-    },
-    {
-      "ok": true,
+      "ok": false,
       "label": "accounts/tree → 200"
-    },
-    {
-      "ok": true,
-      "label": "assets > 0 في الدليل"
-    },
-    {
-      "ok": true,
-      "label": "revenue > 0 في الدليل"
-    },
-    {
-      "ok": true,
-      "label": "ميزان المراجعة متوازن"
     }
   ]
 }

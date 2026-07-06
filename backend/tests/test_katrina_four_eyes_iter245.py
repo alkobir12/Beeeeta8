@@ -61,16 +61,16 @@ class TestAliasRBAC:
     def test_alias_approve_without_auth_denied(self):
         r = requests.post(f"{API}/runtime/approve/nonexistent-approval-id",
                           json={}, timeout=15)
-        assert r.status_code == 403, f"expected 403, got {r.status_code} {r.text[:300]}"
-        assert "permission_denied" in r.text or "unknown" in r.text
+        # 401 = حارس المصادقة العام (أُضيف بعد كتابة الاختبار) — الرفض هو المطلوب
+        assert r.status_code in (401, 403), f"expected 401/403, got {r.status_code} {r.text[:300]}"
 
     def test_alias_commit_without_auth_denied(self):
         r = requests.post(f"{API}/runtime/commit/nonexistent-id", json={}, timeout=15)
-        assert r.status_code == 403, f"expected 403, got {r.status_code} {r.text[:300]}"
+        assert r.status_code in (401, 403), f"expected 401/403, got {r.status_code} {r.text[:300]}"
 
     def test_alias_rollback_without_auth_denied(self):
         r = requests.post(f"{API}/runtime/rollback/nonexistent-id", json={}, timeout=15)
-        assert r.status_code == 403, f"expected 403, got {r.status_code} {r.text[:300]}"
+        assert r.status_code in (401, 403), f"expected 401/403, got {r.status_code} {r.text[:300]}"
 
 
 # ---------------- Full four-eyes cycle ----------------
