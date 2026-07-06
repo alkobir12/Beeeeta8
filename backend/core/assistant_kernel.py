@@ -172,7 +172,7 @@ _DIALECT_INTENT_RE = re.compile(
 # collect_payment / create_expense in the executor. Fires ONLY with a concrete
 # amount and no question lead — so «كم التحصيل؟» stays on the read path.
 _FIN_MASDAR_RE = re.compile(
-    r"(?:تحصيل|سداد|توريد|خصم\s*إ?داري|خصم\s*اداري|إسقاط\s*رصيد|اسقاط\s*رصيد|"
+    r"(?:تحصيل|سداد|خصم\s*إ?داري|خصم\s*اداري|إسقاط\s*رصيد|اسقاط\s*رصيد|"
     r"شطب\s*رصيد|إعفاء\s*رصيد|اعفاء\s*رصيد)",
     re.IGNORECASE,
 )
@@ -230,7 +230,7 @@ def looks_like_action(text: str) -> bool:
         r"باترول|اكسنت|سوناتا|النترا|كورولا|يارس|برادو|فورتشنر|ددسن|hilux|camry)\s*\d{4}",
         norm,
     ))
-    is_question = bool(_QUESTION_LEAD_RE.search(raw))
+    is_question = bool(_QUESTION_LEAD_RE.search(raw) or _QUESTION_LEAD_RE.search(norm))
     # 🆕 Financial masdar command (تحصيل/سداد/خصم إداري/إسقاط رصيد) with a concrete
     # amount and no question lead → EXECUTE (routes to collect_payment/create_expense).
     # Fixes «التحصيل لا يُثبَّت»: the bare masdar was missed here, so the message fell to
@@ -812,7 +812,22 @@ async def _chat_impl(
             return _build_action_chat_response(sid=sid, message=message, exec_res=exec_res)
         if exec_res and exec_res.get("status") == "needs_clarification":
             return _build_clarification_response(sid=sid, message=message, exec_res=exec_res)
-        # read_only / rejected / error → fall through to the normal read path
+        # 🆕 CR-2 (G3 fix): a genuine execution FAILURE (exception → exec_res is None,
+        # or status == "error") for an action-looking message must be surfaced honestly
+        # instead of silently falling to the read/LLM path — which hides the failure
+        # from the operator and can produce a misleading "as-if-done" reply.
+        if exec_res is None or exec_res.get("status") == "error":
+            _detail = ""
+            if exec_res:
+                _detail = redact(str(exec_res.get("error") or exec_res.get("reason") or ""), max_len=140)
+            _err_text = (
+                "⚠️ لم يُنفَّذ الأمر — حدث خطأ أثناء المعالجة، ولم يُحفظ أو يُعدَّل أي شيء.\n"
+                "أعد صياغة الطلب بوضوح (مثال: «سجّل تحصيل 500 من محمد نقدًا») أو حاول لاحقًا."
+            )
+            if _detail:
+                _err_text += f"\n\n🔧 التفاصيل: {_detail}"
+            return _plain_chat_response(sid=sid, text=_err_text, intent="action_error", status="error")
+        # read_only / rejected → fall through to the normal read path
 
     # 1) Detect which read-only tools to invoke
     tool_names = detect_tools(message)

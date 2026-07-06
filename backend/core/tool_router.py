@@ -217,7 +217,12 @@ async def _accounting_journal_entries(workshop_id: str = "finmodule-sync", limit
                 f"{base}/api/finance/journal-entries",
                 params={"workshop_id": workshop_id or "finmodule-sync", "limit": n},
             )
-            payload = r.json() if r.status_code == 200 else {}
+            # 🆕 CR-4: on a non-200 upstream, return an explicit error instead of an
+            # empty-but-"balanced" ledger (count:0) — the latter is indistinguishable
+            # from a real empty ledger and invites the LLM to fabricate/deny entries.
+            if r.status_code != 200:
+                return {"error": f"journal_entries fetch failed (HTTP {r.status_code})"}
+            payload = r.json()
     except Exception as e:
         return {"error": str(e)}
     entries = payload.get("data") if isinstance(payload, dict) else None

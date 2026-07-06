@@ -56,6 +56,8 @@ class ArabicQuotationBuilder:
 
     def reset_quotation(self):
         """إعادة تعيين بيانات العرض"""
+        # 🆕 CR-4: reset the escape guard so a reused generator re-escapes fresh data.
+        self._html_escaped = False
         self.company = {
             "name": "شركة الإبداع التقني",
             "name_en": "Creative Tech Solutions",

@@ -43,11 +43,20 @@ export const RecentOperationsWidget = ({ variant = 'drawer', limit = 8, filterAc
   const [items, setItems] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [forbidden, setForbidden] = useState(false);
 
   const fetchExecutions = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API_URL}/api/runtime/executions?limit=${limit}`);
+      const r = await fetch(`${API_URL}/api/runtime/executions?limit=${limit}`, { credentials: 'include' });
+      // 🔐 CR-1: /executions requires an approver role. For non-approver staff show
+      // an explicit "insufficient permission" state instead of a silent empty list.
+      if (r.status === 401 || r.status === 403) {
+        setForbidden(true);
+        setItems([]);
+        return;
+      }
+      setForbidden(false);
       const data = await r.json();
       let rows = data?.data || [];
       if (filterAction) {
@@ -96,8 +105,8 @@ export const RecentOperationsWidget = ({ variant = 'drawer', limit = 8, filterAc
     } catch (e) { /* swallow */ }
   };
 
-  if (variant === 'page' && items.length === 0 && !loading) {
-    return null;  // hide empty widget on pages
+  if (variant === 'page' && (forbidden || (items.length === 0 && !loading))) {
+    return null;  // hide widget on pages when empty or not permitted
   }
 
   const isCompact = variant === 'drawer';
@@ -135,7 +144,11 @@ export const RecentOperationsWidget = ({ variant = 'drawer', limit = 8, filterAc
 
       {!collapsed && (
         <div className={`px-2 py-1.5 ${isCompact ? 'max-h-[160px]' : 'max-h-[260px]'} overflow-y-auto space-y-1.5`}>
-          {items.length === 0 ? (
+          {forbidden ? (
+            <div data-testid="recent-ops-forbidden" className="text-center text-[11px] text-slate-400 dark:text-slate-500 py-4">
+              عرض العمليات المُنفّذة متاح للمعتمِدين فقط.
+            </div>
+          ) : items.length === 0 ? (
             <div className="text-center text-[11px] text-slate-400 dark:text-slate-500 py-4">
               {loading ? 'جاري التحميل…' : 'لم تُنفّذ عمليات بعد. جرّب: "سجل عميل جديد"'}
             </div>
