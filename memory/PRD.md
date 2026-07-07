@@ -1,5 +1,18 @@
 # Workshop ERP — Product Requirements (PRD)
 
+## CHANGELOG — 2026-07-07 (فجر اليوم التالي) · ✅ إصلاح 502 + قاعدة القيد المؤقت للبيع الآجل + دمج مركز التحكم داخل كاترينا
+**مختبَر 100%: وكيل الاختبار iteration_254 — باك إند 10/10 + واجهة كل الفحوصات ✅**
+- **502 على chat/prompt (AttributeError Actor.get)**: تم التحقق أنه مُصلح بالفعل — كل المسارات المتعطلة سابقاً تعيد 200 (chat، prompt/versions، prompt/activate، سيناريو البيع الآجل). `_extract_request_actor` تعيد dict والمسارات موحّدة.
+- **🕒 قاعدة القيد المؤقت للبيع الآجل (طلب المالك)**:
+  - عند تسجيل بيع آجل (paymentMethod آجل/اجل/credit/deferred/ذمم أو paymentStatus unpaid/pending/partial) → قيد تلقائي موسوم `[قيد مؤقت — بيع آجل]` (مدين ذمم 005 / دائن إيرادات). كان الكشف السابق يقبل "credit" الإنجليزية فقط — وُسِّع في `_build_operation_journal_entry` و`confirm_operation_payment` (routes_extended.py).
+  - عند التحصيل الكامل → قيد تسوية (مدين نقدية/بنك/شبكة، دائن ذمم 005) + الوسم يتحول إلى `[بيع آجل — مُسوَّى ✓]`. تحصيل جزئي → `[قيد مؤقت — بيع آجل | مُحصَّل جزئياً]`. الدالة: `mark_temp_deferred_settled()` في core/financial_actions.py (تُستدعى من confirm-payment ومن collect_payment مع reference_id).
+  - فواتير كاترينا الآجلة (create_invoice) تحمل الوسم نفسه.
+  - **SSOT**: `ar_ledger.summary()` القسم 4 يعيد `temporary_deferred_entries/total/note`، وأداة `finance.ar_summary` تمررها، ونمط توجيه جديد في `assistant_kernel._TOOL_PATTERNS` («قيود مؤقتة/بيع آجل» → finance.ar_summary). كاترينا تجيب بدقة عن القيود المؤقتة غير المحصلة.
+  - انحدار: البيع النقدي يظل مدين نقدية 003 بلا وسم. اختبار قابل لإعادة الاستخدام: `/app/backend/tests/test_temp_deferred_iter254.py`.
+- **🛡️ دمج مركز التحكم المالي داخل البوت (P3 المرحلة أ+)**: تبويبات داخل درج كاترينا (`assistant-tab-chat` / `assistant-tab-control` بشارة عدّاد حمراء). مكوّن جديد `components/assistant/ControlCenterTab.jsx`: KPIs (اكتشافات مفتوحة/حرجة/بانتظار الاعتماد/الأثر المالي) + اعتمادات كاترينا المعلقة (اعتماد/رفض بأربع أعين، 403 لمقترح نفسه) + أحدث الاكتشافات (قراءة) + زر فتح الصفحة الكاملة. صفحة /financial-control باقية كما هي (لا تكرار بيانات — نفس الـAPIs).
+- **🎴 إصلاح كروت الاعتمادات (شكوى المالك: «خام وبيانات غير موضحة + خط البار العلوي غير واضح»)**: البار العلوي للكرت أصبح text-sm font-black مع ظل نص للوضوح على التدرجات + أيقونة أكبر. `PayloadDetails` (KatrinaApprovalsTab — exported) يعرض حقولاً عربية منسقة (المبلغ بارز، طريقة الدفع بأسماء عربية، إخفاء كل حقول UUID الخام *_id) بدل JSON الخام. كروت المسودات في AssistantCard أثريت (عميل/مورد/طريقة دفع/بيان/تاريخ/الأثر المحاسبي 🧾).
+- ملاحظة تجميلية معلّقة (غير حاجبة): وابل 401 على صفحة /login قبل تسجيل الدخول (AssistantProvider يستعلم قبل وجود توكن) — من iter253.
+
 ## CHANGELOG — 2026-07-07 (ليلاً) · 🏆 أمر علاج L14 منفَّذ بالكامل — الشهادة 6/6
 - **الأمر الحاكم**: `/app/docs/verification/L14_REMEDIATION_ORDER.md` (رفعه المالك). الترتيب المنفَّذ: D5←D1←D2←D6(تقني)←مشغّل S3. كل بند diff معزول + إثبات trace + اختبار انحدار. **الأرقام لم تُلمس** (مصير 3,450 وقيود الاختبار قرار مالك معلّق).
 - **D5**: `core/provenance_guard.py` — حجب أي بلوك نتائج أدوات غير منفَّذة + تسجيل في الـtrace. **D1**: أنماط اعرضي الذمم/راجعي القيود/عمليتين + نزع أفعال مؤنثة + حل ترتيبي «أول عميل في القائمة» عبر `last_list`. **D2**: `core/prompt_registry.py` (v1-baseline/v2-d2-governance/v3-d2.1-cross-turn) + rollback حي مُثبت بالـtrace + endpoints (`/api/assistant/prompt/versions|activate`). **D6-تقني**: `core/ar_ledger.py` SSOT (قيود −2,419 / آجل غير مقيّد 3,450 / مخزّن 11,150→10,850 حياً) + `GET /api/finance/ar-ledger` + شريط SSOT في DebtFollowUp + أداة ar_summary طبقية. **S3-مشغّل**: financial_figure().
@@ -223,7 +236,9 @@ React 18.3.1 (CRA) + FastAPI + Supabase (relational) + MongoDB (state/audit) + E
 ## أولويات المالك (24 فبراير 2026) — تسلسل إلزامي، لا انتقال قبل إغلاق المرحلة
 - **P0 — إصلاح /api/auth/refresh جذرياً ✅ مكتمل**: RCA في docs/diagnostics/P0_AUTH_REFRESH_RCA.md. السبب: كوكيز SameSite=Lax لا تعيش في iframe المعاينة → refresh 401. الحل: SameSite=None;Secure + Bearer fallback + single-flight + طابور + منع حلقات + logout منظّم. 5/5 اختبار + تحقق حي.
 - **P1 — SEC-003 نظام مصادقة Production ✅ مكتمل (2026-07-07)**: Email/Password (bcrypt) + PIN + جهاز موثوق + Google SSO (Emergent) + Refresh Rotation (jti + reuse detection) + جلسات + Audit Log + واجهة كاملة (Login + /account/security). مختبَر خلفية وواجهة.
-- **P2 — إكمال Katrina L8→L15** (التالي): Regression + trace_id + Replay لكل سيناريو مهم. (سيناريوهات المالك التسعة ✅ منجزة 2026-07-07 كجزء تمهيدي).
+- **✅ قاعدة القيد المؤقت للبيع الآجل (طلب مالك 2026-07-07) — منفَّذة ومختبَرة (iteration_254)**.
+- **✅ P3 المرحلة أ+ — مركز التحكم داخل البوت — منفَّذ ومختبَر (iteration_254)**. المتبقي من P3: المرحلة ب (Hybrid Router الكامل).
+- **P2 — إكمال Katrina L8→L15** (التالي بعد إغلاق المالك لامتحان L14): Regression + trace_id + Replay لكل سيناريو مهم. (سيناريوهات المالك التسعة ✅ منجزة 2026-07-07 كجزء تمهيدي).
 - **P3 — Hybrid Router**: كل الأوامر المالية عبر Router حتمي ثم Validation ثم Accounting Engine؛ منع أي LLM من إنشاء/تعديل قيود مباشرة.
 - **P4 — نقل الحالة من الذاكرة لقاعدة البيانات**: drafts, conversations, quotation state, pending actions, workflow state.
 - **P5 — تطوير التتبع**: Correlation ID، Parent/Child Trace، Latency، Cost، Tokens، User ID، Role، Decision Path، Tool Calls.
