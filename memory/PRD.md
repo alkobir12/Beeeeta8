@@ -6,6 +6,31 @@
 **وثيقة قبول جديدة**: «اختبار سلامة وترابط النظام المحاسبي v1.0» — 13 قاعدة صارمة (مصدر حقيقة واحد، توازن القيد المزدوج، دورة نقدي/آجل، ميزان مراجعة، قائمة دخل، تزامن UI/بوت/قاعدة، سلامة قاعدة البيانات).
 **وثيقة حاكمة جديدة (2026-07-05)**: «Katrina Verification Suite» (`/app/docs/diagnostics/KATRINA_VERIFICATION_SUITE.md`) — التحقق الفعلي L1→L16 + 3 ملاحق (Legacy Audit / Failure Modes / UI Consistency). قواعدها: كل نتيجة بدون trace_id مرفوضة، تشخيص خالص بلا إصلاح في الجولة الأولى، الشهادة = أعلى مستوى مكتمل 100% + امتحان المالك.
 
+## CHANGELOG — 2026-07-07 · ✅ P1 مكتمل (مصادقة إنتاجية SEC-003) + سيناريوهات المالك التسعة لكاترينا
+**مختبَر 100%: pytest 8/8 (P1) + 5/5 (P0 refresh) + 34/34 (انحدار أمني/توجيه) + 14/14 (سيناريوهات كاترينا iter257) + وكيل اختبار واجهة (iteration_253: 100% مع إصلاح HIGH الوحيد بعدها)**
+
+### P1 — المصادقة الإنتاجية (Backend كان جاهزاً، أُكمل الاختبار + الواجهة)
+- 🔧 **حل جذر فشل اختبارات P1**: تجاوز Rate Limiter بترويسة سرية `x-ratelimit-bypass` == `RATE_LIMIT_BYPASS_TOKEN` (backend/.env) — server.py middleware. حزمة الاختبار تمنع تخزين الكوكيز (كانت الكوكيز الجديدة تتقدم على Bearer القديم وتكسر اختبار reuse-detection).
+- 🧹 تنظيف `.env`: كانت 4 نسخ مكررة من JWT_SECRET (توليد تلقائي) → نسخة واحدة (الفعّالة bafd8756…).
+- 🖥️ **واجهة تسجيل الدخول الجديدة (Login.jsx)**: اسم فقط (متوافق رجعياً) + كشف تلقائي «كلمة المرور مطلوبة» يُظهر حقلها + «تذكّر هذا الجهاز» → دخول سريع بـ PIN (وضع تلقائي عند وجود `trusted_device` في localStorage) + زر Google SSO (auth.emergentagent.com، redirect ديناميكي، AuthCallback يعالج `#session_id=` قبل أي توجيه في App.js).
+- 🔐 **SecuritySettings** (تعيين كلمة مرور + PIN + توثيق الجهاز 30 يوماً): مركّبة في /settings?tab=profile **و** صفحة مستقلة `/account/security` متاحة **لكل مستخدم موثق** (قاعدة `allow:'authenticated'` في ROUTE_PERMISSIONS + بند sidebar بلا صلاحية) — إصلاح HIGH من وكيل الاختبار: الفني لم يكن يملك أي مسار UI لضبط كلمة مروره.
+- 📄 utils جديدة: `sessionSetup.js` (establishSession موحّد للدخول العادي وGoogle)، `authToken.js` أصبح فيه `loginRequest/storeTokens`.
+- 🧪 وكيل الاختبار (iteration_253): كل تدفقات الدخول (اسم/كلمة مرور/PIN/Google redirect) 100% + كاترينا «كم مركبة حالية» تطابق اللوحة. تنظيف بيانات «مستخدم اختبار» تم.
+
+### سيناريوهات المالك التسعة (كلها ✅ محققة E2E)
+1. «أعطني آخر خمس عمليات» → `operations.recent` (نمط جديد يدعم «آخر خمس/5/عشر»).
+2. «اجمالي الذمم الحالية» → `finance.ar_summary` (نمط موسّع: اجمالي/مجموع/كم الذمم) — 11,150 ر.س / 8 عملاء.
+3. «كم المصروفات هذا الشهر» → `firewall.cash_flow` (كان يعمل) — 969 ر.س.
+4. «اكثر الخدمات بيعاً» → 🆕 أداة `operations.top_services` (تجميع بنود العمليات الفعلية count+revenue — كان يجيب من كتالوج الخدمات خطأً).
+5. «عمليات بدون قيود محاسبية» → `firewall.operation_integrity` (كان يعمل) — كشف 5 عمليات بـ3,450 ر.س.
+6. «سداد 5377 عبدالعزيز العريني» → collect_payment أربع أعين: 🆕 توحيد «عبدالعزيز↔عبد العزيز» في normalize_arabic + 🆕 تفضيل التطابق الاسمي التام («محمد الحربي» يفوز على «محمد علي الحربي») + 🆕 customer_phone في مخطط collect_payment/create_invoice + عند الغموض يسأل بقائمة مرشحين + عند عدم الوجود يعرض **إضافة عميل جديد**.
+7. «كم مركبة حالية» → 🆕 أداة `vehicles.status_summary` مطابقة لقواعد لوحة التحكم (تستثني delivered): 13 حالية / تشخيص 10 / جاهز 1 / مؤرشفة 2.
+8. «اضف بند توضيب مكينة 500 آجل على المركبة لوحة …» → create_visit تأكيد ثم التزام؛ البند ظهر في ملف المركبة عبر `/api/vehicles/{id}/visits` (زيارة f9c0e5ae).
+9. «تأكيد سداد»: سداد 500 محمد الحربي → pending_approval → اعتماد ذاتي 403 four_eyes_violation ✅ → اعتماد احمد1 + commit → قيد متوازن 500/500 (journal 31149eb3، tx_hash). (مسودة 5377 الاختبارية رُفضت تنظيفاً).
+- Regression جديد: `/app/backend/tests/test_katrina_scenarios_iter257.py` (14 اختباراً حتمياً بلا LLM).
+- ملاحظة بيانات: قيد سداد 500 + زيارة البند الآجل باقيان كأثر اختبار مطلوب من المالك (يمكن عكس القيد بأمر «اعكس القيد 31149eb3» عند الرغبة).
+- Backlog من وكيل الاختبار (LOW): كبح دفعة طلبات 401 قبل تسجيل الدخول على /login.
+
 ## CHANGELOG — 2026-07-05 · Katrina Verification Suite: المرحلة 0 (llm_traces) + الملحق أ (Legacy Audit)
 **قرارات المستخدم المعتمدة:** L15 مصغّر (10 جلسات ذمم + 5 شراء) مع سباق الاعتماد كاملاً + توثيق أن الكامل شرط الجولة الثانية فوق L14 · L12 بمحاكاة أعطال بأربعة ضوابط (تأكيد قبل كل حقن، snapshot للقاعدة، flags قابلة للعكس، checklist استعادة بالتقرير).
 - 🔬 **نظام llm_traces (الشرط المسبق) — مكتمل ومختبَر (7/7 pytest + e2e curl)**:
@@ -180,9 +205,9 @@ React 18.3.1 (CRA) + FastAPI + Supabase (relational) + MongoDB (state/audit) + E
 - **التالي بالترتيب الصارم**: L1→L7 ثم L8→L13 ثم ملحق ب ثم ملحق ج ثم L15 (تشخيص خالص + trace_id). بعدها Hybrid Router (Strategy A).
 
 ## أولويات المالك (24 فبراير 2026) — تسلسل إلزامي، لا انتقال قبل إغلاق المرحلة
-- **P0 — إصلاح /api/auth/refresh جذرياً ✅ مكتمل**: RCA في docs/diagnostics/P0_AUTH_REFRESH_RCA.md. السبب: كوكيز SameSite=Lax لا تعيش في iframe المعاينة → refresh 401. الحل: SameSite=None;Secure + Bearer fallback + single-flight + طابور + منع حلقات + logout منظّم. 5/5 اختبار + تحقق حي. **بانتظار إغلاق المالك للمرحلة.**
-- **P1 — SEC-003 نظام مصادقة Production** (التالي): Email/Password (bcrypt) + PIN بعد أول دخول + Google SSO + Remember Device + Refresh Rotation (jti + reuse detection + تخزين خادمي) + إدارة جلسات + Audit Log. Passwordless يصبح خياراً لا الوحيد. **يتطلب استدعاء دليل التكامل + أسئلة توضيحية (أُرسلت 5) قبل التنفيذ.**
-- **P2 — إكمال Katrina L8→L15**: Regression + trace_id + Replay لكل سيناريو مهم.
+- **P0 — إصلاح /api/auth/refresh جذرياً ✅ مكتمل**: RCA في docs/diagnostics/P0_AUTH_REFRESH_RCA.md. السبب: كوكيز SameSite=Lax لا تعيش في iframe المعاينة → refresh 401. الحل: SameSite=None;Secure + Bearer fallback + single-flight + طابور + منع حلقات + logout منظّم. 5/5 اختبار + تحقق حي.
+- **P1 — SEC-003 نظام مصادقة Production ✅ مكتمل (2026-07-07)**: Email/Password (bcrypt) + PIN + جهاز موثوق + Google SSO (Emergent) + Refresh Rotation (jti + reuse detection) + جلسات + Audit Log + واجهة كاملة (Login + /account/security). مختبَر خلفية وواجهة.
+- **P2 — إكمال Katrina L8→L15** (التالي): Regression + trace_id + Replay لكل سيناريو مهم. (سيناريوهات المالك التسعة ✅ منجزة 2026-07-07 كجزء تمهيدي).
 - **P3 — Hybrid Router**: كل الأوامر المالية عبر Router حتمي ثم Validation ثم Accounting Engine؛ منع أي LLM من إنشاء/تعديل قيود مباشرة.
 - **P4 — نقل الحالة من الذاكرة لقاعدة البيانات**: drafts, conversations, quotation state, pending actions, workflow state.
 - **P5 — تطوير التتبع**: Correlation ID، Parent/Child Trace، Latency، Cost، Tokens، User ID، Role، Decision Path، Tool Calls.

@@ -111,6 +111,8 @@ export const hasAnyPermission = (session, rules = []) => (
 );
 
 export const ROUTE_PERMISSIONS = [
+  // 🔐 personal account security — available to EVERY authenticated user
+  { pattern: /^\/account\/security/, allow: 'authenticated' },
   { pattern: /^\/$/, module: 'dashboard', action: 'view' },
   { pattern: /^\/operations/, module: 'operations', action: 'view' },
   { pattern: /^\/new-vehicle/, anyOf: [{ module: 'vehicles', action: 'create' }, { module: 'archive', action: 'create' }] },
@@ -149,6 +151,7 @@ export const resolveRoutePermission = (path) => {
 
 export const hasRoutePermission = (session, routeRule) => {
   if (!routeRule) return true;
+  if (routeRule.allow === 'authenticated') return true;
   if (Array.isArray(routeRule.roles) && routeRule.roles.includes(String(session?.role || '').toLowerCase())) return true;
   if (Array.isArray(routeRule.anyOf)) return hasAnyPermission(session, routeRule.anyOf);
   return hasPermission(session, routeRule.module, routeRule.action || 'view');

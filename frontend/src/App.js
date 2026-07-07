@@ -39,6 +39,7 @@ const DatabaseSetup = lazy(() => import("./pages/DatabaseSetup"));
 const Operations = lazy(() => import("./pages/Operations"));
 const ApprovalPublic = lazy(() => import("./pages/ApprovalPublic"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const AccountSecurity = lazy(() => import("./pages/AccountSecurity"));
 const ReportPublic = lazy(() => import("./pages/ReportPublic"));
 const ImportPage = lazy(() => import("./pages/Import"));
 const CustomerTracking = lazy(() => import("./pages/CustomerTracking"));
@@ -225,6 +226,7 @@ function App() {
                   <Route path="services" element={<ServicesManagement />} />
                   <Route path="invoice-templates" element={<InvoiceDesignerStudio />} />
                   <Route path="settings" element={<Settings />} />
+                  <Route path="account/security" element={<AccountSecurity />} />
                   <Route path="profile" element={<Navigate to="/settings?tab=profile" replace />} />
                   <Route path="archive" element={<VehicleArchive />} />
                   <Route path="database-setup" element={<DatabaseSetup />} />

@@ -118,6 +118,7 @@ const Sidebar = ({
         { path: '/templates', label: `🎨 ${t('nav.templates_manager')}`, enabled: true, permission: { module: 'invoices', action: 'view' } },
       ]
     },
+    { path: '/account/security', label: `🔐 ${i18n.language === 'ar' ? 'أمان الحساب' : 'Account Security'}`, icon: Settings, enabled: true },
     { path: '/settings', label: t('nav.settings'), icon: Settings, enabled: true, permission: { module: 'settings', action: 'view' } },
     // 🤖 Moltbot Studio أُزيل من القائمة الجانبية — البوتات أصبحت موحدة في UnifiedAssistantDrawer العائم.
     // إذا احتاج المدير الوصول للـ Studio، المسار /moltbot لا يزال متاحاً مباشرة.

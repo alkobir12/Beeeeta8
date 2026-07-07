@@ -92,7 +92,7 @@ const Login = () => {
         if (res.status === 401 && /كلمة المرور مطلوبة/.test(res.detail || '')) {
           setShowPassword(true);
           setPinMode(false);
-          toast({ title: 'كلمة المرور مطلوبة', description: 'هذا الحساب محمي — أدخل كلمة المرور' });
+          toast({ title: 'كلمة المرور مطلوبة', description: 'كلمة المرور مطلوبة لهذا الحساب — أدخلها للمتابعة' });
           return;
         }
         if (res.status === 429) {
