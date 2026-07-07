@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 
 # Get backend URL from environment
-BACKEND_URL = "https://pdpl-memory-engine.preview.emergentagent.com/api"
+BACKEND_URL = "https://accounting-engine-6.preview.emergentagent.com/api"
 
 def print_test(test_name, passed, details=""):
     """Print test result"""
@@ -205,7 +205,7 @@ def test_missing_endpoints():
     
     for endpoint in endpoints_to_check:
         try:
-            url = f"https://pdpl-memory-engine.preview.emergentagent.com{endpoint}"
+            url = f"https://accounting-engine-6.preview.emergentagent.com{endpoint}"
             response = requests.get(url, timeout=10)
             
             status = response.status_code

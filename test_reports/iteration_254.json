@@ -1,0 +1,30 @@
+{
+  "summary": "Full backend + frontend E2E verification of the Temporary Journal Entry (deferred sale) feature and merged bot-drawer Control Center. Backend: 10/10 pytest cases green (login, deferred sale creates '[قيد مؤقت — بيع آجل]' entry Dr 005/Cr revenue = 150, partial settlement flips desc to 'مُحصَّل جزئياً' and creates operation_payment entry Dr 003/Cr 005 = 50, full settlement flips desc to '[بيع آجل — مُسوَّى ✓]', cash-sale regression debits 003 and has no 'قيد مؤقت' tag, SSOT tool finance.ar_summary returns temporary_deferred_total/entries/note, chat routing sends 'كم القيود المؤقتة للبيع الآجل؟' to finance.ar_summary tool, greeting chat + prompt versions + activate all 200, cleanup deletes both test operations and no residual JEs). Frontend: login مدير OK; unified assistant FAB opens drawer with tab bar; chat + control center tabs present; control-center KPIs render correctly (open=11, pending=13, impact=11,650 ر.س); 13 approval cards render with clear orange top-bar action name, 'المبلغ: X ر.س' amount, customer name and proposer line, no raw UUIDs; Approve/Reject buttons wired; four-eyes 403 protection triggers a visible 'أربع أعين' rejection message when admin tries to approve their own proposal (no mutation, DB unaffected); chat tab input still visible; /financial-control 'اعتمادات كاترينا' tab shows 13 structured Katrina payload rows with Arabic labels. No issues found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Login page bootstrap", "issue": "Same 401 burst on /login as reported in iter253 (6 protected /api/* calls before auth token exists). Cosmetic / non-blocking.", "affected_selectors": []}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_temp_deferred_iter254.py",
+    "/app/test_reports/pytest/iter254.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Journal-entry line schema uses fields `account` + `code` (not `account_number`/`account_code`). Tests need to accept both; documented via helper _acc() in test file so future tests don't drift.",
+    "confirm-payment response wraps under {success, data:{...}}. Consistent with other endpoints and frontend already unwraps correctly.",
+    "AssistantCard / KatrinaApprovalsTab PayloadDetails successfully hide *_id fields — verified visually and via UUID regex scan on rendered card text (0 matches).",
+    "Four-eyes protection returning 403 with 'أربع أعين' message is surfaced to the user in the drawer as expected."
+  ],
+  "updated_files": ["/app/backend/tests/test_temp_deferred_iter254.py"],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% of specified checks"},
+  "test_credentials": "مدير (admin, name-only) via POST /api/auth/login; rate-limit bypass header used with RATE_LIMIT_BYPASS_TOKEN from /app/backend/.env.",
+  "seed_data_creation": "Created 2 temporary operations (1 deferred sale 150 ر.س + 1 cash sale 200 ر.س) on workshopId=finmodule-sync — both DELETED at end of pytest (test_z_cleanup) and residual journal entries verified gone. No pending approval was actually mutated (only one four-eyes-blocked approve attempt on a مدير-proposed item, denied with 403 by design).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reusable regression test at /app/backend/tests/test_temp_deferred_iter254.py covers the entire deferred-sale lifecycle + settlement + SSOT tool + chat routing + prompt versions. Journal-entry line account key is `account` (and duplicated as `code`) — use helper _acc(). Confirm-payment + chat + prompt endpoints all wrap payload under {success,data}. Frontend selectors verified: unified-assistant-fab → assistant-tabs → assistant-tab-chat / assistant-tab-control → control-center-tab with cc-kpi-{open,pending,impact} + cc-approval-<id> + cc-approve-<id> + cc-reject-<id>. /financial-control has fc-tab-katrina with katrina-payload-<id> rows. Live Supabase data: 11 findings, 13 pending approvals, 11,650 ر.س impact — do NOT bulk-approve/reject.",
+  "rca_of_the_issue": "N/A — no bug found in this iteration."
+}

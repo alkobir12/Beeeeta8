@@ -14,7 +14,9 @@ const ACTION_LABELS = {
   delete_operation: 'حذف عملية', delete_customer: 'حذف عميل', delete_vehicle: 'حذف مركبة',
   update_customer: 'تعديل عميل', update_vehicle: 'تعديل مركبة',
   invoice: 'فاتورة', payment: 'تحصيل دفعة', expense: 'مصروف', reverse: 'قيد عكسي',
+  purchase: 'شراء من مورد',
 };
+export { ACTION_LABELS };
 
 const STATUS_BADGE = {
   pending: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-200',
@@ -28,18 +30,54 @@ const fmtDate = (ts) => {
   catch { return '—'; }
 };
 
-const payloadSummary = (p = {}) => {
-  const parts = [];
-  if (p.name) parts.push(`الاسم: ${p.name}`);
-  if (p.customer || p.customer_name) parts.push(`العميل: ${p.customer || p.customer_name}`);
-  if (p.supplier) parts.push(`المورد: ${p.supplier}`);
-  if (p.phone) parts.push(`الجوال: ${p.phone}`);
-  if (p.plate || p.plate_number) parts.push(`اللوحة: ${p.plate || p.plate_number}`);
-  if (p.amount || p.total) parts.push(`المبلغ: ${Number(p.amount || p.total).toLocaleString()} ر.س`);
-  if (p.payment_method) parts.push(`الدفع: ${p.payment_method === 'credit' ? 'آجل' : p.payment_method === 'cash' ? 'نقدي' : p.payment_method}`);
-  if (p.category || p.description) parts.push(`البيان: ${p.category || p.description}`);
-  return parts.length ? parts.join(' · ') : JSON.stringify(p).slice(0, 120);
+// 🏷️ تسميات عربية واضحة لحقول المسودة — بدل عرض JSON خام
+const FIELD_LABELS = {
+  name: 'الاسم', customer: 'العميل', customer_name: 'العميل', supplier: 'المورد',
+  phone: 'الجوال', plate: 'اللوحة', plate_number: 'اللوحة',
+  payment_method: 'طريقة الدفع', category: 'البيان', description: 'البيان',
+  reason: 'السبب', date: 'التاريخ', brand: 'الماركة', model: 'الموديل',
+  year: 'السنة', notes: 'ملاحظات', vat: 'الضريبة', journal_id: 'رقم القيد',
+  reference_id: 'المرجع', quantity: 'الكمية', qty: 'الكمية', price: 'السعر',
 };
+const PAY_LABELS = {
+  cash: '💵 نقدي', credit: '⏳ آجل (ذمم)', deferred: '⏳ آجل (ذمم)',
+  bank: '🏦 تحويل بنكي', transfer: '🏦 تحويل بنكي', pos: '💳 شبكة / نقاط بيع',
+};
+
+export function PayloadDetails({ payload = {} }) {
+  const amount = payload.amount ?? payload.total;
+  const rows = Object.entries(payload).filter(([k, v]) =>
+    !k.startsWith('_') && !['amount', 'total'].includes(k)
+    && !(/(^id$|_id$|Id$)/.test(k) && k !== 'journal_id')
+    && v !== null && v !== '' && typeof v !== 'object' && typeof v !== 'boolean');
+  if (rows.length === 0 && (amount === undefined || amount === null)) {
+    return <span className="text-xs text-slate-400" data-testid="payload-empty">بدون تفاصيل إضافية</span>;
+  }
+  return (
+    <div className="mt-1.5 space-y-1" data-testid="payload-details">
+      {(amount !== undefined && amount !== null) && (
+        <div className="text-sm">
+          <span className="text-slate-500 dark:text-slate-400 text-xs">المبلغ: </span>
+          <span className="font-black text-indigo-700 dark:text-indigo-300">{Number(amount).toLocaleString('en-US')} ر.س</span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
+        {rows.map(([k, v]) => {
+          let display = String(v);
+          if (k === 'payment_method') display = PAY_LABELS[display] || display;
+          if (k === 'date') display = display.slice(0, 10);
+          if (['journal_id', 'reference_id'].includes(k)) display = display.slice(0, 12);
+          return (
+            <div key={k} className="text-xs">
+              <span className="text-slate-500 dark:text-slate-400">{FIELD_LABELS[k] || k}: </span>
+              <span className="font-bold text-slate-800 dark:text-slate-100">{display.slice(0, 60)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // الأثر المحاسبي المتوقع (من echo البوت إن وُجد)
 const accountingEffect = (p = {}) => p?._echo?.accounts || null;
@@ -170,7 +208,7 @@ export function KatrinaApprovalsTab({ onCountChange }) {
                     {a.status === 'pending' ? 'معلّقة' : a.status === 'approved' ? 'معتمدة' : 'مرفوضة'}
                   </span>
                 </div>
-                <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">{payloadSummary(a.payload)}</div>
+                <div data-testid={`katrina-payload-${a.id}`}><PayloadDetails payload={a.payload} /></div>
                 {accountingEffect(a.payload) && (
                   <div className="text-xs text-indigo-600 dark:text-indigo-300 mt-1 font-mono" data-testid={`katrina-effect-${a.id}`}>
                     🧾 {accountingEffect(a.payload)}

@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 # Use the production backend URL from frontend .env
-BASE_URL = "https://pdpl-memory-engine.preview.emergentagent.com/api"
+BASE_URL = "https://accounting-engine-6.preview.emergentagent.com/api"
 
 def log_test(test_name, status, details=""):
     """Log test results with timestamp"""

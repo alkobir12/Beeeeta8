@@ -43,7 +43,7 @@
     "frontend": "100% (all WhatsApp notification features working)"
   },
   "test_credentials": {
-    "api_url": "https://pdpl-memory-engine.preview.emergentagent.com",
+    "api_url": "https://accounting-engine-6.preview.emergentagent.com",
     "test_vehicle_id": "ca81024e-195b-464e-9671-0f532aad1545",
     "session": {"username": "مدير", "role": "manager", "guidanceEnabled": false},
     "customer_phone": "0505887917",

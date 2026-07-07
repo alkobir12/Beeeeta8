@@ -71,6 +71,41 @@ def _items_total(items: Optional[List[Dict[str, Any]]]) -> float:
     return round(total, 2)
 
 
+# ─── 🕒 القيد المؤقت للبيع الآجل (قاعدة المالك) ─────────────────────────────
+TEMP_DEFERRED_TAG = "[قيد مؤقت — بيع آجل]"
+PARTIAL_TAG = "[قيد مؤقت — بيع آجل | مُحصَّل جزئياً]"
+SETTLED_TAG = "[بيع آجل — مُسوَّى ✓]"
+
+
+def mark_temp_deferred_settled(reference_id: Optional[str], fully: Optional[bool] = None) -> None:
+    """بعد التحصيل: يحدّث وسم القيد المؤقت للبيع الآجل إلى مُسوَّى/جزئي (best-effort)."""
+    if not reference_id:
+        return
+    try:
+        from supabase_service import SupabaseService
+        supa = SupabaseService()
+        rows = (supa.client.table("journal_entries").select("id,description,total,source")
+                .eq("reference_id", str(reference_id)).execute().data) or []
+        temp_rows = [r for r in rows
+                     if TEMP_DEFERRED_TAG in str(r.get("description") or "")
+                     or PARTIAL_TAG in str(r.get("description") or "")]
+        if not temp_rows:
+            return
+        if fully is None:
+            base_total = sum(float(r.get("total") or 0) for r in temp_rows)
+            paid = sum(float(r.get("total") or 0) for r in rows
+                       if str(r.get("source") or "") in ("payment", "operation_payment", "operation_payment_income"))
+            fully = base_total > 0 and (paid + 0.01) >= base_total
+        tag = SETTLED_TAG if fully else PARTIAL_TAG
+        for r in temp_rows:
+            d = str(r.get("description") or "")
+            nd = d.replace(PARTIAL_TAG, tag).replace(TEMP_DEFERRED_TAG, tag)
+            if nd != d:
+                supa.client.table("journal_entries").update({"description": nd}).eq("id", r["id"]).execute()
+    except Exception:
+        pass
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 1) إصدار فاتورة
 # ─────────────────────────────────────────────────────────────────────────────
@@ -102,6 +137,8 @@ def create_invoice(
         {"account": sem["revenue_mech"], "account_name": "إيرادات خدمات ميكانيكية", "debit": 0, "credit": amount},
     ]
     desc = f"فاتورة — {customer}" + (f" ({len(items)} بند)" if items else "")
+    if _is_credit(payment_method):
+        desc = f"{TEMP_DEFERRED_TAG} {desc}"
     return get_engine().post(
         lines=lines, date=entry_date, description=desc, total=amount,
         source="invoice", transaction_type="sale", reference_id=reference_id,
@@ -134,12 +171,16 @@ def collect_payment(
         {"account": pay_acc, "account_name": pay_name, "debit": amt, "credit": 0},
         {"account": _codes()["ar"], "account_name": f"العملاء — {customer}", "debit": 0, "credit": amt},
     ]
-    return get_engine().post(
+    result = get_engine().post(
         lines=lines, date=entry_date, description=f"تحصيل من {customer}", total=amt,
         source="payment", transaction_type="payment", reference_id=reference_id,
         workshop_id=workshop_id, party=customer, actor=actor,
         extra={"party_label": customer, "party_type": "customer", "payment_method": payment_method},
     )
+    # 🕒 عند التحصيل: حدّث وسم القيد المؤقت المرتبط (إن وُجد) إلى مُسوَّى
+    if reference_id and isinstance(result, dict) and (result.get("posted") or result.get("journal_id")):
+        mark_temp_deferred_settled(reference_id)
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────

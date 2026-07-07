@@ -8,6 +8,7 @@ import { useAssistant } from './AssistantProvider';
 import { AssistantCard } from './AssistantCard';
 import { AssistantDashboard } from './AssistantDashboard';
 import { RecentOperationsWidget } from './RecentOperationsWidget';
+import { ControlCenterTab } from './ControlCenterTab';
 
 // 📱 Detect mobile breakpoint reactively
 function useIsMobile(breakpoint = 768) {
@@ -94,6 +95,8 @@ export const UnifiedAssistantDrawer = () => {
 
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [tab, setTab] = useState('chat');
+  const [controlCount, setControlCount] = useState(0);
   const [dailySummaryOn, setDailySummaryOn] = useState(() => localStorage.getItem('assistant_daily_summary') !== 'off');
   const [copiedIdx, setCopiedIdx] = useState(null);
   const messagesEndRef = useRef(null);
@@ -111,6 +114,23 @@ export const UnifiedAssistantDrawer = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [messages.length, busy]);
+
+  // 🛡️ عدّاد الاعتمادات المعلقة — لشارة تبويب مركز التحكم
+  useEffect(() => {
+    if (!open) return;
+    const fetchCount = () => {
+      axios.get(`${process.env.REACT_APP_BACKEND_URL || ''}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 } })
+        .then(({ data }) => setControlCount((data?.data || []).length))
+        .catch(() => {});
+    };
+    fetchCount();
+    window.addEventListener('runtime:changed', fetchCount);
+    window.addEventListener('finance:updated', fetchCount);
+    return () => {
+      window.removeEventListener('runtime:changed', fetchCount);
+      window.removeEventListener('finance:updated', fetchCount);
+    };
+  }, [open]);
 
   // Keyboard shortcut: Ctrl+Shift+B to open/close
   useEffect(() => {
@@ -363,6 +383,37 @@ export const UnifiedAssistantDrawer = () => {
         </div>
       </div>
 
+      {/* 🗂️ Tabs — المحادثة / مركز التحكم المالي */}
+      <div className="flex border-b-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" data-testid="assistant-tabs">
+        <button
+          data-testid="assistant-tab-chat"
+          onClick={() => setTab('chat')}
+          className={`flex-1 py-2 text-xs font-black transition-colors border-b-2 -mb-0.5 ${
+            tab === 'chat'
+              ? 'border-indigo-600 text-indigo-700 dark:text-indigo-300 bg-indigo-50/60 dark:bg-indigo-950/40'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          💬 المحادثة
+        </button>
+        <button
+          data-testid="assistant-tab-control"
+          onClick={() => setTab('control')}
+          className={`flex-1 py-2 text-xs font-black transition-colors border-b-2 -mb-0.5 inline-flex items-center justify-center gap-1 ${
+            tab === 'control'
+              ? 'border-indigo-600 text-indigo-700 dark:text-indigo-300 bg-indigo-50/60 dark:bg-indigo-950/40'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          🛡️ مركز التحكم
+          {controlCount > 0 && (
+            <span data-testid="assistant-control-badge" className="min-w-[16px] h-[16px] px-1 rounded-full bg-rose-600 text-white text-[9px] font-black inline-flex items-center justify-center">
+              {controlCount}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Settings panel */}
       {showSettings && (
         <div className="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 p-2 space-y-2" data-testid="assistant-settings-panel">
@@ -431,6 +482,12 @@ export const UnifiedAssistantDrawer = () => {
         </div>
       )}
 
+      {tab === 'control' ? (
+        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950" data-testid="assistant-control-panel">
+          <ControlCenterTab onCountChange={setControlCount} />
+        </div>
+      ) : (
+      <>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50 dark:bg-slate-950" data-testid="assistant-messages">
         {/* 🆕 Phase 3C.7 — recent executed operations widget (always visible at top) */}
@@ -571,6 +628,8 @@ export const UnifiedAssistantDrawer = () => {
           <Send size={16} />
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 };

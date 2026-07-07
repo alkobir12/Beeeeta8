@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 # Configuration
-BACKEND_URL = "https://pdpl-memory-engine.preview.emergentagent.com/api"
+BACKEND_URL = "https://accounting-engine-6.preview.emergentagent.com/api"
 
 class ApprovalSystemTester:
     def __init__(self):

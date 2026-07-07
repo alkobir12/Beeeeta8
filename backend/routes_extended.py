@@ -1244,7 +1244,12 @@ def _build_operation_journal_entry(
     if total <= 0:
         return None
 
-    is_credit = payment_method == "credit"
+    # 🕒 قاعدة المالك: كل الصيغ الآجلة (عربي/إنجليزي) + حالات السداد المعلّقة = آجل
+    pay_status = str(op.get("paymentStatus") or op.get("payment_status") or "").strip().lower()
+    is_credit = (
+        payment_method in ("credit", "deferred", "اجل", "آجل", "ذمة", "ذمم")
+        or pay_status in ("unpaid", "credit", "partial", "deferred", "pending")
+    )
 
     # Choose cash/bank/pos code for non-credit payments (أكواد حالية من الدليل الحي)
     cash_code = _sem_code("cash", "003")
@@ -1573,6 +1578,10 @@ def _build_operation_journal_entry(
     )
     if is_rakan_operation and "[RAKAN_PARTS]" not in str(description):
         description = f"[RAKAN_PARTS] {description}".strip()
+
+    # 🕒 قيد مؤقت للبيع الآجل — يبقى موسوماً حتى التحصيل (مدين ذمم/دائن إيرادات)
+    if is_credit and transaction_type == "sale" and not is_rakan_operation and "قيد مؤقت" not in str(description):
+        description = f"[قيد مؤقت — بيع آجل] {description}".strip()
 
     primary_entry = {
         "id": str(uuid.uuid4()),
@@ -2779,7 +2788,7 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
         }
 
         is_credit_flow = (
-            "credit" in payment_methods
+            len(payment_methods.intersection({"credit", "deferred", "اجل", "آجل", "ذمة", "ذمم"})) > 0
             or len(payment_statuses.intersection({"credit", "unpaid", "pending", "partial"})) > 0
         )
 
@@ -3089,6 +3098,13 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             supa.client.table("journal_entries").delete().is_("workshop_id", "null").execute()
         except Exception:
             pass
+
+        # 🕒 قاعدة القيد المؤقت للبيع الآجل: بعد التحصيل يُحدَّث وسم القيد الأساسي
+        try:
+            from core.financial_actions import mark_temp_deferred_settled
+            mark_temp_deferred_settled(op_id, fully=(new_status == "paid"))
+        except Exception as tag_err:
+            print(f"temp deferred tag update skipped: {tag_err}")
 
         result = {
             "success": True,

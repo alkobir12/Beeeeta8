@@ -11,7 +11,7 @@ import sys
 from typing import List, Dict, Any
 
 # Get base URL from frontend .env
-BASE_URL = "https://pdpl-memory-engine.preview.emergentagent.com"
+BASE_URL = "https://accounting-engine-6.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 def make_request(method: str, endpoint: str, data: dict = None) -> tuple:

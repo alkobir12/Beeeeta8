@@ -12,7 +12,7 @@ import sys
 from datetime import datetime
 
 # Get backend URL from frontend/.env
-BACKEND_URL = "https://pdpl-memory-engine.preview.emergentagent.com/api"
+BACKEND_URL = "https://accounting-engine-6.preview.emergentagent.com/api"
 
 # Test results tracking
 test_results = {

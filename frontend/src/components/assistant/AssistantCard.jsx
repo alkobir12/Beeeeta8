@@ -82,6 +82,13 @@ const STATUS_LABEL = {
   archived: 'مؤرشفة',
 };
 
+// 💳 تسميات طرق الدفع العربية — لعرض واضح بدل القيم الخام
+const PAY_LABEL = {
+  cash: '💵 نقدي', credit: '⏳ آجل (ذمم)', deferred: '⏳ آجل (ذمم)',
+  bank: '🏦 تحويل بنكي', transfer: '🏦 تحويل بنكي', pos: '💳 شبكة / نقاط بيع',
+  card: '💳 بطاقة', 'آجل': '⏳ آجل (ذمم)', 'اجل': '⏳ آجل (ذمم)', 'نقدي': '💵 نقدي',
+};
+
 function chipClass(intent, disabled) {
   if (disabled) return 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed';
   if (intent === 'navigate') return 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 border-indigo-300 dark:border-indigo-700';
@@ -270,18 +277,38 @@ function renderFields(card) {
     default:
       // 🆕 Round 2 — Draft cards (e.g. CustomerDraftCard, VehicleDraftCard, ...)
       if (typeof t === 'string' && t.endsWith('DraftCard')) {
+        const payMethod = d.payment_method || d.paymentMethod;
+        const echoAccounts = d._echo && d._echo.accounts;
         return (
           <>
             {d.name && <Row label="الاسم" value={d.name} />}
+            {(d.customer || d.customer_name) && <Row label="العميل" value={d.customer || d.customer_name} />}
+            {d.supplier && <Row label="المورد" value={d.supplier} />}
             {d.plate && <Row label="اللوحة" value={d.plate} />}
             {d.phone && <Row label="هاتف" value={d.phone} />}
             {typeof d.amount === 'number' && (
               <Row label="المبلغ" value={`${d.amount.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`} highlight="indigo" />
             )}
+            {payMethod && (
+              <Row
+                label="طريقة الدفع"
+                value={PAY_LABEL[payMethod] || payMethod}
+                highlight={['credit', 'آجل', 'اجل', 'deferred'].includes(payMethod) ? 'amber' : 'slate'}
+              />
+            )}
+            {(d.category || d.description) && <Row label="البيان" value={String(d.category || d.description).slice(0, 60)} />}
+            {d.date && <Row label="التاريخ" value={String(d.date).slice(0, 10)} />}
             {d._resolved_from && (
               <Row label="مستند إلى" value={d._resolved_from.title || d._resolved_from.key} highlight="emerald" />
             )}
-            {d.raw && <Row label="النص" value={String(d.raw).slice(0, 80)} />}
+            {echoAccounts && (
+              <div className="mt-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 rounded-md px-2 py-1 border border-indigo-200 dark:border-indigo-800" data-testid="draft-accounting-effect">
+                🧾 الأثر المحاسبي: {echoAccounts}
+              </div>
+            )}
+            {!d.name && !d.customer && !d.customer_name && !d.supplier && typeof d.amount !== 'number' && d.raw && (
+              <Row label="النص" value={String(d.raw).slice(0, 80)} />
+            )}
           </>
         );
       }
@@ -299,9 +326,9 @@ function Row({ label, value, highlight = 'slate' }) {
     amber: 'text-amber-600 dark:text-amber-300 font-bold',
   };
   return (
-    <div className="flex justify-between items-center gap-2 text-[11px]">
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
-      <span className={tones[highlight] || tones.slate}>{value}</span>
+    <div className="flex justify-between items-center gap-2 text-xs">
+      <span className="text-slate-500 dark:text-slate-400 font-semibold shrink-0">{label}</span>
+      <span className={`${tones[highlight] || tones.slate} text-left`}>{value}</span>
     </div>
   );
 }
@@ -349,13 +376,20 @@ export const AssistantCard = ({ card, onAction }) => {
       data-testid={`assistant-card-${card.type}-${card.id || 'x'}`}
       className={containerClass}
     >
-      <div className={`bg-gradient-to-l ${meta.color} text-white px-3 py-1.5 flex items-center gap-2`}>
-        <Icon size={14} />
-        <div className="flex-1 truncate text-[12px] font-extrabold">{card.title || card.type}</div>
+      <div className={`bg-gradient-to-l ${meta.color} text-white px-3 py-2 flex items-center gap-2`}>
+        <Icon size={16} className="shrink-0 drop-shadow" />
+        <div
+          className="flex-1 truncate text-sm font-black tracking-tight"
+          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+          data-testid="assistant-card-title"
+        >
+          {card.title || card.type}
+        </div>
         {isDraft && (
           <span
             data-testid={`draft-badge-${card.id || 'x'}`}
-            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-white/30 backdrop-blur-sm border border-white/40"
+            className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-black/25 border border-white/50 shrink-0"
+            style={{ textShadow: '0 1px 1px rgba(0,0,0,0.4)' }}
           >
             {cardStatus === 'committed' ? 'مُنفّذة' :
               cardStatus === 'approved' ? 'مُعتمدة' :

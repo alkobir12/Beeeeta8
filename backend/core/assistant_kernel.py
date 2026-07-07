@@ -42,6 +42,8 @@ _TOOL_PATTERNS = [
     (re.compile(r"(integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|بدون\s*قيد|بدون\s*قيود|بلا\s*قيد|بلا\s*قيود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل|قيود.*مفقود|عمليات.*بدون)", re.IGNORECASE), "firewall.operation_integrity"),
     (re.compile(r"(تدفق|cash\s*flow|إيراد|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
     # Finance read-only
+    # 🕒 القيود المؤقتة للبيع الآجل (قاعدة المالك) → ملخص الذمم SSOT
+    (re.compile(r"(قيود\s*مؤقت|قيد\s*مؤقت|(?:ال)?قيود\s*(?:ال)?مؤقت[ةه]?|بيع\s*آجل|بيع\s*اجل|مبيعات\s*آجل[ةه]?|مبيعات\s*اجل[ةه]?|deferred\s*sales?)", re.IGNORECASE), "finance.ar_summary"),
     (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين|(?:اجمالي|إجمالي|مجموع|كم)\s*(?:ال)?ذمم|(?:ال)?ذمم\s*(?:ال)?حالي|(?:اعرضي?|أعرضي?|عرضي?|وريني|شوفي?)\s*(?:لي\s*)?(?:ال)?ذمم|^\s*(?:ال)?ذمم\s*$)", re.IGNORECASE), "finance.ar_summary"),
     # Suppliers AP
     (re.compile(r"(ذمم\s*(?:ال)?مورد|دائن|دائنين|payables?|ap\s*summary|نستحق|نحن\s*مدين|للمورد|ذمم\s*ال?ورش[ةه])", re.IGNORECASE), "finance.payables_summary"),

@@ -8,7 +8,7 @@ import requests
 import json
 import uuid
 
-API_URL = "https://pdpl-memory-engine.preview.emergentagent.com"
+API_URL = "https://accounting-engine-6.preview.emergentagent.com"
 
 def test_with_proper_uuid():
     """اختبار مع UUID صحيح للـ accountId"""

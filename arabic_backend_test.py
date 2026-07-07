@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://pdpl-memory-engine.preview.emergentagent.com/api"
+BACKEND_URL = "https://accounting-engine-6.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 def print_test_header(test_name):

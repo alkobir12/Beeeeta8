@@ -78,6 +78,26 @@ async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
     stored_total = round(sum(s["balance"] for s in stored), 2)
     ledger_total = round(ledger_total, 2)
 
+    # 4) 🕒 القيود المؤقتة للبيع الآجل (قاعدة المالك — موسومة حتى التحصيل)
+    op_names = {str(o.get("id") or ""): (o.get("customerName") or o.get("customer_name")
+                or o.get("partnerName") or o.get("partner_name") or "") for o in ops}
+    temp_entries = []
+    for e in entries:
+        desc = str(e.get("description") or "")
+        if "[قيد مؤقت — بيع آجل" not in desc:
+            continue
+        ref = str(e.get("reference_id") or "")
+        pm = _PARTY_RE.search(desc)
+        temp_entries.append({
+            "entry_id": str(e.get("id"))[:8],
+            "reference_id": ref[:8],
+            "party": ((pm.group(1).strip() if pm else "") or op_names.get(ref) or str(e.get("party_label") or ""))[:40],
+            "total": float(e.get("total") or 0),
+            "date": str(e.get("date") or "")[:10],
+            "partially_collected": "مُحصَّل جزئياً" in desc,
+        })
+    temp_total = round(sum(t["total"] for t in temp_entries), 2)
+
     return {
         "ssot": "journal_entries",
         "ledger_ar_total": ledger_total,
@@ -90,6 +110,12 @@ async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
         "effective_ar": round(ledger_total + pending_total, 2),
         "stored_balances_total": stored_total,
         "stored_top_debtors": sorted(stored, key=lambda x: -x["balance"]),
+        "temporary_deferred_entries": temp_entries,
+        "temporary_deferred_total": temp_total,
+        "temporary_deferred_note": (
+            "قيود مؤقتة لبيع آجل (مدين ذمم/دائن إيرادات) — تبقى موسومة حتى التحصيل، "
+            "وعند السداد يُحدَّث الوسم إلى مُسوَّى مع قيد تحصيل (مدين نقدية/بنك، دائن ذمم)."
+        ),
         "reconciliation_gap": round(stored_total - ledger_total, 2),
         "data_freeze_note": (
             "الأرقام كما هي — مصير العمليات الآجلة بلا قيود وقيود الاختبار قرار للمالك "

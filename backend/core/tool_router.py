@@ -189,6 +189,10 @@ async def _finance_ar_summary(workshop_id: str = "finmodule-sync") -> Dict[str, 
         "effective_ar": s.get("effective_ar"),
         "reconciliation_gap": s.get("reconciliation_gap"),
         "data_freeze_note": s.get("data_freeze_note"),
+        # 🕒 القيود المؤقتة للبيع الآجل (قاعدة المالك — موسومة حتى التحصيل)
+        "temporary_deferred_total": s.get("temporary_deferred_total"),
+        "temporary_deferred_entries": s.get("temporary_deferred_entries"),
+        "temporary_deferred_note": s.get("temporary_deferred_note"),
         # طبقة العرض القديمة (أرصدة مخزنة — كما كانت، بلا أي تعديل)
         "total_customers_with_debt": len(stored),
         "total_ar": s.get("stored_balances_total"),
