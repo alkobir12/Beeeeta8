@@ -1,80 +1,155 @@
 {
-  "theme": "Light",
-  "archetype": "Archetype 4 (Swiss & High-Contrast) - Modified for Dash Pro aesthetic",
-  "direction": "RTL",
+  "theme": {
+    "mode": "light_and_dark",
+    "archetype": "3 (Pastel & Soft) blended with 4 (Swiss & High-Contrast)",
+    "direction": "rtl",
+    "primary_color_family": "Indigo/Violet (البنفسجي/النيلي)"
+  },
   "colors": {
-    "background": "#F8FAFC",
-    "surface": "#FFFFFF",
-    "primary": "#0F172A",
-    "secondary": "#64748B",
-    "border": "#E2E8F0",
-    "accent": "#3B82F6",
-    "text_primary": "#0F172A",
-    "text_secondary": "#64748B",
-    "hover_state": "#F1F5F9"
+    "primary": {
+      "DEFAULT": "violet-600",
+      "hover": "violet-700",
+      "light": "violet-50",
+      "dark": "violet-500/10"
+    },
+    "background": {
+      "light": "white",
+      "dark": "zinc-950"
+    },
+    "surface": {
+      "light": "zinc-50",
+      "dark": "zinc-900"
+    },
+    "border": {
+      "light": "zinc-200/80",
+      "dark": "zinc-800/80"
+    },
+    "text": {
+      "primary": "zinc-900 dark:zinc-100",
+      "secondary": "zinc-500 dark:zinc-400"
+    }
   },
   "typography": {
-    "font_family": "Cairo, Tajawal, or system Arabic fonts (matching Dash Pro)",
-    "headings": "font-bold tracking-tight text-slate-900",
-    "body": "text-slate-600 leading-relaxed",
-    "sizes": {
-      "h1": "text-3xl sm:text-4xl",
-      "h2": "text-2xl sm:text-3xl",
-      "h3": "text-xl sm:text-2xl",
-      "h4": "text-lg sm:text-xl",
-      "body": "text-base",
-      "small": "text-sm"
-    }
+    "font_family": "Tajawal, Cairo, IBM Plex Sans Arabic, sans-serif",
+    "hierarchy": {
+      "title": "text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100",
+      "subtitle": "text-xs font-medium tracking-wide text-zinc-500 dark:text-zinc-400",
+      "body": "text-sm leading-relaxed text-zinc-800 dark:text-zinc-200",
+      "caption": "text-xs text-zinc-500 dark:text-zinc-400",
+      "button": "text-sm font-semibold"
+    },
+    "rtl_rules": "Left-align paragraphs for readability (rtl:text-right). Icons on the right of text in RTL."
   },
   "layout_and_spacing": {
-    "global_direction": "RTL (dir='rtl')",
-    "dashboard_grid": "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6",
-    "card": {
-      "padding": "p-6",
-      "border": "border border-slate-200",
-      "radius": "rounded-xl",
-      "shadow": "shadow-sm hover:shadow-md transition-shadow",
-      "background": "bg-white"
-    }
-  },
-  "components": {
-    "search_bar": {
-      "type": "unified_global_search",
-      "features": ["Name", "File Number", "Operation", "Plate Number"],
-      "placeholder": "البحث بالاسم، رقم الملف، العملية، اللوحة...",
-      "classes": "w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm",
-      "icon_placement": "right (RTL compliant)"
+    "desktop": {
+      "width": "420px",
+      "height": "680px",
+      "position": "fixed bottom-6 right-6 z-50",
+      "radius": "rounded-[24px]",
+      "shadow": "shadow-[0_20px_60px_-15px_rgba(124,58,237,0.15)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]",
+      "border": "border border-zinc-200/50 dark:border-zinc-800"
     },
-    "dashboard_vehicle_card": {
-      "description": "Vehicle and file status cards in the dashboard",
-      "modifications": {
-        "field_ordering": [
-          { "order": 1, "field": "Brand and Model", "label": "الماركة والموديل" },
-          { "order": 2, "field": "File Number", "label_prefix": "رقم ملف", "note": "Moved directly below Brand/Model. Ensure size matches original file number size." }
-        ]
+    "mobile": {
+      "width": "100%",
+      "height": "85vh",
+      "position": "fixed bottom-0 inset-x-0 z-50",
+      "radius": "rounded-t-[32px] rounded-b-none",
+      "shadow": "shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)]",
+      "border": "border-t border-zinc-200/50 dark:border-zinc-800"
+    },
+    "internal_spacing": "p-4 to p-6 for main sections. gap-4 between chat messages. gap-2 between action chips."
+  },
+  "components_blueprint": {
+    "fab": {
+      "style": "h-14 w-14 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/30 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95",
+      "icon": "MessageSquare or Bot icon (lucide-react)",
+      "position": "fixed bottom-6 right-6 z-40",
+      "testid": "fab-assistant-trigger"
+    },
+    "header": {
+      "container": "flex items-center justify-between p-4 border-b border-border/40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl rounded-t-[24px] mobile:rounded-t-[32px]",
+      "avatar_group": "flex items-center gap-3 rtl:flex-row",
+      "avatar": "h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 relative",
+      "status_indicator": "absolute -bottom-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-950",
+      "title_group": "flex flex-col",
+      "actions": "flex items-center gap-1",
+      "icon_button": "h-8 w-8 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 transition-colors",
+      "testid_prefix": "assistant-header"
+    },
+    "tabs": {
+      "container": "flex p-1 bg-zinc-100/80 dark:bg-zinc-900/80 rounded-xl mx-4 mt-4 backdrop-blur-md",
+      "tab": "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all",
+      "active_tab": "bg-white dark:bg-zinc-800 text-violet-700 dark:text-violet-300 shadow-sm",
+      "inactive_tab": "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300",
+      "badge": "h-5 min-w-[20px] rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center px-1 font-bold",
+      "testid_prefix": "assistant-tab"
+    },
+    "chat_area": {
+      "container": "flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth",
+      "assistant_bubble": {
+        "wrapper": "flex gap-3 max-w-[85%] items-end",
+        "bubble": "bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100/50 dark:border-violet-800/30 p-3 rounded-2xl rtl:rounded-br-sm ltr:rounded-bl-sm text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed shadow-sm",
+        "avatar": "h-6 w-6 rounded-md bg-violet-100 dark:bg-violet-900/50 flex-shrink-0"
       },
-      "classes": {
-        "brand_model_row": "text-slate-900 font-semibold text-lg mb-1",
-        "file_number_row": "text-slate-600 text-sm mb-4 flex items-center gap-1"
+      "user_bubble": {
+        "wrapper": "flex justify-end max-w-[85%] mr-auto rtl:mr-0 rtl:ml-auto items-end gap-2",
+        "bubble": "bg-violet-600 text-white p-3 rounded-2xl rtl:rounded-bl-sm ltr:rounded-br-sm text-sm leading-relaxed shadow-md shadow-violet-600/10"
       }
+    },
+    "erp_cards": {
+      "container": "mt-3 bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow",
+      "top_bar": "h-1 bg-gradient-to-r rtl:bg-gradient-to-l from-violet-500 to-violet-300 dark:from-violet-600 dark:to-violet-400",
+      "header": "px-4 pt-4 pb-2 flex items-center justify-between",
+      "content": "px-4 pb-4 space-y-3",
+      "field_row": "flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800/50 pb-2 last:border-0 last:pb-0",
+      "action_chips_row": "flex flex-wrap gap-2 pt-2",
+      "chip": "px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors cursor-pointer border border-violet-100 dark:border-violet-800/50"
+    },
+    "input_bar": {
+      "container": "p-4 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-t border-zinc-200/50 dark:border-zinc-800",
+      "input_wrapper": "relative flex items-center bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1 shadow-inner",
+      "input_field": "w-full bg-transparent border-none focus:ring-0 text-sm px-4 py-3 placeholder:text-zinc-400 resize-none h-[44px] max-h-[120px]",
+      "action_group": "flex items-center gap-1 rtl:pl-2 ltr:pr-2",
+      "mic_button": "p-2 rounded-xl text-zinc-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors",
+      "send_button": "p-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+      "testid_prefix": "assistant-input"
+    },
+    "control_center_tab": {
+      "grid": "grid grid-cols-2 gap-3 p-4",
+      "kpi_card": "bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col gap-2",
+      "kpi_value": "text-2xl font-black text-zinc-900 dark:text-white tracking-tight",
+      "approval_card": "col-span-2 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-2xl p-4",
+      "approve_btn": "flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl text-sm font-semibold transition-colors",
+      "reject_btn": "flex-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 py-2 rounded-xl text-sm font-semibold hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+    },
+    "typing_indicator": {
+      "container": "flex items-center gap-1.5 p-3 rounded-2xl bg-violet-50/30 dark:bg-violet-900/10 border border-violet-100/30 dark:border-violet-800/20 w-fit",
+      "dot": "w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce",
+      "text": "text-xs text-violet-500/70 ml-2 rtl:ml-0 rtl:mr-2 font-medium"
+    },
+    "suggestion_chips": {
+      "container": "flex flex-wrap gap-2 mt-2",
+      "chip": "px-3 py-1.5 rounded-full text-xs font-medium border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all cursor-pointer shadow-sm"
+    },
+    "settings_panel": {
+      "container": "absolute inset-0 z-20 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl flex flex-col",
+      "model_selector_grid": "grid grid-cols-2 gap-2 mt-4",
+      "model_card_active": "p-3 rounded-xl border-2 border-violet-500 bg-violet-50 dark:bg-violet-900/20",
+      "model_card_inactive": "p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-violet-300 transition-colors"
     }
   },
-  "motion": {
-    "hover": "transition-all duration-200 ease-in-out",
-    "cards": "hover:-translate-y-0.5"
+  "animations": {
+    "drawer_entrance": "framer-motion: initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.3, ease: 'easeOut' }}",
+    "mobile_sheet": "framer-motion: initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}",
+    "message_stagger": "framer-motion: initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}",
+    "tab_indicator": "framer-motion: layoutId='activeTab' absolute inset-0 bg-white dark:bg-zinc-800 rounded-lg shadow-sm"
   },
-  "accessibility": {
-    "contrast": "Ensure text against off-white background meets WCAG AA standards (4.5:1 minimum)",
-    "data_testid": "Add data-testid to all search inputs, cards, and interactive elements"
-  },
-  "image_urls": {},
   "instructions_to_main_agent": [
-    "Apply a light theme globally. Use a clean off-white (#F8FAFC / bg-slate-50) for the main application background and pure white (#FFFFFF / bg-white) for cards and surfaces to mimic Dash Pro.",
-    "Retain the existing Dash Pro font (like Cairo/Tajawal) keeping text crisp and highly readable.",
-    "Enhance the search functionality: In the Dashboard and Operations views, ensure the search input filters against 4 criteria: Name, File Number, Operation, and Plate Number. Update the search input placeholder to reflect this in Arabic.",
-    "Update the Vehicle Cards layout: Locate the 'File Number' field in the dashboard cards and move it to sit directly below the 'Brand and Model' field.",
-    "Prefix the File Number with the word 'رقم ' so it renders as 'رقم ملف' followed by the number.",
-    "Ensure the modified 'File Number' field maintains the exact same font size and styling it originally had.",
-    "Ensure all UI is fully RTL compliant (dir='rtl'), aligning icons, paddings, and flex layouts correctly for Arabic text."
+    "Ensure `dir=\"rtl\"` is properly supported using logical tailwind classes (e.g., `rtl:ml-auto`, `ltr:mr-auto`, `rtl:rounded-br-sm`) where explicit direction is needed, or rely on flex-row-reverse if setting direction globally.",
+    "Do NOT use raw Shadcn card/tabs if they clash with these highly customized Hostinger-Kodee-style rounded designs; modify them deeply with Tailwind or use standard semantic HTML with framer-motion.",
+    "Implement the mobile view as a true Bottom Sheet (`fixed bottom-0` taking 85vh) with a drag handle (`w-12 h-1.5 bg-zinc-300 rounded-full mx-auto my-3`) when window width < 768px.",
+    "Maintain the distinct visual separation between the chat tab and the control center tab. The Control Center should feel like a dense, data-rich Bento grid.",
+    "Keep all existing functionalities: model switching, ERP cards rendering, and voice dictation.",
+    "Ensure all interactive elements have proper `data-testid` attributes."
   ]
 }
