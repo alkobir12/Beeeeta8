@@ -42,7 +42,7 @@ _TOOL_PATTERNS = [
     (re.compile(r"(integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|بدون\s*قيد|بدون\s*قيود|بلا\s*قيد|بلا\s*قيود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل|قيود.*مفقود|عمليات.*بدون)", re.IGNORECASE), "firewall.operation_integrity"),
     (re.compile(r"(تدفق|cash\s*flow|إيراد|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
     # Finance read-only
-    (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين|(?:اجمالي|إجمالي|مجموع|كم)\s*(?:ال)?ذمم|(?:ال)?ذمم\s*(?:ال)?حالي)", re.IGNORECASE), "finance.ar_summary"),
+    (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين|(?:اجمالي|إجمالي|مجموع|كم)\s*(?:ال)?ذمم|(?:ال)?ذمم\s*(?:ال)?حالي|(?:اعرضي?|أعرضي?|عرضي?|وريني|شوفي?)\s*(?:لي\s*)?(?:ال)?ذمم|^\s*(?:ال)?ذمم\s*$)", re.IGNORECASE), "finance.ar_summary"),
     # Suppliers AP
     (re.compile(r"(ذمم\s*(?:ال)?مورد|دائن|دائنين|payables?|ap\s*summary|نستحق|نحن\s*مدين|للمورد|ذمم\s*ال?ورش[ةه])", re.IGNORECASE), "finance.payables_summary"),
     # Inventory low stock
@@ -50,7 +50,7 @@ _TOOL_PATTERNS = [
     # Parts search — "بيع X" / "أبيع X" / "سعر X" / "كم سعر X" / "كم عندي X" / "هل عندنا X"
     (re.compile(r"(\bبيع\b|\bأبيع\b|\bابيع\b|اشتري|شراء\s+قطع|كم\s*سعر|سعر\s+(?:ال)?(?:قطع|فلتر|زيت|بطار|طرمب|ربلات|مساحات|بواجي|بلف|كبسول|كمبيوتر|مكيف|ايرباغ|دبري|كبائن|سلندر|طقم|كرنك|كومة|كوب|كولر|سير|تيل|قرص|دريم|قار|بوش|طبه)|تكلفة\s+قطع|كم\s+ع?ندي|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|أبحث\s+عن\s+قطع|ابحث\s+عن\s+قطع|بحث\s+عن\s+قطع|كم\s+مخزون|كم\s+ع?ندك\s+من|أحتاج\s+قطع|احتاج\s+قطع)", re.IGNORECASE), "parts.search"),
     # Recent operations — يدعم «آخر خمس/عشر/5 عمليات»
-    (re.compile(r"((?:آخر|أخر|اخر|أحدث|احدث)\s*(?:ال)?(?:خمسه?|خمس|عشره?|عشر|ثلاثه?|ثلاث|اربعه?|أربعه?|اربع|أربع|ست[ةه]?|سبع[ةه]?|ثمانيه?|تسع[ةه]?|\d+)?\s*(?:ال)?(?:عمليات|مبيعات)|recent\s*operations?|عمليات\s*اليوم)", re.IGNORECASE), "operations.recent"),
+    (re.compile(r"((?:آخر|أخر|اخر|أحدث|احدث)\s*(?:ال)?(?:خمسه?|خمس|عشره?|عشر|ثلاثه?|ثلاث|اربعه?|أربعه?|اربع|أربع|ست[ةه]?|سبع[ةه]?|ثمانيه?|تسع[ةه]?|\d+)?\s*(?:ال)?(?:عمليات|عمليتين|عمليتان|مبيعات)|recent\s*operations?|عمليات\s*اليوم)", re.IGNORECASE), "operations.recent"),
     # 🏆 Top sold services — «اكثر الخدمات بيعاً/مبيعاً/طلباً»
     (re.compile(r"((?:اكثر|أكثر|اعلي|أعلى|اكبر|أكبر)\s*(?:ال)?خدم(?:ات|ة|ه)\s*(?:بيع|مبيع|طلب|تكرار)?|(?:ال)?خدمات\s*(?:الأكثر|الاكثر)\s*(?:بيع|مبيع|طلب)|top\s*(?:sold\s*)?services)", re.IGNORECASE), "operations.top_services"),
     # 🚗 Vehicle counts by status — «كم مركبة حالية» / «عدد المركبات»
@@ -77,7 +77,7 @@ _TOOL_PATTERNS = [
     (re.compile(r"(الخدمات\s*المتوفرة|الخدمات\s*المتاحة|اظهر\s*(?:ال)?خدمات|أظهر\s*(?:ال)?خدمات|كم\s*سعر\s*(?:خدمة|تغيير|إصلاح|اصلاح|فحص)|سعر\s*خدمة|قائمة\s*(?:ال)?خدمات|service\s*list)", re.IGNORECASE), "services.search"),
     (re.compile(r"(قطع\s*(?:ال)?غيار|كم\s*(?:عندي|عندنا)\s*(?:قطعة|قطع)|كم\s*سعر\s*القطعة|بحث\s*(?:عن\s*)?قطعة|inventory\s*list|parts\s*list)", re.IGNORECASE), "parts.list"),
     # Accounting journal entries (real journal_entries table) — قيود يومية / دفتر اليومية / ميزان مراجعة
-    (re.compile(r"(قيد\s*محاسب|قيود\s*محاسب|دفتر\s*(?:ال)?يومي[ةه]?|قيود\s*(?:ال)?يومي|القيود\s*المالي|ميزان\s*(?:ال)?مراجع|journal\s*entr|القيود\s*في\s*(?:ال)?دفتر|القيد\s*رقم|تفاصيل\s*(?:ال)?قيد|القيود\s*(?:ال)?محاسب|كل\s*(?:ال)?قيود|جميع\s*(?:ال)?قيود|(?:ال)?قيود\s*(?:ال)?كامل|كامل\s*(?:ال)?قيود|(?:اعرض|أعرض|عرض|اعطني|أعطني)\s*(?:ال)?قيود)", re.IGNORECASE), "accounting.journal_entries"),
+    (re.compile(r"(قيد\s*محاسب|قيود\s*محاسب|دفتر\s*(?:ال)?يومي[ةه]?|قيود\s*(?:ال)?يومي|القيود\s*المالي|ميزان\s*(?:ال)?مراجع|journal\s*entr|القيود\s*في\s*(?:ال)?دفتر|القيد\s*رقم|تفاصيل\s*(?:ال)?قيد|القيود\s*(?:ال)?محاسب|كل\s*(?:ال)?قيود|جميع\s*(?:ال)?قيود|(?:ال)?قيود\s*(?:ال)?كامل|كامل\s*(?:ال)?قيود|(?:اعرض|أعرض|عرض|اعطني|أعطني)\s*(?:ال)?قيود|راجعي?\s*(?:ال)?قيود|مراجعة\s*(?:ال)?قيود)", re.IGNORECASE), "accounting.journal_entries"),
 ]
 
 
@@ -101,7 +101,7 @@ def _extract_query(text: str, tool_name: str) -> str:
     raw = text.strip()
     # Remove leading request verbs / question words
     raw = re.sub(
-        r"^(?:كم\s+رصيد|كم\s+سعر|سعر|تكلفة|كم\s+ع?ندي|كم\s+ع?ندك\s*من|كم\s+مخزون|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|ابحث\s*عن|أبحث\s*عن|بحث\s*عن|اعرض|عرض|بيانات|أين|أرني|ارني|لوحة|رقم\s*لوحة|رقم\s*(?:ال)?لوحة|رصيد\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل|أبيع|ابيع|بيع|اشتري|شراء|أحتاج|احتاج|أعطني|اعطني|عطني|أعطيني|ابغى|أبغى|أريد|اريد|وريني|اخبرني|أخبرني)\s*",
+        r"^(?:كم\s+رصيد|كم\s+سعر|سعر|تكلفة|كم\s+ع?ندي|كم\s+ع?ندك\s*من|كم\s+مخزون|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|ابحثي?\s*عن|أبحثي?\s*عن|بحثي?\s*عن|اعرضي?|أعرضي?|عرضي?|بيانات|أين|أرني|ارني|لوحة|رقم\s*لوحة|رقم\s*(?:ال)?لوحة|رصيد\s*(?:ال)?عميل|ذمم\s*(?:ال)?عميل|أبيع|ابيع|بيع|اشتري|شراء|أحتاج|احتاج|أعطني|اعطني|عطني|أعطيني|ابغى|أبغى|أريد|اريد|وريني|اخبرني|أخبرني)\s*",
         "",
         raw,
         flags=re.IGNORECASE,
@@ -151,6 +151,11 @@ def detect_tools(text: str) -> List[str]:
 
     return matched
 
+
+# 🎯 L14-D1: إشارة ترتيبية لقائمة معروضة سابقاً («أول عميل في القائمة»)
+_ORDINAL_LIST_RE = re.compile(
+    r"(أول|اول|ثاني|ثالث|رابع|خامس|آخر|اخر)\s*(?:عميل|مورد|واحد|اسم)?\s*(?:في|من)?\s*(?:ال)?قائم[ةه]"
+)
 
 # ---------- L16: write-action intent gate + executor wiring ----------
 
@@ -580,7 +585,7 @@ async def _llm_chat(
         ).with_model(model_provider, model_name)
         msg_text = user_message
         if history:
-            history_text = "\n".join([f"{m['role']}: {m['content']}" for m in history[-10:]])
+            history_text = "\n".join([f"{m['role']}: {m['content']}" for m in history[-24:]])
             msg_text = f"السياق السابق للمحادثة:\n{history_text}\n\nالسؤال الحالي:\n{user_message}"
         # 🔐 PDPL: تنقيح المعرّفات الشخصية قبل مغادرة النص للمزوّد الخارجي
         msg_text = redact_pii(msg_text)
@@ -621,8 +626,8 @@ ASSISTANT_NAME = "كاترينا"
 ASSISTANT_VERSION = "L16"
 
 
-def _system_prompt() -> str:
-    """L5 system prompt — proactive helpful read-only assistant.
+def _baseline_prompt() -> str:
+    """L5 system prompt — النسخة المدمجة (v1-baseline، مرجع rollback الدائم).
 
     Important: read-only = backend tools don't write. The assistant SHOULD still
     answer questions, search data, explain findings, summarise reports, etc.
@@ -845,13 +850,29 @@ async def _chat_impl(
         # read_only / rejected → fall through to the normal read path
 
     # 1) Detect which read-only tools to invoke
-    tool_names = detect_tools(message)
+    # 🎯 L14-D1: حل الإشارات الترتيبية («أول عميل في القائمة») من آخر قائمة معروضة بالجلسة
+    forced_query = None
+    _ord_m = _ORDINAL_LIST_RE.search(message)
+    if _ord_m:
+        _last_list = shared_memory.get_context(sid, "last_list") or []
+        if _last_list:
+            _idx_map = {"أول": 0, "اول": 0, "ثاني": 1, "ثالث": 2, "رابع": 3,
+                        "خامس": 4, "آخر": -1, "اخر": -1}
+            _idx = _idx_map.get(_ord_m.group(1), 0)
+            try:
+                forced_query = str(_last_list[_idx]).strip() or None
+            except (IndexError, TypeError):
+                forced_query = None
+    if forced_query:
+        tool_names = ["customers.search"]
+    else:
+        tool_names = detect_tools(message)
     tool_results: List[Dict[str, Any]] = []
     cards: List[Dict[str, Any]] = []  # 🆕 collected from each tool result
     for tn in tool_names:
         kwargs: Dict[str, Any] = {"workshop_id": workshop_id or "finmodule-sync"}
         if tn in _QUERY_AWARE_TOOLS:
-            q = _extract_query(message, tn)
+            q = forced_query or _extract_query(message, tn)
             if q:
                 kwargs["query"] = q
         result = await tool_router.call_tool(tn, **kwargs)
@@ -868,6 +889,25 @@ async def _chat_impl(
         })
 
     # 2) Build read-only context snapshot
+    # 🎯 L14-D1: خزّن آخر قائمة أسماء معروضة لحل الإشارات الترتيبية لاحقاً
+    try:
+        for _tr2 in tool_results:
+            if not _tr2.get("success"):
+                continue
+            _res2 = _tr2.get("result") or {}
+            _names: List[str] = []
+            if _tr2.get("tool") == "finance.ar_summary":
+                _names = [d.get("name") for d in
+                          (_res2.get("stored_top_debtors") or _res2.get("top_debtors") or [])
+                          if isinstance(d, dict) and d.get("name")]
+            elif _tr2.get("tool") == "customers.search":
+                _names = [r2.get("name") for r2 in (_res2.get("matches") or [])
+                          if isinstance(r2, dict) and r2.get("name")]
+            if _names:
+                shared_memory.set_context(sid, "last_list", _names)
+    except Exception:
+        pass
+
     snapshot = ai_context.build_context_snapshot(
         workshop_id=workshop_id,
         include_alerts=True,
@@ -897,7 +937,12 @@ async def _chat_impl(
         memory_block = ""
 
     # 3) System message (L5: single assistant, no agent persona)
-    system_msg = _system_prompt() + "\n\n" + context_text
+    # 📜 L14-D2: الـ prompt من سجل النسخ (مع rollback) — والنسخة تُسجَّل في الـtrace
+    from core import prompt_registry as _preg
+    _pver, _pcontent = _preg.get_active()
+    from core import llm_traces as _lt
+    _lt.set_meta("prompt_version", _pver)
+    system_msg = (_pcontent or _baseline_prompt()) + "\n\n" + context_text
     if brief_text:
         system_msg += "\n\n" + brief_text
     if memory_block:
@@ -915,7 +960,8 @@ async def _chat_impl(
         system_msg += tool_section
 
     # 5) Get conversation history
-    history = ai_context.get_conversation_history(sid, limit=10)
+    # 🔧 L14-D8: نافذة 10 رسائل أسقطت مصدر الرقم بعد 5 رسائل وسيطة (S3) — وُسّعت لـ24
+    history = ai_context.get_conversation_history(sid, limit=24)
 
     # 6) Call LLM — choose provider per `model` param
     response_text = ""
@@ -961,6 +1007,23 @@ async def _chat_impl(
             response_text = "\n".join(parts)
         else:
             response_text = "النظام يعمل بقواعد محلية حالياً. لتفعيل ردود أعمق، تأكد من تكوين Emergent LLM Key."
+
+    # 🔐 L14-D5: حارس تطابق بلوك النتائج — أي ادعاء مخرجات أداة بلا تنفيذ مسجَّل يُحجَب
+    try:
+        # 🧹 L14-D9: أزل تقليد وسم التاريخ الداخلي من الرد الجديد (النظام يكتبه في السجل حصراً)
+        response_text = re.sub(
+            r"^\[أدوات هذه الدورة المنفَّذة فعلاً:[^\]\n]*\]\s*", "",
+            (response_text or "").strip(), flags=re.MULTILINE,
+        ).strip()
+        from core import provenance_guard as _pg
+        response_text, _prov = _pg.enforce(response_text, tool_results)
+        if _prov:
+            from core import llm_traces as _lt2
+            _lt2.add_provenance_violations(_prov)
+            _log.warning("D5 provenance violations blocked: %s",
+                         [v.get("claimed_tool") for v in _prov])
+    except Exception as _pge:
+        _log.warning("provenance guard failed (non-fatal): %s", redact(str(_pge), max_len=120))
 
     # 7) Persist assistant message + classify the message intent
     intent = _classify_intent(message)

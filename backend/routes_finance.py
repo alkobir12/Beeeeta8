@@ -2404,6 +2404,13 @@ async def create_chart_of_accounts_account(
 # NOTE: legacy duplicated definition of get_journal_entries was removed to fix syntax
 
 
+@router.get("/ar-ledger")
+async def get_ar_ledger(workshop_id: str = Query("finmodule-sync")):
+    """📒 L14-D6 (تقني): طبقات الذمم — SSOT القيود + الآجل غير المقيّد + الأرصدة المخزنة."""
+    from core import ar_ledger
+    return {"success": True, "data": await ar_ledger.summary(workshop_id)}
+
+
 @router.get("/journal-entries")
 async def get_journal_entries(
     workshop_id: str = Query(...),

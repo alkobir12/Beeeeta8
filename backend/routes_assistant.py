@@ -137,6 +137,43 @@ async def assistant_call_tool(name: str, request: Request, payload: Dict[str, An
     return result
 
 
+@router.get("/prompt/versions")
+async def prompt_versions(request: Request):
+    """📜 L14-D2: قائمة نسخ الـ system prompt (أدوار الاعتماد فقط)."""
+    from core import rbac as _rbac
+    _ident = _rbac.extract_identity(request)
+    if not _ident.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    _actor = await _rbac.resolve_actor(
+        user_id=_ident["user_id"], name=_ident["name"], role_hint=_ident["role_hint"]
+    )
+    _rbac.require(_rbac.can_approve(_actor))
+    from core import prompt_registry
+    active_ver, _ = prompt_registry.get_active()
+    return {"success": True, "data": {"active": active_ver, "versions": prompt_registry.list_versions()}}
+
+
+@router.post("/prompt/activate")
+async def prompt_activate(request: Request, payload: Dict[str, Any] = Body(default=None)):
+    """📜 L14-D2: تفعيل نسخة prompt (rollback فوري = تفعيل نسخة أقدم أو v1-baseline)."""
+    from core import rbac as _rbac
+    _ident = _rbac.extract_identity(request)
+    if not _ident.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    _actor = await _rbac.resolve_actor(
+        user_id=_ident["user_id"], name=_ident["name"], role_hint=_ident["role_hint"]
+    )
+    _rbac.require(_rbac.can_approve(_actor))
+    version = str((payload or {}).get("version") or "").strip()
+    if not version:
+        raise HTTPException(status_code=400, detail="version required")
+    from core import prompt_registry
+    result = prompt_registry.activate(version, activated_by=getattr(_actor, "name", None) or "unknown")
+    if result.get("error"):
+        raise HTTPException(status_code=404, detail=result["error"])
+    return {"success": True, "data": result}
+
+
 @router.get("/alerts")
 async def assistant_alerts(
     severity: Optional[str] = Query(default=None),

@@ -163,6 +163,20 @@ def finish_trace(*, session_id: Optional[str] = None, final_response: Optional[s
     return tr["trace_id"]
 
 
+def set_meta(key: str, value: Any) -> None:
+    """إلحاق حقل وصفي بالـtrace الجاري (مثل prompt_version)."""
+    tr = _current.get()
+    if tr is not None:
+        tr[key] = value
+
+
+def add_provenance_violations(violations: List[Dict[str, Any]]) -> None:
+    """🔐 L14-D5: تسجيل بلوكات النتائج المحجوبة (ادعاء أداة بلا تنفيذ)."""
+    tr = _current.get()
+    if tr is not None and violations:
+        tr.setdefault("provenance_violations", []).extend(violations)
+
+
 def get_trace(trace_id: str) -> Optional[Dict[str, Any]]:
     col = _collection()
     if col is None:

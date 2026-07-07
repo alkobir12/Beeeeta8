@@ -23,6 +23,7 @@ export default function DebtFollowUp() {
   const [savingRowId, setSavingRowId] = useState('');
   const [confirmPayRow, setConfirmPayRow] = useState(null);   // الصف المُراد تأكيد سداده
   const [confirmPayLoading, setConfirmPayLoading] = useState(false);
+  const [arLedger, setArLedger] = useState(null);             // 📒 L14-D6: طبقات SSOT
 
   const fetchData = async () => {
     try {
@@ -33,6 +34,10 @@ export default function DebtFollowUp() {
       ]);
 
       const accountsRes = await api.get('/finance/chart-of-accounts', { params: { workshop_id: workshopId } });
+      // 📒 L14-D6: طبقات SSOT للذمم (best-effort — لا يعطّل الصفحة)
+      api.get('/finance/ar-ledger', { params: { workshop_id: workshopId } })
+        .then((r) => setArLedger(r?.data?.data || null))
+        .catch(() => setArLedger(null));
       const accountRows = Array.isArray(accountsRes?.data?.data)
         ? accountsRes.data.data
         : Array.isArray(accountsRes?.data)
@@ -344,6 +349,19 @@ export default function DebtFollowUp() {
           <span className="inline-flex items-center gap-2"><RefreshCw size={14} /> تحديث</span>
         </button>
       </div>
+
+      {/* 📒 L14-D6: شريط مصدر الحقيقة (SSOT) — القيود مرجع، الأرصدة المخزنة للمصالحة */}
+      {arLedger && (
+        <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 p-3 text-xs sm:text-sm text-indigo-100 flex flex-wrap items-center gap-x-4 gap-y-1"
+             data-testid="ar-ssot-banner">
+          <span className="font-bold">📒 مصدر الحقيقة (القيود):</span>
+          <span data-testid="ar-ssot-ledger-total">{fmt(arLedger.ledger_ar_total)} ر.س</span>
+          <span>· آجل غير مقيّد: <b data-testid="ar-ssot-pending-total">{fmt(arLedger.pending_unjournalized_total)}</b> ({(arLedger.pending_unjournalized_ops || []).length} عمليات)</span>
+          <span>· الفعلي (قيود + معلّق): <b>{fmt(arLedger.effective_ar)}</b></span>
+          <span>· الأرصدة المخزنة (المعروضة أدناه): <b data-testid="ar-ssot-stored-total">{fmt(arLedger.stored_balances_total)}</b></span>
+          <span className="text-amber-200">· فجوة قيد المصالحة: <b data-testid="ar-ssot-gap">{fmt(arLedger.reconciliation_gap)}</b> — بانتظار قرار المالك</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-testid="debt-metrics-cards-grid">
         {metricsCards.map((card) => {

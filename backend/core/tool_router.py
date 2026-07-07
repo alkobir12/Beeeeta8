@@ -174,27 +174,26 @@ async def _firewall_cash_flow(workshop_id: str = "finmodule-sync") -> Dict[str, 
 
 
 async def _finance_ar_summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
-    """ملخص ذمم العملاء."""
-    import os
-    if os.getenv("DB_PROVIDER", "mongo").lower() != "supabase":
-        return {"error": "Supabase not enabled"}
-    from supabase_service import SupabaseService
-    SupabaseService()  # verify supabase is reachable
-    import httpx
-    base = os.getenv("BACKEND_INTERNAL_URL") or "http://localhost:8001"
-    try:
-        async with httpx.AsyncClient(timeout=10, headers=_int_headers()) as client:
-            r = await client.get(f"{base}/api/customers")
-            customers = r.json() if r.status_code == 200 else []
-    except Exception:
-        customers = []
-    debtors = [c for c in customers if float(c.get("ajelBalance") or 0) > 0]
-    total = sum(float(c.get("ajelBalance") or 0) for c in debtors)
-    top = sorted(debtors, key=lambda x: float(x.get("ajelBalance") or 0), reverse=True)[:5]
+    """ملخص ذمم العملاء — 📒 SSOT: القيود هي المرجع (L14-D6 الشق التقني).
+
+    الأرقام لا تُعدَّل: الأرصدة المخزنة تُعرض كطبقة مصالحة بانتظار قرار المالك."""
+    from core import ar_ledger
+    s = await ar_ledger.summary(workshop_id)
+    stored = s.get("stored_top_debtors") or []
     return {
-        "total_customers_with_debt": len(debtors),
-        "total_ar": round(total, 2),
-        "top_debtors": [{"name": c.get("name"), "balance": float(c.get("ajelBalance") or 0)} for c in top],
+        # 🧭 طبقات SSOT (القيود مرجع الحقيقة)
+        "ssot": s.get("ssot"),
+        "ledger_ar_total": s.get("ledger_ar_total"),
+        "pending_unjournalized_total": s.get("pending_unjournalized_total"),
+        "pending_unjournalized_ops": s.get("pending_unjournalized_ops"),
+        "effective_ar": s.get("effective_ar"),
+        "reconciliation_gap": s.get("reconciliation_gap"),
+        "data_freeze_note": s.get("data_freeze_note"),
+        # طبقة العرض القديمة (أرصدة مخزنة — كما كانت، بلا أي تعديل)
+        "total_customers_with_debt": len(stored),
+        "total_ar": s.get("stored_balances_total"),
+        "top_debtors": stored[:5],
+        "stored_top_debtors": stored,
     }
 
 

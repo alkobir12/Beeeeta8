@@ -1,5 +1,13 @@
 # Workshop ERP — Product Requirements (PRD)
 
+## CHANGELOG — 2026-07-07 (ليلاً) · 🏆 أمر علاج L14 منفَّذ بالكامل — الشهادة 6/6
+- **الأمر الحاكم**: `/app/docs/verification/L14_REMEDIATION_ORDER.md` (رفعه المالك). الترتيب المنفَّذ: D5←D1←D2←D6(تقني)←مشغّل S3. كل بند diff معزول + إثبات trace + اختبار انحدار. **الأرقام لم تُلمس** (مصير 3,450 وقيود الاختبار قرار مالك معلّق).
+- **D5**: `core/provenance_guard.py` — حجب أي بلوك نتائج أدوات غير منفَّذة + تسجيل في الـtrace. **D1**: أنماط اعرضي الذمم/راجعي القيود/عمليتين + نزع أفعال مؤنثة + حل ترتيبي «أول عميل في القائمة» عبر `last_list`. **D2**: `core/prompt_registry.py` (v1-baseline/v2-d2-governance/v3-d2.1-cross-turn) + rollback حي مُثبت بالـtrace + endpoints (`/api/assistant/prompt/versions|activate`). **D6-تقني**: `core/ar_ledger.py` SSOT (قيود −2,419 / آجل غير مقيّد 3,450 / مخزّن 11,150→10,850 حياً) + `GET /api/finance/ar-ledger` + شريط SSOT في DebtFollowUp + أداة ar_summary طبقية. **S3-مشغّل**: financial_figure().
+- **اكتشافان جديدان وُثّقا وعولجا** (حاجزا 6/6): **D8** نافذة التاريخ 10→24 رسالة؛ **D9** وسم ردود السجل بأدواتها + prompt v3 (منع الاعتراف الكاذب عبر الدورات) + تنظيف تقليد الوسم.
+- **جولة الشهادة: 6/6 نظيفة** — traces: tr-97b1a8144c4c/tr-985ec9a8f6c9 (S1)، tr-990b22ea6352 (S2)، tr-fc3e44854b74 (S3)، tr-e4f21b1cb22c (S4)، tr-3fd2dd7306fb/tr-493f88a42f14 (S5)، tr-93e77f2bbe40/tr-6743f4632a2d (S6). انحدار كامل **65/65**.
+- **الإغلاق الرسمي لـL14 معلّق على امتحان المالك** (حسب الوثيقة الحاكمة). Learning Candidate `bf934e36cfe3` ما زال بانتظار اعتماد المالك من شاشة الاعتمادات.
+- Backlog مجمّد بقرار المالك: L8→L13، L15، Llama/VPS، واتساب، مصير 3,450 وقيود الاختبار.
+
 ## CHANGELOG — 2026-07-07 (مساءً) · 🔬 L14 الجولة الثانية — تشخيص خالص مكتمل (بلا أي إصلاح)
 - **Learning Candidate مسجّل رسمياً** عبر memory_engine (المرة الرابعة لفشل التسليم/provenance): draft `5efebba47310` / approval **`bf934e36cfe3` بانتظار اعتماد المالك**.
 - **L14 جولة 2** (`l14_runner.py`، 17 دورة، كل نتيجة بـtrace_id): **❌ رسوب 3/6** (S4/S5/S6 ✅، S2/S3 ⚠️، S1 ❌). جولة 1 محفوظة في `L14_RESULTS_round1_20260706.json`.

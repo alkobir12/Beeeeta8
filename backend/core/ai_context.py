@@ -77,6 +77,16 @@ def context_to_text(snapshot: Dict[str, Any]) -> str:
 
 
 def get_conversation_history(session_id: str, limit: int = 10) -> List[Dict[str, str]]:
-    """يحوّل ذاكرة الجلسة إلى صيغة messages قابلة للحقن في LLM."""
+    """يحوّل ذاكرة الجلسة إلى صيغة messages قابلة للحقن في LLM.
+
+    🔧 L14-D9: كل رد assistant يُوسَم بأدواته المنفَّذة فعلاً في دورته — حتى لا
+    ينكر النموذج مصدر رقم قديم (اعتراف كاذب) أو يدّعي مصدراً لم يحدث."""
     msgs = shared_memory.get_messages(session_id, limit=limit)
-    return [{"role": m["role"], "content": m["content"]} for m in msgs]
+    out: List[Dict[str, str]] = []
+    for m in msgs:
+        content = m["content"]
+        tools = [t for t in ((m.get("meta") or {}).get("tools") or []) if t]
+        if m["role"] == "assistant" and tools:
+            content = f"[أدوات هذه الدورة المنفَّذة فعلاً: {', '.join(tools)}]\n{content}"
+        out.append({"role": m["role"], "content": content})
+    return out

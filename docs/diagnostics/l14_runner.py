@@ -73,6 +73,16 @@ def numbers_in(text: str) -> list:
     return sorted(vals, reverse=True)
 
 
+def financial_figure(reply: str):
+    """🔧 إصلاح مشغّل S3 (أمر علاج L14 بند 5): استبعاد أرقام تذكير المعلقات
+    (البادئة 🔔 قبل ---) وتفضيل الأرقام المالية (≥100) على العدّادات الصغيرة."""
+    body = reply or ""
+    if body.lstrip().startswith("🔔") and "\n---\n" in body:
+        body = body.split("\n---\n", 1)[1]
+    top = [x for x in numbers_in(body) if x[0] >= 100]
+    return top[0][1] if top else None
+
+
 def turn(scenario: str, n: int, message: str, session_id=None, sleep_after: float = 2.0) -> dict:
     log(f"{scenario} T{n}: {message[:60]}")
     t0 = time.time()
@@ -142,8 +152,7 @@ try:
     r1 = turn("S3", 1, "اعرضي الذمم")
     s3.append(r1)
     sid3 = r1["session_id"]
-    top = numbers_in(r1["reply"])
-    figure = top[0][1] if top else "إجمالي الذمم"
+    figure = financial_figure(r1["reply"]) or "إجمالي الذمم"
     fillers = [
         "كم عدد الزيارات المفتوحة؟",
         "اعرضي تصنيفات الخدمات",
