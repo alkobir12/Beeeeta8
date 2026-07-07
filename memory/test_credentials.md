@@ -1,36 +1,42 @@
 # Test Credentials
 
-## Workshop ERP Login (name-only login — no password)
-Login form: enter the username in the "اسم المستخدم" field and click "دخول".
-Deny-by-default: ONLY users that exist & are active in the user store can log in and
-receive a JWT. Unknown usernames return 401 ("اسم المستخدم غير معروف").
+## Workshop ERP Login — P1 Production Auth (multi-method)
+`POST /api/auth/login` accepts: `{username|email, password?, pin?, device_id?, remember_device?}`
 
-| Username (اسم المستخدم) | Role        | Can approve (Four-Eyes)? |
-|-------------------------|-------------|--------------------------|
-| `مدير`                  | admin       | ✅ yes                   |
-| `احمد1`                 | supervisor  | ✅ yes                   |
-| `فرج1`                  | accountant  | ❌ no                    |
-| `مستخدم اختبار`         | technician  | ❌ no                    |
+| Username (اسم المستخدم) | Role        | Can approve (Four-Eyes)? | Login method |
+|-------------------------|-------------|--------------------------|--------------|
+| `مدير`                  | admin       | ✅ yes                   | name-only (no password set) |
+| `احمد1`                 | supervisor  | ✅ yes                   | name-only (no password set) |
+| `فرج1`                  | accountant  | ❌ no                    | name-only (no password set) |
+| `مستخدم اختبار`         | technician  | ❌ no                    | name-only (test suites may temporarily set password `Test@12345` — they clean up after) |
 
-## 🔐 Auth model (UPDATED — JWT-based RBAC, headers no longer trusted)
-- `POST /api/auth/login {username}` → returns `{access_token, refresh_token, role, expires_in_minutes}`,
-  embeds the authenticated `role` inside the signed JWT, and sets httpOnly cookies
-  (`access_token`, `refresh_token`).
-- Access token: ~60 min (`ACCESS_TOKEN_EXPIRE_MINUTES`). Refresh token: 7 days (`REFRESH_TOKEN_EXPIRE_DAYS`).
-- `POST /api/auth/refresh` → mints a new access token from the refresh cookie/Bearer.
-- `GET /api/auth/me` → `{username, role, exp}` from the validated token.
-- RBAC identity/role is derived ONLY from the signed JWT (`core/rbac.extract_identity`
-  → `auth_jwt.identity_from_request`). The old spoofable `x-user-role` / `x-user-id`
-  headers are IGNORED. No valid token ⇒ role "unknown" ⇒ 403 (deny-by-default).
-- Frontend attaches the Bearer token automatically (utils/authToken.js) and silently
-  refreshes on 401.
+## 🔐 Auth model (P1 / SEC-003 — 2026-07-07)
+- **name-only** login works ONLY while the user has NO credentials set (back-compat).
+- Once a password is set (Settings → الملف الشخصي → أمان الحساب), name-only is
+  rejected with 401 «كلمة المرور مطلوبة لهذا الحساب».
+- **PIN login**: `{username, pin, device_id}` — device_id issued by
+  `POST /api/auth/set-pin` or `remember_device=true` on password login.
+  Stored client-side in localStorage key `trusted_device`.
+- **Google SSO**: login page button → auth.emergentagent.com → returns
+  `#session_id=...` → `POST /api/auth/google/session`. Maps by EMAIL to an
+  existing user (no auto-provisioning). No Google test account is linked yet.
+- Refresh ROTATION + reuse detection: reusing an old refresh token → 401 and
+  the whole token family is revoked.
+- Brute force: 5 failed login attempts in 15 min → 429 lockout.
+- Sessions: `GET /api/auth/sessions`, `POST /api/auth/sessions/revoke {family_id}`.
+- Audit: `GET /api/auth/audit` (approver roles only).
+
+## Rate-limit bypass for automated tests
+Backend middleware skips rate limiting when header
+`x-ratelimit-bypass: $RATE_LIMIT_BYPASS_TOKEN` matches `/app/backend/.env`.
+Test suites load it via dotenv (see `tests/test_auth_p1_iter256.py`).
 
 ## RBAC / Four-Eyes notes
-- Approver roles (can approve sensitive runtime actions): `admin, manager, supervisor`
-  (env `RUNTIME_APPROVER_ROLES`).
-- Strict Four-Eyes is ON (`ACTION_RUNTIME_ENFORCE_4EYES=true`): a user CANNOT approve
-  their own draft → 403 `four_eyes_violation`. A DIFFERENT approver-role user must approve.
-- Approver identity for 4-eyes now comes from the JWT (`sub`), not request body fields.
+- Approver roles: `admin, manager, supervisor` (env `RUNTIME_APPROVER_ROLES`).
+- Strict Four-Eyes ON: proposer cannot approve own draft → 403 `four_eyes_violation`.
+- Approve+auto-commit endpoint: `POST /api/runtime/approvals/{id}/approve`.
+  Aliases: `/api/runtime/approve/{approval_id}` (approve only) +
+  `/api/runtime/commit/{draft_id}`.
 
 ## Finance-actions API — RBAC protected (JWT), posts via AccountingEngine
 - `POST /api/finance-actions/invoice`  (needs invoices.create OR journal_entries.create)

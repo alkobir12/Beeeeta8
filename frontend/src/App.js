@@ -38,6 +38,7 @@ const VehicleArchive = lazy(() => import("./pages/VehicleArchive"));
 const DatabaseSetup = lazy(() => import("./pages/DatabaseSetup"));
 const Operations = lazy(() => import("./pages/Operations"));
 const ApprovalPublic = lazy(() => import("./pages/ApprovalPublic"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ReportPublic = lazy(() => import("./pages/ReportPublic"));
 const ImportPage = lazy(() => import("./pages/Import"));
 const CustomerTracking = lazy(() => import("./pages/CustomerTracking"));
@@ -176,6 +177,17 @@ const Protected = ({ children }) => {
 };
 
 function App() {
+  // Google SSO: process session_id from the URL fragment BEFORE any routing/auth checks.
+  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+  if (typeof window !== 'undefined' && (window.location.hash || '').includes('session_id=')) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <AuthCallback />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

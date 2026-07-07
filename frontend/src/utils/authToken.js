@@ -12,30 +12,45 @@ const REFRESH_KEY = 'refresh_token';
 
 /** Call POST /api/auth/login with username, store returned JWT. */
 export async function loginAndIssueToken(username) {
+  const res = await loginRequest({ username });
+  return res.ok ? res.data?.access_token || null : null;
+}
+
+/** Persist issued tokens (access + refresh) and reset the logout latch. */
+export function storeTokens(data) {
+  const token = data?.access_token;
+  if (!token) return null;
+  localStorage.setItem(TOKEN_KEY, token);
+  if (data?.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+  _loggingOut = false;
+  return token;
+}
+
+/** P1 multi-method login: body may carry {username|email, password, pin, device_id, remember_device}.
+ *  Returns {ok, status, data, detail}. Stores tokens on success. */
+export async function loginRequest(body) {
   try {
     const resp = await fetch(`${BACKEND}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include', // keep httpOnly cookie too
-      body: JSON.stringify({ username }),
+      body: JSON.stringify(body || {}),
     });
+    let data = null;
+    try { data = await resp.json(); } catch (e) { data = null; }
     if (!resp.ok) {
-      console.warn('JWT login failed:', resp.status);
-      return null;
+      return {
+        ok: false,
+        status: resp.status,
+        data,
+        detail: data?.detail || data?.error || '',
+      };
     }
-    const data = await resp.json();
-    const token = data?.access_token;
-    if (token) {
-      localStorage.setItem(TOKEN_KEY, token);
-      // 🔐 P0: keep a Bearer refresh fallback for cookie-blocked (iframe/ITP) contexts.
-      if (data?.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
-      _loggingOut = false; // reset the logout latch after a fresh successful login
-      return token;
-    }
-    return null;
+    storeTokens(data);
+    return { ok: true, status: resp.status, data, detail: '' };
   } catch (e) {
-    console.warn('JWT login error:', e);
-    return null;
+    console.warn('login request error:', e);
+    return { ok: false, status: 0, data: null, detail: 'network_error' };
   }
 }
 

@@ -17,6 +17,7 @@ _PUBLIC_EXACT = {
     "/api/auth/login",
     "/api/auth/refresh",
     "/api/auth/logout",
+    "/api/auth/google/session",  # تبادل جلسة Google قبل تسجيل الدخول (عام)
 }
 
 # بادئات مسارات عامة
@@ -24,6 +25,7 @@ _PUBLIC_PREFIX = (
     "/api/auth/login",
     "/api/auth/refresh",
     "/api/auth/logout",
+    "/api/auth/google/session",
     "/api/approvals/public/",   # روابط الاعتماد العامة بالتوكن
 )
 

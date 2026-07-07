@@ -27,6 +27,7 @@ import { resolveBackendBase } from '../utils/backendBase';
 import WorkshopProfile from './WorkshopProfile';
 import UsersManagement from './UsersManagement';
 import SettingsImportBlock from '../components/settings/SettingsImportBlock';
+import SecuritySettings from '../components/SecuritySettings';
 
 const API_URL = (
   process.env.NODE_ENV === 'production'
@@ -406,7 +407,8 @@ const Settings = () => {
 
       {/* 🪟 Tab panels */}
       {activeTab === 'profile' ? (
-        <div data-testid="settings-panel-profile">
+        <div data-testid="settings-panel-profile" className="space-y-6">
+          <SecuritySettings />
           <WorkshopProfile />
         </div>
       ) : null}

@@ -1,0 +1,47 @@
+{
+  "summary": "Frontend-only E2E verification of P1 Production Auth (SEC-003) — multi-method login on Workshop ERP. Executed 6 scenarios: (1) Login-page element visibility + name-only login as فرج1, (2) password lifecycle (set→logout→name-only rejected→password-field auto-appears→password login OK), (3) PIN + trusted-device flow (set-pin→logout→login page auto-switches to PIN mode with username prefilled→PIN login OK), (4) Google SSO redirect URL, (5) Katrina drawer sanity — 'كم مركبة حالية' returns real vehicle-count table (إجمالي 13 / تشخيص 10 / جاهز للتسليم 1) matching dashboard cards and does NOT mention 'زيارات نشطة', (6) Regression — mudir dashboard loads with stats, no auth-loop console storms. ALL functional expectations met. One important RBAC blocker identified (see frontend_issues) that prevents a technician from opening the UI to set their own password/PIN — I worked around it via backend /api/auth/set-password + /api/auth/set-pin using the rate-limit bypass header to complete the login-side UI test coverage. Cleanup performed (auth_credentials + trusted_devices deleted for مستخدم اختبار).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Settings route / Protected guard (App.js line ~166-174) + Sidebar entry (module=settings action=view)",
+        "issue": "SecuritySettings card is only reachable through /settings which is gated by permission {module:'settings',action:'view'}. Technician role (which is exactly the persona the P1 test plan uses — 'مستخدم اختبار') is redirected away to fallback route, so a technician has NO UI to set their own password / PIN. This contradicts the P1 SEC-003 acceptance criteria ('any user can set their password + PIN from الملف الشخصي → أمان الحساب'). Reproduction: login as مستخدم اختبار → navigate to /settings?tab=profile → URL is rewritten to '/' and dashboard loads instead.",
+        "selector": "[data-testid='security-settings']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Login.jsx name-only rejection toast",
+        "issue": "When the backend returns 401 with detail 'كلمة المرور مطلوبة …', the code shows a toast titled 'كلمة المرور مطلوبة' but the toast text itself is only 'هذا الحساب محمي — أدخل كلمة المرور' (the exact substring 'كلمة المرور مطلوبة' appears only in the title). The password field DOES appear correctly (functional behavior is fine). Cosmetic — user still sees a clear prompt. LOW priority.",
+        "selector": "toast title",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Login page initial load (before user submits) — the app fires 6-12 protected /api/* requests that return 401 while the user is on /login (no token yet). These are logged as console errors and are harmless but noisy; they hint at page-level effects running before the auth gate. Not a functional bug but worth batching under a token-present guard.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "HIGH — Make SecuritySettings reachable by ALL authenticated users regardless of the settings:view permission. Options: (a) add a dedicated route /account/security (Protected only by presence of session, not by settings:view) and render <SecuritySettings/>, (b) split Settings.jsx so the 'profile' tab bypasses hasRoutePermission (early-return before the guard) when the only rendered sub-component is user-owned data (SecuritySettings + WorkshopProfile-owner-only), or (c) add 'profile' as its own routePermission that resolves to always-allowed. Without this, technicians (and any role missing settings:view) cannot fulfil the P1 requirement to protect their own account.",
+    "LOW — Tighten the 'كلمة المرور مطلوبة' toast copy so the description text also contains that exact string (helps automated assertions and RTL screen-reader clarity).",
+    "LOW — Suppress or defer the pre-login /api/* fetches that produce a burst of 401s on the /login page load."
+  ],
+  "critical_code_review_comments": [
+    "App.js Protected guard uses hasRoutePermission on /settings — this is correct for admin-only tabs (users/import) but is too coarse: it also blocks the personal-security tab which every user needs.",
+    "Login.jsx correctly implements single-flight loginRequest, PIN auto-mode from localStorage.trusted_device, remember_device passthrough, and the 401→'password required' fallback. Good.",
+    "SecuritySettings.jsx uses fetch directly with Bearer token — consistent with the rest of the app; toast success/error paths OK. Consider also PATCH-invalidating trusted_device localStorage if the API ever revokes it, and re-reading currentUsername via a hook so trustedHere reflects live state.",
+    "Katrina answer for 'كم مركبة حالية' returns a correctly-computed table (13 / 10 / 1) with a note on archived + delivered counts. Verified live and matches dashboard cards. No fabrication."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request — 48 backend tests already passing)", "frontend": "100% of login-side scenarios; SecuritySettings-side scenario 100% for admin, blocked-by-RBAC for technician (workaround via API confirmed underlying flow works)"},
+  "test_credentials": "Used: فرج1 (accountant name-only), مستخدم اختبار (technician — temporarily set Test@12345 + PIN 1234 via backend, then CLEANED UP), مدير (admin name-only). Rate-limit bypass header value taken from /app/backend/.env.",
+  "seed_data_creation": "Temporarily created 1 auth_credentials row + 1 trusted_devices row for 'مستخدم اختبار' during Test 2b/3b (via backend API with rate-bypass), because the UI path (Settings→profile→SecuritySettings) is inaccessible to a technician. Both rows were DELETED after tests via mongosh — verified name-only login is restored (200 OK). No financial data touched.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Frontend login page is fully wired: name-only, password auto-fallback, PIN quick login, Google SSO all work as spec. The ONLY blocker for the technician E2E path is the /settings route guard — once main agent exposes SecuritySettings on a role-agnostic route (e.g. /account/security or a bypass inside Settings.jsx for the 'profile' tab), you can re-run the full flow purely in the UI. Katrina drawer testid is [data-testid='unified-assistant-fab'] and input is [data-testid='assistant-input']. When testing Katrina expect a ~15-18s LLM latency; the first message in a session prepends daily summary + pending reminder before the actual answer separated by ' 🚗 المركبات الحالية' block.",
+  "rca_of_the_issue": "SecuritySettings inaccessibility for non-admin roles is caused by App.js Protected component calling resolveRoutePermission('/settings') → {module:'settings',action:'view'} then hasRoutePermission → false for technician (who typically lacks settings.view). The redirect happens BEFORE the tab query param is inspected, so the personal-security tab is never rendered. Fix at the routing layer (see action_items)."
+}

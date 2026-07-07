@@ -533,6 +533,88 @@ async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5
     }
 
 
+async def _vehicles_status_summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
+    """🚗 عدد المركبات الحالية حسب الحالة — مطابق تماماً لأرقام لوحة التحكم."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
+            r = await client.get(f"{base}/api/vehicles")
+            vehicles = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if not isinstance(vehicles, list):
+        vehicles = []
+    labels = {
+        "diagnosis": "تشخيص", "quotation": "عرض سعر/تعميد", "waiting_approval": "بانتظار الموافقة",
+        "approved": "معتمد", "repair": "تحت الإصلاح", "in_progress": "قيد العمل",
+        "quality_check": "فحص الجودة", "waiting_for_parts": "بانتظار قطع",
+        "ready": "جاهز للتسليم", "delivering": "قيد التسليم", "archived": "مؤرشفة",
+    }
+    in_progress_set = {"diagnosis", "in_progress", "waiting_approval", "quality_check",
+                       "repair", "quotation", "approved", "waiting_for_parts"}
+    current = [v for v in vehicles if (v.get("status") or "") != "delivered"]
+    counts: Dict[str, int] = {}
+    for v in current:
+        s = v.get("status") or "unknown"
+        counts[s] = counts.get(s, 0) + 1
+    return {
+        "total_current": len(current),
+        "in_repair": sum(n for s, n in counts.items() if s in in_progress_set),
+        "ready_for_handover": counts.get("ready", 0) + counts.get("delivering", 0),
+        "by_status": [
+            {"status": s, "label": labels.get(s, s), "count": n}
+            for s, n in sorted(counts.items(), key=lambda x: -x[1])
+        ],
+        "delivered_total": len(vehicles) - len(current),
+        "note": "الأرقام مطابقة للوحة التحكم (المركبات الحالية تستثني المُسلَّمة delivered).",
+    }
+
+
+async def _operations_top_services(workshop_id: str = "finmodule-sync", limit: int = 5) -> Dict[str, Any]:
+    """🏆 أكثر الخدمات مبيعاً فعلياً — تجميع بنود الخدمات من العمليات المسجّلة."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=20.0, headers=_int_headers()) as client:
+            r = await client.get(f"{base}/api/operations", params={"limit": 500})
+            ops = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e)}
+    if isinstance(ops, dict):
+        ops = ops.get("data") or ops.get("items") or []
+    if not isinstance(ops, list):
+        ops = []
+    agg: Dict[str, Dict[str, Any]] = {}
+    total_items = 0
+    for o in ops:
+        for it in (o.get("items") or []):
+            itype = (it.get("itemType") or it.get("billingType") or "").lower()
+            if itype in ("supplier",):  # بنود موردين ليست خدمات مبيعة
+                continue
+            name = (it.get("name") or "").strip()
+            if not name:
+                continue
+            qty = float(it.get("qty") or it.get("quantity") or 1)
+            revenue = float(it.get("total") or (float(it.get("price") or 0) * qty))
+            e = agg.setdefault(name, {"service": name, "times_sold": 0, "qty": 0.0, "revenue": 0.0})
+            e["times_sold"] += 1
+            e["qty"] += qty
+            e["revenue"] += revenue
+            total_items += 1
+    ranked = sorted(agg.values(), key=lambda x: (-x["times_sold"], -x["revenue"]))
+    by_revenue = sorted(agg.values(), key=lambda x: -x["revenue"])
+    return {
+        "source": "بنود الخدمات الفعلية في العمليات المسجّلة (وليس كتالوج الخدمات)",
+        "operations_scanned": len(ops),
+        "distinct_services_sold": len(agg),
+        "top_by_count": ranked[:max(limit, 1)],
+        "top_by_revenue": by_revenue[:max(limit, 1)],
+    }
+
+
 # 🗓️ فهم النطاق الزمني العربي («قبل شهر»، «الشهر الماضي»، «آخر اسبوع»...)
 _AR_UNIT_DAYS = {
     "يوم": 1, "ايام": 1, "أيام": 1, "يومين": 2,
@@ -1090,6 +1172,20 @@ def _bootstrap() -> None:
         agent="WorkshopAgent",
         description="آخر N عمليات (بيع/شراء/مصاريف/تحصيل) مع المبلغ وحالة السداد.",
         handler=_operations_recent,
+        params={"workshop_id": "string?", "limit": "int?"},
+    )
+    register_tool(
+        "vehicles.status_summary",
+        agent="WorkshopAgent",
+        description="🚗 عدد المركبات الحالية في الورشة حسب الحالة (مطابق للوحة التحكم) — للأسئلة «كم مركبة».",
+        handler=_vehicles_status_summary,
+        params={"workshop_id": "string?"},
+    )
+    register_tool(
+        "operations.top_services",
+        agent="WorkshopAgent",
+        description="🏆 أكثر الخدمات مبيعاً فعلياً (عدد مرات البيع + الإيراد) من بنود العمليات المسجّلة.",
+        handler=_operations_top_services,
         params={"workshop_id": "string?", "limit": "int?"},
     )
     register_tool(

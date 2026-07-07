@@ -315,6 +315,8 @@ def normalize_arabic(text: str) -> str:
     s = _TATWEEL_RE.sub("", s)
     s = "".join(_LETTER_MAP.get(ch, _DIGIT_MAP.get(ch, ch)) for ch in s)
     s = s.lower()
+    # unify the common "عبد ال..." compound: «عبد العزيز» ↔ «عبدالعزيز»
+    s = re.sub(r"\bعبد\s+(?=ال)", "عبد", s)
     s = re.sub(r"\s+", " ", s).strip()
     return s
 

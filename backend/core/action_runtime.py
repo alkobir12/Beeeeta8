@@ -430,6 +430,12 @@ def resolve_customer_target(criteria: Dict[str, Any]) -> Dict[str, Any]:
         cands = [c for c in rows if arabic_match(name, c.get("name"))]
     if not cands:
         return {"error": "not_found", "candidates": []}
+    if len(cands) > 1 and name:
+        # 🎯 تفضيل التطابق التام: «محمد الحربي» يفوز على «محمد علي الحربي»
+        nq = normalize_arabic(name)
+        exact = [c for c in cands if normalize_arabic(c.get("name")) == nq]
+        if len(exact) == 1:
+            return {"row": exact[0]}
     if len(cands) > 1:
         return {"error": "ambiguous",
                 "candidates": [{"id": c.get("id"), "name": c.get("name"), "phone": c.get("phone")} for c in cands[:6]]}

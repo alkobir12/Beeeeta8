@@ -427,6 +427,8 @@ from fastapi import Request
 
 _RATE_STATE = {}  # (ip, bucket, window) -> count
 _RATE_STATE_MAX = 10000  # FIX-B011: bound memory growth
+# secret-gated bypass so automated test suites aren't throttled (header x-ratelimit-bypass)
+_RATE_BYPASS_TOKEN = (os.environ.get("RATE_LIMIT_BYPASS_TOKEN") or "").strip()
 
 
 def _get_client_ip(request: Request) -> str:
@@ -522,6 +524,8 @@ class SecurityHeadersAndRateLimitMiddleware:
 
         # ── 1) Rate limiting ─────────────────────────────────────────────
         bucket = _rate_bucket(path, method)
+        if _RATE_BYPASS_TOKEN and headers_in.get("x-ratelimit-bypass") == _RATE_BYPASS_TOKEN:
+            bucket = None
         if bucket is not None:
             bucket_name, limit = bucket
             ip = self._client_ip(scope, headers_in)

@@ -42,15 +42,19 @@ _TOOL_PATTERNS = [
     (re.compile(r"(integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|بدون\s*قيد|بدون\s*قيود|بلا\s*قيد|بلا\s*قيود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل|قيود.*مفقود|عمليات.*بدون)", re.IGNORECASE), "firewall.operation_integrity"),
     (re.compile(r"(تدفق|cash\s*flow|إيراد|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
     # Finance read-only
-    (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين)", re.IGNORECASE), "finance.ar_summary"),
+    (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين|(?:اجمالي|إجمالي|مجموع|كم)\s*(?:ال)?ذمم|(?:ال)?ذمم\s*(?:ال)?حالي)", re.IGNORECASE), "finance.ar_summary"),
     # Suppliers AP
     (re.compile(r"(ذمم\s*(?:ال)?مورد|دائن|دائنين|payables?|ap\s*summary|نستحق|نحن\s*مدين|للمورد|ذمم\s*ال?ورش[ةه])", re.IGNORECASE), "finance.payables_summary"),
     # Inventory low stock
     (re.compile(r"((?:ال)?قطع\s*(?:ال)?ناقص|مخزون\s*منخفض|low\s*stock|(?:ال)?قطع\s*انتهت|قطع\s*أوشكت|نفاد|نفذت\s*(?:ال)?قطع|(?:ل?ل?)?(?:ال)?حد\s*(?:ال)?أدنى|قطع.*ناقص|نواقص\s*المخزون|تنبيه.*مخزون|تنبيهات\s*المخزون)", re.IGNORECASE), "inventory.low_stock"),
     # Parts search — "بيع X" / "أبيع X" / "سعر X" / "كم سعر X" / "كم عندي X" / "هل عندنا X"
     (re.compile(r"(\bبيع\b|\bأبيع\b|\bابيع\b|اشتري|شراء\s+قطع|كم\s*سعر|سعر\s+(?:ال)?(?:قطع|فلتر|زيت|بطار|طرمب|ربلات|مساحات|بواجي|بلف|كبسول|كمبيوتر|مكيف|ايرباغ|دبري|كبائن|سلندر|طقم|كرنك|كومة|كوب|كولر|سير|تيل|قرص|دريم|قار|بوش|طبه)|تكلفة\s+قطع|كم\s+ع?ندي|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|أبحث\s+عن\s+قطع|ابحث\s+عن\s+قطع|بحث\s+عن\s+قطع|كم\s+مخزون|كم\s+ع?ندك\s+من|أحتاج\s+قطع|احتاج\s+قطع)", re.IGNORECASE), "parts.search"),
-    # Recent operations
-    (re.compile(r"(آخر\s*(?:ال)?عمليات|أحدث\s*(?:ال)?عمليات|آخر\s*(?:ال)?مبيعات|recent\s*operations?|عمليات\s*اليوم|أخر\s*(?:ال)?عمليات)", re.IGNORECASE), "operations.recent"),
+    # Recent operations — يدعم «آخر خمس/عشر/5 عمليات»
+    (re.compile(r"((?:آخر|أخر|اخر|أحدث|احدث)\s*(?:ال)?(?:خمسه?|خمس|عشره?|عشر|ثلاثه?|ثلاث|اربعه?|أربعه?|اربع|أربع|ست[ةه]?|سبع[ةه]?|ثمانيه?|تسع[ةه]?|\d+)?\s*(?:ال)?(?:عمليات|مبيعات)|recent\s*operations?|عمليات\s*اليوم)", re.IGNORECASE), "operations.recent"),
+    # 🏆 Top sold services — «اكثر الخدمات بيعاً/مبيعاً/طلباً»
+    (re.compile(r"((?:اكثر|أكثر|اعلي|أعلى|اكبر|أكبر)\s*(?:ال)?خدم(?:ات|ة|ه)\s*(?:بيع|مبيع|طلب|تكرار)?|(?:ال)?خدمات\s*(?:الأكثر|الاكثر)\s*(?:بيع|مبيع|طلب)|top\s*(?:sold\s*)?services)", re.IGNORECASE), "operations.top_services"),
+    # 🚗 Vehicle counts by status — «كم مركبة حالية» / «عدد المركبات»
+    (re.compile(r"(كم\s*(?:ال)?مركب|عدد\s*(?:ال)?مركبات|كم\s*(?:ال)?سيار|عدد\s*(?:ال)?سيارات|(?:ال)?مركبات\s*(?:ال)?(?:حالي|موجود)|مركبات\s*(?:في|ب)\s*(?:ال)?ورش)", re.IGNORECASE), "vehicles.status_summary"),
     # Operations search by customer/partner name — "عمليات محمد" / "تفاصيل عملية X"
     # Excludes common conjunctions/particles after "عمليات" (و/بدون/بلا/في/من)
     (re.compile(r"(تفاصيل\s*(?:ال)?عملي[ةه]?(?:ات)?\s+[\u0621-\u064A]|عمليات\s+(?!وال|والت|بدون|بلا|في\s|من\s|على\s|إلى)[\u0621-\u064A]{2,}(?:\s|$)|ملف\s*(?:ال)?عملي[ةه]?(?:ات)?\s+[\u0621-\u064A])", re.IGNORECASE), "operations.search"),
@@ -447,8 +451,19 @@ def _build_clarification_response(*, sid: str, message: str, exec_res: Dict[str,
     if ask:
         response_text = ask
     elif reason == "not_found":
-        response_text = (f"🔎 لم أجد {ent_ar} مطابقاً لطلبك. "
-                         f"تأكّد من الاسم أو رقم الجوال/اللوحة وحاول مرة أخرى.")
+        _payload = (exec_res.get("action") or {}).get("payload") or {}
+        _target_name = str(_payload.get("customer") or _payload.get("customer_name")
+                           or _payload.get("name") or "").strip()
+        if entity == "customer" and _target_name:
+            response_text = (
+                f"🔎 لم أجد عميلاً باسم «{_target_name}» في النظام.\n\n"
+                f"هل تريد **إضافته كعميل جديد**؟ أرسل:\n"
+                f"«اضف عميل {_target_name} جوال 05xxxxxxxx»\n"
+                f"ثم أعد أمرك الأصلي — أو تأكّد من كتابة الاسم/رقم الجوال."
+            )
+        else:
+            response_text = (f"🔎 لم أجد {ent_ar} مطابقاً لطلبك. "
+                             f"تأكّد من الاسم أو رقم الجوال/اللوحة وحاول مرة أخرى.")
     else:  # ambiguous
         lines = []
         for c in cands:

@@ -1,0 +1,32 @@
+# Auth Testing Notes (P1 / SEC-003) — adapted for this app
+
+This app does NOT use the generic `session_token` cookie pattern. The backend
+exchanges the Emergent Google `session_id` for the app's OWN JWT
+(`POST /api/auth/google/session` → `{access_token, refresh_token, username, role}`),
+mapped to an existing app user BY EMAIL (no auto-provisioning).
+
+## Login methods (POST /api/auth/login)
+1. name-only: `{username}` — allowed only while the user has NO credentials set.
+2. password: `{username|email, password, remember_device?}` — once a password is set,
+   name-only is rejected (401 "كلمة المرور مطلوبة لهذا الحساب").
+3. PIN + trusted device: `{username, pin, device_id}` — device_id comes from
+   `POST /api/auth/set-pin` (or remember_device=true login) and is stored in
+   localStorage key `trusted_device`.
+
+## Google SSO flow (frontend)
+- Login page button → `https://auth.emergentagent.com/?redirect=<origin>/`
+- Returns to `<origin>/#session_id=...` → App.js renders `pages/AuthCallback.jsx`
+  synchronously (before routing) → POST /api/auth/google/session → app JWT stored.
+- Email must match an existing user's email field, else 403
+  "هذا البريد غير مرتبط بأي مستخدم في النظام".
+
+## Backend test suite
+`cd /app/backend && python -m pytest tests/test_auth_p1_iter256.py -q` (8 tests)
+Uses header `x-ratelimit-bypass: $RATE_LIMIT_BYPASS_TOKEN` (backend/.env) to skip
+the in-memory rate limiter. Suite is self-cleaning (removes credentials it creates
+for «مستخدم اختبار»).
+
+## Simulating a Google session for E2E (no real Google account)
+Not possible without a real Emergent session_id; test the error paths instead:
+- `POST /api/auth/google/session {"session_id": ""}` → 400
+- `POST /api/auth/google/session {"session_id": "fake"}` → 401
