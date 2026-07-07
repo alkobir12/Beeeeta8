@@ -66,6 +66,7 @@ _ACTION_TO_RUNTIME = {
     "delete_vehicle": "delete_vehicle",
     "update_customer": "update_customer",
     "update_vehicle": "update_vehicle",
+    "update_visit": "update_visit",
     "create_invoice": "invoice",
     "collect_payment": "payment",
     "create_expense": "expense",
@@ -77,6 +78,7 @@ _ACTION_TO_RUNTIME = {
 _RESOLVE_TARGET_ACTIONS = {
     "delete_customer", "update_customer",
     "delete_vehicle", "update_vehicle",
+    "update_visit",
     # 🏦 financial: resolve the real party / original entry + build echo-back
     "create_invoice", "collect_payment", "create_expense", "reverse_entry",
     "create_purchase",   # 🛒 حساب الإجمالي + اقتراح توجيه محاسبي + وسم الافتراضات
@@ -212,6 +214,19 @@ def _resolve_target(action: Action) -> Dict[str, Any]:
         return _resolve_financial_target(action)
 
     payload = action.payload or {}
+
+    # 🛠️ update_visit — حلّ الزيارة المفتوحة من اسم العميل/اللوحة
+    if action.action == "update_visit":
+        res = action_runtime.resolve_visit_target(payload.get("match") or payload)
+        if res.get("error"):
+            return res
+        row = res["row"]
+        return {"enrich": {
+            "visit_id": row.get("id"),
+            "_target_label": row.get("customer_name") or row.get("plate_number") or row.get("id"),
+            "set": payload.get("set") or {},
+        }}
+
     is_customer = "customer" in action.action
     is_update = action.action.startswith("update_")
     # For updates the matcher lives under `match`; for deletes the payload IS the matcher.
@@ -384,7 +399,9 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
         ref = str(payload.get("reference_id") or "").strip()
         if not jid and not ref:
             return {"error": "missing_fields", "entity": "financial",
-                    "ask": "🔁 لعكس قيد، زوّدني برقم القيد (journal_id) أو المرجع (reference_id)."}
+                    "ask": ("🔒 القيود المرحّلة غير قابلة للتعديل أو الحذف (مبدأ الدفتر غير القابل للتغيير "
+                            "Immutable Ledger) — التصحيح يكون **بقيد عكسي** فقط.\n"
+                            "🔁 لعكس قيد، زوّدني برقم القيد (journal_id) أو المرجع (reference_id).")}
         label = jid or ref
         return {"enrich": {"_target_label": label, "_echo": {
             "type": "قيد عكسي", "entity": label, "amount": None,
@@ -579,6 +596,7 @@ _CONFIRM_LABELS = {
     "create_customer": "إضافة عميل", "create_vehicle": "إضافة مركبة",
     "create_visit": "فتح زيارة", "create_supplier": "إضافة مورّد",
     "update_customer": "تعديل عميل", "update_vehicle": "تعديل مركبة",
+    "update_visit": "تعديل زيارة",
     "create_purchase": "تسجيل شراء",
 }
 

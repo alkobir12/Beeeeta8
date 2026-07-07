@@ -71,7 +71,7 @@ STATE: Dict[str, Dict[str, Any]] = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 VALID_ACTIONS = {"customer", "vehicle", "visit", "supplier", "close_visits", "delete_operation",
-                 "delete_customer", "delete_vehicle", "update_customer", "update_vehicle",
+                 "delete_customer", "delete_vehicle", "update_customer", "update_vehicle", "update_visit",
                  "invoice", "payment", "expense", "reverse", "purchase", "memory_promote"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
@@ -439,6 +439,44 @@ def resolve_customer_target(criteria: Dict[str, Any]) -> Dict[str, Any]:
     if len(cands) > 1:
         return {"error": "ambiguous",
                 "candidates": [{"id": c.get("id"), "name": c.get("name"), "phone": c.get("phone")} for c in cands[:6]]}
+    return {"row": cands[0]}
+
+
+def resolve_visit_target(criteria: Dict[str, Any]) -> Dict[str, Any]:
+    """Find the single OPEN visit matching {visit_id?|plate?|customer_name?|name?}."""
+    from core.arabic_nlp import arabic_match
+    criteria = criteria or {}
+    vid = criteria.get("visit_id") or criteria.get("id")
+    client = _supabase_client()
+    rows: List[Dict[str, Any]] = []
+    if client:
+        try:
+            rows = (client.table("vehicle_visits").select("id,vehicle_id,status,notes,entry_date")
+                    .is_("exit_date", "null").limit(500).execute().data) or []
+        except Exception as e:
+            _log.warning("resolve_visit_target fetch failed: %s", redact(str(e), max_len=80))
+    rows += [v for v in DB.get("visits", {}).values()
+             if v.get("status") not in ("closed", "completed", "delivered")]
+    if vid:
+        hit = next((v for v in rows if str(v.get("id")) == str(vid)), None)
+        return {"row": hit} if hit else {"error": "not_found", "candidates": []}
+    name = str(criteria.get("customer_name") or criteria.get("name") or "").strip()
+    plate = str(criteria.get("plate") or "").strip()
+    if not name and not plate:
+        return {"error": "missing_fields", "entity": "visit",
+                "ask": "🔎 أي زيارة تقصد؟ زوّدني باسم العميل أو رقم اللوحة."}
+    vehicles = {str(v.get("id")): v for v in _fetch_all("vehicles")}
+    cands: List[Dict[str, Any]] = []
+    for r in rows:
+        veh = vehicles.get(str(r.get("vehicle_id"))) or {}
+        cust = veh.get("customer_name") or r.get("name") or ""
+        pl = veh.get("plate_number") or r.get("plate_number") or ""
+        if (name and arabic_match(name, cust)) or (plate and plate in str(pl)):
+            cands.append({**r, "customer_name": cust, "plate_number": pl})
+    if not cands:
+        return {"error": "not_found", "candidates": []}
+    if len(cands) > 1:
+        cands.sort(key=lambda x: str(x.get("entry_date") or ""), reverse=True)
     return {"row": cands[0]}
 
 
@@ -1124,6 +1162,50 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
             draft["execution_id"] = execution_id
             _audit("COMMIT_UPDATE_ENTITY", draft_id=draft_id, execution_id=execution_id,
                    table=tbl, entity_id=ent_id, fields=list(changes.keys()), committer=committer)
+            return {"execution_id": execution_id, "result": result_data}
+
+        # ── update_visit — تعديل ملاحظات زيارة (نص الملاحظات داخل JSON notes) ──
+        if action == "update_visit":
+            visit_id = payload.get("visit_id") or payload.get("id")
+            new_notes = str((payload.get("set") or {}).get("notes") or payload.get("notes") or "").strip()
+            if not visit_id:
+                return {"error": "missing_target_id"}
+            if not new_notes:
+                return {"error": "no_changes"}
+            updated = None
+            client = _supabase_client()
+            if client:
+                try:
+                    cur = client.table("vehicle_visits").select("id,notes").eq("id", visit_id).limit(1).execute().data
+                    if cur:
+                        try:
+                            notes_obj = json.loads(cur[0].get("notes") or "{}")
+                            if not isinstance(notes_obj, dict):
+                                notes_obj = {"text": str(notes_obj)}
+                        except Exception:
+                            notes_obj = {"text": str(cur[0].get("notes") or "")}
+                        notes_obj["text"] = new_notes
+                        res = client.table("vehicle_visits").update(
+                            {"notes": json.dumps(notes_obj, ensure_ascii=False)}).eq("id", visit_id).execute()
+                        updated = (res.data or [None])[0]
+                except Exception as e:
+                    _log.warning("update_visit failed: %s", redact(str(e), max_len=100))
+            if updated is None and visit_id in DB.get("visits", {}):
+                DB["visits"][visit_id]["notes_text"] = new_notes
+                updated = DB["visits"][visit_id]
+            if updated is None:
+                return {"error": "update_failed"}
+            result_data = {**updated, "_action": action, "_updated_fields": ["notes"]}
+            execution_id = uuid.uuid4().hex[:12]
+            STATE["executions"][execution_id] = {
+                "id": execution_id, "draft_id": draft_id, "result": result_data,
+                "status": "executed", "committer": committer or "anonymous",
+                "committed_at": time.time(),
+            }
+            draft["status"] = "committed"
+            draft["execution_id"] = execution_id
+            _audit("COMMIT_UPDATE_VISIT", draft_id=draft_id, execution_id=execution_id,
+                   visit_id=visit_id, committer=committer)
             return {"execution_id": execution_id, "result": result_data}
 
         # ── 🏦 Sale/Service (invoice) → إنشاء عملية كاملة (تظهر في كل الصفحات المالية) ──

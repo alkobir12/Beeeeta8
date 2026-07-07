@@ -41,6 +41,40 @@ def _entity_of(payload: Dict[str, Any]) -> str:
     return _norm(ent)
 
 
+def _stock_guard_notes(payload: Dict[str, Any]) -> List[str]:
+    """📦 L11: تحذير حاجب عند بيع كمية أكبر من المخزون المتاح لقطعة معروفة."""
+    notes: List[str] = []
+    echo = payload.get("_echo") or {}
+    items = payload.get("items") or echo.get("items") or []
+    if not isinstance(items, list) or not items:
+        return notes
+    try:
+        from supabase_service import SupabaseService
+        supa = SupabaseService()
+        parts = supa.client.table("parts").select("name,quantity").limit(2000).execute().data or []
+    except Exception:
+        return notes
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        name = str(it.get("name") or "").strip()
+        try:
+            qty = float(it.get("qty") or it.get("quantity") or 1)
+        except (TypeError, ValueError):
+            qty = 1
+        if not name or qty <= 0:
+            continue
+        nn = _norm(name)
+        match = next((p for p in parts if nn and (nn in _norm(p.get("name")) or _norm(p.get("name")) in nn)), None)
+        if match is not None:
+            available = float(match.get("quantity") or 0)
+            if qty > available:
+                notes.append(
+                    f"⛔ مخزون غير كافٍ: «{match.get('name')}» المتاح {available:g} والمطلوب {qty:g} — "
+                    "المخزون لا يصبح سالباً، راجع قبل الاعتماد")
+    return notes
+
+
 def audit_draft(runtime_action: str, payload: Dict[str, Any],
                 *, draft_id: Optional[str] = None) -> List[str]:
     """فحوصات متزامنة خفيفة (بدون شبكة)."""
@@ -52,6 +86,9 @@ def audit_draft(runtime_action: str, payload: Dict[str, Any],
             notes.append("🔴 المبلغ صفر أو سالب — راجع قبل الاعتماد")
         elif amount >= HIGH_AMOUNT_THRESHOLD:
             notes.append(f"⚠️ مبلغ مرتفع ({amount:,.0f} ر.س) — يتجاوز عتبة التنبيه")
+        # 📦 حارس المخزون: بيع كمية أكبر من المتاح لا يجوز أن يمر بصمت (L11)
+        if runtime_action == "invoice":
+            notes.extend(_stock_guard_notes(payload))
         # تكرار محتمل: عملية بنفس الجهة والمبلغ نُفذت خلال آخر 24 ساعة
         from core import action_runtime
         cutoff = time.time() - 24 * 3600

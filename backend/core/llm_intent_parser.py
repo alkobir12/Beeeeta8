@@ -44,6 +44,7 @@ ALLOWED_ACTIONS = {
     "delete_vehicle",        # delete a vehicle (resolved by plate/id) — requires approval
     "update_customer",       # edit a customer's fields (safe, auto-commit)
     "update_vehicle",        # edit a vehicle's fields (safe, auto-commit)
+    "update_visit",          # 📝 edit an open visit's notes (safe, auto-commit)
     # 🏦 Financial actions (HIGH RISK — always Four-Eyes, NEVER auto-commit)
     "create_invoice",        # issue an invoice for a customer
     "collect_payment",       # collect/settle a payment from a customer
@@ -90,6 +91,7 @@ _SYSTEM_PROMPT = (
     "  • delete_vehicle   — payload: {plate?, vehicle_id?} (حذف مركبة — يحتاج موافقة)\n"
     "  • update_customer  — payload: {match:{name?|phone?|customer_id?}, set:{name?,phone?,email?,address?}} (تعديل بيانات عميل)\n"
     "  • update_vehicle   — payload: {match:{plate?|vehicle_id?}, set:{plate?,brand?,model?,year?,status?}} (تعديل بيانات مركبة)\n"
+    "  • update_visit     — payload: {match:{customer_name?|plate?|visit_id?}, set:{notes}} (تعديل ملاحظات زيارة مفتوحة)\n"
     "  🏦 إجراءات مالية (تحتاج اعتماد أربع أعين دائمًا — لا تُثبَّت تلقائيًا):\n"
     "  • create_invoice   — payload: {customer, customer_phone?, total?, items?, payment_method?(credit/cash/card), date?} (إصدار فاتورة لعميل)\n"
     "  • collect_payment  — payload: {customer, customer_phone?, amount, payment_method?(cash/bank/card), date?} (تحصيل/سداد دفعة من عميل — التقط رقم الجوال إن ذُكر)\n"
@@ -133,6 +135,8 @@ _SYSTEM_PROMPT = (
     "    → {\"action\":\"create_vehicle\",\"payload\":{\"plate\":\"9935\",\"brand\":\"تويوتا\",\"model\":\"كامري\",\"year\":2020}}\n"
     "  • 'احذف العميل خالد المطيري'  → {\"action\":\"delete_customer\",\"payload\":{\"name\":\"خالد المطيري\"}}\n"
     "  • 'شيل المركبة لوحة 9935'      → {\"action\":\"delete_vehicle\",\"payload\":{\"plate\":\"9935\"}}\n"
+    "  • 'عدلي ملاحظات زيارة عمر الخضيري: العميل ينتظر بالخارج'\n"
+    "    → {\"action\":\"update_visit\",\"payload\":{\"match\":{\"customer_name\":\"عمر الخضيري\"},\"set\":{\"notes\":\"العميل ينتظر بالخارج\"}}}\n"
     "  • 'عدّل جوال خالد المطيري إلى 0509998877'\n"
     "    → {\"action\":\"update_customer\",\"payload\":{\"match\":{\"name\":\"خالد المطيري\"},\"set\":{\"phone\":\"0509998877\"}}}\n"
     "  • 'غيّر حالة المركبة 9935 إلى جاهزة'\n"

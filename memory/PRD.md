@@ -1,5 +1,16 @@
 # Workshop ERP — Product Requirements (PRD)
 
+## CHANGELOG — 2026-07-08 · 🎨 واجهة Kodee + 🔒 إغلاق L14 رسمياً + 🧪 P2 (L8–L13) ناجح
+**كله مختبَر: واجهة (iteration_255 — 100%) + L14 regression (6/6 + 29 فحصاً) + P2 جولتان + pytest 31/31**
+- **🎨 واجهة كاترينا بأسلوب Kodee (طلب المالك)**: إعادة تصميم كاملة عبر design_agent — بطاقة سطح مكتب 420×680 بزوايا 24px، **Bottom Sheet 88vh على الجوال** بمقبض سحب، تبويبات segmented، فقاعات بنفسجية، كروت ERP بشريط لوني رفيع وعنوان داكن واضح، مركز تحكم Bento + سكيلتون تحميل، حركات kodee-pop/kodee-sheet في index.css. الملفات: UnifiedAssistantDrawer.jsx (أُعيدت كتابته)، ControlCenterTab.jsx، AssistantCard.jsx.
+- **🔒 L14 مُغلق رسمياً (تأكيد المالك)**: Prompt v3 مجمّد (`frozen:true` + لقطة `PROMPT_V3_FROZEN_BASELINE.md`) · Golden Dataset (`L14_GOLDEN_DATASET.json`) · مقيّم آلي (`l14_evaluate.py`) · **سكربت موحّد `/app/scripts/run_l14_regression.sh`** (pytest → تشغيلة حية → تقييم) — آخر تشغيلة E2E: PASS.
+- **🧪 P2 (L8–L13) ناجح** — التفاصيل في `docs/diagnostics/P2_VERIFICATION_REPORT.md`:
+  - جولة تشخيص خالص (29 اختباراً بـ trace_id) ثم إصلاحات مرتبة ثم إعادة اختبار الراسب فقط.
+  - **إصلاح حرج L13-T6**: المحاسب (فرج1) كان يرى الإيرادات → صلاحية `reports.revenue` جديدة + حجب `firewall.cash_flow`/`services.top` في الكيرنل لغير المخوّلين.
+  - **إجراء update_visit جديد** (تعديل ملاحظات زيارة) · **رفض صريح لتعديل القيود المرحّلة** (Immutable Ledger + بديل قيد عكسي) · **حارس مخزون** في مدقق المسودات (بيع > المتاح = ⛔).
+  - L12 (حقن أعطال) وL15 (حِمل/تزامن ~120 نداء LLM) **مؤجلان بانتظار قرار المالك**.
+  - تنظيف كامل: قائمة الاعتمادات عادت لـ13 الأصلية. أثر جانبي موثق: نص ملاحظات زيارة عمر الخضيري = «العميل ينتظر بالخارج».
+
 ## CHANGELOG — 2026-07-07 (فجر اليوم التالي) · ✅ إصلاح 502 + قاعدة القيد المؤقت للبيع الآجل + دمج مركز التحكم داخل كاترينا
 **مختبَر 100%: وكيل الاختبار iteration_254 — باك إند 10/10 + واجهة كل الفحوصات ✅**
 - **502 على chat/prompt (AttributeError Actor.get)**: تم التحقق أنه مُصلح بالفعل — كل المسارات المتعطلة سابقاً تعيد 200 (chat، prompt/versions، prompt/activate، سيناريو البيع الآجل). `_extract_request_actor` تعيد dict والمسارات موحّدة.
@@ -238,7 +249,9 @@ React 18.3.1 (CRA) + FastAPI + Supabase (relational) + MongoDB (state/audit) + E
 - **P1 — SEC-003 نظام مصادقة Production ✅ مكتمل (2026-07-07)**: Email/Password (bcrypt) + PIN + جهاز موثوق + Google SSO (Emergent) + Refresh Rotation (jti + reuse detection) + جلسات + Audit Log + واجهة كاملة (Login + /account/security). مختبَر خلفية وواجهة.
 - **✅ قاعدة القيد المؤقت للبيع الآجل (طلب مالك 2026-07-07) — منفَّذة ومختبَرة (iteration_254)**.
 - **✅ P3 المرحلة أ+ — مركز التحكم داخل البوت — منفَّذ ومختبَر (iteration_254)**. المتبقي من P3: المرحلة ب (Hybrid Router الكامل).
-- **P2 — إكمال Katrina L8→L15** (التالي بعد إغلاق المالك لامتحان L14): Regression + trace_id + Replay لكل سيناريو مهم. (سيناريوهات المالك التسعة ✅ منجزة 2026-07-07 كجزء تمهيدي).
+- **✅ L14 مُغلق رسمياً (2026-07-08)** — امتحان المالك ناجح، Prompt v3 مجمّد، Golden Dataset، سكربت انحدار موحّد.
+- **✅ P2 — L8→L13 ناجح (2026-07-08)** — تقرير `P2_VERIFICATION_REPORT.md`. **المتبقي: L12 + L15 (بقرار مالك)**.
+- **التالي**: P3ب (Hybrid Router) → P4 (حفظ الجلسات في DB) → P5 (تتبع متقدم Correlation IDs).
 - **P3 — Hybrid Router**: كل الأوامر المالية عبر Router حتمي ثم Validation ثم Accounting Engine؛ منع أي LLM من إنشاء/تعديل قيود مباشرة.
 - **P4 — نقل الحالة من الذاكرة لقاعدة البيانات**: drafts, conversations, quotation state, pending actions, workflow state.
 - **P5 — تطوير التتبع**: Correlation ID، Parent/Child Trace، Latency، Cost، Tokens، User ID، Role، Decision Path، Tool Calls.

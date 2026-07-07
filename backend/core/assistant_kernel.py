@@ -691,6 +691,21 @@ def _baseline_prompt() -> str:
     )
 
 
+# 🔐 L13-T6 — أدوات تكشف الإيرادات: تتطلب دور معتمد أو صلاحية reports.revenue
+_REVENUE_TOOLS = {"firewall.cash_flow", "services.top"}
+
+
+def _can_view_revenue(role: Optional[str]) -> bool:
+    r = (role or "").strip().lower()
+    try:
+        from core.rbac import APPROVER_ROLES, get_role_permissions
+        if r in APPROVER_ROLES:
+            return True
+        return bool((get_role_permissions(r).get("reports") or {}).get("revenue"))
+    except Exception:
+        return False
+
+
 async def _chat_impl(
     *,
     session_id: Optional[str] = None,
@@ -869,6 +884,15 @@ async def _chat_impl(
         tool_names = ["customers.search"]
     else:
         tool_names = detect_tools(message)
+    # 🔐 L13-T6: حجب أدوات الإيرادات عن الأدوار غير المخوّلة (بنك كاترينا الأمني)
+    _rev_blocked = [t for t in tool_names if t in _REVENUE_TOOLS and not _can_view_revenue(proposer_role)]
+    if _rev_blocked:
+        tool_names = [t for t in tool_names if t not in _rev_blocked]
+        if not tool_names:
+            return _plain_chat_response(
+                sid=sid,
+                text="🚫 بيانات الإيرادات والتدفق النقدي غير مصرّحة لدورك الحالي — تواصل مع المدير إن كنت تحتاج هذه الصلاحية.",
+                intent="permission_denied", status="blocked")
     tool_results: List[Dict[str, Any]] = []
     cards: List[Dict[str, Any]] = []  # 🆕 collected from each tool result
     for tn in tool_names:

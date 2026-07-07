@@ -3,145 +3,566 @@
     "admin": {
       "name": "مدير النظام",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": true, "settle": true, "edit": true, "delete": true },
-        "journal_entries": { "view": true, "create": true, "edit": true, "delete": true, "pos": true },
-        "archive": { "view": true, "create": true, "edit": true, "delete": true },
-        "vehicles": { "view": true, "create": true, "edit": true, "delete": true },
-        "customers": { "view": true, "create": true, "edit": true, "delete": true },
-        "invoices": { "view": true, "create": true, "edit": true, "delete": true },
-        "debts": { "view": true, "settle": true },
-        "inventory": { "view": true, "create": true, "edit": true, "delete": true },
-        "work_orders": { "view": true, "create": true, "edit": true, "delete": true },
-        "reports": { "view": true },
-        "users": { "view": true, "create": true, "edit": true, "delete": true },
-        "settings": { "view": true, "edit": true }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": true,
+          "settle": true,
+          "edit": true,
+          "delete": true
+        },
+        "journal_entries": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "pos": true
+        },
+        "archive": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "vehicles": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "customers": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "invoices": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "debts": {
+          "view": true,
+          "settle": true
+        },
+        "inventory": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "work_orders": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "reports": {
+          "view": true,
+          "revenue": true
+        },
+        "users": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true
+        },
+        "settings": {
+          "view": true,
+          "edit": true
+        }
       }
     },
     "manager": {
       "name": "مدير عام",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": true, "settle": true, "edit": true, "delete": false },
-        "journal_entries": { "view": true, "create": true, "edit": true, "delete": false, "pos": true },
-        "archive": { "view": true, "create": true, "edit": true, "delete": false },
-        "vehicles": { "view": true, "create": true, "edit": true, "delete": false },
-        "customers": { "view": true, "create": true, "edit": true, "delete": false },
-        "invoices": { "view": true, "create": true, "edit": true, "delete": false },
-        "debts": { "view": true, "settle": true },
-        "inventory": { "view": true, "create": true, "edit": true, "delete": false },
-        "work_orders": { "view": true, "create": true, "edit": true, "delete": false },
-        "reports": { "view": true },
-        "users": { "view": true, "create": false, "edit": false, "delete": false },
-        "settings": { "view": true, "edit": false }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": true,
+          "settle": true,
+          "edit": true,
+          "delete": false
+        },
+        "journal_entries": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "pos": true
+        },
+        "archive": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "vehicles": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "customers": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "invoices": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "debts": {
+          "view": true,
+          "settle": true
+        },
+        "inventory": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "work_orders": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "reports": {
+          "view": true,
+          "revenue": true
+        },
+        "users": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "settings": {
+          "view": true,
+          "edit": false
+        }
       }
     },
     "accountant": {
       "name": "محاسب",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": true, "settle": true, "edit": false, "delete": false },
-        "journal_entries": { "view": true, "create": true, "edit": true, "delete": false, "pos": true },
-        "archive": { "view": true, "create": false, "edit": false, "delete": false },
-        "vehicles": { "view": true, "create": false, "edit": false, "delete": false },
-        "customers": { "view": true, "create": false, "edit": false, "delete": false },
-        "invoices": { "view": true, "create": true, "edit": true, "delete": false },
-        "debts": { "view": true, "settle": true },
-        "inventory": { "view": true, "create": false, "edit": false, "delete": false },
-        "work_orders": { "view": true, "create": false, "edit": false, "delete": false },
-        "reports": { "view": true },
-        "users": { "view": false },
-        "settings": { "view": false }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": true,
+          "settle": true,
+          "edit": false,
+          "delete": false
+        },
+        "journal_entries": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "pos": true
+        },
+        "archive": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "vehicles": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "customers": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "invoices": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "debts": {
+          "view": true,
+          "settle": true
+        },
+        "inventory": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "work_orders": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "reports": {
+          "view": true,
+          "revenue": false
+        },
+        "users": {
+          "view": false
+        },
+        "settings": {
+          "view": false
+        }
       }
     },
     "storekeeper": {
       "name": "أمين مستودع",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": false, "settle": false, "edit": false, "delete": false },
-        "journal_entries": { "view": false, "create": false, "edit": false, "delete": false, "pos": false },
-        "archive": { "view": true, "create": false, "edit": false, "delete": false },
-        "vehicles": { "view": true, "create": false, "edit": false, "delete": false },
-        "customers": { "view": false },
-        "invoices": { "view": false },
-        "debts": { "view": false },
-        "inventory": { "view": true, "create": true, "edit": true, "delete": false },
-        "work_orders": { "view": true, "create": false, "edit": false, "delete": false },
-        "reports": { "view": false },
-        "users": { "view": false },
-        "settings": { "view": false }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": false,
+          "settle": false,
+          "edit": false,
+          "delete": false
+        },
+        "journal_entries": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "pos": false
+        },
+        "archive": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "vehicles": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "customers": {
+          "view": false
+        },
+        "invoices": {
+          "view": false
+        },
+        "debts": {
+          "view": false
+        },
+        "inventory": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "work_orders": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "reports": {
+          "view": false,
+          "revenue": false
+        },
+        "users": {
+          "view": false
+        },
+        "settings": {
+          "view": false
+        }
       }
     },
     "reception": {
       "name": "استقبال",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": true, "settle": false, "edit": true, "delete": false },
-        "journal_entries": { "view": false, "create": false, "edit": false, "delete": false, "pos": false },
-        "archive": { "view": true, "create": true, "edit": true, "delete": false },
-        "vehicles": { "view": true, "create": true, "edit": true, "delete": false },
-        "customers": { "view": true, "create": true, "edit": true, "delete": false },
-        "invoices": { "view": true, "create": false, "edit": false, "delete": false },
-        "debts": { "view": true, "settle": false },
-        "inventory": { "view": true, "create": false, "edit": false, "delete": false },
-        "work_orders": { "view": true, "create": true, "edit": false, "delete": false },
-        "reports": { "view": false },
-        "users": { "view": false },
-        "settings": { "view": false }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": true,
+          "settle": false,
+          "edit": true,
+          "delete": false
+        },
+        "journal_entries": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "pos": false
+        },
+        "archive": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "vehicles": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "customers": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "invoices": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "debts": {
+          "view": true,
+          "settle": false
+        },
+        "inventory": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "work_orders": {
+          "view": true,
+          "create": true,
+          "edit": false,
+          "delete": false
+        },
+        "reports": {
+          "view": false,
+          "revenue": false
+        },
+        "users": {
+          "view": false
+        },
+        "settings": {
+          "view": false
+        }
       }
     },
     "technician": {
       "name": "فني",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": true, "settle": false, "edit": true, "delete": false },
-        "journal_entries": { "view": false, "create": false, "edit": false, "delete": false, "pos": false },
-        "archive": { "view": true, "create": false, "edit": true, "delete": false },
-        "vehicles": { "view": true, "create": false, "edit": false, "delete": false },
-        "customers": { "view": false },
-        "invoices": { "view": false },
-        "debts": { "view": false },
-        "inventory": { "view": true, "create": false, "edit": false, "delete": false },
-        "work_orders": { "view": true, "create": false, "edit": true, "delete": false },
-        "reports": { "view": false },
-        "users": { "view": false },
-        "settings": { "view": false }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": true,
+          "settle": false,
+          "edit": true,
+          "delete": false
+        },
+        "journal_entries": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "pos": false
+        },
+        "archive": {
+          "view": true,
+          "create": false,
+          "edit": true,
+          "delete": false
+        },
+        "vehicles": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "customers": {
+          "view": false
+        },
+        "invoices": {
+          "view": false
+        },
+        "debts": {
+          "view": false
+        },
+        "inventory": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "work_orders": {
+          "view": true,
+          "create": false,
+          "edit": true,
+          "delete": false
+        },
+        "reports": {
+          "view": false,
+          "revenue": false
+        },
+        "users": {
+          "view": false
+        },
+        "settings": {
+          "view": false
+        }
       }
     },
     "supervisor": {
       "name": "مشرف ورشة",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": true, "settle": true, "edit": true, "delete": false },
-        "journal_entries": { "view": true, "create": false, "edit": false, "delete": false, "pos": true },
-        "archive": { "view": true, "create": true, "edit": true, "delete": false },
-        "vehicles": { "view": true, "create": true, "edit": true, "delete": false },
-        "customers": { "view": true, "create": false, "edit": false, "delete": false },
-        "invoices": { "view": true, "create": false, "edit": false, "delete": false },
-        "debts": { "view": true, "settle": false },
-        "inventory": { "view": true, "create": false, "edit": false, "delete": false },
-        "work_orders": { "view": true, "create": true, "edit": true, "delete": false },
-        "reports": { "view": true },
-        "users": { "view": true, "create": false, "edit": false, "delete": false },
-        "settings": { "view": false }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": true,
+          "settle": true,
+          "edit": true,
+          "delete": false
+        },
+        "journal_entries": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "pos": true
+        },
+        "archive": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "vehicles": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "customers": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "invoices": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "debts": {
+          "view": true,
+          "settle": false
+        },
+        "inventory": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "work_orders": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false
+        },
+        "reports": {
+          "view": true,
+          "revenue": true
+        },
+        "users": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "settings": {
+          "view": false
+        }
       }
     },
     "viewer": {
       "name": "عارض",
       "permissions": {
-        "dashboard": { "view": true },
-        "operations": { "view": true, "settle": false, "edit": false, "delete": false },
-        "journal_entries": { "view": true, "create": false, "edit": false, "delete": false, "pos": false },
-        "archive": { "view": true, "create": false, "edit": false, "delete": false },
-        "vehicles": { "view": true, "create": false, "edit": false, "delete": false },
-        "customers": { "view": true, "create": false, "edit": false, "delete": false },
-        "invoices": { "view": true, "create": false, "edit": false, "delete": false },
-        "debts": { "view": true, "settle": false },
-        "inventory": { "view": true, "create": false, "edit": false, "delete": false },
-        "work_orders": { "view": true, "create": false, "edit": false, "delete": false },
-        "reports": { "view": true },
-        "users": { "view": false },
-        "settings": { "view": false }
+        "dashboard": {
+          "view": true
+        },
+        "operations": {
+          "view": true,
+          "settle": false,
+          "edit": false,
+          "delete": false
+        },
+        "journal_entries": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "pos": false
+        },
+        "archive": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "vehicles": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "customers": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "invoices": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "debts": {
+          "view": true,
+          "settle": false
+        },
+        "inventory": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "work_orders": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false
+        },
+        "reports": {
+          "view": true,
+          "revenue": false
+        },
+        "users": {
+          "view": false
+        },
+        "settings": {
+          "view": false
+        }
       }
     }
   }
