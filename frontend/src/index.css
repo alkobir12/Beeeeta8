@@ -1326,6 +1326,18 @@ input, select, textarea, button {
 }
 .animate-typingDot { animation: typingDot 1.2s ease-in-out infinite; }
 
+/* 🎨 Kodee-style assistant animations */
+@keyframes kodeeSlideUp {
+  from { transform: translateY(24px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes kodeeSheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-kodee-pop { animation: kodeeSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-kodee-sheet { animation: kodeeSheetUp 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
+
 /* Gentle pulse for the assistant FAB when alerts are present */
 @keyframes assistantPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }

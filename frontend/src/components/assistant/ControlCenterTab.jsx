@@ -5,9 +5,9 @@ import { ShieldAlert, RefreshCw, Check, X, Bot, ScanLine, ExternalLink, Clock } 
 import { ACTION_LABELS, PayloadDetails } from '../KatrinaApprovalsTab';
 
 /**
- * 🛡️ ControlCenterTab — مركز التحكم المالي مدمجاً داخل كاترينا (P3 Phase A+B)
- * • مؤشرات التدقيق (KPIs) — قراءة من /api/financial-control/findings/summary
- * • اعتمادات كاترينا المعلقة — اعتماد/رفض مباشرة (Four-Eyes عبر /api/runtime)
+ * 🛡️ ControlCenterTab — مركز التحكم المالي داخل كاترينا (بأسلوب Kodee Bento)
+ * • مؤشرات التدقيق (KPIs) — /api/financial-control/findings/summary
+ * • اعتمادات كاترينا المعلقة — اعتماد/رفض (Four-Eyes عبر /api/runtime)
  * • أحدث الاكتشافات المفتوحة — قراءة فقط
  */
 
@@ -31,15 +31,15 @@ const proposerLabel = (p) => {
 
 function MiniKPI({ title, value, tone, testid }) {
   const tones = {
-    rose: 'border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40',
-    amber: 'border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40',
-    emerald: 'border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40',
-    indigo: 'border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40',
+    rose: 'text-rose-600 dark:text-rose-400',
+    amber: 'text-amber-600 dark:text-amber-400',
+    emerald: 'text-emerald-600 dark:text-emerald-400',
+    indigo: 'text-violet-600 dark:text-violet-400',
   };
   return (
-    <div data-testid={testid} className={`rounded-lg border p-2 ${tones[tone] || tones.indigo}`}>
-      <div className="text-[10px] font-bold opacity-80">{title}</div>
-      <div className="text-base font-black mt-0.5">{value}</div>
+    <div data-testid={testid} className="bg-white dark:bg-zinc-900 p-3.5 rounded-2xl border border-zinc-200/70 dark:border-zinc-800 flex flex-col gap-1 hover:shadow-sm transition-shadow">
+      <div className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">{title}</div>
+      <div className={`text-xl font-black tracking-tight ${tones[tone] || tones.indigo}`}>{value}</div>
     </div>
   );
 }
@@ -50,6 +50,7 @@ export const ControlCenterTab = ({ onCountChange }) => {
   const [approvals, setApprovals] = useState([]);
   const [findings, setFindings] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState(null);
 
   const load = useCallback(async () => {
@@ -65,7 +66,7 @@ export const ControlCenterTab = ({ onCountChange }) => {
       setApprovals(pend);
       setFindings(fres.data?.data || []);
       if (onCountChange) onCountChange(pend.length);
-    } finally { setBusy(false); }
+    } finally { setBusy(false); setLoaded(true); }
   }, [onCountChange]);
 
   useEffect(() => { load(); }, [load]);
@@ -110,35 +111,51 @@ export const ControlCenterTab = ({ onCountChange }) => {
   };
 
   return (
-    <div className="p-3 space-y-3" data-testid="control-center-tab" dir="rtl">
+    <div className="p-4 space-y-4 animate-fadeIn" data-testid="control-center-tab" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-sm font-black text-slate-800 dark:text-slate-100">
-          <ShieldAlert size={16} className="text-indigo-600" /> مركز التحكم المالي
+        <div className="flex items-center gap-2 text-sm font-black text-zinc-900 dark:text-zinc-100">
+          <div className="h-8 w-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-300">
+            <ShieldAlert size={16} />
+          </div>
+          مركز التحكم المالي
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             data-testid="control-center-refresh"
             onClick={load}
             disabled={busy}
-            className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 transition-colors"
             title="تحديث"
           >
-            <RefreshCw size={13} className={busy ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
           </button>
           <button
             data-testid="control-center-open-full"
             onClick={() => navigate('/financial-control')}
-            className="p-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/40"
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors"
             title="فتح الصفحة الكاملة"
           >
-            <ExternalLink size={13} />
+            <ExternalLink size={14} />
           </button>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-2">
+      {!loaded ? (
+        <div className="space-y-2.5" data-testid="cc-loading-skeleton">
+          <div className="grid grid-cols-2 gap-2.5">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-[72px] rounded-2xl bg-zinc-100 dark:bg-zinc-900 animate-pulse" />
+            ))}
+          </div>
+          <div className="h-24 rounded-2xl bg-zinc-100 dark:bg-zinc-900 animate-pulse" />
+          <div className="h-24 rounded-2xl bg-zinc-100 dark:bg-zinc-900 animate-pulse" />
+          <div className="text-center text-[11px] text-zinc-400 font-medium">جارِ تحميل بيانات مركز التحكم…</div>
+        </div>
+      ) : (
+      <>
+      {/* KPIs — Bento grid */}
+      <div className="grid grid-cols-2 gap-2.5">
         <MiniKPI title="اكتشافات مفتوحة" value={summary?.open_count ?? '—'} tone="rose" testid="cc-kpi-open" />
         <MiniKPI title="حرجة" value={summary?.by_severity?.critical ?? 0} tone="rose" testid="cc-kpi-critical" />
         <MiniKPI title="بانتظار الاعتماد" value={approvals.length} tone="amber" testid="cc-kpi-pending" />
@@ -148,9 +165,9 @@ export const ControlCenterTab = ({ onCountChange }) => {
       {msg && (
         <div
           data-testid="control-center-msg"
-          className={`px-3 py-2 rounded-lg text-xs font-bold ${msg.type === 'ok'
-            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200'
-            : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-900/30 dark:text-rose-200'}`}
+          className={`px-3.5 py-2.5 rounded-xl text-xs font-bold animate-fadeIn ${msg.type === 'ok'
+            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-200 dark:border-emerald-800'
+            : 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-200 dark:border-rose-800'}`}
         >
           {msg.text}
         </div>
@@ -158,39 +175,39 @@ export const ControlCenterTab = ({ onCountChange }) => {
 
       {/* Pending approvals */}
       <div>
-        <div className="text-xs font-black text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1">
-          <Bot size={13} /> اعتمادات كاترينا المعلقة (أربع أعين)
+        <div className="text-xs font-black text-zinc-600 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
+          <Bot size={13} className="text-violet-500" /> اعتمادات كاترينا المعلقة (أربع أعين)
         </div>
         {approvals.length === 0 ? (
-          <div className="text-center py-4 text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl" data-testid="cc-approvals-empty">
+          <div className="text-center py-5 text-xs text-zinc-400 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl" data-testid="cc-approvals-empty">
             لا توجد عمليات بانتظار الاعتماد ✓
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {approvals.map((a) => (
               <div
                 key={a.id}
                 data-testid={`cc-approval-${a.id}`}
-                className="rounded-xl border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 overflow-hidden"
+                className="rounded-2xl border border-amber-200/70 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-900/10 overflow-hidden hover:shadow-sm transition-shadow"
               >
-                <div className="bg-gradient-to-l from-amber-500 to-orange-500 text-white px-3 py-1.5 flex items-center justify-between">
-                  <span className="text-[13px] font-black" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
+                <div className="px-3.5 pt-3 pb-1 flex items-center justify-between gap-2">
+                  <span className="text-sm font-black text-zinc-900 dark:text-zinc-100">
                     {ACTION_LABELS[a.action] || a.action || 'عملية'}
                   </span>
-                  <span className="text-[10px] font-bold bg-black/25 border border-white/50 px-2 py-0.5 rounded-full">معلّقة</span>
+                  <span className="text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full shrink-0">معلّقة</span>
                 </div>
-                <div className="px-3 py-2">
+                <div className="px-3.5 pb-2">
                   <PayloadDetails payload={a.payload} />
-                  <div className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
+                  <div className="text-[10px] text-zinc-400 mt-2 flex items-center gap-1">
                     <Clock size={10} /> {fmtTs(a.created_at)} · المُقترِح: {proposerLabel(a.proposer || a.requester)}
                   </div>
                 </div>
-                <div className="px-2 pb-2 flex gap-1.5">
+                <div className="px-3 pb-3 flex gap-2">
                   <button
                     data-testid={`cc-approve-${a.id}`}
                     onClick={() => act(a.id, 'approve')}
                     disabled={busy}
-                    className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50"
+                    className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
                   >
                     <Check size={13} /> اعتماد وتنفيذ
                   </button>
@@ -198,7 +215,7 @@ export const ControlCenterTab = ({ onCountChange }) => {
                     data-testid={`cc-reject-${a.id}`}
                     onClick={() => act(a.id, 'reject')}
                     disabled={busy}
-                    className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-xs font-bold disabled:opacity-50"
+                    className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
                   >
                     <X size={13} /> رفض
                   </button>
@@ -211,28 +228,28 @@ export const ControlCenterTab = ({ onCountChange }) => {
 
       {/* Open findings (read-only) */}
       <div>
-        <div className="text-xs font-black text-slate-600 dark:text-slate-300 mb-1.5 flex items-center gap-1">
-          <ScanLine size={13} /> أحدث الاكتشافات المفتوحة
+        <div className="text-xs font-black text-zinc-600 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
+          <ScanLine size={13} className="text-violet-500" /> أحدث الاكتشافات المفتوحة
         </div>
         {findings.length === 0 ? (
-          <div className="text-center py-4 text-xs text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl" data-testid="cc-findings-empty">
+          <div className="text-center py-5 text-xs text-zinc-400 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl" data-testid="cc-findings-empty">
             لا توجد اكتشافات مفتوحة ✓
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {findings.map((f) => (
               <div
                 key={f.id}
                 data-testid={`cc-finding-${f.id}`}
-                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-2"
+                className="rounded-2xl border border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2.5 hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold shrink-0">{SEV_LABEL[f.severity] || f.severity}</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">{f.detected_at?.slice(0, 10)}</span>
+                  <span className="text-[10px] text-zinc-400 shrink-0">{f.detected_at?.slice(0, 10)}</span>
                 </div>
-                <div className="text-xs font-bold text-slate-800 dark:text-slate-100 mt-0.5 leading-snug">{f.title}</div>
+                <div className="text-xs font-bold text-zinc-800 dark:text-zinc-100 mt-1 leading-snug">{f.title}</div>
                 {Number(f.financial_impact || 0) > 0 && (
-                  <div className="text-[11px] text-rose-600 dark:text-rose-300 font-bold mt-0.5">
+                  <div className="text-[11px] text-rose-600 dark:text-rose-400 font-bold mt-0.5">
                     الأثر: {Number(f.financial_impact).toLocaleString('en-US')} ر.س
                   </div>
                 )}
@@ -241,6 +258,8 @@ export const ControlCenterTab = ({ onCountChange }) => {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };

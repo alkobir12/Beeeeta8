@@ -318,16 +318,16 @@ function renderFields(card) {
 
 function Row({ label, value, highlight = 'slate' }) {
   const tones = {
-    slate: 'text-slate-700 dark:text-slate-300',
-    indigo: 'text-indigo-600 dark:text-indigo-300 font-bold',
+    slate: 'text-zinc-700 dark:text-zinc-300',
+    indigo: 'text-violet-600 dark:text-violet-300 font-bold',
     emerald: 'text-emerald-600 dark:text-emerald-300 font-bold',
     rose: 'text-rose-600 dark:text-rose-300 font-bold',
     teal: 'text-teal-600 dark:text-teal-300 font-bold',
     amber: 'text-amber-600 dark:text-amber-300 font-bold',
   };
   return (
-    <div className="flex justify-between items-center gap-2 text-xs">
-      <span className="text-slate-500 dark:text-slate-400 font-semibold shrink-0">{label}</span>
+    <div className="flex justify-between items-center gap-2 text-xs border-b border-zinc-100 dark:border-zinc-800/60 pb-1.5 last:border-0 last:pb-0">
+      <span className="text-zinc-500 dark:text-zinc-400 font-semibold shrink-0">{label}</span>
       <span className={`${tones[highlight] || tones.slate} text-left`}>{value}</span>
     </div>
   );
@@ -368,19 +368,23 @@ export const AssistantCard = ({ card, onAction }) => {
   };
 
   const containerClass = isDraft
-    ? 'rounded-xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-white dark:from-slate-800/60 dark:to-slate-900/80 shadow-md hover:shadow-lg transition-all overflow-hidden my-2'
-    : `rounded-xl border ${meta.tone} bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden my-1.5`;
+    ? 'rounded-2xl border border-amber-200/70 dark:border-amber-800/50 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden my-2'
+    : 'rounded-2xl border border-zinc-200/60 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden my-1.5';
 
   return (
     <div
       data-testid={`assistant-card-${card.type}-${card.id || 'x'}`}
       className={containerClass}
     >
-      <div className={`bg-gradient-to-l ${meta.color} text-white px-3 py-2 flex items-center gap-2`}>
-        <Icon size={16} className="shrink-0 drop-shadow" />
+      {/* شريط لوني رفيع أعلى الكرت (هوية النوع) */}
+      <div className={`h-1 bg-gradient-to-l ${meta.color}`} />
+      {/* رأس الكرت — نص داكن واضح على خلفية فاتحة (وضوح أعلى من التدرج) */}
+      <div className="px-3 pt-2.5 pb-1.5 flex items-center gap-2">
+        <div className="h-7 w-7 rounded-lg bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-300 shrink-0">
+          <Icon size={15} />
+        </div>
         <div
-          className="flex-1 truncate text-sm font-black tracking-tight"
-          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+          className="flex-1 truncate text-sm font-black tracking-tight text-zinc-900 dark:text-zinc-50"
           data-testid="assistant-card-title"
         >
           {card.title || card.type}
@@ -388,8 +392,12 @@ export const AssistantCard = ({ card, onAction }) => {
         {isDraft && (
           <span
             data-testid={`draft-badge-${card.id || 'x'}`}
-            className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-black/25 border border-white/50 shrink-0"
-            style={{ textShadow: '0 1px 1px rgba(0,0,0,0.4)' }}
+            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 border ${
+              cardStatus === 'committed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
+                : cardStatus === 'approved' ? 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800'
+                  : cardStatus === 'rejected' || cardStatus === 'rolled_back' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800'
+                    : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800'
+            }`}
           >
             {cardStatus === 'committed' ? 'مُنفّذة' :
               cardStatus === 'approved' ? 'مُعتمدة' :
@@ -399,17 +407,17 @@ export const AssistantCard = ({ card, onAction }) => {
           </span>
         )}
       </div>
-      <div className="px-3 py-2 space-y-0.5">
+      <div className="px-3 py-2 space-y-1.5">
         {renderFields(card)}
         {runtimeEnabled && (
-          <div className="mt-1 text-[10px] text-amber-700 dark:text-amber-300 flex items-center gap-1">
+          <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium">
             <Sparkles size={9} />
-            <span>Phase 3C runtime: تعتمد → ثم تُنفّذ بقاعدة 4-Eyes</span>
+            <span>تعتمد → ثم تُنفّذ بقاعدة الأربع أعين</span>
           </div>
         )}
       </div>
       {card.actions && card.actions.length > 0 && (
-        <div className="px-2 pb-2 pt-1 flex flex-wrap gap-1.5 border-t border-slate-200 dark:border-slate-700">
+        <div className="px-3 pb-2.5 pt-1.5 flex flex-wrap gap-1.5 border-t border-zinc-100 dark:border-zinc-800">
           {card.actions.map((a) => {
             const disabled = a.intent === 'deferred';
             return (
@@ -419,7 +427,7 @@ export const AssistantCard = ({ card, onAction }) => {
                 onClick={() => handleAction(a)}
                 disabled={disabled}
                 title={disabled ? `سيتم تفعيله في ${a.phase || 'مرحلة لاحقة'}` : a.label}
-                className={`text-[10px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 transition-colors ${chipClass(a.intent, disabled)}`}
+                className={`text-[11px] px-2.5 py-1 rounded-lg border inline-flex items-center gap-1 font-medium transition-colors ${chipClass(a.intent, disabled)}`}
               >
                 {iconForAction(a)}
                 {a.label}
