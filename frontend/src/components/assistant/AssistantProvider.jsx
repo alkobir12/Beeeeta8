@@ -202,10 +202,32 @@ export const AssistantProvider = ({ children }) => {
     return false;
   }, []);
 
-  // 🆕 Answer a message via the read/chat path WITHOUT re-adding the user
-  // bubble (it's already optimistically shown by the caller). Used as the
-  // graceful fallback when /runtime/execute returns `rejected` (the text was a
-  // question, not an action).
+// 🔁 POST مع إعادة محاولة واحدة عند أخطاء الخادم العابرة (404/502/503/504
+// أثناء إعادة تشغيل الخادم) — يمنع رسائل «تعذّر الاتصال» المربكة.
+const TRANSIENT_STATUSES = [404, 502, 503, 504];
+async function postChatWithRetry(url, payload, opts = {}) {
+  try {
+    return await axios.post(url, payload, opts);
+  } catch (e) {
+    const st = e?.response?.status;
+    if (TRANSIENT_STATUSES.includes(st) || !e?.response) {
+      await new Promise((r) => setTimeout(r, 2500));
+      return axios.post(url, payload, opts);
+    }
+    throw e;
+  }
+}
+
+// 🧾 رسالة خطأ ودّية حسب نوع الفشل
+function friendlyChatError(e) {
+  const st = e?.response?.status;
+  if (TRANSIENT_STATUSES.includes(st) || !e?.response) {
+    return '⏳ الخادم يُعاد تشغيله أو الاتصال متقطع — انتظر لحظات ثم أعد إرسال رسالتك.';
+  }
+  if (st === 401) return '🔐 انتهت الجلسة — أعد تسجيل الدخول.';
+  return `⚠️ تعذّر الاتصال بالمساعد: ${e?.message || 'unknown'}`;
+}
+
   const _answerViaChat = useCallback(async (text) => {
     let proposer = null;
     try {
@@ -213,7 +235,7 @@ export const AssistantProvider = ({ children }) => {
       proposer = u?.name || u?.username || null;
     } catch (e) { /* noop */ }
     try {
-      const res = await axios.post(`${API_URL}/assistant/chat`, {
+      const res = await postChatWithRetry(`${API_URL}/assistant/chat`, {
         message: text,
         session_id: sessionId || undefined,
         workshop_id: WORKSHOP_ID,
@@ -241,7 +263,7 @@ export const AssistantProvider = ({ children }) => {
     } catch (e) {
       setMessages((prev) => [...prev, {
         role: 'assistant',
-        content: `⚠️ تعذّر الاتصال بالمساعد: ${e.message || 'unknown'}`,
+        content: friendlyChatError(e),
         meta: { error: true },
         ts: Date.now() / 1000,
       }]);
@@ -491,7 +513,7 @@ export const AssistantProvider = ({ children }) => {
           const u = JSON.parse(localStorage.getItem('user') || 'null');
           proposer = u?.name || u?.username || null;
         } catch (e) { /* noop */ }
-        const res = await axios.post(`${API_URL}/assistant/chat`, {
+        const res = await postChatWithRetry(`${API_URL}/assistant/chat`, {
           message: trimmed,
           session_id: sessionId || undefined,
           workshop_id: WORKSHOP_ID,
@@ -528,7 +550,7 @@ export const AssistantProvider = ({ children }) => {
     } catch (e) {
       const errMsg = {
         role: 'assistant',
-        content: `⚠️ تعذّر الاتصال بالمساعد: ${e.message || 'unknown'}`,
+        content: friendlyChatError(e),
         meta: { error: true },
         ts: Date.now() / 1000,
       };

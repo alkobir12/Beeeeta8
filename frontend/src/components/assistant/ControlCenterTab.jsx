@@ -29,6 +29,13 @@ const proposerLabel = (p) => {
   return s;
 };
 
+const currentUsername = () => {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || 'null');
+    return (u?.name || u?.username || '').trim();
+  } catch (e) { return ''; }
+};
+
 function MiniKPI({ title, value, tone, testid }) {
   const tones = {
     rose: 'text-rose-600 dark:text-rose-400',
@@ -99,8 +106,14 @@ export const ControlCenterTab = ({ onCountChange }) => {
       } catch (e) { /* noop */ }
       await load();
     } catch (e) {
+      const status = e?.response?.status;
       const detail = e?.response?.data?.detail;
       const errKey = typeof detail === 'object' ? detail?.error : detail;
+      if (errKey === 'approval_not_found' || status === 404) {
+        setMsg({ type: 'err', text: 'ℹ️ هذا الطلب لم يعد موجوداً (اعتُمد أو رُفض سابقاً) — حدّثتُ القائمة' });
+        await load();
+        return;
+      }
       setMsg({
         type: 'err',
         text: errKey === 'four_eyes_violation'
@@ -184,7 +197,10 @@ export const ControlCenterTab = ({ onCountChange }) => {
           </div>
         ) : (
           <div className="space-y-2.5">
-            {approvals.map((a) => (
+            {approvals.map((a) => {
+              const me = currentUsername();
+              const isMine = me && String(a.proposer || a.requester || '').trim() === me;
+              return (
               <div
                 key={a.id}
                 data-testid={`cc-approval-${a.id}`}
@@ -203,14 +219,24 @@ export const ControlCenterTab = ({ onCountChange }) => {
                   </div>
                 </div>
                 <div className="px-3 pb-3 flex gap-2">
-                  <button
-                    data-testid={`cc-approve-${a.id}`}
-                    onClick={() => act(a.id, 'approve')}
-                    disabled={busy}
-                    className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
-                  >
-                    <Check size={13} /> اعتماد وتنفيذ
-                  </button>
+                  {isMine ? (
+                    <div
+                      data-testid={`cc-awaiting-other-${a.id}`}
+                      className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-xs font-bold cursor-not-allowed"
+                      title="مبدأ الأربع أعين: أنت المُقترِح — الاعتماد يتطلب مستخدماً آخر"
+                    >
+                      👁️👁️ بانتظار معتمدٍ آخر (أنت المُقترِح)
+                    </div>
+                  ) : (
+                    <button
+                      data-testid={`cc-approve-${a.id}`}
+                      onClick={() => act(a.id, 'approve')}
+                      disabled={busy}
+                      className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold disabled:opacity-50 transition-colors active:scale-[0.98]"
+                    >
+                      <Check size={13} /> اعتماد وتنفيذ
+                    </button>
+                  )}
                   <button
                     data-testid={`cc-reject-${a.id}`}
                     onClick={() => act(a.id, 'reject')}
@@ -221,7 +247,8 @@ export const ControlCenterTab = ({ onCountChange }) => {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -258,6 +258,16 @@ export const UnifiedAssistantDrawer = () => {
         appendMessage({ role: 'assistant', content: summary, meta: { status: ok ? 'success' : 'error', action: action.id } });
       } catch (e) {
         const detail = e?.response?.data?.detail;
+        const errKey = typeof detail === 'object' ? (detail.error || detail.msg) : detail;
+        if (errKey === 'approval_not_found' || e?.response?.status === 404) {
+          appendMessage({
+            role: 'assistant',
+            content: 'ℹ️ هذا الطلب لم يعد موجوداً (اعتُمد أو رُفض سابقاً) — افتح 🛡️ مركز التحكم لرؤية القائمة المحدّثة.',
+            meta: { status: 'info' },
+          });
+          try { window.dispatchEvent(new CustomEvent('runtime:changed', { detail: { source: 'stale_approval' } })); } catch (err) { /* noop */ }
+          return;
+        }
         let msg;
         if (detail && typeof detail === 'object') {
           msg = detail.msg || detail.error || detail.detail || JSON.stringify(detail);
