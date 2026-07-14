@@ -4,34 +4,39 @@
   "approval_id": "000da8de4cb7",
   "item": "القرعاوي (بند مورد)",
   "amount": 4046.0,
-  "status": "pending_approval"
+  "status": "pending_approval",
+  "trace_id": "tr-4ae9382facc8"
  },
  {
   "draft_id": "9f3d8c92f16f",
   "approval_id": "2701b38159cc",
   "item": "القرعاوي (بند مورد)",
   "amount": 722.0,
-  "status": "pending_approval"
+  "status": "pending_approval",
+  "trace_id": "tr-6b73c2d12848"
  },
  {
   "draft_id": "08e95934cd0d",
   "approval_id": "86a7b57faada",
   "item": "مخرطة العوفي (بند مورد)",
   "amount": 1170.0,
-  "status": "pending_approval"
+  "status": "pending_approval",
+  "trace_id": "tr-a5b15655aa35"
  },
  {
   "draft_id": "69694e1de277",
   "approval_id": "893bb3d336d3",
   "item": "سبايك ثابت/متحرك 10 (قطعة)",
   "amount": 416.0,
-  "status": "pending_approval"
+  "status": "pending_approval",
+  "trace_id": "tr-fc44114050a6"
  },
  {
   "draft_id": "d2a0600c00ba",
   "approval_id": "ee6d289150d8",
   "item": "غسيل ومعجون (خدمة ورشة)",
   "amount": 120.0,
-  "status": "pending_approval"
+  "status": "pending_approval",
+  "trace_id": "tr-dc30d708d4a9"
  }
 ]

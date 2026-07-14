@@ -752,6 +752,54 @@ class FirewallEngine:
         }]
 
     # =========================================================
+    # 7️⃣.c2 قاعدة المالك (2026-07-09): كل سند قبض مرتبط بزيارة يستوجب فاتورة مقابلة
+    # =========================================================
+    def detect_receipts_without_invoices(self) -> List[Dict[str, Any]]:
+        visit_ids = {str(v.get("id") or "") for v in self._visits()}
+        rec: Dict[str, float] = defaultdict(float)
+        inv: Dict[str, float] = defaultdict(float)
+        for e in self._journals():
+            ref = str(e.get("reference_id") or "").strip()
+            if ref not in visit_ids:
+                continue
+            tt = str(e.get("transaction_type") or "").lower()
+            total = float(e.get("total") or 0)
+            if tt == "payment":
+                rec[ref] += total
+            elif tt in ("sale", "service"):
+                inv[ref] += total
+        flagged = []
+        for ref, r_total in rec.items():
+            gap = round(r_total - inv.get(ref, 0.0), 2)
+            if gap > 0.01:
+                flagged.append({"visit_id": ref[:8], "receipts": _round_2(r_total),
+                                "invoiced": _round_2(inv.get(ref, 0.0)), "gap": gap})
+        if not flagged:
+            return []
+        flagged.sort(key=lambda x: -x["gap"])
+        ids = sorted(f["visit_id"] for f in flagged)
+        aid = _alert_id("receipt-no-invoice", *ids)
+        if aid in self._dismissed_ids:
+            return []
+        total_gap = round(sum(f["gap"] for f in flagged), 2)
+        return [{
+            "id": aid, "category": "integrity", "severity": SEV_HIGH,
+            "title": "سندات قبض مرتبطة بزيارات بلا فواتير مقابلة",
+            "description": (f"{len(flagged)} زيارة عليها سندات قبض دون قيود فواتير مقابلة "
+                            f"(مدين ذمم/دائن إيراد) — فجوة إجمالية {total_gap} ر.س."),
+            "root_cause": "سندات القبض تُرحّل مباشرة بينما فاتورة الزيارة لا يُنشأ لها قيد.",
+            "financial_impact": total_gap,
+            "affected_accounts": ["ذمم العملاء (005)", "الإيرادات"],
+            "related_entries": [f["visit_id"] for f in flagged[:20]],
+            "evidence": {"rule": "قاعدة المالك 2026-07-09: كل سند قبض مرتبط بزيارة يستوجب فاتورة مقابلة",
+                         "visits": flagged[:30]},
+            "auto_fix": FIX_NONE,
+            "auto_fix_preview": {"type": "four_eyes_settlement",
+                                 "message": "تسوية عبر مسودات فواتير بمبدأ العيون الأربع — لا إصلاح تلقائي."},
+            "created_at": _now().isoformat(),
+        }]
+
+    # =========================================================
     # 7️⃣.d Open Receivables / Payables (من القيود)
     # =========================================================
     def detect_open_receivables(self) -> List[Dict[str, Any]]:
@@ -949,6 +997,7 @@ class FirewallEngine:
         profitability = self.analyze_profitability()
         all_alerts.extend(self.detect_profitability_issues(profitability))
         all_alerts.extend(self.detect_missing_journal_entries())
+        all_alerts.extend(self.detect_receipts_without_invoices())
         all_alerts.extend(self.detect_open_receivables())
 
         # رتّب حسب الخطورة

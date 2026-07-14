@@ -72,6 +72,7 @@ async def runtime_create_draft(request: Request, payload: Dict[str, Any] = Body(
         payload=payload.get("payload") or {},
         proposer=payload.get("proposer"),
         session_id=payload.get("session_id"),
+        trace_id=payload.get("trace_id"),
     )
     return {"success": True, "data": draft}
 

@@ -73,6 +73,8 @@ STATE: Dict[str, Dict[str, Any]] = {
 VALID_ACTIONS = {"customer", "vehicle", "visit", "supplier", "close_visits", "delete_operation",
                  "delete_customer", "delete_vehicle", "update_customer", "update_vehicle", "update_visit",
                  "invoice", "payment", "expense", "reverse", "purchase", "memory_promote"}
+# 🔬 قاعدة المالك (2026-07-09): لا مسودة مالية بلا trace_id — Trace أو لم يحدث
+FINANCIAL_ACTIONS = {"invoice", "payment", "expense", "reverse", "purchase"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -724,6 +726,7 @@ def create_draft(
     proposer: Optional[str] = None,
     session_id: Optional[str] = None,
     draft_id: Optional[str] = None,
+    trace_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Register a draft in the runtime. Returns the stored draft record.
 
@@ -732,9 +735,31 @@ def create_draft(
               still register (status=draft) but cannot commit until enabled.
       payload: the entity body that will be upserted on commit.
       proposer: username from the request (Four-Eyes anchor).
+      trace_id: provenance anchor. مالي بلا trace = يُسكّ trace تلقائياً.
     """
     with _LOCK:
         did = draft_id or uuid.uuid4().hex[:12]
+        tid = trace_id
+        if not tid:
+            try:
+                from core import llm_traces
+                tid = llm_traces.active_trace_id()
+                if not tid and action in FINANCIAL_ACTIONS:
+                    tid = llm_traces.start_trace(
+                        session_id=session_id, user=proposer, channel="runtime",
+                        message=f"draft:{action} — {str(payload.get('service') or payload.get('description') or payload.get('customer') or '')[:120]}")
+                    llm_traces.add_tool_call(
+                        tool=f"runtime.create_draft:{action}",
+                        tool_input={"draft_id": did,
+                                    "total": payload.get("total") or payload.get("amount"),
+                                    "customer": payload.get("customer") or payload.get("customer_name")},
+                        write=True)
+                    llm_traces.finish_trace(
+                        final_response=f"draft {did} registered (pending Four-Eyes)",
+                        intent=action, status="draft_created",
+                        executed={"draft_id": did})
+            except Exception:
+                tid = None
         draft = {
             "id": did,
             "action": action,
@@ -742,6 +767,7 @@ def create_draft(
             "status": "draft",
             "proposer": proposer or "anonymous",
             "session_id": session_id,
+            "trace_id": tid,
             "created_at": time.time(),
         }
         STATE["drafts"][did] = draft

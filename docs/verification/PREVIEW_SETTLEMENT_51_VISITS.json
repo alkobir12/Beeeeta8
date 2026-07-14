@@ -1,0 +1,703 @@
+{
+ "generated_at": "2026-07-14 14:24 UTC",
+ "criterion": "زيارات مغلقة: المقبوضات = البنود، صفر قيود فواتير",
+ "excluded_permanently": [
+  {
+   "visit": "868355a4",
+   "reason": "سجل اختبار كاترينا بتاريخ مستقبلي — TICKET_TEST_ISOLATION",
+   "amount": 1695.0
+  }
+ ],
+ "visits_count": 51,
+ "total_amount": 54515.0,
+ "total_proposed_drafts": 59,
+ "closed_last_7_days": {
+  "count": 5,
+  "amount": 7250.0,
+  "visits": [
+   "e10a7a9e",
+   "17c6ee15",
+   "fcacb037",
+   "eca7b15a",
+   "e3e8bbbc"
+  ]
+ },
+ "closed_last_14_days": {
+  "count": 10,
+  "amount": 12655.0
+ },
+ "split_rule": "افتراضي: مسودة واحدة لكل زيارة؛ تُقسَّم فقط عند تعدد فئات الإيراد (خدمات/قطع/موردون) — نمط يوسف",
+ "rows": [
+  {
+   "visit": "e10a7a9e",
+   "customer": "عمر عبد العزيزالجعيثن",
+   "plate": "ب د س 9123",
+   "closed": "2026-07-08",
+   "amount": 4750.0,
+   "items_count": 8,
+   "classes": {
+    "موردون": 2270.0,
+    "خدمات ورشة": 2480.0
+   },
+   "proposed_split": "تقسيم 2 مسودات: موردون 2270 + خدمات ورشة 2480",
+   "proposed_drafts": 2
+  },
+  {
+   "visit": "77e3369b",
+   "customer": "محمد الجهني  ابو خالد",
+   "plate": "ن ح ر   717",
+   "closed": "2026-06-03",
+   "amount": 4500.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 4500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "9aa2e773",
+   "customer": "ابو تركي الرويضان",
+   "plate": "ح ن ط 8712",
+   "closed": "2026-07-01",
+   "amount": 3700.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 3700.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "ef0a3030",
+   "customer": "1059  /// عطية (فهد الشعيبي)",
+   "plate": "1062 /// ب ع ا ",
+   "closed": "2026-05-13",
+   "amount": 3000.0,
+   "items_count": 4,
+   "classes": {
+    "موردون": 1477.0,
+    "خدمات ورشة": 1523.0
+   },
+   "proposed_split": "تقسيم 2 مسودات: موردون 1477 + خدمات ورشة 1523",
+   "proposed_drafts": 2
+  },
+  {
+   "visit": "32fe2aea",
+   "customer": "ابراهيم العجلان",
+   "plate": "ب ط ل 311",
+   "closed": "2026-05-25",
+   "amount": 2500.0,
+   "items_count": 2,
+   "classes": {
+    "خدمات ورشة": 2500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "5efaadae",
+   "customer": "نايف المقحم",
+   "plate": "ر ح ن 6278",
+   "closed": "2026-05-23",
+   "amount": 2500.0,
+   "items_count": 1,
+   "classes": {
+    "قطع": 2500.0
+   },
+   "proposed_split": "مسودة واحدة (قطع)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "4971413f",
+   "customer": "ب س ص 1968",
+   "plate": "ب س ص 1968",
+   "closed": "2026-06-20",
+   "amount": 2500.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 2500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "868893fa",
+   "customer": "ابو ماجد الدخيل الله",
+   "plate": "د ل ح 4662",
+   "closed": "2026-06-27",
+   "amount": 2450.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 2450.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "29dddda3",
+   "customer": "ابو زامل",
+   "plate": "ا ط ل209",
+   "closed": "2026-05-21",
+   "amount": 2400.0,
+   "items_count": 7,
+   "classes": {
+    "خدمات ورشة": 1463.0,
+    "قطع": 879.0,
+    "موردون": 58.0
+   },
+   "proposed_split": "تقسيم 3 مسودات: خدمات ورشة 1463 + قطع 879 + موردون 58",
+   "proposed_drafts": 3
+  },
+  {
+   "visit": "5f3b0fd2",
+   "customer": "ابو ركان عبدالله",
+   "plate": "د ط ص 5787",
+   "closed": "2026-06-23",
+   "amount": 2350.0,
+   "items_count": 3,
+   "classes": {
+    "خدمات ورشة": 2350.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "4365e611",
+   "customer": "حزام سعود المطيري",
+   "plate": "ا ط ا 9935",
+   "closed": "2026-06-11",
+   "amount": 2300.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 2300.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "03df6db9",
+   "customer": "1064 /// سلطان العليان",
+   "plate": "س ط ق 900",
+   "closed": "2026-05-12",
+   "amount": 2000.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 2000.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "ce09e011",
+   "customer": "محمد العمر",
+   "plate": "ا ي ح 8162",
+   "closed": "2026-05-31",
+   "amount": 2000.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 2000.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "526a3935",
+   "customer": "زبن البدراني",
+   "plate": "ا س ص 2919",
+   "closed": "2026-06-28",
+   "amount": 2000.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 2000.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "d22b42a7",
+   "customer": "ابو صهيب الاردني",
+   "plate": "ا ك ك 5997",
+   "closed": "2026-06-13",
+   "amount": 1580.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 1580.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "ecee7051",
+   "customer": "ابو ابراهيم العريني",
+   "plate": "ب ا ل 7680",
+   "closed": "2026-06-18",
+   "amount": 1500.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 1500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "17c6ee15",
+   "customer": "ظاهر بن  سعود الحربي",
+   "plate": "ب ر ر 6710",
+   "closed": "2026-07-08",
+   "amount": 1440.0,
+   "items_count": 2,
+   "classes": {
+    "خدمات ورشة": 400.0,
+    "موردون": 1040.0
+   },
+   "proposed_split": "تقسيم 2 مسودات: خدمات ورشة 400 + موردون 1040",
+   "proposed_drafts": 2
+  },
+  {
+   "visit": "ef6f0f88",
+   "customer": "خالد الربيش",
+   "plate": "ح ل ه 5177",
+   "closed": "2026-07-04",
+   "amount": 1000.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 1000.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "c0d34b81",
+   "customer": "ابو مصري",
+   "plate": "ب ق د 4410",
+   "closed": "2026-06-02",
+   "amount": 780.0,
+   "items_count": 4,
+   "classes": {
+    "خدمات ورشة": 780.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "3c8d81bb",
+   "customer": "ابو سلطان يوسف",
+   "plate": "ا ط ك 6977",
+   "closed": "2026-05-25",
+   "amount": 600.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 600.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "0b080234",
+   "customer": "سالم حسين",
+   "plate": "ا هـ ك 4818",
+   "closed": "2026-06-14",
+   "amount": 600.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 600.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "b876921c",
+   "customer": "حسام التويجري",
+   "plate": "ا س ر 7033",
+   "closed": "2026-05-23",
+   "amount": 500.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "040b41c7",
+   "customer": "شركة مصنع اعذاق للصناعه",
+   "plate": "ب ب ك 7689",
+   "closed": "2026-06-10",
+   "amount": 500.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "6a1f5892",
+   "customer": "عبد العزيز اللافي",
+   "plate": "ا ص ل 3898",
+   "closed": "2026-06-20",
+   "amount": 500.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "5f4f40f0",
+   "customer": "ذياب سليمان الذياب",
+   "plate": "ب ك ع 5140",
+   "closed": "2026-06-11",
+   "amount": 500.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "b8df4807",
+   "customer": "مد الله الثواتي",
+   "plate": "ا ل ق 6161",
+   "closed": "2026-06-16",
+   "amount": 500.0,
+   "items_count": 2,
+   "classes": {
+    "خدمات ورشة": 500.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "fcacb037",
+   "customer": "ابو جواد",
+   "plate": "ر ب هـ 6983",
+   "closed": "2026-07-08",
+   "amount": 450.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 450.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "1a0f9a63",
+   "customer": "عمر عبد العزيزالجعيثن",
+   "plate": "ب د س 9123",
+   "closed": "2026-06-06",
+   "amount": 400.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 400.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "7ec953e2",
+   "customer": "عمر عبد العزيزالجعيثن",
+   "plate": "ب د س 9123",
+   "closed": "2026-06-21",
+   "amount": 400.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 400.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "107ffdb8",
+   "customer": "الريف الثلاثي للحوم",
+   "plate": "ب ص ح 3952",
+   "closed": "2026-06-27",
+   "amount": 400.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 400.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "4c96e77e",
+   "customer": "عبدالعزيز الموسى",
+   "plate": "ا و و 7451",
+   "closed": "2026-05-23",
+   "amount": 350.0,
+   "items_count": 2,
+   "classes": {
+    "خدمات ورشة": 325.0,
+    "قطع": 25.0
+   },
+   "proposed_split": "تقسيم 2 مسودات: خدمات ورشة 325 + قطع 25",
+   "proposed_drafts": 2
+  },
+  {
+   "visit": "2364622f",
+   "customer": "ابراهيم مقعد الحربي",
+   "plate": "ب ب ط 5732",
+   "closed": "2026-06-28",
+   "amount": 350.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 350.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "eca7b15a",
+   "customer": "شركة مصنع اعذاق للصناعه",
+   "plate": "ب ب ك 7689",
+   "closed": "2026-07-07",
+   "amount": 310.0,
+   "items_count": 2,
+   "classes": {
+    "موردون": 160.0,
+    "خدمات ورشة": 150.0
+   },
+   "proposed_split": "تقسيم 2 مسودات: موردون 160 + خدمات ورشة 150",
+   "proposed_drafts": 2
+  },
+  {
+   "visit": "7ce2e6dd",
+   "customer": "ابو ركان",
+   "plate": "د ى هـ 8536",
+   "closed": "2026-07-05",
+   "amount": 305.0,
+   "items_count": 2,
+   "classes": {
+    "خدمات ورشة": 150.0,
+    "قطع": 155.0
+   },
+   "proposed_split": "تقسيم 2 مسودات: خدمات ورشة 150 + قطع 155",
+   "proposed_drafts": 2
+  },
+  {
+   "visit": "e3e8bbbc",
+   "customer": "عبد الرحمن الراشد",
+   "plate": "ا ب ط 7516",
+   "closed": "2026-07-08",
+   "amount": 300.0,
+   "items_count": 3,
+   "classes": {
+    "خدمات ورشة": 300.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "bc68b514",
+   "customer": "ابو عبد الرحمن",
+   "plate": "ب د ح 5165",
+   "closed": "2026-05-26",
+   "amount": 260.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 260.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "78740d04",
+   "customer": "الريان",
+   "plate": "ب ا ر 7880",
+   "closed": "2026-06-21",
+   "amount": 250.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 250.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "e2f71e35",
+   "customer": "سلطان عبدالرحمن المحيميد",
+   "plate": "د ط س6269",
+   "closed": "2026-05-31",
+   "amount": 200.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 200.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "c82dbb6a",
+   "customer": "عبد الله الخطيب",
+   "plate": "ب ب ر 1760",
+   "closed": "2026-07-01",
+   "amount": 200.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 200.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "0d0e0e1c",
+   "customer": "ياسر الزيد",
+   "plate": "ا ط م 2370",
+   "closed": "2026-07-01",
+   "amount": 200.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 200.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "c33b7e01",
+   "customer": "عبد الرحمن فالح الحربي",
+   "plate": "1067 /// د ا ق ",
+   "closed": "2026-05-16",
+   "amount": 150.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 150.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "724a3b53",
+   "customer": "ابراهيم العمر",
+   "plate": "ا ب ل 6352",
+   "closed": "2026-06-08",
+   "amount": 150.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 150.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "da69a9c2",
+   "customer": "ابو علي الشعيبي",
+   "plate": "ح هـ هـ 7754",
+   "closed": "2026-06-10",
+   "amount": 150.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 150.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "8e81052c",
+   "customer": "محمد ابو الخير",
+   "plate": "ر ح ب 7854",
+   "closed": "2026-06-17",
+   "amount": 150.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 150.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "27fac848",
+   "customer": "ابو ماجد الدخيل الله",
+   "plate": "د ل ح 4662",
+   "closed": "2026-06-17",
+   "amount": 150.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 150.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "c8336959",
+   "customer": "عبد العزيز الخضر",
+   "plate": "ق ى ا 663",
+   "closed": "2026-06-02",
+   "amount": 100.0,
+   "items_count": 2,
+   "classes": {
+    "خدمات ورشة": 100.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "52e779ff",
+   "customer": "1066 ///وليد بخيت",
+   "plate": "ا ص ح 2760",
+   "closed": "2026-05-23",
+   "amount": 100.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 100.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "99cdc1db",
+   "customer": "سليمان السويلمي",
+   "plate": "د هـ ع  1007",
+   "closed": "2026-06-18",
+   "amount": 100.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 100.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "64277504",
+   "customer": "1061 ///ابو علي عطاف  الغماس",
+   "plate": "ب س س  7341",
+   "closed": "2026-05-12",
+   "amount": 50.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 50.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "40d2d861",
+   "customer": "حيايل هايلكس",
+   "plate": "د ر م 333",
+   "closed": "2026-05-23",
+   "amount": 50.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 50.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  },
+  {
+   "visit": "fd04da2a",
+   "customer": "شركة مصنع اعذاق للصناعه",
+   "plate": "ب ب ك 7689",
+   "closed": "2026-06-11",
+   "amount": 40.0,
+   "items_count": 1,
+   "classes": {
+    "خدمات ورشة": 40.0
+   },
+   "proposed_split": "مسودة واحدة (خدمات ورشة)",
+   "proposed_drafts": 1
+  }
+ ]
+}
