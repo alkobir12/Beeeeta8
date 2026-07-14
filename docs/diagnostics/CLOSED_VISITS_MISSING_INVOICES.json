@@ -1,0 +1,1329 @@
+{
+ "match": [
+  {
+   "visit": "e10a7a9e",
+   "customer": "عمر عبد العزيزالجعيثن",
+   "plate": "ب د س 9123",
+   "closed": "2026-07-08",
+   "items_total": 4750.0,
+   "receipts_total": 4750.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 1452.0
+    },
+    {
+     "name": "شركة القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 324.0
+    },
+    {
+     "name": "مخرطة العوفي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 380.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 81.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 33.0
+    },
+    {
+     "name": "زيت مكينه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 100.0
+    },
+    {
+     "name": "غسيل مكينة+معجون ديركو",
+     "type": "service",
+     "billing": "workshop",
+     "total": 80.0
+    },
+    {
+     "name": "توضيب مكينه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2300.0
+    }
+   ]
+  },
+  {
+   "visit": "77e3369b",
+   "customer": "محمد الجهني  ابو خالد",
+   "plate": "ن ح ر   717",
+   "closed": "2026-06-03",
+   "items_total": 4500.0,
+   "receipts_total": 4500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "توضيب مكينه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 4500.0
+    }
+   ]
+  },
+  {
+   "visit": "9aa2e773",
+   "customer": "ابو تركي الرويضان ",
+   "plate": "ح ن ط 8712",
+   "closed": "2026-07-01",
+   "items_total": 3700.0,
+   "receipts_total": 3700.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "توضيب المكينة",
+     "type": "service",
+     "billing": "workshop",
+     "total": 3700.0
+    }
+   ]
+  },
+  {
+   "visit": "ef0a3030",
+   "customer": "1059  /// عطية (فهد الشعيبي)",
+   "plate": "1062 /// ب ع ا ",
+   "closed": "2026-05-13",
+   "items_total": 3000.0,
+   "receipts_total": 3000.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "شركة القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 1267.0
+    },
+    {
+     "name": "أبو خالد الكبير",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 130.0
+    },
+    {
+     "name": "أبو خالد الكبير",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 80.0
+    },
+    {
+     "name": "أتركيب جنازير تيمن كامل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 1523.0
+    }
+   ]
+  },
+  {
+   "visit": "32fe2aea",
+   "customer": "ابراهيم العجلان",
+   "plate": "ب ط ل 311",
+   "closed": "2026-05-25",
+   "items_total": 2500.0,
+   "receipts_total": 2500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "توضيب مكينة 6 سلندر ديزل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2400.0
+    },
+    {
+     "name": "غسيل مكينة+معجون ديركو",
+     "type": "service",
+     "billing": "workshop",
+     "total": 100.0
+    }
+   ]
+  },
+  {
+   "visit": "5efaadae",
+   "customer": "نايف المقحم",
+   "plate": "ر ح ن 6278",
+   "closed": "2026-05-23",
+   "items_total": 2500.0,
+   "receipts_total": 2500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "جرم بخاخ",
+     "type": "part",
+     "billing": "supplier",
+     "total": 2500.0
+    }
+   ]
+  },
+  {
+   "visit": "4971413f",
+   "customer": "ب س ص 1968",
+   "plate": "ب س ص 1968",
+   "closed": "2026-06-20",
+   "items_total": 2500.0,
+   "receipts_total": 2500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "توضيب",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2500.0
+    }
+   ]
+  },
+  {
+   "visit": "868893fa",
+   "customer": "ابو ماجد الدخيل الله ",
+   "plate": "د ل ح 4662",
+   "closed": "2026-06-27",
+   "items_total": 2450.0,
+   "receipts_total": 2450.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل راس المكينه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2450.0
+    }
+   ]
+  },
+  {
+   "visit": "29dddda3",
+   "customer": "ابو زامل ",
+   "plate": "ا ط ل209",
+   "closed": "2026-05-21",
+   "items_total": 2400.0,
+   "receipts_total": 2400.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 950.0
+    },
+    {
+     "name": "ربلات ثلاجه",
+     "type": "part",
+     "billing": "supplier",
+     "total": 179.0
+    },
+    {
+     "name": "شركة القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 58.0
+    },
+    {
+     "name": "شغل الثلاجه وتركيب ربلات ووردات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 313.0
+    },
+    {
+     "name": "ودات مسامير الثلاجه مع البخاخات",
+     "type": "part",
+     "billing": "supplier",
+     "total": 100.0
+    },
+    {
+     "name": "طرمبة الهواء",
+     "type": "part",
+     "billing": "supplier",
+     "total": 600.0
+    },
+    {
+     "name": "تركيب طرمبة الهواء",
+     "type": "service",
+     "billing": "workshop",
+     "total": 200.0
+    }
+   ]
+  },
+  {
+   "visit": "5f3b0fd2",
+   "customer": "ابو ركان عبدالله ",
+   "plate": "د ط ص 5787",
+   "closed": "2026-06-23",
+   "items_total": 2350.0,
+   "receipts_total": 2350.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 1500.0
+    },
+    {
+     "name": "فك صدر المكينه وتعديل عمود تيمن",
+     "type": "service",
+     "billing": "workshop",
+     "total": 600.0
+    },
+    {
+     "name": "تبديل زيت الجير",
+     "type": "service",
+     "billing": "workshop",
+     "total": 250.0
+    }
+   ]
+  },
+  {
+   "visit": "4365e611",
+   "customer": "حزام سعود المطيري",
+   "plate": "ا ط ا 9935",
+   "closed": "2026-06-11",
+   "items_total": 2300.0,
+   "receipts_total": 2300.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "توضيب المكينة",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2300.0
+    }
+   ]
+  },
+  {
+   "visit": "03df6db9",
+   "customer": "1064 /// سلطان العليان",
+   "plate": "س ط ق 900",
+   "closed": "2026-05-12",
+   "items_total": 2000.0,
+   "receipts_total": 2000.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل وجه تربوات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2000.0
+    }
+   ]
+  },
+  {
+   "visit": "ce09e011",
+   "customer": "محمد العمر ",
+   "plate": "ا ي ح 8162",
+   "closed": "2026-05-31",
+   "items_total": 2000.0,
+   "receipts_total": 2000.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب  مكينة 2GR",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2000.0
+    }
+   ]
+  },
+  {
+   "visit": "526a3935",
+   "customer": "زبن البدراني",
+   "plate": "ا س ص 2919",
+   "closed": "2026-06-28",
+   "items_total": 2000.0,
+   "receipts_total": 2000.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "توضيب مكينة",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2000.0
+    }
+   ]
+  },
+  {
+   "visit": "868355a4",
+   "customer": "عبد العزيز الشعيبي",
+   "plate": "د ح د 8719",
+   "closed": "2026-07-11",
+   "items_total": 1695.0,
+   "receipts_total": 1695.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 775.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 120.0
+    },
+    {
+     "name": "صيانة عامة",
+     "type": "service",
+     "billing": "workshop",
+     "total": 800.0
+    }
+   ]
+  },
+  {
+   "visit": "d22b42a7",
+   "customer": "ابو صهيب الاردني",
+   "plate": "ا ك ك 5997",
+   "closed": "2026-06-13",
+   "items_total": 1580.0,
+   "receipts_total": 1580.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب مكينه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 1580.0
+    }
+   ]
+  },
+  {
+   "visit": "ecee7051",
+   "customer": "ابو ابراهيم العريني",
+   "plate": "ب ا ل 7680",
+   "closed": "2026-06-18",
+   "items_total": 1500.0,
+   "receipts_total": 1500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب راس المكينه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 1500.0
+    }
+   ]
+  },
+  {
+   "visit": "17c6ee15",
+   "customer": "ظاهر بن  سعود الحربي",
+   "plate": "ب ر ر 6710",
+   "closed": "2026-07-08",
+   "items_total": 1440.0,
+   "receipts_total": 1440.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب  كلتش",
+     "type": "service",
+     "billing": "workshop",
+     "total": 400.0
+    },
+    {
+     "name": "الراكضي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 1040.0
+    }
+   ]
+  },
+  {
+   "visit": "ef6f0f88",
+   "customer": "خالد الربيش ",
+   "plate": "ح ل ه 5177",
+   "closed": "2026-07-04",
+   "items_total": 1000.0,
+   "receipts_total": 1000.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 1000.0
+    }
+   ]
+  },
+  {
+   "visit": "c0d34b81",
+   "customer": "ابو مصري",
+   "plate": "ب ق د 4410",
+   "closed": "2026-06-02",
+   "items_total": 780.0,
+   "receipts_total": 780.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب التانكي",
+     "type": "service",
+     "billing": "workshop",
+     "total": 430.0
+    },
+    {
+     "name": "تبديل فلتر الديزل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    },
+    {
+     "name": "تغيير فحمات الفرامل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 100.0
+    },
+    {
+     "name": "فك وتركيب بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 200.0
+    }
+   ]
+  },
+  {
+   "visit": "3c8d81bb",
+   "customer": "ابو سلطان يوسف",
+   "plate": "ا ط ك 6977",
+   "closed": "2026-05-25",
+   "items_total": 600.0,
+   "receipts_total": 600.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب بخاخات مع تنضيف تانكي الديزل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 600.0
+    }
+   ]
+  },
+  {
+   "visit": "0b080234",
+   "customer": "سالم حسين ",
+   "plate": "ا هـ ك 4818",
+   "closed": "2026-06-14",
+   "items_total": 600.0,
+   "receipts_total": 600.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "وزن طرمة ديزل مع تركيب فلترديز وفلتر هوا",
+     "type": "service",
+     "billing": "workshop",
+     "total": 600.0
+    }
+   ]
+  },
+  {
+   "visit": "b876921c",
+   "customer": "حسام التويجري",
+   "plate": "ا س ر 7033",
+   "closed": "2026-05-23",
+   "items_total": 500.0,
+   "receipts_total": 500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تركيب طقم كلتش",
+     "type": "service",
+     "billing": "workshop",
+     "total": 500.0
+    }
+   ]
+  },
+  {
+   "visit": "040b41c7",
+   "customer": "شركة مصنع اعذاق للصناعه",
+   "plate": "ب ب ك 7689",
+   "closed": "2026-06-10",
+   "items_total": 500.0,
+   "receipts_total": 500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تركيب طرمبة ماء وصيانة",
+     "type": "service",
+     "billing": "workshop",
+     "total": 500.0
+    }
+   ]
+  },
+  {
+   "visit": "6a1f5892",
+   "customer": "عبد العزيز اللافي",
+   "plate": "ا ص ل 3898",
+   "closed": "2026-06-20",
+   "items_total": 500.0,
+   "receipts_total": 500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "برمجه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 500.0
+    }
+   ]
+  },
+  {
+   "visit": "5f4f40f0",
+   "customer": "ذياب سليمان الذياب",
+   "plate": "ب ك ع 5140",
+   "closed": "2026-06-11",
+   "items_total": 500.0,
+   "receipts_total": 500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب  كلتش",
+     "type": "service",
+     "billing": "workshop",
+     "total": 500.0
+    }
+   ]
+  },
+  {
+   "visit": "b8df4807",
+   "customer": "مد الله الثواتي",
+   "plate": "ا ل ق 6161",
+   "closed": "2026-06-16",
+   "items_total": 500.0,
+   "receipts_total": 500.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 200.0
+    },
+    {
+     "name": "فك براد ترربو",
+     "type": "service",
+     "billing": "workshop",
+     "total": 300.0
+    }
+   ]
+  },
+  {
+   "visit": "fcacb037",
+   "customer": "ابو جواد ",
+   "plate": "ر ب هـ 6983",
+   "closed": "2026-07-08",
+   "items_total": 450.0,
+   "receipts_total": 450.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "صيانة خراطيش التربو",
+     "type": "service",
+     "billing": "workshop",
+     "total": 450.0
+    }
+   ]
+  },
+  {
+   "visit": "1a0f9a63",
+   "customer": "عمر عبد العزيزالجعيثن",
+   "plate": "ب د س 9123",
+   "closed": "2026-06-06",
+   "items_total": 400.0,
+   "receipts_total": 400.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب تربوا",
+     "type": "service",
+     "billing": "workshop",
+     "total": 400.0
+    }
+   ]
+  },
+  {
+   "visit": "7ec953e2",
+   "customer": "عمر عبد العزيزالجعيثن",
+   "plate": "ب د س 9123",
+   "closed": "2026-06-21",
+   "items_total": 400.0,
+   "receipts_total": 400.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب تربو",
+     "type": "service",
+     "billing": "workshop",
+     "total": 400.0
+    }
+   ]
+  },
+  {
+   "visit": "107ffdb8",
+   "customer": "الريف الثلاثي للحوم",
+   "plate": "ب ص ح 3952",
+   "closed": "2026-06-27",
+   "items_total": 400.0,
+   "receipts_total": 400.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 400.0
+    }
+   ]
+  },
+  {
+   "visit": "4c96e77e",
+   "customer": "عبدالعزيز الموسى",
+   "plate": "ا و و 7451",
+   "closed": "2026-05-23",
+   "items_total": 350.0,
+   "receipts_total": 350.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب التانكي",
+     "type": "service",
+     "billing": "workshop",
+     "total": 325.0
+    },
+    {
+     "name": "فلتر ديزل",
+     "type": "part",
+     "billing": "supplier",
+     "total": 25.0
+    }
+   ]
+  },
+  {
+   "visit": "2364622f",
+   "customer": "ابراهيم مقعد الحربي ",
+   "plate": "ب ب ط 5732",
+   "closed": "2026-06-28",
+   "items_total": 350.0,
+   "receipts_total": 350.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "صيانه عامه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 350.0
+    }
+   ]
+  },
+  {
+   "visit": "eca7b15a",
+   "customer": "شركة مصنع اعذاق للصناعه",
+   "plate": "ب ب ك 7689",
+   "closed": "2026-07-07",
+   "items_total": 310.0,
+   "receipts_total": 310.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "الراكضي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 160.0
+    },
+    {
+     "name": "فك وتركيب كرسي جير",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    }
+   ]
+  },
+  {
+   "visit": "7ce2e6dd",
+   "customer": "ابو ركان ",
+   "plate": "د ى هـ 8536",
+   "closed": "2026-07-05",
+   "items_total": 305.0,
+   "receipts_total": 305.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "صيانه عامه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    },
+    {
+     "name": "سيفون زيت وزيت مكينه",
+     "type": "part",
+     "billing": "supplier",
+     "total": 155.0
+    }
+   ]
+  },
+  {
+   "visit": "e3e8bbbc",
+   "customer": "عبد الرحمن الراشد ",
+   "plate": "ا ب ط 7516",
+   "closed": "2026-07-08",
+   "items_total": 300.0,
+   "receipts_total": 300.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبدل فلتر ديزل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    },
+    {
+     "name": "تبديل فلتر زيت",
+     "type": "service",
+     "billing": "workshop",
+     "total": 100.0
+    },
+    {
+     "name": "تبديل وجه غطاء البلوف",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    }
+   ]
+  },
+  {
+   "visit": "bc68b514",
+   "customer": "ابو عبد الرحمن ",
+   "plate": "ب د ح 5165",
+   "closed": "2026-05-26",
+   "items_total": 260.0,
+   "receipts_total": 260.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب خرطوش تربوا مع بلف التربو مع ف",
+     "type": "service",
+     "billing": "workshop",
+     "total": 260.0
+    }
+   ]
+  },
+  {
+   "visit": "78740d04",
+   "customer": "الريان",
+   "plate": "ب ا ر 7880",
+   "closed": "2026-06-21",
+   "items_total": 250.0,
+   "receipts_total": 250.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل طرمبة ماء",
+     "type": "service",
+     "billing": "workshop",
+     "total": 250.0
+    }
+   ]
+  },
+  {
+   "visit": "e2f71e35",
+   "customer": "سلطان عبدالرحمن المحيميد",
+   "plate": "د ط س6269",
+   "closed": "2026-05-31",
+   "items_total": 200.0,
+   "receipts_total": 200.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تغيير زيت القير الأوتوماتيك",
+     "type": "service",
+     "billing": "workshop",
+     "total": 200.0
+    }
+   ]
+  },
+  {
+   "visit": "c82dbb6a",
+   "customer": "عبد الله الخطيب",
+   "plate": "ب ب ر 1760",
+   "closed": "2026-07-01",
+   "items_total": 200.0,
+   "receipts_total": 200.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 200.0
+    }
+   ]
+  },
+  {
+   "visit": "0d0e0e1c",
+   "customer": "ياسر الزيد",
+   "plate": "ا ط م 2370",
+   "closed": "2026-07-01",
+   "items_total": 200.0,
+   "receipts_total": 200.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "صيانه عامه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 200.0
+    }
+   ]
+  },
+  {
+   "visit": "c33b7e01",
+   "customer": "عبد الرحمن فالح الحربي",
+   "plate": "1067 /// د ا ق ",
+   "closed": "2026-05-16",
+   "items_total": 150.0,
+   "receipts_total": 150.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل ذراع دودة",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    }
+   ]
+  },
+  {
+   "visit": "724a3b53",
+   "customer": "ابراهيم العمر",
+   "plate": "ا ب ل 6352",
+   "closed": "2026-06-08",
+   "items_total": 150.0,
+   "receipts_total": 150.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل كوع ماء",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    }
+   ]
+  },
+  {
+   "visit": "da69a9c2",
+   "customer": "ابو علي الشعيبي",
+   "plate": "ح هـ هـ 7754",
+   "closed": "2026-06-10",
+   "items_total": 150.0,
+   "receipts_total": 150.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل فحمات امامي وخلفي",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    }
+   ]
+  },
+  {
+   "visit": "8e81052c",
+   "customer": "محمد ابو الخير",
+   "plate": "ر ح ب 7854",
+   "closed": "2026-06-17",
+   "items_total": 150.0,
+   "receipts_total": 150.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "صيانة شاملة",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    }
+   ]
+  },
+  {
+   "visit": "27fac848",
+   "customer": "ابو ماجد الدخيل الله ",
+   "plate": "د ل ح 4662",
+   "closed": "2026-06-17",
+   "items_total": 150.0,
+   "receipts_total": 150.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "الغاء مكيف حار",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    }
+   ]
+  },
+  {
+   "visit": "c8336959",
+   "customer": "عبد العزيز الخضر ",
+   "plate": "ق ى ا 663",
+   "closed": "2026-06-02",
+   "items_total": 100.0,
+   "receipts_total": 100.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبدل فلتر ديزل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    },
+    {
+     "name": "تركيب سير المكينه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    }
+   ]
+  },
+  {
+   "visit": "52e779ff",
+   "customer": "1066 ///وليد بخيت",
+   "plate": "ا ص ح 2760",
+   "closed": "2026-05-23",
+   "items_total": 100.0,
+   "receipts_total": 100.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تركيب علبة كلتش فوق",
+     "type": "service",
+     "billing": "workshop",
+     "total": 100.0
+    }
+   ]
+  },
+  {
+   "visit": "99cdc1db",
+   "customer": "سليمان السويلمي",
+   "plate": "د هـ ع  1007",
+   "closed": "2026-06-18",
+   "items_total": 100.0,
+   "receipts_total": 100.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل طرمبة دركسون",
+     "type": "service",
+     "billing": "workshop",
+     "total": 100.0
+    }
+   ]
+  },
+  {
+   "visit": "64277504",
+   "customer": "1061 ///ابو علي عطاف  الغماس ",
+   "plate": "ب س س  7341",
+   "closed": "2026-05-12",
+   "items_total": 50.0,
+   "receipts_total": 50.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل سير تيمن",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    }
+   ]
+  },
+  {
+   "visit": "40d2d861",
+   "customer": "حيايل هايلكس ",
+   "plate": "د ر م 333",
+   "closed": "2026-05-23",
+   "items_total": 50.0,
+   "receipts_total": 50.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "اصلح بلف  هواء التربو",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    }
+   ]
+  },
+  {
+   "visit": "fd04da2a",
+   "customer": "شركة مصنع اعذاق للصناعه",
+   "plate": "ب ب ك 7689",
+   "closed": "2026-06-11",
+   "items_total": 40.0,
+   "receipts_total": 40.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تركيب فحمات قدام 2",
+     "type": "service",
+     "billing": "workshop",
+     "total": 40.0
+    }
+   ]
+  }
+ ],
+ "anomalies": [
+  {
+   "visit": "29b88c69",
+   "customer": "يوسف عبد الرحمن الكبير",
+   "plate": "ا ق ر 8825",
+   "closed": "2026-07-06",
+   "items_total": 8474.0,
+   "receipts_total": 8891.0,
+   "invoiced": 2000.0,
+   "items": [
+    {
+     "name": "توضيب                                   ",
+     "type": "service",
+     "billing": "workshop",
+     "total": 2000.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 4046.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 722.0
+    },
+    {
+     "name": "مخرطة العوفي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 1170.0
+    },
+    {
+     "name": "سبايك ثابتمتحرك 10",
+     "type": "part",
+     "billing": "supplier",
+     "total": 416.0
+    },
+    {
+     "name": "غسيل ومعجون",
+     "type": "service",
+     "billing": "workshop",
+     "total": 120.0
+    }
+   ],
+   "gap": 6474.0,
+   "pay_vs_items": 417.0
+  },
+  {
+   "visit": "20cc3c86",
+   "customer": "صالح المحيميمد ",
+   "plate": "1065 /// ح د ط ",
+   "closed": "2026-05-16",
+   "items_total": 3070.0,
+   "receipts_total": 0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "توضيب                                   ",
+     "type": "service",
+     "billing": "workshop",
+     "total": 3069.0
+    },
+    {
+     "name": "سيفون زيت",
+     "type": "part",
+     "billing": null,
+     "total": 1.0
+    }
+   ],
+   "gap": 3070.0,
+   "pay_vs_items": -3070.0
+  },
+  {
+   "visit": "2fa1bd0a",
+   "customer": "1062 ///ملحمة قويصرة  ",
+   "plate": "ا ك ل 3820",
+   "closed": "2026-05-12",
+   "items_total": 2900.0,
+   "receipts_total": 877.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب بخاخات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 300.0
+    },
+    {
+     "name": "فك وتركيب تربوا",
+     "type": "service",
+     "billing": "workshop",
+     "total": 277.0
+    },
+    {
+     "name": "تبديل حساس",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    },
+    {
+     "name": "تركيب صليبات",
+     "type": "service",
+     "billing": "workshop",
+     "total": 250.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 573.0
+    },
+    {
+     "name": "الصقعبي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 1450.0
+    }
+   ],
+   "gap": 2900.0,
+   "pay_vs_items": -2023.0
+  },
+  {
+   "visit": "2a7ff792",
+   "customer": "غانم المحيميد ",
+   "plate": "ا ك ا 6884",
+   "closed": "2026-07-07",
+   "items_total": 1747.0,
+   "receipts_total": 1750.0,
+   "invoiced": 300.0,
+   "items": [
+    {
+     "name": "صيانه عامه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 350.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 763.0
+    },
+    {
+     "name": "القرعاوي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 534.0
+    },
+    {
+     "name": "الدريويش",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 100.0
+    }
+   ],
+   "gap": 1447.0,
+   "pay_vs_items": 3.0
+  },
+  {
+   "visit": "394407bd",
+   "customer": "خالد السلمان",
+   "plate": "ا م ل 5203",
+   "closed": "2026-07-07",
+   "items_total": 1479.0,
+   "receipts_total": 1479.0,
+   "invoiced": 400.0,
+   "items": [
+    {
+     "name": "مؤسسة التويجري التجاريه",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 1075.0
+    },
+    {
+     "name": "شركة علامة الجزيره التجاريه",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 104.0
+    },
+    {
+     "name": "صيانه عامه",
+     "type": "service",
+     "billing": "workshop",
+     "total": 300.0
+    }
+   ],
+   "gap": 1079.0,
+   "pay_vs_items": 0.0
+  },
+  {
+   "visit": "41642e27",
+   "customer": "ابو حمود التويجري",
+   "plate": "ب ح ط8455",
+   "closed": "2026-05-24",
+   "items_total": 350.0,
+   "receipts_total": 60.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "فك وتركيب خرطوش تربوا",
+     "type": "service",
+     "billing": "workshop",
+     "total": 60.0
+    },
+    {
+     "name": "الراكضي",
+     "type": "supplier",
+     "billing": "supplier",
+     "total": 290.0
+    }
+   ],
+   "gap": 350.0,
+   "pay_vs_items": -290.0
+  },
+  {
+   "visit": "0dd49396",
+   "customer": "سلطان الصالح",
+   "plate": "ب ص ر 303",
+   "closed": "2026-05-13",
+   "items_total": 285.0,
+   "receipts_total": 200.0,
+   "invoiced": 0,
+   "items": [
+    {
+     "name": "تبديل فلتر ديزل",
+     "type": "service",
+     "billing": "workshop",
+     "total": 50.0
+    },
+    {
+     "name": "تبديل بلف الحراره",
+     "type": "service",
+     "billing": "workshop",
+     "total": 150.0
+    },
+    {
+     "name": "⚡ بيع فوري",
+     "type": "service",
+     "billing": null,
+     "total": 85.0
+    }
+   ],
+   "gap": 285.0,
+   "pay_vs_items": -85.0
+  }
+ ]
+}
