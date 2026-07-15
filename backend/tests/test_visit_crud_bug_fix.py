@@ -19,7 +19,7 @@ import os
 from datetime import datetime
 
 # Get base URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://accounting-engine-6.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://fabrication-guard.preview.emergentagent.com').rstrip('/')
 
 # Test vehicle ID from the review request
 TEST_VEHICLE_ID = "ca81024e-195b-464e-9671-0f532aad1545"

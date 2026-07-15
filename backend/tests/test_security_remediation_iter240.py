@@ -16,7 +16,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://accounting-engine-6.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://fabrication-guard.preview.emergentagent.com").rstrip("/")
 
 USERS = {
     "admin": "مدير",
@@ -315,7 +315,7 @@ class TestCORS:
         r = requests.post(
             f"{BASE_URL}/api/auth/login",
             json={"username": USERS["admin"]},
-            headers={"Origin": "https://accounting-engine-6.preview.emergentagent.com"},
+            headers={"Origin": "https://fabrication-guard.preview.emergentagent.com"},
             timeout=15,
         )
         assert r.status_code == 200

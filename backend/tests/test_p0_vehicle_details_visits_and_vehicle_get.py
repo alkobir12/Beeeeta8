@@ -19,7 +19,7 @@ from datetime import datetime
 
 # Configuration
 # Use REACT_APP_BACKEND_URL (from frontend/.env) when available; fallback to the preview URL.
-_DEFAULT_BACKEND_BASE = "https://accounting-engine-6.preview.emergentagent.com"
+_DEFAULT_BACKEND_BASE = "https://fabrication-guard.preview.emergentagent.com"
 try:
     _env_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", ".env")
     _backend = None

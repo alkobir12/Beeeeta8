@@ -15,7 +15,7 @@
 | الخطوة | الطابع الزمني (خادم) | الدليل |
 |---|---|---|
 | مسودة كاترينا `a1121d09965b` — action=visit {لوحة د ح د 8719، توضيب، 4500} | 2026-07-08 00:39:00Z (ts 1783471140) | Mongo `assistant_drafts`، proposer=مدير، session-166a3e2b74 |
-| اعتماد + تنفيذ **بلا إنسان**: `approver/committer = "auto:policy"` | 2026-07-08 00:40:34Z (ts 1783471234) | Mongo `assistant_audit_log`: حدث `COMMIT` + `DB_WRITE_SUPABASE` → table=vehicle_visits، entity=868355a4-59ae-42de-886f-881332bfc4fa |
+| اعتماد + تنفيذ **بلا إنسان**: `approver/committer = "auto:policy"` | 2026-07-08 00:40:34Z (ts 1783471234) | Mongo `assistant_audit_log`: حدث `COMMIT` + `DB_WRITE_SUPABASE` → table=vehicle_visits، entity=fabrication-guard |
 | صف الزيارة أُنشئ في **Supabase الإنتاج** | created_at=2026-07-08T00:40:34Z | جدول `vehicle_visits` |
 | تعديل لاحق (واجهة الزيارات): البنود صارت القرعاوي 775+120 + صيانة عامة 800 = 1,695، ودفعة advance بنك 1,695 **بلا قيد يومية** | 2026-07-11T14:46–14:47Z | payment id `pay-1783781209935`؛ العملية 868355a4 created_at=2026-07-11T14:47:42Z (طابع Supabase)؛ exit_date=14:47:48Z |
 

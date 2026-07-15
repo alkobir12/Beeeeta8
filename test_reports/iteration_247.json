@@ -19,7 +19,7 @@
   "seed_data_creation": "Test purchases created during runs (auto-cancelled by cancel-flow test). Additional pending drafts left in DB (expected, requires Four-Eyes approval to clear).",
   "retest_needed": false,
   "main_agent_can_self_test": true,
-  "context_for_next_testing_agent": "Preview URL: https://accounting-engine-6.preview.emergentagent.com. Chat responses wrapped {success, data}; assistant response text lives at data.response (not data.reply). Tool results at data.tool_results[].tool. Purchase intent field is 'question' when it invokes a tool; 'action' when it creates a draft with executed.status=pending_approval. FAB testid: unified-assistant-fab; input: assistant-input; send: assistant-send-btn; approval cards match [data-testid^='assistant-card-ApprovalCard'].",
+  "context_for_next_testing_agent": "Preview URL: https://fabrication-guard.preview.emergentagent.com. Chat responses wrapped {success, data}; assistant response text lives at data.response (not data.reply). Tool results at data.tool_results[].tool. Purchase intent field is 'question' when it invokes a tool; 'action' when it creates a draft with executed.status=pending_approval. FAB testid: unified-assistant-fab; input: assistant-input; send: assistant-send-btn; approval cards match [data-testid^='assistant-card-ApprovalCard'].",
   "verified_flows": [
     "POST /api/assistant/chat present-tense purchase → executed.status=pending_approval, no NameError",
     "POST /api/assistant/chat past-tense purchase → also pending_approval (not parts search)",

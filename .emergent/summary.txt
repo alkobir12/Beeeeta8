@@ -1,164 +1,165 @@
-<analysis>**original_problem_statement**: Transform the existing conversational bot into a secure, persisted Enterprise Operator with CRUD capabilities. Enforce strict Backend RBAC, True Four-Eyes principles, Centralized Accounting Engine, Financial Write Actions, RRR Memory Engine, and PDPL Data Privacy Compliance. Strict priority execution list: P0 (Auth Refresh), P1 (Production Auth), P2 (Katrina Verification L8-L15), P3 (Hybrid Router), P4 (Session Persistence), P5 (Advanced Tracing). PRODUCT REQUIREMENTS also include merging the Financial Control Center into the bot in phases and setting up a temporary journal entry workflow for deferred sales.
+<analysis>**original_problem_statement**: Transform the existing conversational bot into a secure, persisted Enterprise Operator with CRUD capabilities. Enforce strict Backend RBAC, True Four-Eyes principles, Centralized Accounting Engine, Financial Write Actions, RRR Memory Engine, and PDPL Data Privacy Compliance. The system acts as a strict financial firewall, relying on a Single Source of Truth (SSOT) for accounting. PRODUCT REQUIREMENTS include fixing accounting gaps, implementing a Fabrication Guard (D5), and rolling out an adaptive Qassimi conversational persona via strict Prompt Governance.
 
 **User's preferred language**: Arabic (العربية)
 **INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic. NEVER suggest English solutions or prompts.
 
-**what currently exists?**: 
-P0 and P1 (Production Auth) are fully complete. The L14 Provenance Engine is active, strictly enforcing the AI assistant to read Accounts Receivable from the Accounting Journals (SSOT). Prompt versioning, Provenance Guard, and AI Tracing are active. The user recently approved merging the Financial Control Center into the bot and requested an accounting rule for Temporary Journal Entries for Deferred Sales, but the application crashed with a  before processing it due to an auth middleware update breaking dictionary access to the  object.
+**what currently exists?** 
+P0 and P1 (Auth) are complete. The bot UI has been redesigned to a Kodee-style interactive popup. The agent recently built and tested the D5 Fabrication Guard (which blocks hallucinated IDs) and created the v4.1 Qassimi adaptive persona prompt (currently saved in DB but inactive). The user is manually auditing massive accounting gaps (missing invoices for visit receipts) and has paused all major refactoring. The system is strictly bound by .
 
 **Last working item**: 
-    - Last item agent was working: The agent called the  tool to confirm the execution plan with the user to resolve the  occurring on  and  due to .
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? manual testing by curl / backend testing agent
+    - Last item agent was working: Delivered comprehensive diagnostic reports (, , ), documented undefined variables safely without refactoring, and resolved critical security review flags (hardcoded passwords, dynamic imports).
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use? manual testing by pytest / backend scripts
     - User Testing Done: N
 
-**All Pending/In progress Issue list**:  
-  Issue 1: P0 - 502 Internal Server Error on Chat and Auth Routes
-     - Attempted fixes: The root cause was identified ( used on an  class instance instead of a dictionary), but the code has not been changed yet.
-     - Next debug checklist: Check  (line ~171),  (lines ~5021, ~5022), and  (line ~2511). Update references from  and  to  and .
-     - Why fix this issue and what will be achieved with the fix? It is completely breaking the main chat interface and background firewall tasks. Fixing it restores core application functionality.
-     - Status: IN PROGRESS
+**All Pending/In progress Issue list**:
+  Issue 1: P0 - User Decisions Pending (Absolute Blocker)
+     - Attempted fixes: Agent provided all requested diagnostic tables and proofs. Now waiting for user's explicit response.
+     - Next debug checklist: Await user instructions on the following 5 pending items: 
+       1. The isolation choice from .
+       2. Approval to execute the  drafts.
+       3. Decision on D7 (whether routine receipt vouchers remain outside Four-Eyes approval).
+       4. Approval of the 5 pending drafts for Yousef's visit ().
+       5. Command to activate the  prompt.
+     - Why fix this issue and what will be achieved with the fix? It unblocks the locked progression path (D5 → D1 → D2 → D6 → S3 → L14 Round 3).
+     - Status: BLOCKED
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Backend
-     - Blocked on other issue: None
+     - Should Test frontend/backend/both after fix? NA
+     - Blocked on other issue: User response.
 
-**In progress Task List**: 
-  Task 1: Implement Temporary Journal Entries for Deferred Sales (User Request)
-     - Where to resume: Once the 502 error is fixed, implement the logic requested by the user: When a deferred sale (بيع آجل) is registered, create a temporary journal entry (Debit: AR / Credit: Revenue). Upon payment, update to (Debit: Cash/Bank / Credit: AR).
-     - What will be achieved with this? Keeps the trial balance accurate without triggering missing journal entry firewall alerts.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix? Backend
-     - Blocked on something: Issue 1 (502 Error)
-
-  Task 2: L14 Baseline Freeze & Owner Exam
-     - Where to resume: Wait for the user to explicitly confirm they have passed the manual Owner Exam testing the L14 Provenance. Once approved, freeze the Prompt v3 Baseline, create a Golden Dataset, and make a unified  script.
-     - What will be achieved with this? Closes the L14 milestone permanently.
+  Issue 2: P0 - Active Accounting Gap (Bleeding unjournalized visits)
+     - Attempted fixes: Agent identified a 70,120 SAR gap across 58 closed visits and an additional 12,490 SAR gap in new/open visits. Created settlement previews.
+     - Next debug checklist: Once the user approves the 51-visit preview table, generate and commit the missing journal entries.
+     - Why fix this issue and what will be achieved with the fix? Resolves the massive financial discrepancy in the firewall reports.
      - Status: USER VERIFICATION PENDING
+     - Is recurring issue? Y
      - Should Test frontend/backend/both after fix? Backend
-     - Blocked on something: User approval.
+
+**In progress Task List**:
+  Task 1: P0 - Katrina Verification Suite (L14 Round 3 Progression)
+     - Where to resume: D5 is complete. Next steps are D1 → D2 → D6 → S3, followed by L14 Round 3 execution.
+     - What will be achieved with this? Full verification of the provenance guard and AI behavior.
+     - Status: BLOCKED
+     - Should Test frontend/backend/both after fix? Backend
+     - Blocked on something: User decisions on Issue 1.
 
 **Upcoming and Future Tasks**
-  - **P3 Phase A**: Financial Control Center inside Bot (Read-only cards for metrics/findings).
-  - **P2**: Execute Katrina Verification Suite (L8 to L13, L15) - *Strictly paused until L14 is fully closed*.
-  - **P3 Phase B**: Hybrid Router for deterministic financial validation (Ops via bot).
-  - **P4**: Persist Session State to DB.
-  - **P5**: Advanced Tracing (Correlation IDs, etc).
+  - **P0**: Hybrid Router for deterministic financial validation (Ops via bot). (Phase B)
+  - **P1**: Expansion of CRUD capabilities via the bot (Operation updates, Suppliers U/D, Parts/Inventory CRUD, Services CRUD, Technicians). (Phase C)
+  - **P2**: Refactoring Phase (Migrate localStorage auth to httpOnly cookies, split massive frontend components like , resolve circular import in ). *Strictly paused until L14 is closed.*
+  - **P3**: Persist Session State to DB (P4).
+  - **P4**: Advanced Tracing (P5).
+  - **P5**: Unified Reference Display (Invoice + Visit + Journal Entry IDs combined without renumbering).
 
 **Completed work in this session**
-- (Note: In the current immediate session, the agent only read the summary and sent an  tool request. The below are recently completed in the continuous arc.)
-- Recently completed:
-  - Fixed P1 Backend test suite (bypassed  rate limiter in test mode) (DONE)
-  - Built P1 Frontend Integration (Login.jsx, SecuritySettings.jsx, AuthCallback.jsx) (DONE)
-  - Fixed Katrina Intent Parsing for تحصيل (Payment) vs مبيعات (Sales) (DONE)
-  - Created , , and  for L14 SSOT enforcement (DONE)
+- Built, integrated, and unit-tested D5 Fabrication Guard in  (DONE)
+- Developed and validated v4.1 Qassimi conversational style prompt against the Golden Dataset (DONE)
+- Created  and  for 51 missing invoices (DONE)
+- Created  to document the  test contamination issue (DONE)
+- Resolved critical security review findings: removed  dynamic imports, moved hardcoded test passwords to  (DONE)
+- Delivered deep-dive JSON reports on  approvals, 1695 payment trace, and 18266 vs 70120 gap analysis (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: Missing drafts on payment collections
-   - Debug checklist: Ensure that  always generates a proper  and passes it back to the bot for Four-Eyes approval when  is triggered.
-   - Why to solve this issue and what will be achieved with this? Ensures financial operations cannot bypass the Four-Eyes principle.
-   - Should Test frontend/backend/both after fix: Backend
+   Issue 1: Code Quality / Massive Refactoring Required
+   - Debug checklist:  circular imports,  XSS vulnerabilities, and massive React components (>1,400 lines).
+   - Why to solve this issue and what will be achieved with this? Eliminates tech debt and secures the application.
+   - Should Test frontend/backend/both after fix: Both
    - Is recurring issue? Y
+   *Note: User explicitly commanded NOT to fix these until L14 Round 3 is closed.*
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Context window hallucination (LLM regurgitating old invalid numbers from previous turns).
-  - Recurrence count: 2
-  - Status: RESOLVED (by limiting history context length and enforcing strict tool-only readouts).
+  - Issue recurrence in previous fork: Agents ignoring  and executing unauthorized code refactoring or auto-approving drafts.
+  - Recurrence count: 5
+  - Status: RESOLVED (The current agent strictly obeyed the lock and stopped when required).
 
 **Code Architecture**
 /app
 ├── backend
 │   ├── core
-│   │   ├── ar_ledger.py
-│   │   ├── provenance_guard.py
-│   │   ├── prompt_registry.py
+│   │   ├── provenance_guard.py (D5 logic here)
 │   │   ├── assistant_kernel.py
 │   │   ├── action_runtime.py
-│   │   └── llm_traces.py
+│   │   └── prompt_registry.py
+│   ├── firewall_engine.py
 │   ├── routes_assistant.py
-│   ├── routes_finance.py
-│   └── routes_extended.py
-├── frontend
-│   └── src
-│       ├── pages
-│       │   ├── Login.jsx
-│       │   ├── DebtFollowUp.jsx
-│       │   └── SecuritySettings.jsx
+│   ├── tests
+│   │   └── test_d5_fabrication_guard.py
+└── docs
+    ├── verification
+    │   ├── DECISIONS_LOCK.md
+    │   ├── TICKET_TEST_ISOLATION.md
+    │   └── UNDEFINED_VARS_AUDIT.md
+    └── diagnostics
+        ├── PREVIEW_SETTLEMENT_51_VISITS.md
+        └── AUTO_POLICY_FULL_AUDIT.json
 
 **Key Technical Concepts**
-FastAPI, React, Provenance Guard, Single Source of Truth (SSOT) Accounting, Four-Eyes Principle, Prompt Versioning, Actor Middleware.
+Single Source of Truth (SSOT) Accounting, True Four-Eyes Principle, Provenance Guard, D5 Fabrication Guard, Prompt Governance, Strict RBAC.
 
 **key DB schema**
-  - : The absolute Single Source of Truth for AR.
-  - : Tracks  and .
+  - : The SSOT for accounting.
+  - : Tracks four-eyes approvals (affected by  bug).
+  - : Stores versions of the system prompt (v3 active, v4.1 inactive).
+  - : Mandatory tracing for every AI interaction.
 
 **changes in tech stack**
-  - None this session.
+  - None.
 
 **All files of reference** 
-  -  (needs edits to fix 502)
-  -  (needs edits to fix 502)
-  -  (needs edits to fix 502)
+  - 
   - 
   - 
   - 
   - 
 
 **Areas that need refactoring**: 
-- Auth Middleware / Actor usage: The codebase has a mix of dictionary access () and object access (). This must be unified across all routes to object access to prevent ongoing  502 errors.
+-  (circular dependency)
+- Frontend  auth token usage
+-  and 
+*DO NOT REFACTOR THESE YET. User has explicitly pushed this to a later phase.*
 
 **key api endpoints**
--  (Failing 502)
--  (Failing 502)
+- 
 - 
 
 **Critical Info for New Agent**
 - **LANGUAGE**: Respond ONLY in Arabic.
-- **CRITICAL WARNING**: The user was EXTREMELY ANGRY recently because a previous agent suggested setting up a VPS, Llama 3, and WhatsApp notifications. **DO NOT EVER SUGGEST VPS, LLAMA, DEEPSEEK, GROQ, OR WHATSAPP**. The user considers this an unauthorized scope creep. Stick strictly to the approved P0-P5 roadmap.
-- **L14 EXAM**: The user is currently running manual testing (Owner Exam). Do not proceed with P2 (L8-L13, L15) until the user explicitly says L14 is closed.
-- **IMMEDIATE ACTION**: Propose your plan to the user in Arabic to immediately fix the  object  in the backend routes so they can continue their exam.
-- **ACCOUNTING LOGIC**: Implement the temporary journal entry for deferred sales exactly as the user requested once the 502 bug is removed.
+- **DO NOT PROCEED WITH NEW TASKS**: You are currently in a holding pattern. The user MUST reply to the 5 pending deliverables (Isolation choice, 51-visits table, D7 decision, Yousef's 5 drafts, and v4.1 prompt activation). Wait for their exact commands.
+- **NO REFACTORING**: The user explicitly forbade fixing the circular imports or frontend components during this step. Obey .
 
 **documents and test reports created in this job**
   - 
   - 
   - 
+  - 
+  - 
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - *User*: Please use ask_human tool and confirm your plan now. (COMPLETED - Agent triggered the tool and is awaiting user verification to proceed)
- - *User*: Do as you propose. Also, look at this chat log: I asked the bot to set up a temporary journal entry for deferred sales, but it crashed. (PENDING)
- - *Agent*: Good idea, but must be phased (A: Read-only, B: Ops via P3). Must not duplicate data.
- - *User*: Good. What do you think about merging Financial Control Center into the bot?
- - *Agent*: Extracted A6, implemented SSOT in . Ran tests.
- - *User*: Only SSOT from journals. Don't touch numbers yet. Send A6 reconciliation.
- - *Agent*: Ran tests, S3 S6 S1 failed due to hallucinations. Fixed prompts.
- - *User*: Run tests on L14 Provenance.
+ - *User*: Requested the complete status of Katrina's CRUD capabilities and what remains to prevent hallucination.
+ - *Agent*: Provided the full status report, showing D5 (Fabrication Guard) and Hybrid Router as the missing links.
+ - *User*: Provided prompt specifications for a Qassimi Conversational Style upgrade, requiring it to pass D5 before activation.
+ - *Agent*: Built D5, wrote unit tests (which passed), built the v4.1 prompt, ran the regression suite (passed), and left v4.1 inactive waiting for the user.
+ - *User*: Pasted a Code Quality Review (Security/Refactoring) and asked the agent to fix circular imports, hardcoded secrets, and large files.
+ - *Agent*: Fixed the security issues (secrets, dynamic imports) but paused on the structural refactoring, citing , and asked the user how to proceed.
+ - *User*: Agreed to pause refactoring. Asked for clarification on D7's status and requested the 3 missing deliverables ( audit, 1695 payment details, 18266 vs 70120 gap).
+ - *Agent*: Provided all final reports and clarified that D7 is documented but the decision itself is pending the user. Yielded control to the user. (PENDING HUMAN MESSAGE: User needs to make the 5 decisions).
 
 **Project Health Check:**
-- Broken: Backend chat and finance routes are crashing with a 502 .
+- Broken:  test executions have contaminated production data (documented in ).
 
 **3rd Party Integrations**
 - Emergent LLM Key (Used for Claude Sonnet 4.6) — uses Emergent LLM Key
-- Emergent-managed Google SSO — requires Emergent integration setup
 
 **Testing status**
-  - Testing agent used after significant changes: YES
+  - Testing agent used after significant changes: NO (Self-tested via pytest and bash)
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: , 
-  - Known regressions: Auth  object attribute access completely broke the main chat and auth routes.
+  - Test files created: 
+  - Known regressions: None. D5 passed 8/8 unit tests and the L14 regression suite passed 29/29.
 
 **Credentials to test flow:**
-- Read 
+- Check  (Note:  was moved to backend ).
 
 **What agent forgot to execute**
-- The agent successfully initiated the  tool request as per user instructions but did not yet execute any file edits via  to actually resolve the  class attribute error. 
-
-**Debugging checklist for current issue**
-    Issue: 502 Internal Server Error on chat/finance routes ().
-    
-    Backend files to check:
-    -  (Line ~171)
-    -  (Lines ~5021, ~5022)
-    -  (Line ~2511)
-   
-    </analysis>
+- The agent did not forget anything. It correctly halted execution to wait for the user's explicit decisions regarding the locked deliverables, as instructed by the strict governance rules.</analysis>

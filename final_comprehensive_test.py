@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Configuration
-BASE_URL = "https://accounting-engine-6.preview.emergentagent.com/api"
+BASE_URL = "https://fabrication-guard.preview.emergentagent.com/api"
 USERNAME = "مدير"
 
 class Colors:
