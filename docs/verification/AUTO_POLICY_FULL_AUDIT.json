@@ -1,0 +1,408 @@
+{
+ "generated_at": "2026-07-15 19:52 UTC",
+ "total_auto_policy_approvals": 36,
+ "approved": 31,
+ "rejected": 5,
+ "committed_to_production": 17,
+ "commits_by_table": {
+  "customers": 6,
+  "vehicles": 5,
+  "visits": 6
+ },
+ "first": "2026-06-19 21:01:37",
+ "last": "2026-07-08 00:39:00",
+ "rows": [
+  {
+   "when": "2026-06-19 21:01:37",
+   "draft_id": "ba8afc3d8118",
+   "action": "customer",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"تجريبي ريجريشن\"}",
+   "committed": {
+    "table": "customers",
+    "entity_id": "1446458a-7015-48df-ba29-0ea11d11748d",
+    "ts": "2026-06-19 21:01:38"
+   }
+  },
+  {
+   "when": "2026-06-20 07:41:16",
+   "draft_id": "289f1903f0b8",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": {
+    "table": "customers",
+    "entity_id": "587ce7f7-c07b-46d5-959b-0e74c9d62212",
+    "ts": "2026-06-20 07:41:17"
+   }
+  },
+  {
+   "when": "2026-06-20 08:18:16",
+   "draft_id": "b60fee70606f",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": {
+    "table": "customers",
+    "entity_id": "ed74dc7f-9229-4e58-98a5-029236276976",
+    "ts": "2026-06-20 08:18:17"
+   }
+  },
+  {
+   "when": "2026-06-20 08:19:37",
+   "draft_id": "b3bed2405af6",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-06-20 14:07:34",
+   "draft_id": "705edc1b15f9",
+   "action": "customer",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"تجريبي اوتو\", \"phone\": \"0501112233\"}",
+   "committed": {
+    "table": "customers",
+    "entity_id": "fabd548d-b82b-47c0-8d11-3212b4e15b71",
+    "ts": "2026-06-20 14:07:34"
+   }
+  },
+  {
+   "when": "2026-06-20 14:07:36",
+   "draft_id": "a87b208e7bd7",
+   "action": "vehicle",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"plate\": \"TST 4321\", \"brand\": \"تويوتا\"}",
+   "committed": {
+    "table": "vehicles",
+    "entity_id": "8c6fbfa11a8545fc9de79e0c4cfb77ef",
+    "ts": "2026-06-20 14:07:36"
+   }
+  },
+  {
+   "when": "2026-06-20 14:10:20",
+   "draft_id": "4be89bf661db",
+   "action": "customer",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"تجريبي اوتو\", \"phone\": \"0501112233\"}",
+   "committed": null
+  },
+  {
+   "when": "2026-06-20 14:10:22",
+   "draft_id": "e58d4c503e49",
+   "action": "vehicle",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"plate\": \"TST 4321\", \"brand\": \"تويوتا\"}",
+   "committed": {
+    "table": "vehicles",
+    "entity_id": "96c1c214dd59437da7b6e005f454cdd6",
+    "ts": "2026-06-20 14:10:23"
+   }
+  },
+  {
+   "when": "2026-06-20 14:11:20",
+   "draft_id": "32b76f56f7bc",
+   "action": "customer",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"تجريبي اوتو\", \"phone\": \"0501112233\"}",
+   "committed": null
+  },
+  {
+   "when": "2026-06-20 14:11:22",
+   "draft_id": "e70d4c9a7f20",
+   "action": "vehicle",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"plate\": \"TST 4321\", \"brand\": \"تويوتا\"}",
+   "committed": {
+    "table": "vehicles",
+    "entity_id": "92767cb6fc6c4a978654665ee26fa5ce",
+    "ts": "2026-06-20 14:11:23"
+   }
+  },
+  {
+   "when": "2026-06-20 14:12:47",
+   "draft_id": "0c7f498b7f79",
+   "action": "customer",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"تجريبي اوتو\", \"phone\": \"0501112233\"}",
+   "committed": null
+  },
+  {
+   "when": "2026-06-20 14:12:50",
+   "draft_id": "3d82ef36c306",
+   "action": "vehicle",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"plate\": \"TST 4321\", \"brand\": \"تويوتا\"}",
+   "committed": {
+    "table": "vehicles",
+    "entity_id": "80228b2742394154b794548b200d924c",
+    "ts": "2026-06-20 14:12:50"
+   }
+  },
+  {
+   "when": "2026-06-20 14:14:36",
+   "draft_id": "e1e1400aec36",
+   "action": "customer",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"تجريبي اوتو\", \"phone\": \"0501112233\"}",
+   "committed": null
+  },
+  {
+   "when": "2026-06-20 14:14:38",
+   "draft_id": "b02094e56a29",
+   "action": "vehicle",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"plate\": \"TST 4321\", \"brand\": \"تويوتا\"}",
+   "committed": {
+    "table": "vehicles",
+    "entity_id": "eaebd2eae4804172a5217b4ea4d7104d",
+    "ts": "2026-06-20 14:14:38"
+   }
+  },
+  {
+   "when": "2026-07-01 21:25:57",
+   "draft_id": "37d86452402d",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:26:19",
+   "draft_id": "70ef4c00b206",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:26:57",
+   "draft_id": "46198c4109c0",
+   "action": null,
+   "proposer": null,
+   "status": "rejected",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:31:56",
+   "draft_id": "efc3014b9833",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:32:03",
+   "draft_id": "84584e50e461",
+   "action": null,
+   "proposer": null,
+   "status": "rejected",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:32:55",
+   "draft_id": "bc8a810fb06c",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:33:01",
+   "draft_id": "a1d64e0b6135",
+   "action": null,
+   "proposer": null,
+   "status": "rejected",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:34:00",
+   "draft_id": "5291c7428145",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:34:04",
+   "draft_id": "6819e55b20c9",
+   "action": null,
+   "proposer": null,
+   "status": "rejected",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:34:54",
+   "draft_id": "46666c3ad626",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 21:34:59",
+   "draft_id": "5c10a867c444",
+   "action": null,
+   "proposer": null,
+   "status": "rejected",
+   "payload_summary": "{}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 23:06:22",
+   "draft_id": "7861d2d183c6",
+   "action": "customer",
+   "proposer": "auto:llm",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"اختبار كاترينا\", \"phone\": \"0551234567\"}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-01 23:07:46",
+   "draft_id": "87b67980ec8c",
+   "action": "customer",
+   "proposer": "auto:llm",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"فحص التدقيق\", \"phone\": \"0509998877\"}",
+   "committed": {
+    "table": "customers",
+    "entity_id": "27573a0a-ded8-42aa-a006-df1dfad97b18",
+    "ts": "2026-07-01 23:07:47"
+   }
+  },
+  {
+   "when": "2026-07-02 10:00:04",
+   "draft_id": "2b01e52175be",
+   "action": "supplier",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"راكان\", \"phone\": \"0501001220\", \"category\": \"قطع غيار\"}",
+   "committed": null
+  },
+  {
+   "when": "2026-07-02 10:05:33",
+   "draft_id": "2a3fc20880f4",
+   "action": "visit",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"customer_name\": \"راكان\", \"customer_phone\": \"0555555550\", \"brand\": \"لاندكروزر\", \"plate\": \"أ أ أ 1\"}",
+   "committed": {
+    "table": "visits",
+    "entity_id": "3d7122906ac84adb8a4171b64e8f170f",
+    "ts": "2026-07-02 10:07:02"
+   }
+  },
+  {
+   "when": "2026-07-02 10:27:03",
+   "draft_id": "ae1c6d1f9b94",
+   "action": "customer",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"name\": \"ZZTEST-راكان\", \"phone\": \"0555000999\", \"vehicle_plate\": \"ب ب ب 9\"}",
+   "committed": {
+    "table": "customers",
+    "entity_id": "be15fb09-cf31-4171-8b7d-8fe6d14c0935",
+    "ts": "2026-07-02 10:27:33"
+   }
+  },
+  {
+   "when": "2026-07-02 11:43:34",
+   "draft_id": "4b3510aa58cf",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": {
+    "table": "visits",
+    "entity_id": "630403a6-02b3-4f37-9e3c-b1442ccc15d1",
+    "ts": "2026-07-02 11:43:53"
+   }
+  },
+  {
+   "when": "2026-07-02 11:45:14",
+   "draft_id": "8efce10147a8",
+   "action": null,
+   "proposer": null,
+   "status": "approved",
+   "payload_summary": "{}",
+   "committed": {
+    "table": "visits",
+    "entity_id": "bc5043ea-607d-4832-b06e-779edd4315fe",
+    "ts": "2026-07-02 11:45:17"
+   }
+  },
+  {
+   "when": "2026-07-07 09:55:44",
+   "draft_id": "3e8187e2d053",
+   "action": "visit",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"plate\": \"د ص ع 3563\", \"service\": \"توضيب مكينة\", \"price\": 500, \"payment_method\": \"credit\"}",
+   "committed": {
+    "table": "visits",
+    "entity_id": "f9c0e5ae-7fb2-48b6-b2e7-1a2df157120d",
+    "ts": "2026-07-07 09:55:46"
+   }
+  },
+  {
+   "when": "2026-07-07 15:25:35",
+   "draft_id": "569691158b9c",
+   "action": "visit",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"customer_name\": \"عمر الخضيري\", \"service\": \"توضيب\", \"price\": 123}",
+   "committed": {
+    "table": "visits",
+    "entity_id": "2df3bfe41b5c4b1da876e712c41c8fb0",
+    "ts": "2026-07-07 15:27:21"
+   }
+  },
+  {
+   "when": "2026-07-07 21:16:33",
+   "draft_id": "b55c82c0e87e",
+   "action": "update_visit",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"match\": {\"customer_name\": \"عمر الخضيري\"}, \"set\": {\"notes\": \"العميل ينتظر بالخارج\"}, \"visit_id\": \"15b9dfb5-03",
+   "committed": null
+  },
+  {
+   "when": "2026-07-08 00:39:00",
+   "draft_id": "a1121d09965b",
+   "action": "visit",
+   "proposer": "مدير",
+   "status": "approved",
+   "payload_summary": "{\"plate\": \"د ح د 8719\", \"service\": \"توضيب\", \"price\": 4500}",
+   "committed": {
+    "table": "visits",
+    "entity_id": "868355a4-59ae-42de-886f-881332bfc4fa",
+    "ts": "2026-07-08 00:40:34"
+   }
+  }
+ ]
+}

@@ -1,0 +1,155 @@
+{
+ "firewall_total": 29386.0,
+ "firewall_visits": 16,
+ "inside_70120_count": 9,
+ "inside_70120_amount": 16896.0,
+ "outside_70120_count": 7,
+ "outside_70120_amount": 12490.0,
+ "note": "المقياسان مختلفان: الجدار = سندات قبض مُرحّلة كقيود؛ الـ70,120 = بنود زيارات (مجدولة/خارج معيار). التقاطع بالزيارة لا بالمبلغ.",
+ "detail": [
+  {
+   "visit": "29b88c69",
+   "receipts": 8891.0,
+   "invoiced": 2000.0,
+   "fw_gap": 6891.0,
+   "in_51_list": null,
+   "in_7_list": 6474.0,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "e10a7a9e",
+   "receipts": 4750.0,
+   "invoiced": 0,
+   "fw_gap": 4750.0,
+   "in_51_list": 4750.0,
+   "in_7_list": null,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "34c7b294",
+   "receipts": 3200.0,
+   "invoiced": 0,
+   "fw_gap": 3200.0,
+   "in_51_list": null,
+   "in_7_list": null,
+   "verdict": "زيادة خارجها"
+  },
+  {
+   "visit": "f4031c0e",
+   "receipts": 2600.0,
+   "invoiced": 0,
+   "fw_gap": 2600.0,
+   "in_51_list": null,
+   "in_7_list": null,
+   "verdict": "زيادة خارجها"
+  },
+  {
+   "visit": "2635ecf1",
+   "receipts": 2000.0,
+   "invoiced": 0,
+   "fw_gap": 2000.0,
+   "in_51_list": null,
+   "in_7_list": null,
+   "verdict": "زيادة خارجها"
+  },
+  {
+   "visit": "3aa0a6dc",
+   "receipts": 1950.0,
+   "invoiced": 0,
+   "fw_gap": 1950.0,
+   "in_51_list": null,
+   "in_7_list": null,
+   "verdict": "زيادة خارجها"
+  },
+  {
+   "visit": "2a7ff792",
+   "receipts": 1750.0,
+   "invoiced": 300.0,
+   "fw_gap": 1450.0,
+   "in_51_list": null,
+   "in_7_list": 1447.0,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "17c6ee15",
+   "receipts": 1440.0,
+   "invoiced": 0,
+   "fw_gap": 1440.0,
+   "in_51_list": 1440.0,
+   "in_7_list": null,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "d8f1691f",
+   "receipts": 1370.0,
+   "invoiced": 0,
+   "fw_gap": 1370.0,
+   "in_51_list": null,
+   "in_7_list": null,
+   "verdict": "زيادة خارجها"
+  },
+  {
+   "visit": "ef6f0f88",
+   "receipts": 1000.0,
+   "invoiced": 0,
+   "fw_gap": 1000.0,
+   "in_51_list": 1000.0,
+   "in_7_list": null,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "822ca57a",
+   "receipts": 1000.0,
+   "invoiced": 0,
+   "fw_gap": 1000.0,
+   "in_51_list": null,
+   "in_7_list": null,
+   "verdict": "زيادة خارجها"
+  },
+  {
+   "visit": "fcacb037",
+   "receipts": 450.0,
+   "invoiced": 0,
+   "fw_gap": 450.0,
+   "in_51_list": 450.0,
+   "in_7_list": null,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "c7af81ed",
+   "receipts": 370.0,
+   "invoiced": 0,
+   "fw_gap": 370.0,
+   "in_51_list": null,
+   "in_7_list": null,
+   "verdict": "زيادة خارجها"
+  },
+  {
+   "visit": "eca7b15a",
+   "receipts": 310.0,
+   "invoiced": 0,
+   "fw_gap": 310.0,
+   "in_51_list": 310.0,
+   "in_7_list": null,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "7ce2e6dd",
+   "receipts": 305.0,
+   "invoiced": 0,
+   "fw_gap": 305.0,
+   "in_51_list": 305.0,
+   "in_7_list": null,
+   "verdict": "داخل الـ70,120"
+  },
+  {
+   "visit": "e3e8bbbc",
+   "receipts": 300.0,
+   "invoiced": 0,
+   "fw_gap": 300.0,
+   "in_51_list": 300.0,
+   "in_7_list": null,
+   "verdict": "داخل الـ70,120"
+  }
+ ]
+}

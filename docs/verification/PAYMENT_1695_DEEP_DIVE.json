@@ -1,0 +1,32 @@
+{
+ "payment": [
+  {
+   "id": "pay-1783781209935",
+   "kind": "advance",
+   "amount": 1695,
+   "date": "2026-07-11T14:46:49.935Z",
+   "method": "bank",
+   "paymentMethod": "bank"
+  }
+ ],
+ "payment_epoch_ms": "pay-1783781209935 → 2026-07-11 14:46:49 UTC (ساعة العميل)",
+ "has_journal_entry": false,
+ "journal_entries_with_total_1695_anywhere": [],
+ "operation": [
+  {
+   "id": "868355a4-59ae-42de-886f-881332bfc4fa",
+   "total": "800.0",
+   "payment_method": "transfer",
+   "payment_status": "None",
+   "invoice_number": "INV001351",
+   "created_at": "2026-07-11T14:47:42.836802+00:00",
+   "updated_at": "2026-07-11T14:47:42.83681+00:00",
+   "customer_name": "None",
+   "type": "service"
+  }
+ ],
+ "visit_status": "completed",
+ "visit_exit": "2026-07-11T14:47:48",
+ "auth_events_window_12:46-15:46_UTC": [],
+ "updated_by_available": false
+}
