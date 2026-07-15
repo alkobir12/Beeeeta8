@@ -1043,11 +1043,19 @@ async def _chat_impl(
         ).strip()
         from core import provenance_guard as _pg
         response_text, _prov = _pg.enforce(response_text, tool_results)
+        # 🔐 L14-D5 (حارس الاختلاق): معرّفات منظَّمة في الرد بلا وجود في أدلة الدورة → تُحجَب
+        _evidence_parts = [system_msg or "", message or ""]
+        try:
+            _evidence_parts += [str(h.get("content") or "") for h in (history or [])]
+        except Exception:
+            pass
+        response_text, _prov_ent = _pg.enforce_entities(response_text, "\n".join(_evidence_parts))
+        _prov = (_prov or []) + (_prov_ent or [])
         if _prov:
             from core import llm_traces as _lt2
             _lt2.add_provenance_violations(_prov)
             _log.warning("D5 provenance violations blocked: %s",
-                         [v.get("claimed_tool") for v in _prov])
+                         [v.get("claimed_tool") or v.get("value") for v in _prov])
     except Exception as _pge:
         _log.warning("provenance guard failed (non-fatal): %s", redact(str(_pge), max_len=120))
 
