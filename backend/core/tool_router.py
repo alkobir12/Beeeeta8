@@ -28,6 +28,7 @@ _TOOLS: Dict[str, Dict[str, Any]] = {}
 # the environment. The flag is read at call-time (not import-time) so tests
 # can flip it cleanly.
 import os as _os
+import time as _time
 
 
 def _writes_allowed() -> bool:
@@ -991,7 +992,7 @@ async def _whatsapp_send_real(
             "status": "sent" if success else "failed",
             "provider": "infobip",
             "channel": "whatsapp",
-            "sent_at": __import__("time").time(),
+            "sent_at": _time.time(),
         }
     except Exception as e:
         wa_entry = {

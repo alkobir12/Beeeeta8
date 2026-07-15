@@ -8,7 +8,7 @@
 | `مدير`                  | admin       | ✅ yes                   | name-only (no password set) |
 | `احمد1`                 | supervisor  | ✅ yes                   | name-only (no password set) |
 | `فرج1`                  | accountant  | ❌ no                    | name-only (no password set) |
-| `مستخدم اختبار`         | technician  | ❌ no                    | name-only (test suites may temporarily set password `Test@12345` — they clean up after) |
+| `مستخدم اختبار`         | technician  | ❌ no                    | name-only (test suites may temporarily set a password from `TEST_USER_PASSWORD` in `/app/backend/.env` — they clean up after) |
 
 ## 🔐 Auth model (P1 / SEC-003 — 2026-07-07)
 - **name-only** login works ONLY while the user has NO credentials set (back-compat).

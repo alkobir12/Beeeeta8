@@ -31,7 +31,9 @@ assert BASE_URL, "REACT_APP_BACKEND_URL must be set"
 API = f"{BASE_URL}/api"
 
 TEST_USER = "مستخدم اختبار"       # technician (non-approver)
-TEST_PASSWORD = "Test@12345"
+# الرقم السري للاختبار من البيئة حصراً — لا secrets مكتوبة في الكود (مراجعة 2026-07-15)
+TEST_PASSWORD = (os.environ.get("TEST_USER_PASSWORD")
+                 or open("/app/backend/.env").read().split("TEST_USER_PASSWORD=")[1].split("\n")[0].strip().strip('"'))
 
 # secret-gated rate-limit bypass so the suite isn't throttled (server.py middleware)
 S = requests.Session()

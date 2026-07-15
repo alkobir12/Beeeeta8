@@ -15,6 +15,7 @@ Endpoints:
 """
 
 import asyncio
+import datetime as _dt
 import json
 import os
 import time
@@ -380,7 +381,7 @@ async def assistant_dashboard(workshop_id: str = Query(default="finmodule-sync")
     if isinstance(integ, dict):
         panels.append({"id": "ops_with_warnings", "label": "عمليات بقيود مفقودة", "value": integ.get("with_warnings", 0), "kind": "count"})
 
-    return {"success": True, "data": {"panels": panels, "generated_at": __import__("datetime").datetime.utcnow().isoformat() + "Z"}}
+    return {"success": True, "data": {"panels": panels, "generated_at": _dt.datetime.utcnow().isoformat() + "Z"}}
 
 
 @router.get("/memory/{session_id}")
@@ -436,7 +437,7 @@ async def assistant_brain(payload: Dict[str, Any] = Body(...)):
     msg = (payload.get("message") or "").strip()
     if not msg:
         raise HTTPException(status_code=400, detail="message required")
-    sid = (payload.get("session_id") or "").strip() or f"brain-{int(__import__('time').time()*1000)}"
+    sid = (payload.get("session_id") or "").strip() or f"brain-{int(time.time()*1000)}"
     result = await _brain.brain(session_id=sid, message=msg)
     return {"success": True, "data": result}
 

@@ -74,10 +74,12 @@ def _now() -> datetime:
 
 
 def _alert_id(prefix: str, *parts) -> str:
-    """ID ثابت قابل للاسترجاع لتجاهل/إصلاح/تعليم."""
+    """ID ثابت قابل للاسترجاع لتجاهل/إصلاح/تعليم.
+    md5 هنا بصمة غير أمنية (fingerprint) لثبات المعرّفات المحفوظة في قوائم التجاهل —
+    تغيير الخوارزمية يكسر مطابقة التنبيهات المتجاهَلة سابقاً."""
     import hashlib
     raw = f"{prefix}:{'|'.join(str(p) for p in parts)}"
-    return f"{prefix}-{hashlib.md5(raw.encode('utf-8')).hexdigest()[:12]}"
+    return f"{prefix}-{hashlib.md5(raw.encode('utf-8'), usedforsecurity=False).hexdigest()[:12]}"
 
 
 # حسابات الذمم — نفس أكواد routes_finance (مصدر موحّد)
