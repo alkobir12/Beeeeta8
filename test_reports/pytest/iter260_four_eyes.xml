@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="11" time="20.049" timestamp="2026-07-15T22:05:26.613241+00:00" hostname="agent-env-a2113c22-0dfc-4a0f-aaef-4d5b3a5676f1"><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFinancialControlMount" name="test_findings_summary" time="0.812" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFinancialControlMount" name="test_approvals_stats" time="0.055" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestAliasRBAC" name="test_alias_approve_without_auth_denied" time="0.112" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestAliasRBAC" name="test_alias_commit_without_auth_denied" time="0.100" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestAliasRBAC" name="test_alias_rollback_without_auth_denied" time="0.141" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFourEyesCycle" name="test_01_chat_propose_and_confirm" time="14.507" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFourEyesCycle" name="test_02_list_approvals_shows_proposer_admin" time="0.364" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFourEyesCycle" name="test_03_four_eyes_self_approve_blocked" time="0.373" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFourEyesCycle" name="test_04_second_approver_commits" time="1.662" /><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFinanceRegression" name="test_alerts_health_100" time="0.053"><failure message="AssertionError: expected health 100, got 81&#10;assert 81 == 100">self = &lt;test_katrina_four_eyes_iter245.TestFinanceRegression object at 0xffe15b9e5450&gt;
+s_admin = &lt;requests.sessions.Session object at 0xffe15c002350&gt;
+
+    def test_alerts_health_100(self, s_admin):
+        r = s_admin.get(f"{API}/finance/alerts?workshop_id=finmodule-sync", timeout=20)
+        assert r.status_code == 200
+        d = _unwrap(r)
+        health = (d.get("health") or {}).get("score")
+&gt;       assert health == 100, f"expected health 100, got {health}"
+E       AssertionError: expected health 100, got 81
+E       assert 81 == 100
+
+backend/tests/test_katrina_four_eyes_iter245.py:164: AssertionError</failure></testcase><testcase classname="backend.tests.test_katrina_four_eyes_iter245.TestFinanceRegression" name="test_trial_balance_balanced" time="1.784" /></testsuite></testsuites>

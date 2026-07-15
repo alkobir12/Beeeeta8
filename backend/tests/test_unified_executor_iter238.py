@@ -39,9 +39,9 @@ def test_requires_approval_close_visits():
     assert unified_executor.requires_approval(a) is True
 
 
-def test_requires_approval_create_customer_is_safe():
+def test_requires_approval_create_customer_waits_for_human():
     a = Action(action="create_customer", payload={"name": "x"})
-    assert unified_executor.requires_approval(a) is False
+    assert unified_executor.requires_approval(a) is True
 
 
 def test_requires_approval_unknown_falls_through():
@@ -76,11 +76,11 @@ def test_execute_action_read_only_generic():
     assert res["result"] is None  # caller plugs the query
 
 
-# ─── execute_action — auto-commit safe path ────────────────────────────────
+# ─── execute_action — every write waits for human approval ────────────────
 
 
-def test_safe_action_auto_commits(monkeypatch):
-    """Safe action goes draft → approve → commit in one call."""
+def test_write_action_waits_for_human_approval(monkeypatch):
+    """Write action stops at pending approval."""
     # Stub upsert_entity so we don't write to live Supabase from a unit test.
     monkeypatch.setattr(
         action_runtime,
@@ -91,30 +91,25 @@ def test_safe_action_auto_commits(monkeypatch):
         Action(action="create_customer", payload={"name": "احمد", "phone": "0501234567"}),
         proposer="auto:llm",
     ))
-    assert res["status"] == "committed"
-    assert res["result"]["id"] == "stub-id"
-    assert res["draft"]["status"] == "committed"
-    assert res["policy"] == "auto_safe"
+    assert res["status"] == "pending_approval"
+    assert res["draft"]["payload"]["name"] == "احمد"
+    assert res["draft"]["status"] == "pending_approval"
+    assert res["policy"] == "manual_review_required"
 
 
-def test_safe_action_four_eyes_intact_for_auto_commit(monkeypatch):
-    """Even auto-commit uses distinct proposer/approver identities."""
+def test_write_action_has_no_automatic_commit(monkeypatch):
+    """No COMMIT audit row is created before human review."""
     monkeypatch.setattr(
         action_runtime,
         "upsert_entity",
         lambda table, data: {"id": "x", **data},
     )
-    asyncio.run(unified_executor.execute_action(
+    result = asyncio.run(unified_executor.execute_action(
         Action(action="create_vehicle", payload={"plate": "9935"}),
     ))
-    # Find the most recent COMMIT in audit
+    assert result["status"] == "pending_approval"
     commits = [r for r in action_runtime.get_audit_trail() if r["event"] == "COMMIT"]
-    assert commits, "no COMMIT audit row"
-    last = commits[-1]
-    assert last.get("committer") == "auto:policy"
-    # Proposer was different — auto:llm vs auto:policy
-    grants = [r for r in action_runtime.get_audit_trail() if r["event"] == "APPROVAL_GRANTED"]
-    assert grants[-1].get("approver") == "auto:policy"
+    assert not commits
 
 
 # ─── execute_action — risky → manual approval ──────────────────────────────
@@ -157,8 +152,8 @@ def test_execute_text_safe_pipeline(monkeypatch):
         lambda table, data: {"id": "id-1", **data},
     )
     res = asyncio.run(unified_executor.execute_text("سجل عميل ماجد"))
-    assert res["status"] == "committed"
-    assert res["result"]["name"] == "ماجد"
+    assert res["status"] == "pending_approval"
+    assert res["draft"]["payload"]["name"] == "ماجد"
 
 
 def test_execute_text_risky_pipeline(monkeypatch):

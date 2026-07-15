@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Body, Request, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from collections import defaultdict
@@ -30,6 +30,47 @@ from bulk_delete_audit import record_bulk_delete_event
 from supabase_service import SupabaseService
 import firewall_state
 import perf_cache as _perf_cache
+
+
+def _request_actor_name(request: Optional[Request]) -> str:
+    if request is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        from core import rbac
+        ident = rbac.extract_identity(request)
+        if not ident.get("user_id"):
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        return str(ident.get("name") or ident.get("user_id"))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Not authenticated") from exc
+
+
+def _external_approval_response(*, action: str, payload: Dict[str, Any], proposer: str) -> JSONResponse:
+    from core import action_runtime
+    draft = action_runtime.create_draft(action=action, payload=payload, proposer=proposer)
+    approval = action_runtime.request_approval(draft_id=draft["id"], requester=proposer)
+    return JSONResponse(
+        status_code=202,
+        content={
+            "success": True,
+            "status": "pending_approval",
+            "message": "بانتظار اعتماد طرف ثانٍ قبل الترحيل",
+            "draft_id": draft["id"],
+            "approval_id": approval.get("approval_id"),
+        },
+    )
+
+
+def _external_draft_is_approved(payload: Dict[str, Any]) -> Optional[str]:
+    draft_id = str(payload.pop("_approved_external_draft", "") or "").strip()
+    if not draft_id:
+        return None
+    from core import action_runtime
+    if not action_runtime.has_human_approval(draft_id):
+        raise HTTPException(status_code=403, detail="human approval required")
+    return draft_id
 
 
 def _invalidate_ops_caches() -> None:
@@ -2737,6 +2778,16 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
     يدعم الدفعات الجزئية عبر payload.amount.
     🔒 Idempotency: يدعم header `Idempotency-Key` لمنع التكرار خلال 24 ساعة.
     """
+    payload = dict(payload or {})
+    approved_external_draft_id = _external_draft_is_approved(payload)
+    if not approved_external_draft_id:
+        approval_payload = {**payload, "_operation_id": op_id}
+        return _external_approval_response(
+            action="external_operation_payment",
+            payload=approval_payload,
+            proposer=_request_actor_name(request),
+        )
+
     # 🔒 Idempotency check - يمنع تكرار نفس الدفعة (مفتاح من header أو تلقائي من المحتوى)
     from idempotency import get_idempotency_key, get_cached_response, store_response, make_idempotency_key
     _idem_key = get_idempotency_key(request)
@@ -3272,7 +3323,7 @@ def _apply_operation_kind_defaults(
 
 
 @router.post("/operations")
-async def create_operation(payload: Dict[str, Any] = Body(...)):
+async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)):
     try:
         payload = dict(payload or {})
         idempotency_key = _extract_idempotency_key(payload)
@@ -3396,6 +3447,19 @@ async def create_operation(payload: Dict[str, Any] = Body(...)):
 
         _apply_operation_kind_defaults(payload, kind, vehicle_doc)
 
+        approved_external_draft_id = _external_draft_is_approved(payload)
+        is_receipt_voucher = op_type == "payment_order" and original_type == "receipt_voucher"
+        is_smart_pos_instant_sale = (
+            op_type == "sale"
+            and "[SOURCE:SMART_POS]" in str(payload.get("notes") or "").upper()
+        )
+        if (is_receipt_voucher or is_smart_pos_instant_sale) and not approved_external_draft_id:
+            return _external_approval_response(
+                action="external_operation",
+                payload=payload,
+                proposer=_request_actor_name(request),
+            )
+
         if (
             provider == "supabase"
             and str(payload.get("type") or "").lower() == "payment_order"
@@ -3438,12 +3502,14 @@ async def create_operation(payload: Dict[str, Any] = Body(...)):
                 if target_open_op and collection_amount > 0:
                     settlement_result = await confirm_operation_payment(
                         str(target_open_op.get("id")),
+                        request,
                         {
                             "amount": collection_amount,
                             "paymentMethod": payload.get("paymentMethod") or payload.get("payment_method") or "pos",
                             "payment_method": payload.get("paymentMethod") or payload.get("payment_method") or "pos",
                             "workshopId": payload.get("workshopId") or payload.get("workshop_id"),
                             "notes": payload.get("notes") or "تحصيل مرتبط من POS بدون إنشاء عملية مكررة",
+                            "_approved_external_draft": approved_external_draft_id,
                         },
                     )
                     return {

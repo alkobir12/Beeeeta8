@@ -1587,6 +1587,13 @@ const Operations = () => {
       return res.data;
     },
     onSuccess: (createdOp) => {
+      if (createdOp?.status === 'pending_approval') {
+        toast({
+          title: 'بانتظار اعتماد طرف ثانٍ',
+          description: `لم تُرحّل العملية بعد — رقم الطلب ${createdOp.approval_id}`,
+        });
+        return;
+      }
       queryClient.setQueriesData({ queryKey: ['operations'] }, (old) => {
         if (Array.isArray(old) && createdOp && typeof createdOp === 'object') {
           return [createdOp, ...old];

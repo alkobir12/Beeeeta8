@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="16" time="3.961" timestamp="2026-07-15T22:05:22.016077+00:00" hostname="agent-env-a2113c22-0dfc-4a0f-aaef-4d5b3a5676f1"><testcase classname="backend.tests.test_action_runtime_iter236" name="test_create_draft_sets_status_draft" time="0.001" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_create_draft_appends_audit_row" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_full_happy_path_draft_to_committed" time="0.934"><failure message="AssertionError: assert '3dc233b6-6239-4d0c-90a5-67aee0ede9b7' in {}">def test_full_happy_path_draft_to_committed():
+        d = action_runtime.create_draft(action="customer", payload={"name": "احمد", "phone": "0501"}, proposer="فرج1")
+        # 1) request approval
+        req = action_runtime.request_approval(draft_id=d["id"], requester="فرج1")
+        assert "error" not in req
+        assert d["status"] == "pending_approval"
+        approval_id = req["approval_id"]
+        # 2) approve (different user → 4-eyes ok)
+        approved = action_runtime.approve(approval_id=approval_id, approver="مدير")
+        assert "error" not in approved
+        assert d["status"] == "approved"
+        # 3) commit
+        result = action_runtime.commit(draft_id=d["id"], committer="مدير")
+        assert "error" not in result
+        assert "execution_id" in result
+        assert d["status"] == "committed"
+        # 4) entity exists in staging DB
+        assert result["result"]["name"] == "احمد"
+&gt;       assert result["result"]["id"] in action_runtime.DB["customers"]
+E       AssertionError: assert '3dc233b6-6239-4d0c-90a5-67aee0ede9b7' in {}
+
+backend/tests/test_action_runtime_iter236.py:74: AssertionError</failure></testcase><testcase classname="backend.tests.test_action_runtime_iter236" name="test_four_eyes_blocks_same_user_approver" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_four_eyes_can_be_disabled_via_env" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_commit_blocked_when_not_approved" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_commit_is_idempotent" time="0.337" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_commit_unknown_action_returns_error" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_reject_approval_flips_draft_to_rejected" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_rejected_draft_can_be_resubmitted" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_rollback_removes_entity_from_db" time="0.958" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_double_rollback_is_safe" time="0.799" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_audit_records_all_transitions" time="0.711" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_power_mode_registers_drafts_in_runtime" time="0.001" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_power_mode_drafts_have_runtime_actions_not_deferred" time="0.000" /><testcase classname="backend.tests.test_action_runtime_iter236" name="test_stats_snapshot_shape" time="0.000" /></testsuite></testsuites>

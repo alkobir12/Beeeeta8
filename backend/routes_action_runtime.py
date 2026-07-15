@@ -42,6 +42,29 @@ _log = get_logger("routes.runtime")
 router = APIRouter(prefix="/api/runtime", tags=["runtime"])
 
 
+async def _commit_approved_draft(draft_id: str, request: Request, committer: str):
+    draft = action_runtime.get_draft(draft_id) or {}
+    external_action = draft.get("action")
+    if external_action == "external_operation":
+        from routes_extended import create_operation
+        external_payload = dict(draft.get("payload") or {})
+        external_payload["_approved_external_draft"] = draft_id
+        external_result = await create_operation(request, external_payload)
+        return action_runtime.complete_external_commit(
+            draft_id=draft_id, committer=committer, result=external_result,
+        )
+    if external_action == "external_operation_payment":
+        from routes_extended import confirm_operation_payment
+        external_payload = dict(draft.get("payload") or {})
+        op_id = str(external_payload.pop("_operation_id", ""))
+        external_payload["_approved_external_draft"] = draft_id
+        external_result = await confirm_operation_payment(op_id, request, external_payload)
+        return action_runtime.complete_external_commit(
+            draft_id=draft_id, committer=committer, result=external_result,
+        )
+    return action_runtime.commit(draft_id=draft_id, committer=committer)
+
+
 async def _require_approver(request: Request) -> "rbac.Actor":
     """🔐 SEC-002: القراءات المالية على مستوى المنظمة (drafts/approvals/executions/
     audit/db/stats) والإنشاء اليدوي للمسودات تكشف بيانات كل العملاء — لذا تتطلب دوراً
@@ -154,11 +177,9 @@ async def runtime_patch_draft(draft_id: str, request: Request, payload: Dict[str
 
 @router.post("/drafts/{draft_id}/spawn_supplier")
 async def runtime_spawn_supplier(draft_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
-    """🆕 ينشئ سجل مورّد فوراً من مسودة شراء معلّقة، ثم يُلحق `supplier.id`
-    بمسودة الشراء (يُبطل الوسم `is_new=true`).
+    """ينشئ مسودة مورّد مرتبطة بمسودة الشراء وينتظر اعتماداً بشرياً ثانياً.
 
-    الأذونات: المُقترِح أو من يملك صلاحية الاعتماد. يُلتزم فوراً (auto-commit)
-    باعتبار زر «➕ إضافة المورد» هو التأكيد الصريح للمستخدم.
+    الأذونات: المُقترِح أو من يملك صلاحية الاعتماد. لا تثبيت آلي.
     """
     payload = payload or {}
     d = action_runtime.get_draft(draft_id)
@@ -171,7 +192,9 @@ async def runtime_spawn_supplier(draft_id: str, request: Request, payload: Optio
 
     ident = rbac.extract_identity(request, payload)
     actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
-    actor_ident = actor.name or actor.id or "auto:phase2"
+    actor_ident = actor.name or actor.id or ""
+    if not actor_ident:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     if actor_ident != d.get("proposer"):
         rbac.require(rbac.can_approve(actor))
 
@@ -182,7 +205,7 @@ async def runtime_spawn_supplier(draft_id: str, request: Request, payload: Optio
     if not name:
         raise HTTPException(status_code=400, detail="supplier_name_missing")
 
-    # 1) create supplier draft + auto-approve + commit (زر واحد صريح = تأكيد المستخدم)
+    # create supplier draft and request a distinct human approval
     supplier_draft = action_runtime.create_draft(
         action="supplier",
         payload={"name": name, "phone": payload.get("phone")},
@@ -192,26 +215,15 @@ async def runtime_spawn_supplier(draft_id: str, request: Request, payload: Optio
     req = action_runtime.request_approval(draft_id=supplier_draft["id"], requester=actor_ident)
     if "error" in req:
         raise HTTPException(status_code=400, detail=req)
-    approver_id = f"auto:phase2:{actor_ident or 'anon'}"
-    apr = action_runtime.approve(approval_id=req["approval_id"], approver=approver_id)
-    if "error" in apr and apr.get("error") != "already_approved":
-        raise HTTPException(status_code=400, detail=apr)
-    committed = action_runtime.commit(draft_id=supplier_draft["id"], committer=approver_id)
-    if isinstance(committed, dict) and "error" in committed:
-        raise HTTPException(status_code=400, detail=committed)
-
-    new_supplier_id = (committed.get("result") or {}).get("id")
-
-    # 2) update the purchase draft with the new supplier id (is_new=False)
-    patch_res = action_runtime.patch_draft(
-        draft_id=draft_id,
-        ops=[
-            {"op": "set_supplier_name", "name": name},
-            {"op": "set_supplier_id", "id": new_supplier_id},
-        ],
-        actor=actor_ident,
-    )
-    return {"success": True, "data": {"supplier": committed.get("result"), "purchase": patch_res.get("draft")}}
+    return {
+        "success": True,
+        "status": "pending_approval",
+        "data": {
+            "supplier_draft": supplier_draft,
+            "approval_id": req["approval_id"],
+            "purchase": d,
+        },
+    }
 
 
 # ─── Approvals ──────────────────────────────────────────────────────────────
@@ -245,7 +257,7 @@ async def runtime_approve(approval_id: str, request: Request, payload: Optional[
     draft_id = (result.get("draft") or {}).get("id")
     committed = None
     if draft_id:
-        committed = action_runtime.commit(draft_id=draft_id, committer=approver)
+        committed = await _commit_approved_draft(draft_id, request, approver)
         if isinstance(committed, dict) and "error" in committed:
             raise HTTPException(status_code=400, detail=committed)
     return {"success": True, "data": {**result, "committed": committed}}
@@ -281,7 +293,9 @@ async def runtime_commit(draft_id: str, request: Request, payload: Optional[Dict
     ident = rbac.extract_identity(request, payload)
     actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
     rbac.require(rbac.can_approve(actor))
-    result = action_runtime.commit(draft_id=draft_id, committer=actor.name or actor.id or payload.get("committer"))
+    result = await _commit_approved_draft(
+        draft_id, request, actor.name or actor.id or payload.get("committer")
+    )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result)
     return {"success": True, "data": result}
@@ -413,9 +427,8 @@ async def runtime_alias_commit(draft_id: str, request: Request, payload: Optiona
     ident = rbac.extract_identity(request, payload)
     actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
     rbac.require(rbac.can_approve(actor))
-    result = action_runtime.commit(
-        draft_id=draft_id,
-        committer=actor.name or actor.id or payload.get("committer"),
+    result = await _commit_approved_draft(
+        draft_id, request, actor.name or actor.id or payload.get("committer")
     )
     if "error" in result:
         raise HTTPException(status_code=400, detail=result)
@@ -579,7 +592,6 @@ async def runtime_execute_unified(request: Request, payload: Dict[str, Any] = Bo
         text,
         proposer=ident.get("name") or payload.get("proposer"),
         session_id=payload.get("session_id"),
-        auto_approver=payload.get("auto_approver") or "auto:policy",
     )
     # Always return HTTP 200 for "rejected" (text we understood but is not an
     # executable action — usually a question). Returning 422 made the frontend

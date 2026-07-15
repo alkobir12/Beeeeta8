@@ -72,14 +72,25 @@ STATE: Dict[str, Dict[str, Any]] = {
 
 VALID_ACTIONS = {"customer", "vehicle", "visit", "supplier", "close_visits", "delete_operation",
                  "delete_customer", "delete_vehicle", "update_customer", "update_vehicle", "update_visit",
-                 "invoice", "payment", "expense", "reverse", "purchase", "memory_promote"}
+                 "invoice", "payment", "expense", "reverse", "purchase", "memory_promote",
+                 "external_operation", "external_operation_payment"}
 # 🔬 قاعدة المالك (2026-07-09): لا مسودة مالية بلا trace_id — Trace أو لم يحدث
-FINANCIAL_ACTIONS = {"invoice", "payment", "expense", "reverse", "purchase"}
+FINANCIAL_ACTIONS = {
+    "invoice", "payment", "expense", "reverse", "purchase",
+    "external_operation", "external_operation_payment",
+}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
 def _enforce_4eyes() -> bool:
     return os.environ.get("ACTION_RUNTIME_ENFORCE_4EYES", "true").lower() in ("1", "true", "yes", "on")
+
+
+def _is_automated_actor(value: Optional[str]) -> bool:
+    actor = str(value or "").strip().lower()
+    return actor.startswith("auto:") or actor.startswith("bot_") or actor in {
+        "system", "policy", "anonymous", "auto", "test", "tester",
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -819,6 +830,13 @@ def approve(*, approval_id: str, approver: Optional[str] = None) -> Dict[str, An
             return {"error": "draft_not_found"}
         approver_user = approver or "anonymous"
 
+        if _is_automated_actor(approver_user):
+            _audit("APPROVAL_REJECTED_AUTOMATION", approval_id=approval_id, approver=approver_user)
+            return {
+                "error": "human_approver_required",
+                "msg": "يلزم اعتماد بشري حقيقي؛ الاعتماد الآلي ممنوع لكل الأفعال الكاتبة",
+            }
+
         # Four-Eyes guard
         if _enforce_4eyes() and approver_user == draft.get("proposer"):
             _audit("APPROVAL_REJECTED_4EYES", approval_id=approval_id, approver=approver_user)
@@ -851,6 +869,50 @@ def reject_approval(*, approval_id: str, approver: Optional[str] = None, reason:
         _audit("APPROVAL_REJECTED", approval_id=approval_id, draft_id=(draft or {}).get("id"),
                approver=approver, reason=reason[:80])
         return {"approval": approval, "draft": draft}
+
+
+def has_human_approval(draft_id: str) -> bool:
+    with _LOCK:
+        draft = STATE["drafts"].get(draft_id) or {}
+        approval = STATE["approvals"].get(draft.get("last_approval_id") or "") or {}
+        return (
+            draft.get("status") == "approved"
+            and approval.get("status") == "approved"
+            and not _is_automated_actor(approval.get("approver"))
+            and (not _enforce_4eyes() or approval.get("approver") != draft.get("proposer"))
+        )
+
+
+def complete_external_commit(*, draft_id: str, committer: str, result: Dict[str, Any]) -> Dict[str, Any]:
+    with _LOCK:
+        draft = STATE["drafts"].get(draft_id)
+        if not draft:
+            return {"error": "draft_not_found"}
+        if draft.get("status") == "committed":
+            execution_id = draft.get("execution_id")
+            existing = STATE["executions"].get(execution_id or "") or {}
+            return {"execution_id": execution_id, "result": existing.get("result"), "idempotent": True}
+        if not has_human_approval(draft_id):
+            return {"error": "human_approval_required"}
+        execution_id = uuid.uuid4().hex[:12]
+        STATE["executions"][execution_id] = {
+            "id": execution_id,
+            "draft_id": draft_id,
+            "result": result,
+            "status": "executed",
+            "committer": committer,
+            "committed_at": time.time(),
+        }
+        draft["status"] = "committed"
+        draft["execution_id"] = execution_id
+        _audit(
+            "COMMIT_EXTERNAL",
+            draft_id=draft_id,
+            execution_id=execution_id,
+            action=draft.get("action"),
+            committer=committer,
+        )
+        return {"execution_id": execution_id, "result": result}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1009,6 +1071,14 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
 
         if draft["status"] != "approved":
             return {"error": "not_approved", "current": draft["status"]}
+
+        approval_id = draft.get("last_approval_id")
+        approval = STATE["approvals"].get(approval_id or "") or {}
+        approved_by = approval.get("approver")
+        if approval.get("status") != "approved" or _is_automated_actor(approved_by):
+            return {"error": "human_approval_required"}
+        if _enforce_4eyes() and approved_by == draft.get("proposer"):
+            return {"error": "four_eyes_violation"}
 
         action = draft["action"]
         payload = draft["payload"] or {}

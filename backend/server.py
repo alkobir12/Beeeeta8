@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
+from core.environment_guard import configure_database_environment
+
+DATABASE_ENVIRONMENT = configure_database_environment()
+
 from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles

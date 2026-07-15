@@ -796,7 +796,7 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
 
       return {
         type: 'payment_order',
-        originalType: activeTemplate?.transactionType,
+        originalType: activeTemplate?.key === 'receipt_voucher' ? 'receipt_voucher' : activeTemplate?.transactionType,
         operationKind: vehicleId ? 'VEHICLE_OPERATION' : 'WORKSHOP_OPERATION',
         scope: vehicleId ? 'vehicle' : 'workshop',
         vehicleId: vehicleId || null,
@@ -868,6 +868,11 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
           { headers: { 'Idempotency-Key': idemKey } }
         );
 
+        if (response?.data?.status === 'pending_approval') {
+          setSavedToast({ ok: true, total, message: `بانتظار اعتماد طرف ثانٍ — رقم الطلب ${response.data.approval_id}` });
+          return;
+        }
+
         resetFormAfterSave();
         setSavedToast({ ok: true, total, message: 'تم تسجيل التحصيل على العملية الأصلية بدون إنشاء عملية جديدة.' });
         // 🔄 إشعار باقي الصفحات (Operations / Dashboard / DebtFollowUp) بالتحديث
@@ -883,6 +888,14 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
       if (activeTemplate?.key !== 'bank_deposit') {
         const operationPayload = buildPosOperationPayload();
         const operationResponse = await axios.post(`${apiBase}/operations`, operationPayload);
+        if (operationResponse?.data?.status === 'pending_approval') {
+          setSavedToast({
+            ok: true,
+            total: roundAmount(effectiveAmount),
+            message: `بانتظار اعتماد طرف ثانٍ — رقم الطلب ${operationResponse.data.approval_id}`,
+          });
+          return;
+        }
         if (operationResponse?.data?.id) {
           resetFormAfterSave();
           setSavedToast({ ok: true, total: roundAmount(effectiveAmount) });

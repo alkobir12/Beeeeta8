@@ -745,7 +745,7 @@ async def _chat_impl(
         if _CONFIRM_RE.match(message or ""):
             shared_memory.set_context(sid, "pending_confirm", None)
             exec_res = _ux.confirm_pending(pending_confirm)
-            if exec_res.get("status") == "committed":
+            if exec_res.get("status") in ("committed", "pending_approval"):
                 return _build_action_chat_response(sid=sid, message=message, exec_res=exec_res)
             return _plain_chat_response(
                 sid=sid,

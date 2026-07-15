@@ -1,19 +1,14 @@
 """
 ⚙️ Unified Execution Engine — Phase 3C.4 (Policy Layer)
 
-Sits on top of `core.action_runtime` to apply risk-based policy:
-  • SAFE actions    → auto-approve + auto-commit (LLM proposes, system commits)
-  • RISKY actions   → require human approval before commit
+Sits on top of `core.action_runtime` to apply write-safety policy:
+  • WRITE actions   → require a distinct human approver before commit
   • UNKNOWN actions → rejected
 
 Read-only actions (`get_active_visits`, `get_*`) short-circuit and never
 create a draft.
 
-⚠️  Even SAFE auto-commits still go through the full state machine in
-`action_runtime` — they just bypass the human approval *gate*. Every step
-is recorded in the audit trail with `proposer="auto:llm"` and
-`approver="auto:policy"`. Four-Eyes is preserved because the two identities
-are deliberately distinct.
+Automated identities cannot approve or commit any write action.
 """
 from __future__ import annotations
 
@@ -92,7 +87,7 @@ _RESOLVE_TARGET_ACTIONS = {
 
 def requires_approval(action: Action) -> bool:
     """Policy: should this action wait for a human reviewer?"""
-    return action.action in RISKY_ACTIONS
+    return action.action not in READ_ONLY_ACTIONS and action.action != "unknown"
 
 
 async def execute_text(
@@ -100,7 +95,7 @@ async def execute_text(
     *,
     proposer: Optional[str] = None,
     session_id: Optional[str] = None,
-    auto_approver: str = "auto:policy",
+    auto_approver: Optional[str] = None,
 ) -> Dict[str, Any]:
     """End-to-end orchestrator: text → LLM → policy decision → runtime.
 
@@ -478,7 +473,7 @@ async def execute_action(
     *,
     proposer: Optional[str] = None,
     session_id: Optional[str] = None,
-    auto_approver: str = "auto:policy",
+    auto_approver: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Drive a pre-parsed Action through the runtime + policy gates."""
 
@@ -674,32 +669,22 @@ def _confirm_text(action: Action) -> str:
     return "\n".join(lines)
 
 
-def confirm_pending(pending: Dict[str, Any], *, approver: str = "auto:policy") -> Dict[str, Any]:
-    """يُثبّت مسودة آمنة بعد تأكيد المستخدم الصريح («نعم»)."""
-    approved = action_runtime.approve(
-        approval_id=pending["approval_id"], approver=approver,
-    )
-    if "error" in approved and approved.get("error") != "already_approved":
-        return {"status": "error", "reason": approved["error"]}
-    committed = action_runtime.commit(
-        draft_id=pending["draft_id"], committer=approver,
-    )
-    if "error" in committed:
-        return {"status": "error", "reason": committed["error"]}
+def confirm_pending(pending: Dict[str, Any], *, approver: Optional[str] = None) -> Dict[str, Any]:
+    """يبقي التأكيد بانتظار اعتماد بشري؛ لا اعتماد آلي ولا تثبيت مباشر."""
     return {
-        "status": "committed",
+        "status": "pending_approval",
         "action": {"action": pending.get("action"), "payload": {}},
-        "result": committed.get("result"),
-        "execution_id": committed.get("execution_id"),
-        "policy": "user_confirmed",
+        "draft": action_runtime.get_draft(pending["draft_id"]),
+        "approval": {"approval_id": pending["approval_id"]},
+        "policy": "human_review_required",
     }
 
 
-def cancel_pending(pending: Dict[str, Any], *, approver: str = "auto:policy") -> Dict[str, Any]:
+def cancel_pending(pending: Dict[str, Any], *, approver: Optional[str] = None) -> Dict[str, Any]:
     """يرفض/يلغي مسودة آمنة بعد رفض المستخدم («لا»)."""
     try:
         action_runtime.reject_approval(
-            approval_id=pending["approval_id"], approver=approver, reason="user_cancelled",
+            approval_id=pending["approval_id"], approver=approver or pending.get("proposer"), reason="user_cancelled",
         )
     except Exception:
         pass
