@@ -25,8 +25,9 @@ from core import action_runtime, power_mode
 
 
 @pytest.fixture(autouse=True)
-def _reset_runtime():
-    """Reset state before each test."""
+def _reset_runtime(monkeypatch):
+    """Reset state and force the staging store; unit tests never touch Supabase."""
+    monkeypatch.setattr(action_runtime, "_supabase_client", lambda: None)
     action_runtime.reset_for_tests()
     yield
     action_runtime.reset_for_tests()
