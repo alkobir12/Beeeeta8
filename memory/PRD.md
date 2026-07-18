@@ -333,3 +333,13 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - **السياسة:** PIN من 6 أرقام يسمح بالدخول السريع للحساب صاحب الـhash؛ PIN القديم من 4 أرقام يبقى مرتبطاً بجهاز موثوق. القفل حسب username+IP، وكلمة المرور الاحتياطية باقية.
 - **التحقق:** Testing Agent iteration_258؛ 24/24 اختباراً، واجهة/API/Mongo ناجحة، lint نظيف، و`/api/health` = 200. النطاق المختبر: Preview فقط وفق طلب المستخدم.
 - **التالي:** لا إجراء مصادقة متبقٍ في Preview؛ العودة إلى المسار المقفل D1 → D2 → D6 → S3 → L14 Round 3 عند أمر المالك.
+
+## جلسة 2026-07-18ج — نطاق الأمان الصغير من مراجعة جودة الكود
+- **قرار المالك:** تنفيذ الخيار 1 فقط؛ صفر refactoring جانبي قبل إغلاق L14.
+- **أسرار الاختبارات:** `test_temp_deferred_iter254.py` و`test_auth_p1_iter256.py` يقرآن URL وrate-bypass وكلمات المرور وPIN من البيئة حصراً؛ أزيلت القيم الثابتة `WRONGPASS` و`x123456` وPIN الاختباري `1234` والاستقراء اليدوي لملف `.env`.
+- **معالجة الأخطاء:** أزيلت حالات `catch` الصامتة المستهدفة من `sessionSetup.js` و`authToken.js` و`SmartPOSJournal.jsx`، وأضيف تسجيل تحذيري آمن لا يطبع tokens أو PIN أو passwords.
+- **Undefined vars:** ruff `F821/F823` وPython lint نجحا. رقم 48 غير قابل لإعادة الإنتاج؛ الحالتان الموثقتان في `UNDEFINED_VARS_AUDIT.md` إيجابيتان كاذبتان وآمنتان، ولم تُعدلا.
+- **MD5:** بقيت `_alert_id` دون تغيير لأنها fingerprint توافقية غير أمنية مع `usedforsecurity=False`؛ تغييرها يكسر IDs محفوظة ويحتاج Migration رسمية.
+- **المؤجل المقفل:** circular imports، exhaustive hook dependencies، localStorage→cookies، تقسيم المكونات/الدوال، index keys، وتحسينات JSX حتى إغلاق L14.
+- **الإثبات:** trace `tr-3fbc346780b4` = completed؛ 18 اختباراً تُجمع، ruff/lint/compile/secret scan/catch scan ناجحة، Login smoke ناجح، `/api/health` = 200.
+- **قيد الاختبار الحي:** تشغيل auth suite الكامل اصطدم بقفل 429 وحالة مستخدمين متغيرة في المعاينة المشتركة؛ لم تُحذف سجلات audit ولم تُغيّر بيانات المستخدمين ضمن هذا النطاق.

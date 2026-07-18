@@ -443,7 +443,8 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         setVehicles(normalizeArray(vehiclesRes?.data));
         setParts(normalizeArray(partsRes?.data));
         setServices(normalizeArray(servicesRes?.data));
-      } catch {
+      } catch (error) {
+        console.warn('Smart POS reference data failed to load:', error?.message || error);
         if (!mounted) return;
         setCustomers([]);
         setSuppliers([]);
@@ -477,7 +478,8 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         if (!mounted) return;
         const rows = normalizeArray(response?.data?.data || response?.data);
         setLocalRecentEntries(rows);
-      } catch {
+      } catch (error) {
+        console.warn('Recent Smart POS entries failed to load:', error?.message || error);
         if (mounted) setLocalRecentEntries([]);
       } finally {
         if (mounted) setRecentEntriesLoading(false);

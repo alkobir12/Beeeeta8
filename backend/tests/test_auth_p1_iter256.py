@@ -39,6 +39,7 @@ TEST_PASSWORD = os.environ["TEST_USER_PASSWORD"]
 INVALID_TEST_PASSWORD = f"{TEST_PASSWORD}-wrong"
 ALTERNATE_TEST_PASSWORD = f"{TEST_PASSWORD}-alternate"
 MANAGER_PIN = os.environ["MANAGER_QUICK_PIN"]
+LEGACY_TEST_PIN = MANAGER_PIN[:4]
 
 # secret-gated rate-limit bypass so the suite isn't throttled (server.py middleware)
 S = requests.Session()
@@ -150,11 +151,11 @@ def test_non_admin_cannot_set_others_password():
 def test_pin_login_requires_trusted_device():
     tok = _login(username=TEST_USER, password=TEST_PASSWORD).json()["access_token"]
     r = S.post(f"{API}/auth/set-pin", headers={"Authorization": f"Bearer {tok}"},
-                      json={"pin": "1234"}, timeout=30)
+                      json={"pin": LEGACY_TEST_PIN}, timeout=30)
     assert r.status_code == 200
     device_id = r.json()["device_id"]
-    assert _login(username=TEST_USER, pin="1234", device_id=device_id).status_code == 200
-    assert _login(username=TEST_USER, pin="1234", device_id="dev_fake").status_code == 401
+    assert _login(username=TEST_USER, pin=LEGACY_TEST_PIN, device_id=device_id).status_code == 200
+    assert _login(username=TEST_USER, pin=LEGACY_TEST_PIN, device_id="dev_fake").status_code == 401
 
 
 # ---- sessions + audit -------------------------------------------------------

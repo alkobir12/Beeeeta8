@@ -37,7 +37,11 @@ export async function loginRequest(body) {
       body: JSON.stringify(body || {}),
     });
     let data = null;
-    try { data = await resp.json(); } catch (e) { data = null; }
+    try { data = await resp.json(); }
+    catch (e) {
+      console.warn('Login response was not valid JSON:', e?.message || e);
+      data = null;
+    }
     if (!resp.ok) {
       return {
         ok: false,
@@ -64,7 +68,10 @@ export function getStoredToken() {
 
 function getStoredRefresh() {
   try { return localStorage.getItem(REFRESH_KEY) || ''; }
-  catch (e) { return ''; }
+  catch (e) {
+    console.warn('getStoredRefresh failed:', e?.message || e);
+    return '';
+  }
 }
 
 export function clearStoredToken() {
@@ -80,7 +87,10 @@ const AUTH_PATHS = ['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'];
 
 function _isAuthPath(url) {
   try { return AUTH_PATHS.some((p) => String(url || '').includes(p)); }
-  catch (e) { return false; }
+  catch (e) {
+    console.warn('Auth path detection failed:', e?.message || e);
+    return false;
+  }
 }
 
 /** Orderly logout when refresh is impossible — clear tokens, notify app, redirect once.
@@ -127,6 +137,7 @@ export async function refreshAccessToken() {
       }
       return null;
     } catch (e) {
+      console.warn('Access token refresh failed:', e?.message || e);
       return null;
     } finally {
       setTimeout(() => { _refreshPromise = null; }, 0);
