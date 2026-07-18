@@ -6,7 +6,7 @@
 | Username (اسم المستخدم) | Role        | Can approve (Four-Eyes)? | Login method |
 |-------------------------|-------------|--------------------------|--------------|
 | `مدير`                  | admin       | ✅ yes                   | quick PIN `123123` (6 digits); password fallback remains available |
-| `احمد`                  | accountant  | ❌ no                    | quick PIN `123123` (6 digits); password fallback can be configured |
+| `احمد`                  | accountant  | ✅ yes                   | quick PIN `123123` (6 digits); password fallback can be configured |
 | `مستخدم اختبار`         | technician  | ❌ no                    | name-only (test suites may temporarily set a password from `TEST_USER_PASSWORD` in `/app/backend/.env` — they clean up after) |
 
 ## 🔐 Auth model (P1 / SEC-003 — 2026-07-07)
@@ -31,7 +31,7 @@ Backend middleware skips rate limiting when header
 Test suites load it via dotenv (see `tests/test_auth_p1_iter256.py`).
 
 ## RBAC / Four-Eyes notes
-- Approver roles: `admin, manager, supervisor` (env `RUNTIME_APPROVER_ROLES`).
+- Approver roles: `admin, manager, supervisor, accountant` (env `RUNTIME_APPROVER_ROLES`).
 - Strict Four-Eyes ON: proposer cannot approve own draft → 403 `four_eyes_violation`.
 - Approve+auto-commit endpoint: `POST /api/runtime/approvals/{id}/approve`.
   Aliases: `/api/runtime/approve/{approval_id}` (approve only) +

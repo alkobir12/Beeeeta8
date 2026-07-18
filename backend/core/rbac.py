@@ -30,7 +30,7 @@ _ROLE_MAP: Optional[Dict[str, Any]] = None
 # الأدوار المخوّلة باعتماد/تنفيذ الإجراءات الحساسة (قابلة للضبط عبر env)
 APPROVER_ROLES = {
     r.strip().lower()
-    for r in os.environ.get("RUNTIME_APPROVER_ROLES", "admin,manager,supervisor").split(",")
+    for r in os.environ.get("RUNTIME_APPROVER_ROLES", "admin,manager,supervisor,accountant").split(",")
     if r.strip()
 }
 

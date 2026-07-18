@@ -1217,6 +1217,75 @@ def _safe_amount(value: Any) -> float:
         return 0.0
 
 
+_UNCONFIRMED_PAYMENT_STATUSES = {
+    "unconfirmed",
+    "not_confirmed",
+    "not_billed",
+    "draft",
+    "quotation",
+    "غير مؤكد",
+    "غير_مؤكد",
+    "بانتظار تأكيد",
+    "بانتظار_تأكيد",
+}
+_UNCONFIRMED_PAYMENT_METHODS = {
+    "unconfirmed",
+    "not_selected",
+    "none",
+    "غير محدد",
+    "غير_محدد",
+}
+_EXPLICIT_CREDIT_PAYMENT_METHODS = {"credit", "deferred", "اجل", "آجل", "ذمة", "ذمم"}
+_EXPLICIT_CASH_PAYMENT_METHODS = {
+    "cash", "نقد", "نقدي", "كاش", "transfer", "bank", "تحويل", "بنك",
+    "pos", "card", "mada", "visa", "mastercard", "نقاط بيع", "نقاط_بيع",
+    "point_of_sale", "بطاقة", "بطاقه", "شبكة",
+}
+
+
+def _normalize_unconfirmed_vehicle_payment(payload: Dict[str, Any], kind: str) -> None:
+    if kind != "VEHICLE_OPERATION":
+        return
+    op_type = str(payload.get("type") or "").strip().lower()
+    if op_type not in {"sale", "service"}:
+        return
+    raw_method = payload.get("paymentMethod") if "paymentMethod" in payload else payload.get("payment_method")
+    raw_status = payload.get("paymentStatus") if "paymentStatus" in payload else payload.get("payment_status")
+    method = str(raw_method or "").strip().lower()
+    status = str(raw_status or "").strip().lower()
+
+    if method in _EXPLICIT_CREDIT_PAYMENT_METHODS or method in _EXPLICIT_CASH_PAYMENT_METHODS:
+        return
+    if status in {"paid", "paid_full", "settled", "مدفوع", "مسدد", "credit", "deferred"}:
+        return
+    if (not method and status in {"", "unpaid", "pending"}) or method in _UNCONFIRMED_PAYMENT_METHODS or status in _UNCONFIRMED_PAYMENT_STATUSES:
+        payload["paymentMethod"] = "unconfirmed"
+        payload["payment_method"] = "unconfirmed"
+        payload["paymentStatus"] = "unconfirmed"
+        payload["payment_status"] = "unconfirmed"
+
+
+def _is_unconfirmed_vehicle_financial_state(op: Dict[str, Any]) -> bool:
+    op_type = str(op.get("type") or "").strip().lower()
+    if op_type not in {"sale", "service"}:
+        return False
+    has_vehicle_context = bool(
+        op.get("vehicleId")
+        or op.get("vehicle_id")
+        or str(op.get("scope") or "").strip().lower() == "vehicle"
+        or str(op.get("operationKind") or "").strip().upper() == "VEHICLE_OPERATION"
+    )
+    if not has_vehicle_context:
+        return False
+    raw_method = op.get("paymentMethod") if "paymentMethod" in op else op.get("payment_method")
+    raw_status = op.get("paymentStatus") if "paymentStatus" in op else op.get("payment_status")
+    method = str(raw_method or "").strip().lower()
+    status = str(raw_status or "").strip().lower()
+    if method in _EXPLICIT_CREDIT_PAYMENT_METHODS or method in _EXPLICIT_CASH_PAYMENT_METHODS:
+        return False
+    return method in _UNCONFIRMED_PAYMENT_METHODS or status in _UNCONFIRMED_PAYMENT_STATUSES
+
+
 def _split_operation_totals(op: Dict[str, Any]) -> Dict[str, float]:
     total = _safe_amount(op.get("total"))
     items = op.get("items") or []
@@ -1273,6 +1342,9 @@ def _build_operation_journal_entry(
     if not workshop_id:
         return None
 
+    if _is_unconfirmed_vehicle_financial_state(op):
+        return None
+
     op_type = (op.get("type") or "").lower()
     payment_method = (op.get("paymentMethod") or op.get("payment_method") or "cash").lower()
     totals = _split_operation_totals(op)
@@ -1288,7 +1360,7 @@ def _build_operation_journal_entry(
     # 🕒 قاعدة المالك: كل الصيغ الآجلة (عربي/إنجليزي) + حالات السداد المعلّقة = آجل
     pay_status = str(op.get("paymentStatus") or op.get("payment_status") or "").strip().lower()
     is_credit = (
-        payment_method in ("credit", "deferred", "اجل", "آجل", "ذمة", "ذمم")
+        payment_method in _EXPLICIT_CREDIT_PAYMENT_METHODS
         or pay_status in ("unpaid", "credit", "partial", "deferred", "pending")
     )
 
@@ -3446,6 +3518,7 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
                     pass
 
         _apply_operation_kind_defaults(payload, kind, vehicle_doc)
+        _normalize_unconfirmed_vehicle_payment(payload, kind)
 
         approved_external_draft_id = _external_draft_is_approved(payload)
         is_receipt_voucher = op_type == "payment_order" and original_type == "receipt_voucher"
@@ -3568,9 +3641,11 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
 
             op = supa.operations_create(payload)
 
+            is_unconfirmed_vehicle_financial = _is_unconfirmed_vehicle_financial_state(op)
+
             # Auto-create invoice record linked to this operation (best-effort)
             try:
-                if op.get("invoiceNumber"):
+                if op.get("invoiceNumber") and not is_unconfirmed_vehicle_financial:
                     supa.invoices_create(
                         {
                             "invoiceNumber": op.get("invoiceNumber"),
@@ -3595,7 +3670,7 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
             # - Credit operations will hit AR/AP
             # - Cash/transfer operations will hit Cash/Bank
             try:
-                entry = _build_operation_journal_entry(
+                entry = None if is_unconfirmed_vehicle_financial else _build_operation_journal_entry(
                     op,
                     workshop_id,
                     chart_account_ref_map=chart_account_ref_map,
@@ -4053,7 +4128,7 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
     balance = total_amount - total_paid
 
     if total_paid == 0:
-        payment_status = 'unpaid'
+        payment_status = 'unconfirmed'
     elif balance > 0:
         payment_status = 'partial'
     elif balance == 0:
@@ -4223,6 +4298,8 @@ def _payment_method_label(method: Optional[str], payment_status: Optional[str], 
     }
     if payment_status == "unpaid":
         return "غير مسددة بعد"
+    if payment_status == "unconfirmed":
+        return "بانتظار تأكيد السداد"
     if payment_status == "partial":
         return "دفعة جزئية / تحت الحساب"
     if normalized in labels:

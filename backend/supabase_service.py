@@ -146,7 +146,7 @@ def _summarize_visit_notes(notes: Any) -> Dict[str, Any]:
 
     balance = max(round(total_workshop - total_paid, 2), 0.0)
     if total_paid <= 0:
-        payment_status = 'unpaid'
+        payment_status = 'unconfirmed'
     elif balance > 0.01:
         payment_status = 'partial'
     else:
@@ -159,7 +159,7 @@ def _summarize_visit_notes(notes: Any) -> Dict[str, Any]:
         'advance_paid': round(advance_paid, 2),
         'balance': balance,
         'payment_status': payment_status,
-        'last_payment_method': last_method or ('cash' if total_paid > 0 else 'credit'),
+        'last_payment_method': last_method or ('cash' if total_paid > 0 else ''),
         'visitNumber': parsed.get('visitNumber') or parsed.get('visit_number') or parsed.get('visitNumberDisplay'),
     }
 
@@ -193,7 +193,7 @@ def _operation_payment_snapshot(row: Dict[str, Any], visit_summary: Dict[str, An
         balance = round(max(total - paid, 0.0), 2)
 
     if paid <= 0:
-        status = row.get('payment_status') or row.get('paymentStatus') or 'unpaid'
+        status = row.get('payment_status') or row.get('paymentStatus') or visit_summary.get('payment_status') or 'unpaid'
     elif balance > 0.01:
         status = 'partial'
     else:
@@ -203,7 +203,7 @@ def _operation_payment_snapshot(row: Dict[str, Any], visit_summary: Dict[str, An
         visit_summary.get('last_payment_method')
         or row.get('payment_method')
         or row.get('paymentMethod')
-        or ('cash' if paid > 0 else 'credit')
+        or ('' if str(status or '').lower() == 'unconfirmed' else ('cash' if paid > 0 else 'credit'))
     )
     row_method = row.get('payment_method') or row.get('paymentMethod')
     if paid > 0 and str(method or '').lower() in {'credit', 'deferred'} and row_method:
@@ -1153,6 +1153,9 @@ class SupabaseService:
         if self.mock_mode:
             return payload
 
+        requested_payment_status = payload.get("paymentStatus") if payload.get("paymentStatus") is not None else payload.get("payment_status")
+        requested_payment_method = payload.get("paymentMethod") if payload.get("paymentMethod") is not None else payload.get("payment_method")
+
         items = payload.get("items") or []
         # قبول كلٍّ من quantity و qty لحساب الكميات
         subtotal = 0.0
@@ -1214,8 +1217,8 @@ class SupabaseService:
             "items": items,
             "subtotal": subtotal,
             "total": subtotal,
-            "payment_method": payload.get("paymentMethod", "cash"),
-            "payment_status": payload.get("paymentStatus", "paid"),
+            "payment_method": requested_payment_method or "cash",
+            "payment_status": requested_payment_status or "paid",
             "payment_amount": payload.get("paymentAmount"),
             "notes": payload.get("notes"),
             "op_date": op_date or datetime.utcnow().isoformat(),
@@ -1263,8 +1266,8 @@ class SupabaseService:
             "items": r.get("items"),
             "subtotal": r.get("subtotal"),
             "total": r.get("total"),
-            "paymentMethod": r.get("payment_method"),
-            "paymentStatus": r.get("payment_status"),
+            "paymentMethod": r.get("payment_method") or requested_payment_method,
+            "paymentStatus": r.get("payment_status") or requested_payment_status,
             "notes": r.get("notes"),
             "date": r.get("op_date"),
             "createdAt": r.get("created_at"),

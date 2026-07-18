@@ -138,6 +138,66 @@ def _ensure_users_file():
             json.dump(seed, f, ensure_ascii=False, indent=2)
 
 
+def _ensure_builtin_privileged_users(users: List[dict]) -> List[dict]:
+    """يحافظ على حسابات التشغيل السريعة المطلوبة للاختبار/المعاينة عند استخدام ملف fallback."""
+    rows = list(users or [])
+    changed = False
+    required = [
+        {
+            "name": (os.environ.get("MANAGER_QUICK_USERNAME") or "مدير").strip(),
+            "role": "admin",
+            "phone": "0500000000",
+        },
+        {
+            "name": "احمد",
+            "role": "accountant",
+            "phone": "0500000001",
+        },
+    ]
+
+    for item in required:
+        name = item["name"]
+        if not name:
+            continue
+        found = None
+        for row in rows:
+            if str(row.get("name") or "").strip() == name or str(row.get("username") or "").strip() == name:
+                found = row
+                break
+        if found is None:
+            rows.append({
+                "id": str(uuid.uuid4()),
+                "name": name,
+                "username": name,
+                "email": None,
+                "phone": item["phone"],
+                "role": item["role"],
+                "permissions": {},
+                "isActive": True,
+                "guidanceEnabled": True,
+                "createdAt": datetime.utcnow().isoformat(),
+                "lastLogin": None,
+            })
+            changed = True
+            continue
+        if item["role"] in {"admin", "accountant"} and found.get("role") != item["role"]:
+            found["role"] = item["role"]
+            changed = True
+        if not found.get("username"):
+            found["username"] = name
+            changed = True
+        if found.get("isActive") is False:
+            found["isActive"] = True
+            changed = True
+        if found.get("guidanceEnabled") is None:
+            found["guidanceEnabled"] = True
+            changed = True
+
+    if changed:
+        _write_users(rows)
+    return rows
+
+
 def _read_users() -> List[dict]:
     _ensure_users_file()
     try:
@@ -146,7 +206,7 @@ def _read_users() -> List[dict]:
             for user in users:
                 if user.get("guidanceEnabled") is None:
                     user["guidanceEnabled"] = True
-            return users
+            return _ensure_builtin_privileged_users(users)
     except Exception:
         return []
 

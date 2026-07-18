@@ -101,7 +101,7 @@ const Sidebar = ({
         { path: '/accounting/comprehensive', label: `📊 ${t('nav.financial_statements')}`, enabled: true, permission: { module: 'reports', action: 'view' } },
         { path: '/accounting/journal-entries', label: `📖 ${t('nav.journal')}`, enabled: true, permission: { module: 'journal_entries', action: 'view' } },
         { path: '/accounting/firewall', label: `🛡️ ${i18n.language === 'ar' ? 'جدار حماية المحاسبة' : 'Accounting Firewall'}`, enabled: true, permission: { module: 'reports', action: 'view' } },
-        { path: '/financial-control', label: `✅ ${i18n.language === 'ar' ? 'الرقابة والاعتمادات' : 'Financial Control'}`, enabled: true, permission: { module: 'reports', action: 'view' }, roles: ['admin', 'manager', 'supervisor'] },
+        { path: '/financial-control', label: `✅ ${i18n.language === 'ar' ? 'الرقابة والاعتمادات' : 'Financial Control'}`, enabled: true, permission: { module: 'reports', action: 'view' }, roles: ['admin', 'manager', 'supervisor', 'accountant'] },
         { path: '/finance/taxes', label: t('nav.taxes'), enabled: true, permission: { module: 'reports', action: 'view' } },
       ]
     },
@@ -168,7 +168,9 @@ const Sidebar = ({
             if (b.getAttribute('data-group-label') === label) target = b;
           });
           target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } catch (_) {}
+        } catch (scrollError) {
+          console.warn('sidebar_group_scroll_failed', scrollError);
+        }
       }, 80);
     };
     if (window.innerWidth < 1024) {

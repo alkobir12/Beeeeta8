@@ -86,7 +86,7 @@
     "username": "احمد",
     "email": "",
     "phone": "055555555",
-    "role": "reception",
+    "role": "accountant",
     "permissions": {
       "dashboard": {
         "view": true
@@ -160,5 +160,18 @@
     "createdAt": "2026-07-18T15:07:10.451579",
     "lastLogin": null,
     "isActive": true
+  },
+  {
+    "id": "71895dae-e6b9-482a-8891-c760e29dfbca",
+    "name": "مدير",
+    "username": "مدير",
+    "email": null,
+    "phone": "0500000000",
+    "role": "admin",
+    "permissions": {},
+    "isActive": true,
+    "guidanceEnabled": true,
+    "createdAt": "2026-07-18T18:40:48.917356",
+    "lastLogin": null
   }
 ]

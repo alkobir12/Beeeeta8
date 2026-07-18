@@ -14,7 +14,7 @@ async def check_react_query_state():
             print("=== CHECKING REACT QUERY STATE ===")
             
             # Login
-            await page.goto('https://fabrication-guard.preview.emergentagent.com/login')
+            await page.goto('https://payment-defaults.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             await page.fill('[data-testid="login-username-input"]', 'مدير')
             await page.click('[data-testid="login-submit-button"]')
@@ -22,7 +22,7 @@ async def check_react_query_state():
             await page.wait_for_timeout(2000)
             
             # Navigate to operations
-            await page.goto('https://fabrication-guard.preview.emergentagent.com/operations')
+            await page.goto('https://payment-defaults.preview.emergentagent.com/operations')
             await page.wait_for_timeout(5000)
             
             # Inject JavaScript to check React Query state

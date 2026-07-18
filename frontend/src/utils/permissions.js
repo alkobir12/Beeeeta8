@@ -127,7 +127,7 @@ export const ROUTE_PERMISSIONS = [
   { pattern: /^\/finance\//, module: 'reports', action: 'view' },
   { pattern: /^\/accounting\/journal-entries/, module: 'journal_entries', action: 'view' },
   { pattern: /^\/accounting\//, module: 'reports', action: 'view' },
-  { pattern: /^\/financial-control/, module: 'reports', action: 'view', roles: ['admin', 'manager', 'supervisor'] },
+  { pattern: /^\/financial-control/, module: 'reports', action: 'view', roles: ['admin', 'manager', 'supervisor', 'accountant'] },
   { pattern: /^\/ai-financial/, module: 'reports', action: 'view' },
   { pattern: /^\/system-audit/, module: 'reports', action: 'view' },
   { pattern: /^\/archive/, module: 'archive', action: 'view' },

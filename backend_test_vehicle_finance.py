@@ -15,7 +15,7 @@ import json
 from typing import Dict, Any, Optional
 
 # Backend URL
-BASE_URL = "https://fabrication-guard.preview.emergentagent.com/api"
+BASE_URL = "https://payment-defaults.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 # Test data
@@ -363,7 +363,7 @@ def main():
     print("\n" + "=" * 80)
     print("  اختبار backend شبه read-only للمركبات والمالية")
     print("  Backend Testing for Vehicle and Finance Features (Read-Only Mode)")
-    print("  URL: https://fabrication-guard.preview.emergentagent.com")
+    print("  URL: https://payment-defaults.preview.emergentagent.com")
     print("=" * 80)
     
     # Run all tests

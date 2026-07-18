@@ -12,7 +12,7 @@ import sys
 from datetime import datetime
 
 # Get backend URL from frontend/.env
-BACKEND_URL = "https://fabrication-guard.preview.emergentagent.com/api"
+BACKEND_URL = "https://payment-defaults.preview.emergentagent.com/api"
 
 # Test results tracking
 test_results = {

@@ -8,7 +8,7 @@ import requests
 import json
 import uuid
 
-API_URL = "https://fabrication-guard.preview.emergentagent.com"
+API_URL = "https://payment-defaults.preview.emergentagent.com"
 
 def test_with_proper_uuid():
     """اختبار مع UUID صحيح للـ accountId"""

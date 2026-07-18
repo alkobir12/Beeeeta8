@@ -4,7 +4,7 @@
 import requests
 import json
 
-API_URL = "https://fabrication-guard.preview.emergentagent.com/api"
+API_URL = "https://payment-defaults.preview.emergentagent.com/api"
 WID = "finmodule-sync"
 TOWDHEEB = ["توضيب", "تلميع مكينة", "توضيب مكينه"]
 

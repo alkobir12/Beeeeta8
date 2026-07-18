@@ -12,7 +12,7 @@ import uuid
 import requests
 import pytest
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://fabrication-guard.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://payment-defaults.preview.emergentagent.com").rstrip("/")
 WS = "finmodule-sync"
 
 # Common headers for an admin (Arabic name in body, ASCII role header)
