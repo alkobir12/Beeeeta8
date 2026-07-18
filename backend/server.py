@@ -429,6 +429,16 @@ cors_origins_raw = os.environ.get(
 )
 allow_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()]
 
+
+def _credentialed_cors_origin(origin: Optional[str]) -> Optional[str]:
+    if not origin:
+        return None
+    if origin in allow_origins:
+        return origin
+    if "*" in allow_origins:
+        return origin
+    return None
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
@@ -532,9 +542,9 @@ class SecurityHeadersAndRateLimitMiddleware:
                     (b"content-type", b"application/json"),
                     (b"content-length", str(len(body)).encode("latin-1")),
                 ]
-                if origin and ("*" in allow_origins or origin in allow_origins):
-                    ao = "*" if "*" in allow_origins else origin
-                    out_headers.append((b"access-control-allow-origin", ao.encode("latin-1")))
+                cors_origin = _credentialed_cors_origin(origin)
+                if cors_origin:
+                    out_headers.append((b"access-control-allow-origin", cors_origin.encode("latin-1")))
                     out_headers.append((b"access-control-allow-credentials", b"true"))
                     out_headers.append((b"vary", b"Origin"))
                 await send_({"type": "http.response.start", "status": status_code, "headers": out_headers})
@@ -567,11 +577,14 @@ class SecurityHeadersAndRateLimitMiddleware:
         async def send_wrapper(message):
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
-                if origin and "access-control-allow-origin" not in headers:
-                    if "*" in allow_origins:
-                        headers["Access-Control-Allow-Origin"] = "*"
-                    elif origin in allow_origins:
-                        headers["Access-Control-Allow-Origin"] = origin
+                cors_origin = _credentialed_cors_origin(origin)
+                if cors_origin:
+                    headers["Access-Control-Allow-Origin"] = cors_origin
+                    headers["Access-Control-Allow-Credentials"] = "true"
+                    headers.setdefault("Vary", "Origin")
+                elif origin:
+                    if "access-control-allow-credentials" in headers:
+                        del headers["access-control-allow-credentials"]
                 headers.setdefault("X-Frame-Options", "DENY")
                 headers.setdefault("X-Content-Type-Options", "nosniff")
                 headers.setdefault("X-XSS-Protection", "1; mode=block")

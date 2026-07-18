@@ -194,5 +194,25 @@
     "rating": 5.0,
     "createdAt": "2026-07-18T18:48:02.718650+00:00",
     "source": "katrina"
+  },
+  {
+    "id": "2d5882c8-d30c-4a61-9850-d07f1513f944",
+    "name": "TEST_SAFE_SUPPLIER_5606b5e8",
+    "phone": null,
+    "category": null,
+    "paymentTerms": null,
+    "rating": 5.0,
+    "createdAt": "2026-07-18T18:50:37.443509+00:00",
+    "source": "katrina"
+  },
+  {
+    "id": "0a4a52e5-1a0d-43f9-a341-b0e6a098071d",
+    "name": "TEST_SAFE_SUPPLIER_2b34ff62",
+    "phone": null,
+    "category": null,
+    "paymentTerms": null,
+    "rating": 5.0,
+    "createdAt": "2026-07-18T18:52:10.159211+00:00",
+    "source": "katrina"
   }
 ]

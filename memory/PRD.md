@@ -343,3 +343,12 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - **المؤجل المقفل:** circular imports، exhaustive hook dependencies، localStorage→cookies، تقسيم المكونات/الدوال، index keys، وتحسينات JSX حتى إغلاق L14.
 - **الإثبات:** trace `tr-3fbc346780b4` = completed؛ 18 اختباراً تُجمع، ruff/lint/compile/secret scan/catch scan ناجحة، Login smoke ناجح، `/api/health` = 200.
 - **قيد الاختبار الحي:** تشغيل auth suite الكامل اصطدم بقفل 429 وحالة مستخدمين متغيرة في المعاينة المشتركة؛ لم تُحذف سجلات audit ولم تُغيّر بيانات المستخدمين ضمن هذا النطاق.
+
+## جلسة 2026-07-18د — إصلاح افتراض آجل غير المؤكد + صلاحية اعتماد المحاسب
+- **P0 مكتمل:** عمليات/بنود المركبة غير المؤكدة لا تتحول تلقائياً إلى `credit/آجل`. إذا لم يُختر دفع صريح تُحفظ كـ`paymentMethod=unconfirmed` و`paymentStatus=unconfirmed` ولا تُنشئ قيد ذمم/بيع آجل.
+- **سلامة المحاسبة:** البيع الآجل الصريح ما زال يعمل كما هو؛ `paymentMethod=آجل` مع `paymentStatus=unpaid` ينشئ القيد المؤقت `[قيد مؤقت — بيع آجل]`.
+- **Katrina Four-Eyes:** أضيف دور `accountant` إلى أدوار الاعتماد في backend والواجهة؛ `مدير/مدير النظام/محاسب` يستطيعون رؤية/اعتماد الطلبات المعلقة مع بقاء قاعدة الأربع أعين: المقترح لا يعتمد طلبه بنفسه.
+- **اعتمادات الاختبار:** `مدير` admin و`احمد` accountant يعملان عبر PIN `123123`، وتمت مزامنة fallback users عند غياب جدول Supabase users في Preview.
+- **CORS/auth:** أُغلق مسار wildcard الداخلي مع credentialed auth؛ backend المحلي لا يرسل `Access-Control-Allow-Origin: *` مع cookies. طبقة المعاينة الخارجية قد تضيف headers عامة، لكن اختبار التطبيق الداخلي أصبح أخضر.
+- **التحقق:** Self-tests + Playwright smoke + Testing Agent iteration_262. إعادة تشغيل `pytest -q backend/tests/test_iter262_payment_defaults_four_eyes.py` أعطت `6 passed`.
+- **التالي P1:** معالجة مسار اعتماد المدير إذا احتاج المالك سياسة supervisor/bypass رسمية دون كسر الأربع أعين، ثم الرجوع إلى L14 Round 3: D6 ثم S3.
