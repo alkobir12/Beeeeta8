@@ -34,9 +34,10 @@ API = f"{BASE_URL}/api"
 
 TEST_USER = "مستخدم اختبار"       # technician (non-approver)
 USERS_FILE = Path("/app/backend/uploads/users.json")
-# الرقم السري للاختبار من البيئة حصراً — لا secrets مكتوبة في الكود (مراجعة 2026-07-15)
-TEST_PASSWORD = (os.environ.get("TEST_USER_PASSWORD")
-                 or open("/app/backend/.env").read().split("TEST_USER_PASSWORD=")[1].split("\n")[0].strip().strip('"'))
+# بيانات اختبار مصادقة مؤقتة من البيئة حصراً.
+TEST_PASSWORD = os.environ["TEST_USER_PASSWORD"]
+INVALID_TEST_PASSWORD = f"{TEST_PASSWORD}-wrong"
+ALTERNATE_TEST_PASSWORD = f"{TEST_PASSWORD}-alternate"
 MANAGER_PIN = os.environ["MANAGER_QUICK_PIN"]
 
 # secret-gated rate-limit bypass so the suite isn't throttled (server.py middleware)
@@ -132,7 +133,7 @@ def test_password_lifecycle_and_name_only_enforcement():
     # correct password works
     assert _login(username=TEST_USER, password=TEST_PASSWORD).status_code == 200
     # wrong password rejected
-    assert _login(username=TEST_USER, password="WRONGPASS").status_code == 401
+    assert _login(username=TEST_USER, password=INVALID_TEST_PASSWORD).status_code == 401
 
 
 def test_non_admin_cannot_set_others_password():
@@ -140,7 +141,7 @@ def test_non_admin_cannot_set_others_password():
     tok = _login(username=TEST_USER, password=TEST_PASSWORD).json()["access_token"]
     r = S.post(f"{API}/auth/set-password",
                       headers={"Authorization": f"Bearer {tok}"},
-                      json={"new_password": "x123456", "target_username": "مدير"}, timeout=30)
+                      json={"new_password": ALTERNATE_TEST_PASSWORD, "target_username": "مدير"}, timeout=30)
     assert r.status_code == 403, "non-approver must not set another user's password"
 
 

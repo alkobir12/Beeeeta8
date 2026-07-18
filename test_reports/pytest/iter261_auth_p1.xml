@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="7" skipped="0" tests="8" time="2.364" timestamp="2026-07-18T16:33:53.122802+00:00" hostname="agent-env-a2113c22-0dfc-4a0f-aaef-4d5b3a5676f1"><testcase classname="backend.tests.test_auth_p1_iter256" name="test_manager_quick_pin_login_works_without_device" time="0.262"><failure message="assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">def test_manager_quick_pin_login_works_without_device():
+        r = _login(username="مدير", pin=MANAGER_PIN)
+&gt;       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_auth_p1_iter256.py:106: AssertionError</failure></testcase><testcase classname="backend.tests.test_auth_p1_iter256" name="test_refresh_rotation_and_reuse_detection" time="0.069"><failure message="KeyError: 'refresh_token'">def test_refresh_rotation_and_reuse_detection():
+&gt;       rt = _login(username="مدير", pin=MANAGER_PIN).json()["refresh_token"]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'refresh_token'
+
+backend/tests/test_auth_p1_iter256.py:115: KeyError</failure></testcase><testcase classname="backend.tests.test_auth_p1_iter256" name="test_password_lifecycle_and_name_only_enforcement" time="0.066"><failure message="assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">def test_password_lifecycle_and_name_only_enforcement():
+&gt;       admin = _admin_token()
+                ^^^^^^^^^^^^^^
+
+backend/tests/test_auth_p1_iter256.py:125: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _admin_token():
+        r = _login(username="مدير", pin=MANAGER_PIN)
+&gt;       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_auth_p1_iter256.py:60: AssertionError</failure></testcase><testcase classname="backend.tests.test_auth_p1_iter256" name="test_non_admin_cannot_set_others_password" time="0.917"><failure message="KeyError: 'access_token'">def test_non_admin_cannot_set_others_password():
+        # the test user (technician) has a password now → log in with it
+&gt;       tok = _login(username=TEST_USER, password=TEST_PASSWORD).json()["access_token"]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'access_token'
+
+backend/tests/test_auth_p1_iter256.py:141: KeyError</failure></testcase><testcase classname="backend.tests.test_auth_p1_iter256" name="test_pin_login_requires_trusted_device" time="0.388"><failure message="KeyError: 'access_token'">def test_pin_login_requires_trusted_device():
+&gt;       tok = _login(username=TEST_USER, password=TEST_PASSWORD).json()["access_token"]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'access_token'
+
+backend/tests/test_auth_p1_iter256.py:151: KeyError</failure></testcase><testcase classname="backend.tests.test_auth_p1_iter256" name="test_sessions_list_and_revoke" time="0.060"><failure message="assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">def test_sessions_list_and_revoke():
+&gt;       admin = _admin_token()
+                ^^^^^^^^^^^^^^
+
+backend/tests/test_auth_p1_iter256.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _admin_token():
+        r = _login(username="مدير", pin=MANAGER_PIN)
+&gt;       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_auth_p1_iter256.py:60: AssertionError</failure></testcase><testcase classname="backend.tests.test_auth_p1_iter256" name="test_audit_requires_approver" time="0.058"><failure message="assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">def test_audit_requires_approver():
+&gt;       admin = _admin_token()
+                ^^^^^^^^^^^^^^
+
+backend/tests/test_auth_p1_iter256.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _admin_token():
+        r = _login(username="مدير", pin=MANAGER_PIN)
+&gt;       assert r.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = &lt;Response [429]&gt;.status_code
+
+backend/tests/test_auth_p1_iter256.py:60: AssertionError</failure></testcase><testcase classname="backend.tests.test_auth_p1_iter256" name="test_google_session_public_and_validates" time="0.297" /></testsuite></testsuites>

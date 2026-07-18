@@ -1,10 +1,10 @@
 [
   {
     "id": "88fe138a-0768-47d1-aa66-d67679b5f2ff",
-    "name": "مدير",
+    "name": "R",
     "email": "",
     "phone": "0500000000",
-    "role": "admin",
+    "role": "accountant",
     "permissions": {
       "dashboard": {
         "view": true
@@ -59,7 +59,7 @@
       "work_orders": {
         "view": true,
         "create": true,
-        "edit": true,
+        "edit": false,
         "delete": true
       },
       "reports": {
@@ -68,7 +68,6 @@
       "users": {
         "view": true,
         "edit": true,
-        "delete": true,
         "create": true
       },
       "settings": {
@@ -80,14 +79,14 @@
     "createdAt": "2025-11-15T15:31:38.451018",
     "lastLogin": null,
     "guidanceEnabled": true,
-    "username": "مدير"
+    "username": "R"
   },
   {
     "name": "احمد",
     "username": "احمد",
     "email": "",
     "phone": "055555555",
-    "role": "accountant",
+    "role": "reception",
     "permissions": {
       "dashboard": {
         "view": true
@@ -101,13 +100,13 @@
       "journal_entries": {
         "view": true,
         "create": true,
-        "edit": true,
+        "edit": false,
         "delete": false,
         "pos": true
       },
       "archive": {
         "view": true,
-        "create": false,
+        "create": true,
         "edit": true,
         "delete": false
       },
@@ -119,8 +118,8 @@
       },
       "customers": {
         "view": true,
-        "create": false,
-        "edit": false,
+        "create": true,
+        "edit": true,
         "delete": false
       },
       "invoices": {
@@ -136,23 +135,24 @@
       "inventory": {
         "view": true,
         "create": true,
-        "edit": true,
+        "edit": false,
         "delete": false
       },
       "work_orders": {
         "view": true,
         "create": true,
-        "edit": true,
+        "edit": false,
         "delete": false
       },
       "reports": {
-        "view": true
+        "view": false
       },
       "users": {
         "view": false
       },
       "settings": {
-        "view": false
+        "view": true,
+        "edit": false
       }
     },
     "guidanceEnabled": true,

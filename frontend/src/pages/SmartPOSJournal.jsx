@@ -734,7 +734,9 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
       try {
         const res = await axios.get(`${apiBase}/operations/${selectedVisitId}`);
         return res?.data || null;
-      } catch (e) { /* fallthrough */ }
+      } catch (e) {
+        console.warn('Selected visit lookup failed; falling back to vehicle operations:', e?.message || e);
+      }
     }
     if (!vehicleId) return null;
     const response = await axios.get(`${apiBase}/operations`, {

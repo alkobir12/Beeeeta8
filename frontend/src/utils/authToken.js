@@ -89,14 +89,15 @@ function _orderlyLogout() {
   if (_loggingOut) return;
   _loggingOut = true;
   clearStoredToken();
-  try { window.dispatchEvent(new CustomEvent('auth:session-expired')); } catch (e) { /* noop */ }
+  try { window.dispatchEvent(new CustomEvent('auth:session-expired')); }
+  catch (e) { console.warn('Session expiry event dispatch failed:', e?.message || e); }
   try {
     const path = window.location?.pathname || '';
     if (!path.startsWith('/login')) {
       // give listeners a tick, then hard-redirect to a clean login
       setTimeout(() => { window.location.assign('/login'); }, 50);
     }
-  } catch (e) { /* noop */ }
+  } catch (e) { console.warn('Orderly logout redirect failed:', e?.message || e); }
 }
 
 /** Mint a fresh access token (single-flight). Uses the httpOnly refresh cookie AND,

@@ -9,10 +9,15 @@ import uuid
 import time
 import pytest
 import requests
+from dotenv import load_dotenv
 
-BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or open("/app/frontend/.env").read().split("REACT_APP_BACKEND_URL=")[1].split("\n")[0].strip()).rstrip("/")
+load_dotenv("/app/backend/.env")
+load_dotenv("/app/frontend/.env")
+
+BASE_URL = os.environ["REACT_APP_BACKEND_URL"].rstrip("/")
 WORKSHOP_ID = "finmodule-sync"
-RATE_BYPASS = os.environ.get("RATE_LIMIT_BYPASS_TOKEN") or open("/app/backend/.env").read().split("RATE_LIMIT_BYPASS_TOKEN=")[1].split("\n")[0].strip().strip('"')
+RATE_BYPASS = os.environ["RATE_LIMIT_BYPASS_TOKEN"].strip().strip('"')
+MANAGER_PIN = os.environ["MANAGER_QUICK_PIN"]
 
 created_ops = []
 _state = {}
@@ -32,7 +37,11 @@ def session():
 
 @pytest.fixture(scope="module")
 def token(session):
-    r = session.post(f"{BASE_URL}/api/auth/login", json={"username": "مدير"}, timeout=30)
+    r = session.post(
+        f"{BASE_URL}/api/auth/login",
+        json={"username": "مدير", "pin": MANAGER_PIN},
+        timeout=30,
+    )
     assert r.status_code == 200, r.text
     tok = r.json().get("access_token")
     assert tok

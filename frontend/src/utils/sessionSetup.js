@@ -20,7 +20,7 @@ export async function establishSession({ username, role, token }) {
         .some((v) => String(v).trim().toLowerCase() === ln)) || null;
     }
   } catch (e) {
-    // fall back to token-derived session
+    console.warn('Session user lookup failed; using token-derived session:', e?.message || e);
   }
   const resolvedRole = user?.role || role || 'technician';
   const appUser = user
@@ -51,7 +51,7 @@ export async function establishSession({ username, role, token }) {
     document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     document.cookie = `session=${encodeURIComponent(JSON.stringify(session))}; path=/`;
   } catch (e) {
-    // ignore
+    console.warn('Session compatibility cookie could not be written:', e?.message || e);
   }
   window.dispatchEvent(new Event('sessionUpdated'));
   return session;
