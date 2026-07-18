@@ -21,6 +21,10 @@ import time
 import uuid
 import requests
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv("/app/backend/.env")
+MANAGER_PIN = os.environ["MANAGER_QUICK_PIN"]
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 assert BASE_URL, "REACT_APP_BACKEND_URL must be set"
@@ -51,7 +55,10 @@ def _fresh_session() -> requests.Session:
 def _login(username: str) -> str:
     """Login via a fresh session, return the access_token string."""
     s = _fresh_session()
-    r = s.post(f"{API}/auth/login", json={"username": username}, timeout=30)
+    body = {"username": username}
+    if username == "مدير":
+        body["pin"] = MANAGER_PIN
+    r = s.post(f"{API}/auth/login", json=body, timeout=30)
     assert r.status_code == 200, f"login {username} failed: {r.status_code} {r.text[:200]}"
     body = r.json()
     tok = body.get("access_token") or body.get("data", {}).get("access_token")
@@ -103,7 +110,9 @@ class TestPublicWhitelist:
 
     def test_login_no_auth_sets_cookies(self):
         s = _fresh_session()
-        r = s.post(f"{API}/auth/login", json={"username": "مدير"}, timeout=15)
+        r = s.post(
+            f"{API}/auth/login", json={"username": "مدير", "pin": MANAGER_PIN}, timeout=15
+        )
         assert r.status_code == 200, f"login {r.status_code} {r.text[:200]}"
         # cookie set?
         cookies = {c.name: c.value for c in s.cookies}
@@ -111,7 +120,9 @@ class TestPublicWhitelist:
 
     def test_refresh_with_login_cookie(self):
         s = _fresh_session()
-        r = s.post(f"{API}/auth/login", json={"username": "مدير"}, timeout=15)
+        r = s.post(
+            f"{API}/auth/login", json={"username": "مدير", "pin": MANAGER_PIN}, timeout=15
+        )
         assert r.status_code == 200
         r2 = s.post(f"{API}/auth/refresh", timeout=10)
         assert r2.status_code == 200, f"refresh {r2.status_code} {r2.text[:200]}"

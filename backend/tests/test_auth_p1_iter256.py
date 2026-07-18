@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import os
 import time
+import json
+from pathlib import Path
 
 import pytest
 import requests
@@ -31,9 +33,11 @@ assert BASE_URL, "REACT_APP_BACKEND_URL must be set"
 API = f"{BASE_URL}/api"
 
 TEST_USER = "مستخدم اختبار"       # technician (non-approver)
+USERS_FILE = Path("/app/backend/uploads/users.json")
 # الرقم السري للاختبار من البيئة حصراً — لا secrets مكتوبة في الكود (مراجعة 2026-07-15)
 TEST_PASSWORD = (os.environ.get("TEST_USER_PASSWORD")
                  or open("/app/backend/.env").read().split("TEST_USER_PASSWORD=")[1].split("\n")[0].strip().strip('"'))
+MANAGER_PIN = os.environ["MANAGER_QUICK_PIN"]
 
 # secret-gated rate-limit bypass so the suite isn't throttled (server.py middleware)
 S = requests.Session()
@@ -51,7 +55,7 @@ def _login(**body):
 
 
 def _admin_token():
-    r = _login(username="مدير")
+    r = _login(username="مدير", pin=MANAGER_PIN)
     assert r.status_code == 200
     return r.json()["access_token"]
 
@@ -62,6 +66,8 @@ def _cleanup_credentials():
     load_dotenv("/app/backend/.env")
     mongo_url = os.environ.get("MONGO_URL")
     db_name = os.environ.get("DB_NAME")
+
+    original_users = USERS_FILE.read_text(encoding="utf-8")
 
     def _clean():
         if not mongo_url or not db_name:
@@ -74,24 +80,38 @@ def _cleanup_credentials():
         db.auth_audit.delete_many({"username": TEST_USER, "event": "login", "success": False})
         mc.close()
 
+    users = json.loads(original_users)
+    if not any((u.get("name") or u.get("username")) == TEST_USER for u in users):
+        users.append({
+            "id": "test-auth-user",
+            "name": TEST_USER,
+            "username": TEST_USER,
+            "role": "technician",
+            "permissions": {},
+            "isActive": True,
+        })
+        USERS_FILE.write_text(json.dumps(users, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
     _clean()   # setup: start from a clean slate
     yield
     _clean()   # teardown: restore name-only for other suites
+    USERS_FILE.write_text(original_users, encoding="utf-8")
 
 
 # ---- backward compatibility -------------------------------------------------
 
-def test_name_only_login_still_works():
-    r = _login(username="مدير")
+def test_manager_quick_pin_login_works_without_device():
+    r = _login(username="مدير", pin=MANAGER_PIN)
     assert r.status_code == 200
     b = r.json()
     assert b.get("access_token") and b.get("refresh_token")
+    assert _login(username="مدير").status_code == 401
 
 
 # ---- rotation + reuse detection ---------------------------------------------
 
 def test_refresh_rotation_and_reuse_detection():
-    rt = _login(username="مدير").json()["refresh_token"]
+    rt = _login(username="مدير", pin=MANAGER_PIN).json()["refresh_token"]
     r1 = S.post(f"{API}/auth/refresh", headers={"Authorization": f"Bearer {rt}"}, timeout=30)
     assert r1.status_code == 200, "first rotation should succeed"
     r2 = S.post(f"{API}/auth/refresh", headers={"Authorization": f"Bearer {rt}"}, timeout=30)

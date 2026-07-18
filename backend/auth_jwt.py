@@ -7,7 +7,6 @@ JWT Authentication module — preserves name-only login UX while securing APIs.
 - Strict mode: write endpoints (POST/PUT/DELETE) require valid token
 """
 import os
-import secrets
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -17,6 +16,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from pydantic import BaseModel
 
 JWT_ALGORITHM = "HS256"
+QUICK_PIN_USERNAME = os.environ["MANAGER_QUICK_USERNAME"]
 # Token lifetimes (decision: short-lived access + 7-day refresh)
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -32,17 +32,7 @@ _COOKIE_SECURE = (os.environ.get("AUTH_COOKIE_SECURE") or "true").lower() not in
 def _get_jwt_secret() -> str:
     secret = os.environ.get("JWT_SECRET")
     if not secret or len(secret) < 16:
-        # Auto-generate if missing — written to /app/backend/.env on first boot
-        # (Safer than crashing during dev; a real prod deploy should set it explicitly.)
-        secret = secrets.token_hex(32)
-        try:
-            env_path = os.path.join(os.path.dirname(__file__), ".env")
-            with open(env_path, "a", encoding="utf-8") as f:
-                f.write(f"\nJWT_SECRET=\"{secret}\"\n")
-            os.environ["JWT_SECRET"] = secret
-            print(f"⚠️  JWT_SECRET auto-generated and written to {env_path}")
-        except Exception as e:
-            print(f"⚠️  JWT_SECRET in-memory only (could not persist): {e}")
+        raise RuntimeError("JWT_SECRET must be configured and at least 16 characters")
     return secret
 
 
@@ -221,7 +211,7 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
 async def login(payload: LoginPayload, request: Request, response: Response):
     """تسجيل الدخول متعدد الطرق (متوافق رجعياً مع الاسم فقط).
 
-    الأولوية: password → pin(+جهاز موثوق) → اسم فقط (fallback لمن لا اعتماد له بعد).
+    الأولوية: password → pin (المدير سريعاً، وبقية الحسابات على جهاز موثوق) → اسم فقط.
     من لديه كلمة مرور مضبوطة يجب أن يقدّمها (لا يُقبل الاسم فقط له).
     """
     from core import rbac, auth_store
@@ -231,7 +221,7 @@ async def login(payload: LoginPayload, request: Request, response: Response):
         raise HTTPException(status_code=400, detail="المعرّف مطلوب")
 
     # 🔒 brute-force lockout
-    if await auth_store.recent_failures(identifier, minutes=15) >= 5:
+    if await auth_store.recent_failures(identifier, minutes=15, ip=ip) >= 5:
         await auth_store.audit("login", username=identifier, success=False, ip=ip,
                                user_agent=ua, detail="locked_out")
         raise HTTPException(status_code=429, detail="محاولات كثيرة — حاول بعد قليل")
@@ -261,10 +251,12 @@ async def login(payload: LoginPayload, request: Request, response: Response):
         method = "password"
     elif payload.pin is not None:
         trusted = await auth_store.is_device_trusted(username=resolved_name, device_id=payload.device_id or "")
-        if not (has_pin and trusted and auth_store.verify_secret(payload.pin, creds["pin_hash"])):
+        quick_manager_login = resolved_name == QUICK_PIN_USERNAME and len(payload.pin) == 6
+        pin_valid = has_pin and auth_store.verify_secret(payload.pin, creds["pin_hash"])
+        if not (pin_valid and (trusted or quick_manager_login)):
             await auth_store.audit("login", username=resolved_name, success=False, ip=ip,
                                    user_agent=ua, detail="bad_pin_or_untrusted_device")
-            raise HTTPException(status_code=401, detail="PIN غير صحيح أو الجهاز غير موثوق")
+            raise HTTPException(status_code=401, detail="رمز PIN غير صحيح")
         method = "pin"
     else:
         # No secret supplied → only allowed if the user has NO credentials set (back-compat).

@@ -6,213 +6,80 @@
     "phone": "0500000000",
     "role": "admin",
     "permissions": {
-      "canViewDashboard": true,
-      "canManageVehicles": true,
-      "canManageCustomers": true,
-      "canManageParts": true,
-      "canManageServices": true,
-      "canViewReports": true,
-      "canManageFinance": true,
-      "canManageUsers": true,
-      "canAccessCEO": true,
-      "canManageSettings": true
-    },
-    "isActive": true,
-    "createdAt": "2025-11-15T15:31:38.451018",
-    "lastLogin": null,
-    "guidanceEnabled": true
-  },
-  {
-    "name": "احمد1",
-    "email": "",
-    "phone": "333",
-    "role": "supervisor",
-    "permissions": {
       "dashboard": {
         "view": true
-      },
-      "vehicles": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false
-      },
-      "customers": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false
-      },
-      "invoices": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false
-      },
-      "debts": {
-        "view": true,
-        "settle": false
-      },
-      "inventory": {
-        "view": false,
-        "create": true,
-        "edit": false,
-        "delete": false
-      },
-      "work_orders": {
-        "view": true,
-        "create": true,
-        "edit": true,
-        "delete": false
-      },
-      "reports": {
-        "view": false
-      },
-      "users": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false
-      },
-      "settings": {
-        "view": false
-      }
-    },
-    "id": "522230c4-d47c-438e-8bb2-1d6d2b484ea1",
-    "createdAt": "2025-12-03T19:25:16.176554",
-    "lastLogin": null,
-    "isActive": true,
-    "guidanceEnabled": true
-  },
-  {
-    "name": "فرج1",
-    "email": "",
-    "phone": "75666",
-    "role": "accountant",
-    "permissions": {
-      "dashboard": {
-        "view": true
-      },
-      "vehicles": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false
-      },
-      "customers": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false
-      },
-      "invoices": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false
-      },
-      "debts": {
-        "view": true,
-        "settle": true
-      },
-      "inventory": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false
-      },
-      "work_orders": {
-        "view": false,
-        "create": false,
-        "edit": false,
-        "delete": false
-      },
-      "reports": {
-        "view": false
-      },
-      "users": {
-        "view": false
-      },
-      "settings": {
-        "view": false
       },
       "operations": {
-        "view": false,
-        "settle": false,
-        "edit": false,
-        "delete": false
+        "view": true,
+        "settle": true,
+        "edit": true,
+        "delete": true
       },
       "journal_entries": {
         "view": true,
         "create": true,
         "edit": true,
-        "delete": false,
+        "delete": true,
         "pos": true
       },
       "archive": {
         "view": true,
         "create": true,
         "edit": true,
-        "delete": false
-      }
-    },
-    "id": "dde5fac4-fa9e-42a1-a16c-4c2bbef61dac",
-    "createdAt": "2025-12-08T08:25:06.676970",
-    "lastLogin": null,
-    "isActive": true,
-    "guidanceEnabled": true,
-    "username": "فرج1"
-  },
-  {
-    "name": "مستخدم اختبار",
-    "email": "test@example.com",
-    "phone": "0501001220",
-    "role": "technician",
-    "permissions": {
-      "dashboard": {
-        "view": true
+        "delete": true
       },
       "vehicles": {
         "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false
+        "create": true,
+        "edit": true,
+        "delete": true
       },
       "customers": {
-        "view": false
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true
       },
       "invoices": {
-        "view": false
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": true
       },
       "debts": {
-        "view": false
+        "view": true,
+        "settle": true
       },
       "inventory": {
         "view": true,
-        "create": false,
-        "edit": false,
-        "delete": false
+        "create": true,
+        "edit": true,
+        "delete": true
       },
       "work_orders": {
         "view": true,
-        "create": false,
+        "create": true,
         "edit": true,
-        "delete": false
+        "delete": true
       },
       "reports": {
-        "view": false
+        "view": true
       },
       "users": {
-        "view": false
+        "view": true,
+        "edit": true,
+        "delete": true,
+        "create": true
       },
       "settings": {
-        "view": false
+        "view": true,
+        "edit": true
       }
     },
-    "guidanceEnabled": true,
-    "id": "3c6d2584-0ef3-4055-b357-8dafedacce24",
-    "createdAt": "2026-03-25T13:24:32.252294",
+    "isActive": true,
+    "createdAt": "2025-11-15T15:31:38.451018",
     "lastLogin": null,
-    "isActive": true
+    "guidanceEnabled": true,
+    "username": "مدير"
   }
 ]

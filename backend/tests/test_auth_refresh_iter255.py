@@ -20,6 +20,11 @@ import re
 
 import pytest
 import requests
+from dotenv import load_dotenv
+
+load_dotenv("/app/backend/.env")
+load_dotenv("/app/frontend/.env")
+MANAGER_PIN = os.environ["MANAGER_QUICK_PIN"]
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
 assert BASE_URL, "REACT_APP_BACKEND_URL must be set"
@@ -27,7 +32,9 @@ API = f"{BASE_URL}/api"
 
 
 def _login_raw():
-    return requests.post(f"{API}/auth/login", json={"username": "مدير"}, timeout=30)
+    return requests.post(
+        f"{API}/auth/login", json={"username": "مدير", "pin": MANAGER_PIN}, timeout=30
+    )
 
 
 def test_login_returns_tokens_and_secure_cookies():
@@ -47,7 +54,7 @@ def test_login_returns_tokens_and_secure_cookies():
 
 def test_refresh_via_cookie_jar():
     s = requests.Session()
-    r = s.post(f"{API}/auth/login", json={"username": "مدير"}, timeout=30)
+    r = s.post(f"{API}/auth/login", json={"username": "مدير", "pin": MANAGER_PIN}, timeout=30)
     assert r.status_code == 200
     r2 = s.post(f"{API}/auth/refresh", timeout=30)  # cookie jar carries refresh_token
     assert r2.status_code == 200, f"cookie refresh should work: {r2.status_code} {r2.text[:200]}"

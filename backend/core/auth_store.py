@@ -235,11 +235,21 @@ async def list_audit(*, username: Optional[str] = None, limit: int = 100) -> Lis
 # Brute-force lockout (per identifier, in-audit-derived count)
 # --------------------------------------------------------------------------
 
-async def recent_failures(identifier: str, *, minutes: int = 15) -> int:
+async def recent_failures(identifier: str, *, minutes: int = 15, ip: Optional[str] = None) -> int:
     await _ensure_indexes()
     since = _iso(_now() - timedelta(minutes=minutes))
+    identity_filter: Dict[str, Any] = {"username": identifier}
+    if ip:
+        identity_filter["ip"] = ip
+    latest_success = await _db().auth_audit.find_one(
+        {**identity_filter, "event": "login", "success": True},
+        {"_id": 0, "ts": 1},
+        sort=[("ts", -1)],
+    )
+    if latest_success and latest_success.get("ts", "") > since:
+        since = latest_success["ts"]
     return await _db().auth_audit.count_documents({
-        "username": identifier, "event": "login", "success": False, "ts": {"$gte": since},
+        **identity_filter, "event": "login", "success": False, "ts": {"$gte": since},
     })
 
 
@@ -279,3 +289,15 @@ async def set_pin(username: str, pin: str) -> None:
         {"username": username},
         {"$set": {"pin_hash": hash_secret(pin), "updated_at": _iso(_now())},
          "$setOnInsert": {"username": username}}, upsert=True)
+
+
+async def ensure_pin(username: str, pin: str) -> bool:
+    """Idempotently seed a configured PIN as a bcrypt hash. Returns True when changed."""
+    await _ensure_cred_index()
+    current = await _db().auth_credentials.find_one(
+        {"username": username}, {"_id": 0, "pin_hash": 1}
+    )
+    if current and verify_secret(pin, current.get("pin_hash", "")):
+        return False
+    await set_pin(username, pin)
+    return True

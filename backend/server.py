@@ -359,6 +359,19 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 # Create the main app
 app = FastAPI(title="Workshop Management API")
 
+
+@app.on_event("startup")
+async def initialize_quick_manager_login():
+    from core import auth_store
+
+    username = os.environ.get("MANAGER_QUICK_USERNAME")
+    pin = os.environ.get("MANAGER_QUICK_PIN")
+    if not username or not pin or not pin.isdigit() or len(pin) != 6:
+        raise RuntimeError("MANAGER_QUICK_USERNAME / MANAGER_QUICK_PIN must configure a 6-digit PIN")
+    changed = await auth_store.ensure_pin(username, pin)
+    if changed:
+        await auth_store.audit("seed_pin", username=username, success=True, detail="configured_from_env")
+
 # Runtime guard middleware (مراقبة وحماية خفيفة أثناء التشغيل)
 from runtime_guard import runtime_guard_middleware
 
