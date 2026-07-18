@@ -363,7 +363,9 @@ app = FastAPI(title="Workshop Management API")
 @app.on_event("startup")
 async def initialize_quick_manager_login():
     from core import auth_store
+    from auth_jwt import _get_jwt_secret
 
+    _get_jwt_secret()
     username = os.environ.get("MANAGER_QUICK_USERNAME")
     pin = os.environ.get("MANAGER_QUICK_PIN")
     if not username or not pin or not pin.isdigit() or len(pin) != 6:

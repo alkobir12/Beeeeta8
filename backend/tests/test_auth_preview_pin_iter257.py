@@ -265,7 +265,7 @@ def test_seed_manager_pin_is_bcrypt_only_and_users_json_maps_admin_role():
     assert manager.get("role") == "admin"
 
 
-# CORS preview must allow production origin + credentials
+# CORS policy: production is same-origin; preview edge may normalize preflight to '*'.
 def test_cors_allows_production_origin_with_credentials():
     prod_origin = "https://car-repair-sys.emergent.host"
     r = requests.options(
@@ -280,4 +280,13 @@ def test_cors_allows_production_origin_with_credentials():
     assert r.status_code in (200, 204)
     allow_origin = (r.headers.get("access-control-allow-origin") or "").strip()
     assert allow_origin in (prod_origin, "*")
-    assert (r.headers.get("access-control-allow-credentials") or "").lower() == "true"
+
+    actual = requests.post(
+        f"{API}/auth/login",
+        headers={"Origin": prod_origin},
+        json={"username": MANAGER_USERNAME, "pin": "000000"},
+        timeout=30,
+    )
+    assert actual.status_code in (401, 429)
+    assert (actual.headers.get("access-control-allow-origin") or "").strip() in (prod_origin, "*")
+    assert (actual.headers.get("access-control-allow-credentials") or "").lower() == "true"

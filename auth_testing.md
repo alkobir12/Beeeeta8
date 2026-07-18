@@ -19,6 +19,8 @@ mapped to an existing app user BY EMAIL (no auto-provisioning).
 3. A successful login resets the effective failure window without deleting audit history.
 4. Login cookies remain Secure + SameSite=None; `/auth/me` and refresh rotation work.
 5. Login UI shows fixed username `مدير`, a six-digit PIN input, and password fallback.
+6. Production calls its own same-origin `/api`; preview-edge preflight may normalize the
+   response origin to `*`, while the backend's actual response still carries credentials.
 
 ## Google SSO flow (frontend)
 - Login page button → `https://auth.emergentagent.com/?redirect=<origin>/`
