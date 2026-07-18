@@ -1,0 +1,39 @@
+{
+  "summary": "Executed PREVIEW-only auth regression for editable username login and per-account quick PIN. Verified أحمد/accountant and مدير/admin flows, trusted-device username isolation, credential hashing, brute-force + refresh rotation + JWT guard regressions via required suites.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_p1_iter256.py",
+    "/app/backend/tests/test_auth_refresh_iter255.py",
+    "/app/backend/tests/test_auth_preview_pin_iter257.py",
+    "/app/backend/tests/test_auth_preview_username_pin_iter258.py",
+    "/app/test_reports/pytest/iter258_auth_p1.xml",
+    "/app/test_reports/pytest/iter258_auth_refresh.xml",
+    "/app/test_reports/pytest/iter258_auth_preview_pin.xml",
+    "/app/test_reports/pytest/iter258_auth_username_pin.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "No critical regressions found in reviewed auth/login scope files (Login.jsx, auth_jwt.py, auth_store.py, users.json)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_preview_username_pin_iter258.py",
+    "/app/test_reports/iteration_258.json"
+  ],
+  "success_rate": {
+    "backend": "100% (24/24)",
+    "frontend": "100% for requested login/integration scope"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Validated on public PREVIEW URL from frontend/.env only. login-username-input is editable; clean-storage login أحمد+123123 succeeds to / with session.name=احمد role=accountant and trusted_device.username=احمد; مدير+123123 still succeeds with role=admin; device mismatch (trusted_device for مدير then login as احمد) does not reuse stale device_id.",
+  "rca of the issue": "No issue reproduced in requested scope. Prior CORS preflight mismatch seen in earlier iteration did not reproduce in this run (test_auth_preview_pin_iter257 passed fully)."
+}

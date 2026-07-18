@@ -196,7 +196,7 @@ def test_me_and_refresh_cookie_and_bearer_reuse_detection():
     assert reused_old.status_code == 401
 
 
-# Non-manager users: PIN login still needs trusted device
+# Four-digit PINs remain device-bound; six-digit PINs support direct quick login.
 def test_non_manager_pin_requires_trusted_device():
     s = _session()
 
@@ -242,6 +242,16 @@ def test_non_manager_pin_requires_trusted_device():
 
     with_device_pin = _login(s, username=TEST_USER, pin="1234", device_id=trusted_device)
     assert with_device_pin.status_code == 200
+
+
+def test_accountant_six_digit_pin_supports_new_device_quick_login():
+    s = _session()
+    r = _login(s, username="احمد", pin=MANAGER_PIN, remember_device=True)
+    assert r.status_code == 200, r.text[:250]
+    body = r.json()
+    assert body.get("username") == "احمد"
+    assert body.get("role") == "accountant"
+    assert isinstance(body.get("device_id"), str) and body["device_id"].startswith("dev_")
 
 
 # Seed + hashing persistence checks

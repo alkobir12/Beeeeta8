@@ -6,17 +6,15 @@
 | Username (اسم المستخدم) | Role        | Can approve (Four-Eyes)? | Login method |
 |-------------------------|-------------|--------------------------|--------------|
 | `مدير`                  | admin       | ✅ yes                   | quick PIN `123123` (6 digits); password fallback remains available |
-| `احمد1`                 | supervisor  | ✅ yes                   | name-only (no password set) |
-| `فرج1`                  | accountant  | ❌ no                    | name-only (no password set) |
+| `احمد`                  | accountant  | ❌ no                    | quick PIN `123123` (6 digits); password fallback can be configured |
 | `مستخدم اختبار`         | technician  | ❌ no                    | name-only (test suites may temporarily set a password from `TEST_USER_PASSWORD` in `/app/backend/.env` — they clean up after) |
 
 ## 🔐 Auth model (P1 / SEC-003 — 2026-07-07)
-- **Manager quick login**: `{username: "مدير", pin: "123123"}` works on a new device; the PIN is stored only as a bcrypt hash in MongoDB.
+- **Quick PIN login**: `{username: "مدير"|"احمد", pin: "123123"}` works on a new device for six-digit PIN accounts; each PIN is stored as a separate bcrypt hash in MongoDB.
 - **name-only** login works ONLY while the user has NO credentials set (back-compat).
 - Once a password is set (Settings → الملف الشخصي → أمان الحساب), name-only is
   rejected with 401 «كلمة المرور مطلوبة لهذا الحساب».
-- **PIN login**: `{username, pin, device_id}` — device_id issued by
-  `POST /api/auth/set-pin` or `remember_device=true` on password login.
+- **PIN login**: six-digit PIN accounts can authenticate on a new device; shorter legacy PINs require `{username, pin, device_id}`. The device id is issued by `POST /api/auth/set-pin` or `remember_device=true`.
   Stored client-side in localStorage key `trusted_device`.
 - **Google SSO**: login page button → auth.emergentagent.com → returns
   `#session_id=...` → `POST /api/auth/google/session`. Maps by EMAIL to an

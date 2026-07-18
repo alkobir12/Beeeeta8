@@ -16,7 +16,6 @@ from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from pydantic import BaseModel
 
 JWT_ALGORITHM = "HS256"
-QUICK_PIN_USERNAME = os.environ["MANAGER_QUICK_USERNAME"]
 # Token lifetimes (decision: short-lived access + 7-day refresh)
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
@@ -251,9 +250,9 @@ async def login(payload: LoginPayload, request: Request, response: Response):
         method = "password"
     elif payload.pin is not None:
         trusted = await auth_store.is_device_trusted(username=resolved_name, device_id=payload.device_id or "")
-        quick_manager_login = resolved_name == QUICK_PIN_USERNAME and len(payload.pin) == 6
+        quick_pin_login = len(payload.pin) == 6
         pin_valid = has_pin and auth_store.verify_secret(payload.pin, creds["pin_hash"])
-        if not (pin_valid and (trusted or quick_manager_login)):
+        if not (pin_valid and (trusted or quick_pin_login)):
             await auth_store.audit("login", username=resolved_name, success=False, ip=ip,
                                    user_agent=ua, detail="bad_pin_or_untrusted_device")
             raise HTTPException(status_code=401, detail="رمز PIN غير صحيح")

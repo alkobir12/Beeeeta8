@@ -81,5 +81,84 @@
     "lastLogin": null,
     "guidanceEnabled": true,
     "username": "مدير"
+  },
+  {
+    "name": "احمد",
+    "username": "احمد",
+    "email": "",
+    "phone": "055555555",
+    "role": "accountant",
+    "permissions": {
+      "dashboard": {
+        "view": true
+      },
+      "operations": {
+        "view": true,
+        "settle": true,
+        "edit": true,
+        "delete": false
+      },
+      "journal_entries": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": false,
+        "pos": true
+      },
+      "archive": {
+        "view": true,
+        "create": false,
+        "edit": true,
+        "delete": false
+      },
+      "vehicles": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": false
+      },
+      "customers": {
+        "view": true,
+        "create": false,
+        "edit": false,
+        "delete": false
+      },
+      "invoices": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": false
+      },
+      "debts": {
+        "view": true,
+        "settle": true
+      },
+      "inventory": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": false
+      },
+      "work_orders": {
+        "view": true,
+        "create": true,
+        "edit": true,
+        "delete": false
+      },
+      "reports": {
+        "view": true
+      },
+      "users": {
+        "view": false
+      },
+      "settings": {
+        "view": false
+      }
+    },
+    "guidanceEnabled": true,
+    "id": "683544cd-618c-4349-a0d1-d61c490bd66a",
+    "createdAt": "2026-07-18T15:07:10.451579",
+    "lastLogin": null,
+    "isActive": true
   }
 ]

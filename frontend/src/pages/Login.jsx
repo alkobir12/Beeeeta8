@@ -6,7 +6,7 @@ import { loginRequest } from '../utils/authToken';
 import { establishSession } from '../utils/sessionSetup';
 
 const TRUSTED_DEVICE_KEY = 'trusted_device';
-const MANAGER_USERNAME = 'مدير';
+const LAST_USERNAME_KEY = 'last_login_username';
 
 function formatApiDetail(detail) {
   if (!detail) return '';
@@ -23,7 +23,7 @@ function readTrustedDevice() {
 const Login = () => {
   const { toast } = useToast();
   useTranslation();
-  const name = MANAGER_USERNAME;
+  const [name, setName] = useState(() => localStorage.getItem(LAST_USERNAME_KEY) || '');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +36,7 @@ const Login = () => {
     const t = readTrustedDevice();
     if (t?.device_id && t?.username) {
       setTrusted(t);
+      setName(current => current || t.username);
     }
   }, []);
 
@@ -62,6 +63,7 @@ const Login = () => {
   };
 
   const finishLogin = async (data) => {
+    localStorage.setItem(LAST_USERNAME_KEY, data.username);
     if (data?.device_id && rememberDevice) {
       localStorage.setItem(TRUSTED_DEVICE_KEY, JSON.stringify({
         device_id: data.device_id,
@@ -75,6 +77,10 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
+    if (!name.trim()) {
+      toast({ title: 'اسم المستخدم مطلوب', description: 'أدخل اسم المستخدم للمتابعة', variant: 'destructive' });
+      return;
+    }
     if (pinMode && pin.trim().length !== 6) {
       toast({ title: 'رمز غير مكتمل', description: 'أدخل رمز PIN المكوّن من 6 أرقام', variant: 'destructive' });
       return;
@@ -88,8 +94,9 @@ const Login = () => {
       const body = { username: name.trim() };
       if (pinMode) {
         body.pin = pin.trim();
-        if (trusted?.device_id) body.device_id = trusted.device_id;
-        body.remember_device = !trusted?.device_id;
+        const matchingTrustedDevice = trusted?.username === name.trim() ? trusted.device_id : null;
+        if (matchingTrustedDevice) body.device_id = matchingTrustedDevice;
+        body.remember_device = !matchingTrustedDevice;
       } else if (showPassword && password) {
         body.password = password;
         body.remember_device = rememberDevice;
@@ -151,14 +158,21 @@ const Login = () => {
 
           <div className="w-full space-y-5">
             <div className="space-y-2 text-right">
-              <span className="text-sm font-medium text-[#1D1D1F] mr-1">اسم المستخدم</span>
-              <div
-                className="apple-input flex items-center justify-between bg-[#F5F5F7]"
-                data-testid="login-manager-identity"
-              >
-                <span className="text-xs text-[#86868B]">الحساب الإداري</span>
-                <strong className="text-[#1D1D1F]">{MANAGER_USERNAME}</strong>
-              </div>
+              <label className="text-sm font-medium text-[#1D1D1F] mr-1" htmlFor="login-username">
+                اسم المستخدم
+              </label>
+              <input
+                id="login-username"
+                type="text"
+                placeholder="مثال: احمد"
+                value={name}
+                onChange={event => setName(event.target.value)}
+                onKeyPress={handleKeyPress}
+                className="apple-input"
+                autoFocus
+                autoComplete="username"
+                data-testid="login-username-input"
+              />
             </div>
 
             {pinMode && (
@@ -175,7 +189,6 @@ const Login = () => {
                   onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
                   onKeyPress={handleKeyPress}
                   className="apple-input tracking-[0.5em] text-center text-xl"
-                  autoFocus
                   data-testid="login-pin-input"
                 />
               </div>

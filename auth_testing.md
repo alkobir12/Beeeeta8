@@ -9,16 +9,16 @@ mapped to an existing app user BY EMAIL (no auto-provisioning).
 1. name-only: `{username}` — allowed only while the user has NO credentials set.
 2. password: `{username|email, password, remember_device?}` — once a password is set,
    name-only is rejected (401 "كلمة المرور مطلوبة لهذا الحساب").
-3. manager quick PIN: `{username: "مدير", pin: "123123"}` — accepts a new device,
-   then `remember_device=true` issues a trusted device id. Other users still require
-   `{username, pin, device_id}` from `POST /api/auth/set-pin`.
+3. six-digit quick PIN: `{username: "مدير"|"احمد", pin: "123123"}` — accepts a new
+   device, then `remember_device=true` issues a trusted device id. Legacy four-digit
+   PINs still require `{username, pin, device_id}` from `POST /api/auth/set-pin`.
 
 ## Manager quick-login checks
 1. PIN login succeeds without `device_id` and returns access/refresh tokens.
 2. A wrong PIN returns 401; repeated failures reach the temporary lockout.
 3. A successful login resets the effective failure window without deleting audit history.
 4. Login cookies remain Secure + SameSite=None; `/auth/me` and refresh rotation work.
-5. Login UI shows fixed username `مدير`, a six-digit PIN input, and password fallback.
+5. Login UI keeps username editable, shows a six-digit PIN input, and offers password fallback.
 6. Production calls its own same-origin `/api`; preview-edge preflight may normalize the
    response origin to `*`, while the backend's actual response still carries credentials.
 
