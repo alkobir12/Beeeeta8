@@ -352,3 +352,12 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - **CORS/auth:** أُغلق مسار wildcard الداخلي مع credentialed auth؛ backend المحلي لا يرسل `Access-Control-Allow-Origin: *` مع cookies. طبقة المعاينة الخارجية قد تضيف headers عامة، لكن اختبار التطبيق الداخلي أصبح أخضر.
 - **التحقق:** Self-tests + Playwright smoke + Testing Agent iteration_262. إعادة تشغيل `pytest -q backend/tests/test_iter262_payment_defaults_four_eyes.py` أعطت `6 passed`.
 - **التالي P1:** معالجة مسار اعتماد المدير إذا احتاج المالك سياسة supervisor/bypass رسمية دون كسر الأربع أعين، ثم الرجوع إلى L14 Round 3: D6 ثم S3.
+
+## جلسة 2026-07-19 — إصلاح توجيه كاترينا وسياق الأسئلة المالية
+- **P0 مكتمل:** كاترينا لم تعد ترد بـ«الأداة المطلوبة لم تُستدعَ» في الأسئلة التي وردت في سجل المستخدم؛ تمت إضافة/تحسين توجيه أدوات الموردين، المركبات، الاعتمادات، الإيرادات، العمليات بدون قيود، البنود الأكثر بيعاً، والملفات بدون بنود.
+- **أدوات جديدة/محسنة:** `suppliers.search`, `vehicles.recent`, `finance.sales_report`, `operations.empty_items` مع تلخيص عربي واضح عند تعطيل LLM.
+- **سياق متعدد الرسائل:** أمر مثل «دفعة للمورد FAMOUS VALLEY حواله» ثم «55sr Today» يُكمل نفس الطلب وينشئ مسودة اعتماد مالية بأربع أعين بدلاً من فقدان السياق.
+- **تنظيف بيانات الاختبار:** أُزيلت سجلات `TEST_SAFE_* / TEST_ACCOUNTANT_* / TEST_ITER*` من الموردين والتنفيذات، وأضيف فلتر احترازي في بطاقات/runtime endpoints حتى لا تظهر للمستخدم.
+- **تقليل الإزعاج:** الملخص اليومي/تذكير الاعتمادات لا يغطي ردود الأدوات أو أسئلة التوضيح.
+- **التحقق:** lint للملفات المعدلة، API regression لرسائل المستخدم التسع، فحص سياق دفعة المورد، فحص عدم تسرب TEST في `/api/runtime/executions`, وPlaywright smoke للواجهة.
+- **التالي P1:** بناء تقارير عربية أجمل للـ `finance.sales_report` و`accounting.journal_entries` بدلاً من fallback المختصر، ثم استكمال L14 Round 3.

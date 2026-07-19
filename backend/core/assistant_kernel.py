@@ -39,22 +39,27 @@ _TOOL_PATTERNS = [
     (re.compile(r"(تنبيه|تنبي?هات|تحذير|تحذيرات|alerts?|تصحيح|تصحيحات|خطأ|أخطاء|مشكل[ةه]|عيب|شذوذ|مخالف[ةه]|audit|إنذار|warning|fix|issue|التنبي)", re.IGNORECASE), "firewall.top_alerts"),
     # Per-operation integrity warnings (missing_journal_entry, duplicates …)
     # NOTE: "ملاحظ" only matches when NOT followed by a proper name (to avoid stealing name-queries)
-    (re.compile(r"(integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|بدون\s*قيد|بدون\s*قيود|بلا\s*قيد|بلا\s*قيود|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل|قيود.*مفقود|عمليات.*بدون)", re.IGNORECASE), "firewall.operation_integrity"),
-    (re.compile(r"(تدفق|cash\s*flow|إيراد|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
+    (re.compile(r"(integrity|ربط|قيد\s*مفقود|قيود\s*مفقود|بدون\s*قيد|بدون\s*قيود|بلا\s*قيد|بلا\s*قيود|ليس\s+لها\s+قيد|ما\s+لها\s+قيد|سلام[ةه]|تنبيه.*عمل|كروت|بطاق[ةه]|warning.*op|missing.*journal|عمليات.*خطأ|عمليات.*مشكل|قيود.*مفقود|عمليات.*بدون)", re.IGNORECASE), "firewall.operation_integrity"),
+    (re.compile(r"((?:تقرير|ملخص|مارايك|رأيك|اعرض|أعطني|اعطني|كم)\s*(?:ال)?(?:مبيعات|ايراد|إيراد|الايراد|الإيراد)|(?:ال)?(?:مبيعات|ايراد|إيراد)\s*(?:هذا\s*(?:الأسبوع|الاسبوع|الشهر)|اليوم|كل\s*(?:ال)?مد[ةه]|الإجمالي|الاجمالي|الكامل|كامل))", re.IGNORECASE), "finance.sales_report"),
+    (re.compile(r"(تدفق|cash\s*flow|مصاريف|مصروف|cash_flow|سيول[ةه])", re.IGNORECASE), "firewall.cash_flow"),
     # Finance read-only
     # 🕒 القيود المؤقتة للبيع الآجل (قاعدة المالك) → ملخص الذمم SSOT
     (re.compile(r"(قيود\s*مؤقت|قيد\s*مؤقت|(?:ال)?قيود\s*(?:ال)?مؤقت[ةه]?|بيع\s*آجل|بيع\s*اجل|مبيعات\s*آجل[ةه]?|مبيعات\s*اجل[ةه]?|deferred\s*sales?)", re.IGNORECASE), "finance.ar_summary"),
     (re.compile(r"(ذمم\s*(?:ال)?عملاء|مدين|debtors?|دين العميل|ar\s*summary|متأخر|آجل\s*(?:ال)?عملاء|^\s*ذمم\s*$|ذمم\s*مدين|(?:اجمالي|إجمالي|مجموع|كم)\s*(?:ال)?ذمم|(?:ال)?ذمم\s*(?:ال)?حالي|(?:اعرضي?|أعرضي?|عرضي?|وريني|شوفي?)\s*(?:لي\s*)?(?:ال)?ذمم|^\s*(?:ال)?ذمم\s*$)", re.IGNORECASE), "finance.ar_summary"),
     # Suppliers AP
     (re.compile(r"(ذمم\s*(?:ال)?مورد|دائن|دائنين|payables?|ap\s*summary|نستحق|نحن\s*مدين|للمورد|ذمم\s*ال?ورش[ةه])", re.IGNORECASE), "finance.payables_summary"),
+    # Supplier search / statement — لا تُرسل الموردين إلى customers.search
+    (re.compile(r"((?:سجل|حرك[ةه]|كشف|قيود|عمليات|بيانات|ابحث|أبحث|عرض|اعرض|أعطني|اعطني|عطني).*?(?:ال)?مورد|(?:ال)?مورد\s+\S{2,})", re.IGNORECASE), "suppliers.search"),
+    (re.compile(r"((?:سجل|حرك[ةه]|كشف|قيود|عمليات).*?(?:ال)?مورد|(?:قيود|حرك[ةه])\s+(?:المورد|مورد))", re.IGNORECASE), "accounting.journal_entries"),
     # Inventory low stock
     (re.compile(r"((?:ال)?قطع\s*(?:ال)?ناقص|مخزون\s*منخفض|low\s*stock|(?:ال)?قطع\s*انتهت|قطع\s*أوشكت|نفاد|نفذت\s*(?:ال)?قطع|(?:ل?ل?)?(?:ال)?حد\s*(?:ال)?أدنى|قطع.*ناقص|نواقص\s*المخزون|تنبيه.*مخزون|تنبيهات\s*المخزون)", re.IGNORECASE), "inventory.low_stock"),
     # Parts search — "بيع X" / "أبيع X" / "سعر X" / "كم سعر X" / "كم عندي X" / "هل عندنا X"
     (re.compile(r"(\bبيع\b|\bأبيع\b|\bابيع\b|اشتري|شراء\s+قطع|كم\s*سعر|سعر\s+(?:ال)?(?:قطع|فلتر|زيت|بطار|طرمب|ربلات|مساحات|بواجي|بلف|كبسول|كمبيوتر|مكيف|ايرباغ|دبري|كبائن|سلندر|طقم|كرنك|كومة|كوب|كولر|سير|تيل|قرص|دريم|قار|بوش|طبه)|تكلفة\s+قطع|كم\s+ع?ندي|كم\s+يتوفر|متوفر\s+لدينا|هل\s+ع?ندنا|أبحث\s+عن\s+قطع|ابحث\s+عن\s+قطع|بحث\s+عن\s+قطع|كم\s+مخزون|كم\s+ع?ندك\s+من|أحتاج\s+قطع|احتاج\s+قطع)", re.IGNORECASE), "parts.search"),
     # Recent operations — يدعم «آخر خمس/عشر/5 عمليات»
     (re.compile(r"((?:آخر|أخر|اخر|أحدث|احدث)\s*(?:ال)?(?:خمسه?|خمس|عشره?|عشر|ثلاثه?|ثلاث|اربعه?|أربعه?|اربع|أربع|ست[ةه]?|سبع[ةه]?|ثمانيه?|تسع[ةه]?|\d+)?\s*(?:ال)?(?:عمليات|عمليتين|عمليتان|مبيعات)|recent\s*operations?|عمليات\s*اليوم)", re.IGNORECASE), "operations.recent"),
+    (re.compile(r"((?:آخر|أخر|اخر|أحدث|احدث|تفاصيل)\s*(?:ال)?(?:\d+\s*)?(?:مركب[ةه]|سيار[ةه]|مركبات|سيارات)|ماهي\s*(?:آخر|اخر)\s*مركب[ةه])", re.IGNORECASE), "vehicles.recent"),
     # 🏆 Top sold services — «اكثر الخدمات بيعاً/مبيعاً/طلباً»
-    (re.compile(r"((?:اكثر|أكثر|اعلي|أعلى|اكبر|أكبر)\s*(?:ال)?خدم(?:ات|ة|ه)\s*(?:بيع|مبيع|طلب|تكرار)?|(?:ال)?خدمات\s*(?:الأكثر|الاكثر)\s*(?:بيع|مبيع|طلب)|top\s*(?:sold\s*)?services)", re.IGNORECASE), "operations.top_services"),
+    (re.compile(r"((?:اكثر|أكثر|اعلي|أعلى|اكبر|أكبر)\s*(?:ال)?(?:خدم(?:ات|ة|ه)|بند|بنود|صنف|اصناف|أصناف|قطع[ةه]?)\s*(?:بيع|مبيع|طلب|تكرار)?|(?:ال)?(?:خدمات|بنود|اصناف|أصناف)\s*(?:الأكثر|الاكثر)\s*(?:بيع|مبيع|طلب)|بنود\s*(?:ال)?سيارات|top\s*(?:sold\s*)?services)", re.IGNORECASE), "operations.top_services"),
     # 🚗 Vehicle counts by status — «كم مركبة حالية» / «عدد المركبات»
     (re.compile(r"(كم\s*(?:ال)?مركب|عدد\s*(?:ال)?مركبات|كم\s*(?:ال)?سيار|عدد\s*(?:ال)?سيارات|(?:ال)?مركبات\s*(?:ال)?(?:حالي|موجود)|مركبات\s*(?:في|ب)\s*(?:ال)?ورش)", re.IGNORECASE), "vehicles.status_summary"),
     # Operations search by customer/partner name — "عمليات محمد" / "تفاصيل عملية X"
@@ -71,7 +76,7 @@ _TOOL_PATTERNS = [
     # Natural Language Search (top debtors / overdue / biggest)
     (re.compile(r"(اكثر\s*(?:ال)?عملاء\s*مديوني|أكثر\s*(?:ال)?عملاء\s*مديوني|اعلي\s*(?:ال)?مدينين|أعلى\s*(?:ال)?مدينين|اكبر\s*مدينين|أكبر\s*مدينين|كبار\s*(?:ال)?مدينين|الفواتير\s*المتأخر|فواتير\s*متأخر|آجل\s*متأخر|اكبر\s*(?:ال)?عمليات|أكبر\s*(?:ال)?عمليات|اعلي\s*مبيعات|أعلى\s*مبيعات|اقل\s*(?:ال)?مركبات\s*نشاط|أقل\s*(?:ال)?مركبات\s*نشاط|مركبات\s*راكد)", re.IGNORECASE), "nl.search"),
     # Pending approvals — لهجات ومسميات مختلفة (اعتمادات كاترينا / المسوّدات المعلّقة / إلخ)
-    (re.compile(r"(اعتمادات\s*(?:كاترينا|معلق|كاتري)|موافقات\s*(?:معلق|بانتظار)|المسوّ?دات\s*(?:المعلّ?ق|بانتظار)|الطلبات\s*المعلّ?قه?|بانتظار\s*(?:ال)?(?:اعتماد|موافقه?|موافقة)|pending\s*approvals?|تحت\s*المراجع|تنتظر\s*موافق|تحتاج\s*اعتماد|كم\s*(?:في|عندي)\s*اعتماد|في\s*(?:ال)?اعتمادات|شوف\s*(?:ال)?اعتمادات)", re.IGNORECASE), "runtime.pending_approvals"),
+    (re.compile(r"(اعتمادات\s*(?:كاترينا|(?:ال)?معلّ?ق|كاتري)|(?:ال)?اعتمادات\s*(?:ال)?معلّ?ق[ةه]?|موافقات\s*(?:معلق|بانتظار)|المسوّ?دات\s*(?:المعلّ?ق|بانتظار)|الطلبات\s*المعلّ?قه?|بانتظار\s*(?:ال)?(?:اعتماد|موافقه?|موافقة)|pending\s*approvals?|تحت\s*المراجع|تنتظر\s*موافق|تحتاج\s*اعتماد|كم\s*(?:في|عندي)\s*اعتماد|في\s*(?:ال)?اعتمادات|شوف\s*(?:ال)?اعتمادات)", re.IGNORECASE), "runtime.pending_approvals"),
     # Audit trail
     (re.compile(r"(سجل\s*(?:ال)?تدقيق|audit\s*trail|آخر\s*(?:ال)?أحداث|أحداث\s*النظام|من\s*غيّر|تتبع\s*التغيير)", re.IGNORECASE), "runtime.audit_recent"),
     # Services + Parts catalog awareness
@@ -80,11 +85,12 @@ _TOOL_PATTERNS = [
     (re.compile(r"(قطع\s*(?:ال)?غيار|كم\s*(?:عندي|عندنا)\s*(?:قطعة|قطع)|كم\s*سعر\s*القطعة|بحث\s*(?:عن\s*)?قطعة|inventory\s*list|parts\s*list)", re.IGNORECASE), "parts.list"),
     # Accounting journal entries (real journal_entries table) — قيود يومية / دفتر اليومية / ميزان مراجعة
     (re.compile(r"(قيد\s*محاسب|قيود\s*محاسب|دفتر\s*(?:ال)?يومي[ةه]?|قيود\s*(?:ال)?يومي|القيود\s*المالي|ميزان\s*(?:ال)?مراجع|journal\s*entr|القيود\s*في\s*(?:ال)?دفتر|القيد\s*رقم|تفاصيل\s*(?:ال)?قيد|القيود\s*(?:ال)?محاسب|كل\s*(?:ال)?قيود|جميع\s*(?:ال)?قيود|(?:ال)?قيود\s*(?:ال)?كامل|كامل\s*(?:ال)?قيود|(?:اعرض|أعرض|عرض|اعطني|أعطني)\s*(?:ال)?قيود|راجعي?\s*(?:ال)?قيود|مراجعة\s*(?:ال)?قيود)", re.IGNORECASE), "accounting.journal_entries"),
+    (re.compile(r"(ملفات\s*بدون\s*بنود|زيارات\s*بدون\s*بنود|عمليات\s*بدون\s*بنود|فواتير\s*بدون\s*بنود)", re.IGNORECASE), "operations.empty_items"),
 ]
 
 
 # Tools that accept a `query` parameter parsed from the user's free text
-_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "parts.search", "nl.search", "services.search", "parts.list", "operations.search"}
+_QUERY_AWARE_TOOLS = {"customers.search", "vehicles.search", "suppliers.search", "parts.search", "nl.search", "services.search", "parts.list", "operations.search", "accounting.journal_entries", "finance.sales_report"}
 
 
 def _extract_query(text: str, tool_name: str) -> str:
@@ -120,6 +126,10 @@ def _extract_query(text: str, tool_name: str) -> str:
         raw = re.sub(r"(?:ال)?عميل[ةه]?|(?:ال)?زبون[ةه]?|(?:ال)?عملي[ةه]?(?:ات)?|(?:ال)?عمل(?:يات)?", "", raw, flags=re.IGNORECASE)
     elif tool_name == "vehicles.search":
         raw = re.sub(r"(?:ال)?مركب[ةه]?|(?:ال)?سيار[ةه]?", "", raw, flags=re.IGNORECASE)
+    elif tool_name == "suppliers.search":
+        raw = re.sub(r"(?:ال)?مورد(?:ين)?|سجل|حرك[ةه]|كشف|قيود|عمليات", " ", raw, flags=re.IGNORECASE)
+    elif tool_name == "accounting.journal_entries":
+        raw = re.sub(r"(?:سجل|حرك[ةه]|كشف|قيود|قيد|محاسب(?:ي)?|دفتر|يومي(?:ه|ة)?|(?:ال)?مورد(?:ين)?)", " ", raw, flags=re.IGNORECASE)
     elif tool_name == "parts.search":
         raw = re.sub(r"(?:ال)?قطع[ةه]?(?:\s*غيار)?|(?:ال)?مخزون", " ", raw, flags=re.IGNORECASE)
     elif tool_name == "operations.search":
@@ -137,6 +147,14 @@ def detect_tools(text: str) -> List[str]:
     for rgx, tool_name in _TOOL_PATTERNS:
         if rgx.search(t):
             matched.append(tool_name)
+
+    # رقم لوحة عارٍ مثل «ب د ل 1854» أو «ابحث عن ب د ل 1854» يجب أن يذهب للمركبات.
+    if t and "vehicles.search" not in matched:
+        if re.search(r"(?:^|\s)[\u0621-\u064A]{1,3}\s+[\u0621-\u064A]{1,3}\s+[\u0621-\u064A]{1,3}\s+\d{3,5}(?:\s|$)", t):
+            matched.append("vehicles.search")
+
+    if "suppliers.search" in matched and "customers.search" in matched:
+        matched = [m for m in matched if m != "customers.search"]
 
     # Smart fallback: if no tools matched AND the message looks like it contains
     # a proper Arabic name (2+ word name), try customers.search + operations.search
@@ -183,7 +201,7 @@ _DIALECT_INTENT_RE = re.compile(
 # collect_payment / create_expense in the executor. Fires ONLY with a concrete
 # amount and no question lead — so «كم التحصيل؟» stays on the read path.
 _FIN_MASDAR_RE = re.compile(
-    r"(?:تحصيل|سداد|خصم\s*إ?داري|خصم\s*اداري|إسقاط\s*رصيد|اسقاط\s*رصيد|"
+    r"(?:تحصيل|سداد|دفعة|دفعه|دفع|خصم\s*إ?داري|خصم\s*اداري|إسقاط\s*رصيد|اسقاط\s*رصيد|"
     r"شطب\s*رصيد|إعفاء\s*رصيد|اعفاء\s*رصيد)",
     re.IGNORECASE,
 )
@@ -230,6 +248,9 @@ def looks_like_action(text: str) -> bool:
         norm = normalize_arabic(raw)
     except Exception:
         norm = raw.lower()
+    is_question = bool(_QUESTION_LEAD_RE.search(raw) or _QUESTION_LEAD_RE.search(norm))
+    if is_question and re.search(r"(?:ال)?مورد|supplier", raw, re.IGNORECASE):
+        return False
     if _DIALECT_INTENT_RE.search(raw) or _DIALECT_INTENT_RE.search(norm):
         return True
     if _ACTION_VERB_RE.search(raw) or _ACTION_VERB_RE.search(norm):
@@ -241,12 +262,11 @@ def looks_like_action(text: str) -> bool:
         r"باترول|اكسنت|سوناتا|النترا|كورولا|يارس|برادو|فورتشنر|ددسن|hilux|camry)\s*\d{4}",
         norm,
     ))
-    is_question = bool(_QUESTION_LEAD_RE.search(raw) or _QUESTION_LEAD_RE.search(norm))
     # 🆕 Financial masdar command (تحصيل/سداد/خصم إداري/إسقاط رصيد) with a concrete
     # amount and no question lead → EXECUTE (routes to collect_payment/create_expense).
     # Fixes «التحصيل لا يُثبَّت»: the bare masdar was missed here, so the message fell to
     # the LLM which faked a «اكتب نعم» card that could never commit.
-    if (_FIN_MASDAR_RE.search(raw) or _FIN_MASDAR_RE.search(norm)) and re.search(r"\d", norm) and not is_question:
+    if (_FIN_MASDAR_RE.search(raw) or _FIN_MASDAR_RE.search(norm)) and not is_question:
         return True
     if (has_phone or has_vehicle_year) and not is_question:
         return True
@@ -483,6 +503,16 @@ def _build_clarification_response(*, sid: str, message: str, exec_res: Dict[str,
                          f"حدّد بالاسم الكامل أو رقم الجوال/اللوحة.")
     shared_memory.append_message(sid, "assistant", response_text,
                                  meta={"intent": "clarify", "reason": reason})
+    try:
+        action_name = ((exec_res.get("action") or {}).get("action") or "")
+        if reason == "missing_fields" and action_name in {"create_invoice", "collect_payment", "create_expense", "create_purchase"}:
+            shared_memory.set_context(sid, "pending_action_clarification", {
+                "action": exec_res.get("action"),
+                "original_message": message,
+                "created_at": time.time(),
+            })
+    except Exception:
+        pass
     return {
         "session_id": sid, "agent": "Assistant", "assistant_name": ASSISTANT_NAME,
         "assistant_version": ASSISTANT_VERSION, "intent": "clarify",
@@ -509,6 +539,50 @@ def _plain_chat_response(*, sid: str, text: str, intent: str = "action",
                      if status else None),
         "power": None,
     }
+
+
+def _summarize_tool_result_for_user(tool: Optional[str], result: Any) -> str:
+    """تلخيص عربي قصير لنتائج الأدوات عند تعطيل LLM أو فشل الرد الذكي."""
+    if not isinstance(result, dict):
+        return f"  {str(result)[:900]}"
+    tool = tool or ""
+    if tool == "suppliers.search":
+        rows = result.get("matches") or []
+        if not rows:
+            return "  لم أجد مورداً مطابقاً."
+        lines = [f"  وجدت {len(rows)} مورد/موردين:"]
+        for r in rows[:5]:
+            lines.append(f"  • {r.get('name')} — الرصيد {float(r.get('balance') or 0):,.2f} ر.س — حركات: {r.get('movements_count') or 0}")
+        return "\n".join(lines)
+    if tool == "vehicles.recent":
+        rows = result.get("items") or []
+        if not rows:
+            return "  لا توجد مركبات مطابقة."
+        lines = [f"  آخر {len(rows)} مركبة:"]
+        for r in rows[:10]:
+            lines.append(f"  • {r.get('plate') or 'بدون لوحة'} — {r.get('owner') or 'بدون عميل'} — {r.get('status') or 'بدون حالة'}")
+        return "\n".join(lines)
+    if tool == "finance.sales_report":
+        return (f"  الفترة: {result.get('period')} — عدد العمليات: {result.get('count')} — "
+                f"إجمالي المبيعات: {float(result.get('total_sales') or 0):,.2f} ر.س — "
+                f"المحصّل: {float(result.get('paid_amount') or 0):,.2f} ر.س — "
+                f"المتبقي: {float(result.get('unpaid_amount') or 0):,.2f} ر.س")
+    if tool == "operations.empty_items":
+        rows = result.get("items") or []
+        lines = [f"  عدد العمليات/الملفات بدون بنود: {result.get('count') or 0}"]
+        for r in rows[:8]:
+            lines.append(f"  • {r.get('type') or 'عملية'} — {r.get('partner') or r.get('id')} — {r.get('total') or 0} ر.س")
+        return "\n".join(lines)
+    if tool == "runtime.pending_approvals":
+        return f"  عدد الاعتمادات المعلقة: {result.get('count') or 0}"
+    if tool == "firewall.operation_integrity":
+        return f"  نتيجة فحص القيود/العمليات: {str(result)[:700]}"
+    if tool == "operations.top_services":
+        return f"  أكثر البنود/الخدمات حسب البيانات: {str(result)[:700]}"
+    if tool == "vehicles.search":
+        rows = result.get("matches") or result.get("items") or []
+        return f"  نتائج المركبات: {len(rows)}" + (f" — {rows[:3]}" if rows else "")
+    return f"  {str(result)[:900]}"
 
 
 def _try_cancel_last_draft(*, sid: str, message: str,
@@ -762,6 +836,26 @@ async def _chat_impl(
             )
         # أي رسالة أخرى → تُعامل طبيعياً (قد تكون تعديلاً على الطلب)
 
+    # 🧩 متابعة أمر مالي ناقص: مثال «دفعة 444 للمورد...» ثم «55sr Today».
+    pending_clarification = shared_memory.get_context(sid, "pending_action_clarification")
+    if pending_clarification and message:
+        if _CANCEL_RE.match(message or ""):
+            shared_memory.set_context(sid, "pending_action_clarification", None)
+            return _plain_chat_response(sid=sid, text="🚫 تم إلغاء الطلب الناقص — لم يُحفظ أي شيء.", intent="action", status="cancelled")
+        if re.search(r"\d", message) or re.search(r"(اليوم|today|حوال|تحويل|نقد|كاش|آجل|اجل)", message, re.IGNORECASE):
+            try:
+                from core import unified_executor as _ux
+                original = str(pending_clarification.get("original_message") or "").strip()
+                combined = f"{original} {message}".strip()
+                shared_memory.set_context(sid, "pending_action_clarification", None)
+                exec_res = await _ux.execute_text(combined, proposer=proposer, session_id=sid)
+                if exec_res and exec_res.get("status") in ("committed", "pending_approval", "awaiting_confirmation"):
+                    return _build_action_chat_response(sid=sid, message=combined, exec_res=exec_res)
+                if exec_res and exec_res.get("status") == "needs_clarification":
+                    return _build_clarification_response(sid=sid, message=combined, exec_res=exec_res)
+            except Exception as e:
+                _log.warning("pending clarification continue failed: %s", redact(str(e), max_len=100))
+
     # 🆕 سحب سياقي: «الغي آخر عملية/المسودة المعلقة» → إلغاء آخر مسودة معلقة
     # في هذه الجلسة بدل الدخول في مسار delete_operation ومطالبة المستخدم بـ id.
     if _CANCEL_DRAFT_VERB_RE.search(message or "") and _CANCEL_DRAFT_MARKER_RE.search(message or ""):
@@ -897,6 +991,13 @@ async def _chat_impl(
     cards: List[Dict[str, Any]] = []  # 🆕 collected from each tool result
     for tn in tool_names:
         kwargs: Dict[str, Any] = {"workshop_id": workshop_id or "finmodule-sync"}
+        if tn in {"vehicles.recent", "operations.recent", "accounting.journal_entries"}:
+            m_limit = re.search(r"\b(\d{1,3})\b", message or "")
+            if m_limit:
+                try:
+                    kwargs["limit"] = max(1, min(int(m_limit.group(1)), 100))
+                except Exception:
+                    pass
         if tn in _QUERY_AWARE_TOOLS:
             q = forced_query or _extract_query(message, tn)
             if q:
@@ -1024,10 +1125,11 @@ async def _chat_impl(
     # Fallback: aggregated tool output + canned message
     if not response_text:
         if tool_results:
-            parts = [f"نفّذتُ {len(tool_results)} أداة قراءة فقط:"]
+            parts = [f"✅ استدعيت {len(tool_results)} أداة مناسبة لهذا السؤال:"]
             for tr in tool_results:
                 if tr.get("success"):
-                    parts.append(f"• {tr.get('tool')}: {tr.get('result')}")
+                    parts.append(f"• **{tr.get('tool')}**")
+                    parts.append(_summarize_tool_result_for_user(tr.get("tool"), tr.get("result")))
                 else:
                     parts.append(f"• فشل {tr.get('tool')}: {tr.get('error')}")
             response_text = "\n".join(parts)
@@ -1253,7 +1355,7 @@ async def chat(
     except Exception as e:
         llm_traces.finish_trace(session_id=session_id, status="error", error=str(e))
         raise
-    if prior_msgs == 0 and resp.get("intent") != "developer_mode":
+    if prior_msgs == 0 and resp.get("intent") == "question" and not resp.get("tool_results"):
         try:
             blocks: List[str] = []
             # 📅 الملخص اليومي — أول رسالة في اليوم، أرقام من استعلامات مباشرة، حسب الدور

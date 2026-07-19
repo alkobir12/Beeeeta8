@@ -169,6 +169,10 @@ def _regex_fallback_action(text: str) -> Action:
             payload["operation_id"] = id_match.group(1)
         return Action(action="delete_operation", payload=payload)
 
+    supplier_payment = _regex_supplier_payment_action(text)
+    if supplier_payment is not None:
+        return supplier_payment
+
     from core import power_mode
     intent_kind = power_mode.detect_intent_kind(text)
     if intent_kind == "unknown":
@@ -195,6 +199,30 @@ def _regex_fallback_action(text: str) -> Action:
                   key
             payload[tgt] = entities[key]
     return Action(action=action_name, payload=payload)
+
+
+def _regex_supplier_payment_action(text: str) -> Optional[Action]:
+    raw = text or ""
+    if not re.search(r"(?:دفعة|دفعه|سداد|دفع)", raw, re.IGNORECASE) or not re.search(r"(?:ال)?مورد", raw, re.IGNORECASE):
+        return None
+    amount_match = re.search(r"(\d+(?:[\.,]\d+)?)\s*(?:sr|sar|ر\.?س|ريال)?", raw, re.IGNORECASE)
+    amount = None
+    if amount_match:
+        try:
+            amount = float(amount_match.group(1).replace(",", "."))
+        except Exception:
+            amount = None
+    sup = re.search(r"(?:ال)?مورد\s+(.+?)(?:\s+(?:حوال[هة]|تحويل|نقد|كاش|cash|bank|transfer|today|اليوم)|\s+\d|$)", raw, re.IGNORECASE)
+    supplier = str(sup.group(1)).strip(" .،") if sup else ""
+    pm = "cash"
+    if re.search(r"(?:حوال[هة]|تحويل|bank|transfer)", raw, re.IGNORECASE):
+        pm = "bank"
+    payload: Dict[str, Any] = {"description": "دفعة مورد", "supplier": supplier, "payment_method": pm}
+    if amount:
+        payload["amount"] = amount
+    if re.search(r"(?:اليوم|today)", raw, re.IGNORECASE):
+        payload["date"] = "today"
+    return Action(action="create_expense", payload=payload)
 
 
 def _resolve_target(action: Action) -> Dict[str, Any]:
@@ -406,7 +434,8 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
         return _resolve_purchase_target(payload)
 
     if act == "create_expense":
-        desc = str(payload.get("description") or payload.get("category") or "").strip()
+        supplier_name = str(payload.get("supplier") or "").strip()
+        desc = str(payload.get("description") or payload.get("category") or ("دفعة مورد" if supplier_name else "")).strip()
         amount = payload.get("amount") or payload.get("total")
         if not desc:
             return {"error": "missing_fields", "entity": "financial",
@@ -416,7 +445,7 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
                     "ask": f"💰 كم مبلغ المصروف «{desc}»؟"}
         sem = _sem()
         return {"enrich": {"_target_label": desc, "_echo": {
-            "type": "مصروف", "entity": payload.get("supplier") or desc, "amount": amount,
+            "type": "دفعة مورد" if supplier_name else "مصروف", "entity": supplier_name or desc, "amount": amount,
             "accounts": f"مدين: مصروفات عامة وإدارية ({sem['admin_expense']}) / دائن: النقد أو البنك"}}}
 
     # create_invoice / collect_payment → resolve the customer

@@ -505,6 +505,172 @@ async def _finance_payables_summary(workshop_id: str = "finmodule-sync", limit: 
     }
 
 
+async def _suppliers_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 8) -> Dict[str, Any]:
+    """🏢 بحث موردين بالاسم + رصيدهم وحركاتهم المختصرة."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
+            r = await client.get(f"{base}/api/suppliers")
+            suppliers = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e), "cards": []}
+    if isinstance(suppliers, dict):
+        suppliers = suppliers.get("data") or suppliers.get("suppliers") or []
+    if not isinstance(suppliers, list):
+        suppliers = []
+    q = (query or "").strip()
+    if q:
+        from core.arabic_nlp import arabic_match
+        suppliers = [s for s in suppliers if arabic_match(q, s.get("name"), s.get("phone"), s.get("category"))]
+    suppliers = suppliers[:max(1, min(int(limit or 8), 25))]
+    from core.card_builder import cards_from_suppliers
+    return {
+        "query": q,
+        "count": len(suppliers),
+        "matches": [{
+            "id": s.get("id"),
+            "name": s.get("name"),
+            "phone": s.get("phone"),
+            "balance": float(s.get("ajelBalance") or s.get("balance") or 0),
+            "movements_count": len(s.get("movements") or []),
+            "recent_movements": (s.get("movements") or [])[:5],
+        } for s in suppliers],
+        "cards": cards_from_suppliers(suppliers, limit=limit),
+    }
+
+
+async def _vehicles_recent(workshop_id: str = "finmodule-sync", limit: int = 10) -> Dict[str, Any]:
+    """🚗 آخر المركبات المضافة/المحدّثة."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
+            r = await client.get(f"{base}/api/vehicles")
+            vehicles = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e), "cards": []}
+    if isinstance(vehicles, dict):
+        vehicles = vehicles.get("data") or vehicles.get("vehicles") or []
+    if not isinstance(vehicles, list):
+        vehicles = []
+    def _key(v):
+        return str(v.get("createdAt") or v.get("created_at") or v.get("updatedAt") or v.get("updated_at") or "")
+    vehicles = sorted([v for v in vehicles if isinstance(v, dict)], key=_key, reverse=True)[:max(1, min(int(limit or 10), 100))]
+    from core.card_builder import cards_from_vehicles
+    return {
+        "count": len(vehicles),
+        "items": [{
+            "id": v.get("id"),
+            "plate": v.get("plateNumber") or v.get("plate") or v.get("plate_number"),
+            "owner": v.get("customerName") or v.get("customer_name") or v.get("ownerName"),
+            "brand": v.get("brand"),
+            "model": v.get("model"),
+            "year": v.get("year"),
+            "status": v.get("status"),
+            "created_at": v.get("createdAt") or v.get("created_at"),
+        } for v in vehicles],
+        "cards": cards_from_vehicles(vehicles, limit=limit),
+    }
+
+
+async def _finance_sales_report(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 200) -> Dict[str, Any]:
+    """📊 تقرير مبيعات/إيرادات بفهم نطاق زمني عربي بسيط."""
+    import os
+    import httpx
+    from datetime import datetime, timedelta
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=20.0, headers=_int_headers()) as client:
+            r = await client.get(f"{base}/api/operations", params={"limit": max(int(limit or 200), 200)})
+            ops = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e), "cards": []}
+    if isinstance(ops, dict):
+        ops = ops.get("data") or ops.get("items") or ops.get("operations") or []
+    if not isinstance(ops, list):
+        ops = []
+    q = (query or "").strip()
+    now = datetime.now()
+    start = None
+    label = "كل المدة"
+    if "اليوم" in q or "today" in q.lower():
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        label = "اليوم"
+    elif "الأسبوع" in q or "الاسبوع" in q or "week" in q.lower():
+        start = now - timedelta(days=7)
+        label = "آخر 7 أيام"
+    elif "الشهر" in q or "month" in q.lower():
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        label = "هذا الشهر"
+
+    def _dt(o):
+        s = str(o.get("createdAt") or o.get("created_at") or o.get("date") or "")
+        try:
+            return datetime.fromisoformat(s.replace("Z", "+00:00")).replace(tzinfo=None)
+        except Exception:
+            try:
+                return datetime.fromisoformat(s[:19])
+            except Exception:
+                return None
+
+    sales = []
+    for o in ops:
+        if not isinstance(o, dict):
+            continue
+        if str(o.get("type") or "").lower() not in {"sale", "service"}:
+            continue
+        d = _dt(o)
+        if start and (not d or d < start):
+            continue
+        sales.append(o)
+    total = sum(float(o.get("total") or 0) for o in sales)
+    paid = sum(float(o.get("paidAmount") or o.get("paid_amount") or 0) for o in sales)
+    from core.card_builder import cards_from_operations
+    return {
+        "period": label,
+        "count": len(sales),
+        "total_sales": round(total, 2),
+        "paid_amount": round(paid, 2),
+        "unpaid_amount": round(max(total - paid, 0), 2),
+        "items": [{
+            "id": o.get("id"),
+            "partner": o.get("partnerName") or o.get("customerName"),
+            "total": float(o.get("total") or 0),
+            "date": o.get("createdAt") or o.get("created_at") or o.get("date"),
+            "payment_status": o.get("paymentStatus") or o.get("payment_status"),
+        } for o in sales[:10]],
+        "cards": cards_from_operations(sales, limit=5),
+    }
+
+
+async def _operations_empty_items(workshop_id: str = "finmodule-sync", limit: int = 20) -> Dict[str, Any]:
+    """🧾 عمليات/زيارات بلا بنود تفصيلية."""
+    import os
+    import httpx
+    base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    try:
+        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
+            r = await client.get(f"{base}/api/operations", params={"limit": 500})
+            ops = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        return {"error": str(e), "cards": []}
+    if isinstance(ops, dict):
+        ops = ops.get("data") or ops.get("items") or ops.get("operations") or []
+    if not isinstance(ops, list):
+        ops = []
+    empty = [o for o in ops if isinstance(o, dict) and not (o.get("items") or [])]
+    empty = empty[:max(1, min(int(limit or 20), 100))]
+    from core.card_builder import cards_from_operations
+    return {
+        "count": len(empty),
+        "items": [{"id": o.get("id"), "type": o.get("type"), "partner": o.get("partnerName"), "total": o.get("total")} for o in empty],
+        "cards": cards_from_operations(empty, limit=limit),
+    }
+
+
 async def _operations_recent(workshop_id: str = "finmodule-sync", limit: int = 5) -> Dict[str, Any]:
     """🧾 آخر العمليات (sales/purchases/expenses) مع المبلغ والعميل/المورد."""
     import os
@@ -1172,6 +1338,13 @@ def _bootstrap() -> None:
         params={"workshop_id": "string?", "limit": "int?"},
     )
     register_tool(
+        "suppliers.search",
+        agent="FinanceAgent",
+        description="🏢 بحث موردين بالاسم وإرجاع الرصيد والحركات المختصرة.",
+        handler=_suppliers_search,
+        params={"workshop_id": "string?", "query": "string?", "limit": "int?"},
+    )
+    register_tool(
         "operations.recent",
         agent="WorkshopAgent",
         description="آخر N عمليات (بيع/شراء/مصاريف/تحصيل) مع المبلغ وحالة السداد.",
@@ -1186,6 +1359,13 @@ def _bootstrap() -> None:
         params={"workshop_id": "string?"},
     )
     register_tool(
+        "vehicles.recent",
+        agent="WorkshopAgent",
+        description="🚗 آخر المركبات المضافة أو المحدّثة.",
+        handler=_vehicles_recent,
+        params={"workshop_id": "string?", "limit": "int?"},
+    )
+    register_tool(
         "operations.top_services",
         agent="WorkshopAgent",
         description="🏆 أكثر الخدمات مبيعاً فعلياً (عدد مرات البيع + الإيراد) من بنود العمليات المسجّلة.",
@@ -1193,11 +1373,25 @@ def _bootstrap() -> None:
         params={"workshop_id": "string?", "limit": "int?"},
     )
     register_tool(
+        "finance.sales_report",
+        agent="FinanceAgent",
+        description="📊 تقرير المبيعات والإيرادات لفترة عربية مثل اليوم/الأسبوع/كل المدة.",
+        handler=_finance_sales_report,
+        params={"workshop_id": "string?", "query": "string?", "limit": "int?"},
+    )
+    register_tool(
         "operations.search",
         agent="WorkshopAgent",
         description="بحث عمليات بالاسم (عميل/مورد) — يرجع كل عمليات الشخص المحدد مع المبالغ والحالة.",
         handler=_operations_search,
         params={"workshop_id": "string?", "query": "string", "limit": "int?"},
+    )
+    register_tool(
+        "operations.empty_items",
+        agent="WorkshopAgent",
+        description="🧾 عمليات/ملفات بدون بنود تفصيلية.",
+        handler=_operations_empty_items,
+        params={"workshop_id": "string?", "limit": "int?"},
     )
     register_tool(
         "accounting.journal_entries",

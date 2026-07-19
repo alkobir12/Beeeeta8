@@ -42,6 +42,10 @@ _log = get_logger("routes.runtime")
 router = APIRouter(prefix="/api/runtime", tags=["runtime"])
 
 
+def _hide_test_runtime_rows(rows):
+    return [r for r in (rows or []) if "TEST_SAFE_" not in str(r) and "TEST_ACCOUNTANT_" not in str(r) and "TEST_ITER" not in str(r)]
+
+
 async def _commit_approved_draft(draft_id: str, request: Request, committer: str):
     draft = action_runtime.get_draft(draft_id) or {}
     external_action = draft.get("action")
@@ -311,7 +315,7 @@ async def runtime_list_executions(
     limit: int = Query(default=50, le=200),
 ):
     await _require_approver(request)
-    return {"success": True, "data": action_runtime.list_executions(status=status, limit=limit)}
+    return {"success": True, "data": _hide_test_runtime_rows(action_runtime.list_executions(status=status, limit=limit))}
 
 
 @router.post("/executions/{execution_id}/rollback")
@@ -332,7 +336,7 @@ async def runtime_rollback(execution_id: str, request: Request, payload: Optiona
 @router.get("/audit")
 async def runtime_audit(request: Request, limit: int = Query(default=100, le=500)):
     await _require_approver(request)
-    return {"success": True, "data": action_runtime.get_audit_trail(limit=limit)}
+    return {"success": True, "data": _hide_test_runtime_rows(action_runtime.get_audit_trail(limit=limit))}
 
 
 @router.get("/stats")

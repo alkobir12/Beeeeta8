@@ -499,11 +499,13 @@ def cards_from_payments(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict
 
 
 def cards_from_approvals(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
-    return [approval_card(r) for r in (rows or [])[:limit]]
+    clean = [r for r in (rows or []) if "TEST_SAFE_" not in str(r) and "TEST_ACCOUNTANT_" not in str(r) and "TEST_ITER" not in str(r)]
+    return [approval_card(r) for r in clean[:limit]]
 
 
 def cards_from_audit(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
-    return [audit_card(r) for r in (rows or [])[:limit]]
+    clean = [r for r in (rows or []) if "TEST_SAFE_" not in str(r) and "TEST_ACCOUNTANT_" not in str(r) and "TEST_ITER" not in str(r)]
+    return [audit_card(r) for r in clean[:limit]]
 
 
 def cards_from_findings(rows: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:

@@ -146,6 +146,8 @@ _SYSTEM_PROMPT = (
     "  • 'حصّل 300 من خالد المطيري نقدًا'\n"
     "    → {\"action\":\"collect_payment\",\"payload\":{\"customer\":\"خالد المطيري\",\"amount\":300,\"payment_method\":\"cash\"}}\n"
     "  • 'سجل مصروف إيجار 1200'  → {\"action\":\"create_expense\",\"payload\":{\"description\":\"إيجار\",\"amount\":1200}}\n"
+    "  • 'دفعة للمورد FAMOUS VALLEY حوالة 55 اليوم'\n"
+    "    → {\"action\":\"create_expense\",\"payload\":{\"description\":\"دفعة مورد\",\"supplier\":\"FAMOUS VALLEY\",\"amount\":55,\"payment_method\":\"bank\",\"date\":\"today\"}}\n"
     "  • 'اعكس القيد رقم abc123 السبب خطأ إدخال'\n"
     "    → {\"action\":\"reverse_entry\",\"payload\":{\"journal_id\":\"abc123\",\"reason\":\"خطأ إدخال\"}}\n"
     "  • 'اشتري من راكان قلب مستوبيشي L200 بسعر 1300. نقدي'\n"
