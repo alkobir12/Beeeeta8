@@ -2693,17 +2693,23 @@ const VehicleDetails = () => {
       setLoading(true);
       setLoadingProgress(10);
 
-      const vehiclePromise = vehicleAPI.getById(id).then((r) => {
+      const withTimeout = (promise, fallback, ms = 12000) => Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+      ]);
+
+      const vehiclePromise = withTimeout(vehicleAPI.getById(id), null).then((r) => {
         setLoadingProgress(40);
+        if (!r) throw new Error('vehicle_timeout');
         return r;
       });
-      const techPromise = technicianAPI.getAll().then((r) => {
+      const techPromise = withTimeout(technicianAPI.getAll(), { data: [] }).then((r) => {
         setLoadingProgress(65);
         return r;
       });
-      const visitsPromise = axios
+      const visitsPromise = withTimeout(axios
         .get(`${API_URL}/vehicles/${id}/visits`)
-        .catch(() => ({ data: [] }))
+        .catch(() => ({ data: [] })), { data: [] })
         .then((r) => {
           setLoadingProgress(80);
           return r;

@@ -58,11 +58,22 @@ const QuickPrintDialog = ({
       @page { size: A4; margin: 10mm; }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
-      body, button, input, table { font-family: "Noto Naskh Arabic", "IBM Plex Sans Arabic", "Tahoma", "Arial", sans-serif !important; letter-spacing: 0 !important; }
+      body, button, input, table, div, span, p, h1, h2, h3, h4, th, td {
+        font-family: "Tahoma", "Arial", "Segoe UI", sans-serif !important;
+        letter-spacing: normal !important;
+        word-spacing: normal !important;
+        font-kerning: normal !important;
+        text-rendering: optimizeLegibility !important;
+        -webkit-font-smoothing: antialiased !important;
+        direction: rtl;
+      }
+      body { font-size: 13px; line-height: 1.7; }
       table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed; }
       th, td { word-break: break-word; overflow-wrap: anywhere; line-height: 1.65; }
       img { max-width: 100%; height: auto; }
-      .container, .quotation-container, .document, .page { max-width: 190mm !important; margin-left: auto !important; margin-right: auto !important; }
+      .container, .quotation-container, .document, .page, .invoice-container, .quotation-wrapper { max-width: 190mm !important; margin-left: auto !important; margin-right: auto !important; }
+      [style*="letter-spacing"] { letter-spacing: normal !important; }
+      [style*="font-family"] { font-family: "Tahoma", "Arial", "Segoe UI", sans-serif !important; }
       @media print { html, body { background: #fff; } }
     </style>`;
 

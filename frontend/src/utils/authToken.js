@@ -29,13 +29,17 @@ export function storeTokens(data) {
 /** P1 multi-method login: body may carry {username|email, password, pin, device_id, remember_device}.
  *  Returns {ok, status, data, detail}. Stores tokens on success. */
 export async function loginRequest(body) {
+  const performLogin = async (withCredentials = true) => fetch(`${BACKEND}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: withCredentials ? 'include' : 'omit',
+    body: JSON.stringify(body || {}),
+  });
   try {
-    const resp = await fetch(`${BACKEND}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // keep httpOnly cookie too
-      body: JSON.stringify(body || {}),
-    });
+    let resp = await performLogin(true);
+    if (resp.status === 0 || resp.type === 'opaque') {
+      resp = await performLogin(false);
+    }
     let data = null;
     try { data = await resp.json(); }
     catch (e) {
@@ -53,8 +57,19 @@ export async function loginRequest(body) {
     storeTokens(data);
     return { ok: true, status: resp.status, data, detail: '' };
   } catch (e) {
-    console.warn('login request error:', e);
-    return { ok: false, status: 0, data: null, detail: 'network_error' };
+    try {
+      const resp = await performLogin(false);
+      let data = null;
+      try { data = await resp.json(); } catch (_) { data = null; }
+      if (resp.ok) {
+        storeTokens(data);
+        return { ok: true, status: resp.status, data, detail: '' };
+      }
+      return { ok: false, status: resp.status, data, detail: data?.detail || data?.error || 'network_error' };
+    } catch (fallbackError) {
+      console.warn('login request error:', e, fallbackError);
+      return { ok: false, status: 0, data: null, detail: 'network_error' };
+    }
   }
 }
 

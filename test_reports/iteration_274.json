@@ -1,0 +1,56 @@
+{
+  "summary": "Retested vehicle print/PDF regression in preview. Backend regression suite passed (3/3). Header print menu flows (invoice/diagnosis/quote) now open quick preview successfully with workshop identity values present, but always-visible visit print button was still not rendered in this run.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "VehicleDetails",
+        "issue": "Expected always-visible visit print button did not render (count=0 for [data-testid^='visit-print-button-']) on target vehicle page during this run.",
+        "selector": "[data-testid^='visit-print-button-']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Visit-level quick print entry",
+        "issue": "Could not validate visit-print-button click-to-preview flow because visit-print buttons were absent in rendered page state.",
+        "affected_selectors": [
+          "[data-testid^='visit-print-button-']",
+          "[data-testid='quick-print-preview']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter272_vehicle_print_regression.py",
+    "/app/test_reports/pytest/iter274_vehicle_print_regression.xml",
+    "/root/.emergent/automation_output/20260720_221036/console_20260720_221036.log"
+  ],
+  "action_items": [
+    "Fix VehicleDetails rendering condition so at least one visible visit print trigger [data-testid^='visit-print-button-'] is present without extra user expansion steps.",
+    "After fixing visit button rendering, revalidate visit print flow end-to-end (preview <=20s, print/download/WhatsApp actions).",
+    "Optionally reduce unrelated 401 background requests (assistant endpoints) to improve deterministic preview test stability."
+  ],
+  "critical_code_review_comments": [
+    "VehicleDetails.jsx remains very large and state-heavy; conditional rendering around visits can hide required test-critical controls intermittently.",
+    "Header print menu and QuickPrintDialog integration is now stable for invoice/diagnosis/quote flows in this run."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_274.json"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3)",
+    "frontend": "85% (header print menu/actions passed; visit-level print trigger missing)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "UI login attempt with مدير/123123 proceeded; backend generation is green and header print menu buttons work for invoice/diagnosis/quote with preview resolving and workshop identity visible. Remaining gap is missing visit-print-button-* rendering on target vehicle page.",
+  "rca of the issue": "Root issue appears to be UI rendering/state gating in VehicleDetails visit section, not documents generation. Evidence: vehicle header print menu and all three document previews succeed, but visit-level print trigger selector is absent (count 0) in same session/page state.",
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123.",
+  "mocked_api": "NO MOCKED APIs used"
+}
