@@ -1,0 +1,70 @@
+{
+  "summary": "Retested vehicle print/PDF flows on preview. Header print menu regression appears fixed (single menu button, overlay visible, invoice/diagnosis/quote previews all open and resolve with required workshop identity). Visit-level print button flow could not be fully validated because visit print button was not rendered in tested UI states and one run showed vehicle page stuck on loading.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Existing preview auth regression remains: CORS credentials header missing on actual login response for production origin path in auth test suite.",
+        "priority": "HIGH"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "VehicleDetails visit section",
+        "issue": "visit-print-button-* did not render in DOM on multiple retest runs; one run showed prolonged loading state on vehicle page, blocking visit print + quick action validation.",
+        "selector": "[data-testid^=\"visit-print-button-\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Visit print -> quick-print-action-print/download-pdf/whatsapp",
+        "issue": "Could not complete required validation because visit print entry point was unavailable in rendered UI state.",
+        "affected_selectors": [
+          "[data-testid^=\"visit-print-button-\"]",
+          "[data-testid=\"quick-print-action-print\"]",
+          "[data-testid=\"quick-print-action-download-pdf\"]",
+          "[data-testid=\"quick-print-action-whatsapp\"]"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter272_vehicle_print_regression.py",
+    "/app/backend/tests/test_iter263_quick_print_preview.py",
+    "/app/backend/tests/test_auth_preview_pin_iter257.py",
+    "/app/test_reports/pytest/iter272_vehicle_print.xml",
+    "/app/test_reports/pytest/iter272_backend.xml",
+    "/root/.emergent/automation_output/20260720_215723/console_20260720_215723.log",
+    "/root/.emergent/automation_output/20260720_215936/console_20260720_215936.log",
+    "/root/.emergent/automation_output/20260720_220023/console_20260720_220023.log"
+  ],
+  "action_items": [
+    "Investigate why visit cards/visit print button are not consistently rendered on /vehicle/ffcf800c-d1bb-40df-8df3-effa59bc05cd (loading state / data gating).",
+    "After visit print button renders, retest visit quick-print action pack (print/download PDF/WhatsApp) end-to-end.",
+    "Fix /api/auth/login CORS credentials response behavior in preview auth path."
+  ],
+  "critical_code_review_comments": [
+    "VehicleDetails.jsx remains very large (~4.5k lines) and state-heavy; this increases risk of conditional rendering regressions (e.g., visit print controls disappearing while header controls work).",
+    "Header print flow appears stable now; backend /api/documents/generate served invoice/diagnosis/quote successfully with no observed failures during UI test window."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter272_vehicle_print_regression.py",
+    "/app/test_reports/iteration_272.json"
+  ],
+  "success_rate": {
+    "backend": "93% (14/15)",
+    "frontend": "78%"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Header quick print menu now validated as functional in sequence (invoice -> diagnosis -> quote) with required workshop fields and organized preview markers. Remaining blocker is visit-level print entry absence (no visit-print-button-* found) and intermittent vehicle loading state; retest should start by confirming visits render before attempting quick-print action buttons.",
+  "rca of the issue": "Visit print validation blocker reproduces as: login -> open target vehicle page -> header data renders but no visit data-testid elements are present (or page remains in loading state). This prevents reaching quick-print actions under visit flow. Likely root cause is visit list conditional render / data fetch timing mismatch for this vehicle state, not document generator failure. Backend logs during the same window show successful document generation requests and no failed /api/documents/generate.",
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123.",
+  "mocked_api": "NO MOCKED APIs used"
+}

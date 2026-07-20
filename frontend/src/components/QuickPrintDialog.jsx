@@ -138,9 +138,8 @@ const QuickPrintDialog = ({
   }, [loadWorkshop, runWithTimeout, wrapPrintableHtml]);
 
   useEffect(() => {
-    if (!open || generationStartedRef.current) return;
+    if (!open) return;
     let isActive = true;
-    generationStartedRef.current = true;
     setHtml('');
     setError('');
     setLoading(true);
