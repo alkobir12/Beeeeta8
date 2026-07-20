@@ -2304,6 +2304,7 @@ const VehicleDetails = () => {
   const [technicians, setTechnicians] = useState([]);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [printDialogConfig, setPrintDialogConfig] = useState(null);
+  const [printMenuOpen, setPrintMenuOpen] = useState(false);
 
   const extractVisitItems = (visit) => {
     if (!visit) return [];
@@ -4218,8 +4219,12 @@ const VehicleDetails = () => {
           </div>
 
           <div className="flex gap-2">
-            <div className="relative group">
+            <div className="relative">
               <button
+                type="button"
+                onClick={() => setPrintMenuOpen((open) => !open)}
+                aria-expanded={printMenuOpen}
+                aria-controls="vehicle-print-menu"
                 className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
                 style={{
                   background: 'rgba(255,255,255,0.8)',
@@ -4233,7 +4238,8 @@ const VehicleDetails = () => {
               </button>
               {/* Dropdown Menu */}
               <div
-                className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-50"
+                id="vehicle-print-menu"
+                className={`absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl overflow-hidden z-50 ${printMenuOpen ? 'block' : 'hidden'}`}
                 style={{
                   background: 'rgba(255,255,255,0.98)',
                   border: '1px solid rgba(203,213,225,0.8)',
@@ -4244,6 +4250,7 @@ const VehicleDetails = () => {
                   onClick={() => {
                     const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
                     const vid = active?.id;
+                    setPrintMenuOpen(false);
                     openQuickPrintDialog({ type: 'invoice', visitId: vid });
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
@@ -4257,6 +4264,7 @@ const VehicleDetails = () => {
                   onClick={() => {
                     const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
                     const vid = active?.id;
+                    setPrintMenuOpen(false);
                     openQuickPrintDialog({ type: 'quote', visitId: vid });
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
@@ -4273,6 +4281,7 @@ const VehicleDetails = () => {
                   onClick={() => {
                     const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
                     const vid = active?.id;
+                    setPrintMenuOpen(false);
                     openQuickPrintDialog({ type: 'diagnosis', visitId: vid });
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
