@@ -1382,12 +1382,7 @@ const VisitCard = ({
           message: messageText,
         };
 
-        if (onShowWhatsAppPreview) {
-          onShowWhatsAppPreview(notification);
-        } else {
-          setWaPreview(notification);
-          setWaPreviewOpen(true);
-        }
+        onShowWhatsAppPreview?.(notification);
 
         setWhatsappNotification(notification);
         whatsappNotificationRef.current = notification;
@@ -2324,7 +2319,40 @@ const VehicleDetails = () => {
     return [];
   };
 
-  const buildVisitPayload = (docType, visit) => {
+  const normalizePrintItem = (item, fallbackName = 'بند') => {
+    const quantity = Number(item?.quantity || item?.qty || 1);
+    const price = Number(item?.price || item?.unitPrice || item?.unit_price || item?.amount || 0);
+    const itemName = item?.name || item?.description || item?.serviceName || fallbackName;
+    return {
+      name: itemName,
+      description: itemName,
+      quantity,
+      qty: quantity,
+      price,
+      unit_price: price,
+      total: Number(item?.total || quantity * price),
+      unit: item?.unit || 'حبة',
+    };
+  };
+
+  const buildVisitItemsFromOperations = (visit) => {
+    const visitId = visit?.id;
+    const related = (vehicleOperations || []).filter((op) => {
+      const opVisit = op?.visitId || op?.visit_id;
+      return visitId && opVisit && String(opVisit) === String(visitId);
+    });
+    return related.flatMap((op) => {
+      const opItems = Array.isArray(op?.items) ? op.items : [];
+      if (opItems.length) return opItems.map((item) => normalizePrintItem(item, op?.description || 'عملية'));
+      return [normalizePrintItem({
+        name: op?.description || op?.notes || op?.type || 'عملية',
+        quantity: 1,
+        price: op?.total || op?.amount || 0,
+      })];
+    }).filter((item) => item.description && Number(item.total || 0) >= 0);
+  };
+
+  const buildVisitPayload = async (docType, visit) => {
     const labelMap = {
       invoice: 'فاتورة',
       diagnosis: 'تقرير تشخيص',
@@ -2332,22 +2360,15 @@ const VehicleDetails = () => {
       receipt: 'سند قبض',
     };
     const visitItems = extractVisitItems(visit);
-    const items = visitItems.map((item) => {
-      const quantity = Number(item?.quantity || item?.qty || 1);
-      const price = Number(item?.price || item?.unitPrice || 0);
-      const itemName = item?.name || item?.description || 'عنصر';
-      return {
-        name: itemName,
-        description: itemName,
-        quantity,
-        price,
-        total: Number(item?.total || quantity * price),
-        unit: item?.unit || 'حبة',
-      };
-    });
+    const items = visitItems.length ? visitItems.map((item) => normalizePrintItem(item)) : buildVisitItemsFromOperations(visit);
+    const printableItems = items.length ? items : [normalizePrintItem({
+      name: docType === 'diagnosis' ? (visit?.diagnosis || visit?.issue || 'تقرير تشخيص') : 'زيارة ورشة',
+      quantity: 1,
+      price: visit?.total_workshop || visit?.workshop_total || visit?.total || 0,
+    })];
     return {
       doc_type: docType,
-      items,
+      items: printableItems,
       customer: {
         name: vehicle?.customerName || vehicle?.ownerName || '',
         phone: vehicle?.customerPhone || vehicle?.ownerPhone || '',
@@ -2356,12 +2377,17 @@ const VehicleDetails = () => {
         plate: vehicle?.plateNumber || vehicle?.plate || '',
         model: vehicle?.vehicleModel || vehicle?.model || '',
         brand: vehicle?.vehicleBrand || vehicle?.brand || '',
+        year: vehicle?.year || vehicle?.vehicleYear || '',
+        vin: vehicle?.vin || vehicle?.chassisNumber || '',
+        mileage: vehicle?.mileage || visit?.mileage || '',
+        notes: typeof visit?.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : '',
       },
-      notes: visit?.notes || '',
-      date: visit?.created_at || visit?.createdAt || '',
       settings: {
         document_number: visit?.invoiceNumber || visit?.id || '',
         document_title: labelMap[docType] || 'مستند',
+        date: String(visit?.created_at || visit?.createdAt || '').slice(0, 10),
+        description: docType === 'diagnosis' ? 'تقرير تشخيص للمركبة' : 'خدمات صيانة وإصلاح',
+        notes: typeof visit?.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : '',
       },
     };
   };
@@ -2434,6 +2460,7 @@ const VehicleDetails = () => {
   const [partsCatalog, setPartsCatalog] = useState([]);
   const [suppliersCatalog, setSuppliersCatalog] = useState([]);
   const [customersCatalog, setCustomersCatalog] = useState([]);
+  const [vehicleOperations, setVehicleOperations] = useState([]);
   const [visitFilter, setVisitFilter] = useState('all');
   const [createVisitConfirmAt, setCreateVisitConfirmAt] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2739,6 +2766,7 @@ const VehicleDetails = () => {
         ? journalEntriesRes.data.data
         : (Array.isArray(journalEntriesRes?.data) ? journalEntriesRes.data : []);
       const vehicleOps = normalizeListPayload(operationsRes, ['operations']);
+      setVehicleOperations(vehicleOps || []);
       const vehicleOpIds = new Set((vehicleOps || []).map((row) => String(row?.id || '')).filter(Boolean));
       const visitRows = normalizeListPayload(visitsRes, ['visits']);
       const visitIds = new Set((visitRows || []).map((row) => String(row?.id || row?.visitId || '')).filter(Boolean));
@@ -3924,7 +3952,7 @@ const VehicleDetails = () => {
                   <Calendar size={32} className="mx-auto mb-2" style={{ color: 'rgba(148,163,184,0.55)' }} />
                   <p className="text-xs" data-testid="visits-empty-title">لا توجد زيارات بعد</p>
                   <p className="text-[11px] mt-1" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="visits-empty-subtitle">
-                    اضغط "زيارة جديدة" لاستقبال المركبة
+                    اضغط &quot;زيارة جديدة&quot; لاستقبال المركبة
                   </p>
                 </div>
               ) : (

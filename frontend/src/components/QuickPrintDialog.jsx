@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE } from '../services/api';
+import { API_BASE, api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { getWhatsAppLink } from '../utils/constants';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
@@ -37,7 +37,8 @@ const QuickPrintDialog = ({
     // يستخدم الأداة المساعدة الموحَّدة لجلب بيانات الورشة (اسم/شعار/ضريبي/ت.تجاري/…)
     // ⚠️ المفتاح الصحيح هو `logo` (Base64) وليس `logo_url`. تم تصحيحه هنا.
     return await loadWorkshopPrintInfo(async (path) => {
-      return await fetch(`${API_BASE}${path}`);
+      const response = await api.get(path);
+      return { ok: true, json: async () => response.data };
     });
   }, []);
 
@@ -50,13 +51,9 @@ const QuickPrintDialog = ({
       if (!basePayload) {
         throw new Error('missing-payload');
       }
-      const workshop = await loadWorkshop();
-      const response = await runWithTimeout(fetch(`${API_BASE}/documents/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...basePayload, workshop }),
-      }), 15000);
-      const data = await response.json();
+      const workshop = { ...(await loadWorkshop()), ...(basePayload.workshop || {}) };
+      const response = await runWithTimeout(api.post('/documents/generate', { ...basePayload, workshop }), 15000);
+      const data = response.data;
       if (!data?.success) {
         throw new Error(data?.error || 'failed');
       }

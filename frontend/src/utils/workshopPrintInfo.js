@@ -62,36 +62,51 @@ export async function loadWorkshopPrintInfo(apiOrFetcher) {
 
     // 🎯 الأولوية: ملف الورشة (Profile) > الإعدادات (Settings) > الافتراضي
     // (المستخدم يحدّث اسم/شعار/عنوان الورشة من صفحة "ملف الورشة"، لذا تكون لها الأولوية)
+    const normalizedName =
+      profile?.business_name ||
+      profile?.name ||
+      settings?.workshopName ||
+      FALLBACK.name;
+    const normalizedPhone =
+      profile?.phone ||
+      profile?.phone_number ||
+      profile?.whatsapp ||
+      settings?.workshopPhone ||
+      FALLBACK.phone;
+    const normalizedAddress =
+      profile?.address ||
+      settings?.workshopAddress ||
+      FALLBACK.address;
+    const normalizedCommercial =
+      profile?.commercialRegister ||
+      profile?.commercial_register ||
+      settings?.commercialRegister ||
+      FALLBACK.commercial_register;
+    const normalizedTax =
+      profile?.taxNumber ||
+      profile?.tax_number ||
+      settings?.taxNumber ||
+      FALLBACK.tax_number;
+    const normalizedLogo =
+      profile?.logo ||
+      profile?.logo_url ||
+      profile?.logoUrl ||
+      settings?.logoUrl ||
+      FALLBACK.logo;
+
     return {
       name:
-        profile?.business_name ||
-        profile?.name ||
-        settings?.workshopName ||
-        FALLBACK.name,
-      business_name:
-        profile?.business_name ||
-        profile?.name ||
-        settings?.workshopName ||
-        FALLBACK.business_name,
-      phone:
-        profile?.phone ||
-        profile?.phone_number ||
-        settings?.workshopPhone ||
-        FALLBACK.phone,
-      address:
-        profile?.address ||
-        settings?.workshopAddress ||
-        FALLBACK.address,
-      tax_number:
-        profile?.taxNumber ||
-        profile?.tax_number ||
-        settings?.taxNumber ||
-        FALLBACK.tax_number,
-      commercial_register:
-        profile?.commercialRegister ||
-        profile?.commercial_register ||
-        settings?.commercialRegister ||
-        FALLBACK.commercial_register,
+        normalizedName,
+      name_en: profile?.nameEnglish || profile?.name_en || '',
+      nameEnglish: profile?.nameEnglish || profile?.name_en || '',
+      business_name: normalizedName,
+      phone: normalizedPhone,
+      whatsapp: profile?.whatsapp || normalizedPhone,
+      address: normalizedAddress,
+      tax_number: normalizedTax,
+      taxNumber: normalizedTax,
+      commercial_register: normalizedCommercial,
+      commercialRegister: normalizedCommercial,
       email:
         profile?.email ||
         settings?.workshopEmail ||
@@ -101,18 +116,8 @@ export async function loadWorkshopPrintInfo(apiOrFetcher) {
         settings?.workshopWebsite ||
         FALLBACK.website,
       // الشعار يأتي base64 أو URL مباشر — نقبل أيّاً منهما (Profile له الأولوية)
-      logo:
-        profile?.logo ||
-        profile?.logo_url ||
-        profile?.logoUrl ||
-        settings?.logoUrl ||
-        FALLBACK.logo,
-      logo_url:
-        profile?.logo ||
-        profile?.logo_url ||
-        profile?.logoUrl ||
-        settings?.logoUrl ||
-        FALLBACK.logo,
+      logo: normalizedLogo,
+      logo_url: normalizedLogo,
     };
   } catch (e) {
     console.warn('loadWorkshopPrintInfo failed:', e);

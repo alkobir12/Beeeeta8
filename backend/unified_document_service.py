@@ -281,12 +281,17 @@ def create_unified_document_routes(router):
     class DocumentWorkshop(BaseModel):
         name: Optional[str] = ""
         name_en: Optional[str] = ""
+        nameEnglish: Optional[str] = ""
         address: Optional[str] = ""
         phone: Optional[str] = ""
+        whatsapp: Optional[str] = ""
         email: Optional[str] = ""
         website: Optional[str] = ""
+        tax_number: Optional[str] = ""
+        taxNumber: Optional[str] = ""
         commercial_register: Optional[str] = ""
         commercialRegister: Optional[str] = ""
+        logo: Optional[str] = ""
 
         class Config:
             extra = "allow"
@@ -390,9 +395,15 @@ def create_unified_document_routes(router):
                 settings = {}
 
             # Map workshop keys
+            if "nameEnglish" in workshop_data and "name_en" not in workshop_data:
+                workshop_data["name_en"] = workshop_data.get("nameEnglish")
+            if not workshop_data.get("phone") and workshop_data.get("whatsapp"):
+                workshop_data["phone"] = workshop_data.get("whatsapp")
 
             if "commercialRegister" in workshop_data and "commercial_register" not in workshop_data:
                 workshop_data["commercial_register"] = workshop_data.get("commercialRegister")
+            if "taxNumber" in workshop_data and "tax_number" not in workshop_data:
+                workshop_data["tax_number"] = workshop_data.get("taxNumber")
             # Back-compat: some older profiles stored commercial register in tax_number.
             if not workshop_data.get("commercial_register") and workshop_data.get("tax_number"):
                 workshop_data["commercial_register"] = workshop_data.get("tax_number")
