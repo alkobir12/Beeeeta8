@@ -17,6 +17,11 @@ const QuickPrintDialog = ({
   const [error, setError] = useState('');
   const [phone, setPhone] = useState(initialPhone || '');
   const iframeRef = useRef(null);
+  const payloadBuilderRef = useRef(payloadBuilder);
+
+  useEffect(() => {
+    payloadBuilderRef.current = payloadBuilder;
+  }, [payloadBuilder]);
 
   const runWithTimeout = useCallback((promise, timeoutMs = 15000) => {
     return Promise.race([
@@ -30,6 +35,10 @@ const QuickPrintDialog = ({
   useEffect(() => {
     if (open) {
       setPhone(initialPhone || '');
+    } else {
+      setLoading(false);
+      setHtml('');
+      setError('');
     }
   }, [open, initialPhone]);
 
@@ -43,16 +52,20 @@ const QuickPrintDialog = ({
   }, []);
 
   const generateHtml = useCallback(async () => {
-    if (!payloadBuilder) return '';
+    const currentPayloadBuilder = payloadBuilderRef.current;
+    if (!currentPayloadBuilder) return '';
     setLoading(true);
     setError('');
     try {
-      const basePayload = await runWithTimeout(payloadBuilder(), 15000);
+      const basePayload = await runWithTimeout(currentPayloadBuilder(), 15000);
       if (!basePayload) {
         throw new Error('missing-payload');
       }
       const workshop = { ...(await loadWorkshop()), ...(basePayload.workshop || {}) };
-      const response = await runWithTimeout(api.post('/documents/generate', { ...basePayload, workshop }), 15000);
+      const response = await runWithTimeout(
+        api.post('/documents/generate', { ...basePayload, workshop }, { timeout: 15000 }),
+        15000
+      );
       const data = response.data;
       if (!data?.success) {
         throw new Error(data?.error || 'failed');
@@ -70,7 +83,7 @@ const QuickPrintDialog = ({
     } finally {
       setLoading(false);
     }
-  }, [payloadBuilder, loadWorkshop]);
+  }, [loadWorkshop, runWithTimeout]);
 
   useEffect(() => {
     if (!open || !payloadBuilder) return;
