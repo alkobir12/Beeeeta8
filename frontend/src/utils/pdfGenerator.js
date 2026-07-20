@@ -54,7 +54,8 @@ export const downloadPDF = async (
       heightLeft -= pdfHeight;
     }
 
-    pdf.save(fileName);
+    const safeName = String(fileName || 'document.pdf').toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
+    pdf.save(safeName);
     return true;
   } catch (error) {
     console.error('PDF Generation Error:', error);

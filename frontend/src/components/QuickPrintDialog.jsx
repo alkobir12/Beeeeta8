@@ -53,6 +53,52 @@ const QuickPrintDialog = ({
     });
   }, []);
 
+  const printStabilityCss = `
+    <style id="quick-print-stability-css">
+      @page { size: A4; margin: 10mm; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
+      body, button, input, table { font-family: "Noto Naskh Arabic", "IBM Plex Sans Arabic", "Tahoma", "Arial", sans-serif !important; letter-spacing: 0 !important; }
+      table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed; }
+      th, td { word-break: break-word; overflow-wrap: anywhere; line-height: 1.65; }
+      img { max-width: 100%; height: auto; }
+      .container, .quotation-container, .document, .page { max-width: 190mm !important; margin-left: auto !important; margin-right: auto !important; }
+      @media print { html, body { background: #fff; } }
+    </style>`;
+
+  const wrapPrintableHtml = useCallback((rawHtml) => {
+    if (!rawHtml) return '';
+    if (/<html[\s>]/i.test(rawHtml)) {
+      if (rawHtml.includes('quick-print-stability-css')) return rawHtml;
+      if (/<head[\s>]/i.test(rawHtml)) {
+        return rawHtml.replace(/<head([^>]*)>/i, `<head$1>${printStabilityCss}`);
+      }
+      return rawHtml.replace(/<html([^>]*)>/i, `<html$1><head>${printStabilityCss}</head>`);
+    }
+    return `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  ${printStabilityCss}
+</head>
+<body><main class="print-shell">${rawHtml}</main></body></html>`;
+  }, []);
+
+  const htmlToCanvasWrapper = (htmlContent) => {
+    const doc = new DOMParser().parseFromString(htmlContent, 'text/html');
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = doc.body?.innerHTML || htmlContent;
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-10000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '794px';
+    wrapper.style.background = '#ffffff';
+    wrapper.style.direction = 'rtl';
+    document.body.appendChild(wrapper);
+    return wrapper;
+  };
+
   const generateHtml = useCallback(async (builderOverride = null) => {
     const currentPayloadBuilder = builderOverride || payloadBuilderRef.current;
     if (!currentPayloadBuilder) {
@@ -76,7 +122,7 @@ const QuickPrintDialog = ({
       if (!data?.success) {
         throw new Error(data?.error || 'failed');
       }
-      const nextHtml = data?.html || data?.data?.html || '';
+      const nextHtml = wrapPrintableHtml(data?.html || data?.data?.html || '');
       if (!nextHtml) {
         throw new Error('empty');
       }
@@ -89,7 +135,7 @@ const QuickPrintDialog = ({
     } finally {
       setLoading(false);
     }
-  }, [loadWorkshop, runWithTimeout]);
+  }, [loadWorkshop, runWithTimeout, wrapPrintableHtml]);
 
   useEffect(() => {
     if (!open || generationStartedRef.current) return;
@@ -123,6 +169,13 @@ const QuickPrintDialog = ({
     }
   }, [open, html]);
 
+  const getPrintableElement = async () => {
+    const htmlContent = html || (await generateHtml());
+    if (!htmlContent) return null;
+    const wrapper = htmlToCanvasWrapper(htmlContent);
+    return { wrapper, htmlContent };
+  };
+
   const handlePrint = async () => {
     const htmlContent = html || (await generateHtml());
     if (!htmlContent) return;
@@ -138,21 +191,21 @@ const QuickPrintDialog = ({
     setTimeout(() => printWindow.print(), 600);
   };
 
+  const handleDownloadPdf = async () => {
+    const printable = await getPrintableElement();
+    if (!printable) return;
+    try {
+      await downloadPDF(printable.wrapper, `${title.replace(/\s+/g, '_')}.pdf`, {
+        backgroundColor: '#ffffff',
+        scale: 1.6,
+      });
+    } finally {
+      printable.wrapper.remove();
+    }
+  };
+
   const handleWhatsApp = async () => {
-    const htmlContent = html || (await generateHtml());
-    if (!htmlContent) return;
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = htmlContent;
-    wrapper.style.position = 'fixed';
-    wrapper.style.left = '-10000px';
-    wrapper.style.top = '0';
-    wrapper.style.width = '794px';
-    document.body.appendChild(wrapper);
-    await downloadPDF(wrapper, title.replace(/\s+/g, '_'), {
-      backgroundColor: '#ffffff',
-      scale: 1.4,
-    });
-    document.body.removeChild(wrapper);
+    await handleDownloadPdf();
     if (!phone) {
       alert('يرجى إدخال رقم الجوال لإرسال واتس اب');
       return;
@@ -200,6 +253,15 @@ const QuickPrintDialog = ({
           >
             إرسال PDF عبر واتس اب
           </button>
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/15"
+            data-testid="quick-print-action-download-pdf"
+            disabled={loading}
+          >
+            تحميل PDF
+          </button>
           <div className="flex items-center gap-2 text-sm text-slate-300">
             <span>رقم الجوال</span>
             <input
@@ -233,6 +295,7 @@ const QuickPrintDialog = ({
               title="print-preview"
               className="h-[420px] w-full rounded-xl bg-white"
               data-testid="quick-print-preview"
+              srcDoc={html}
             />
           )}
         </div>

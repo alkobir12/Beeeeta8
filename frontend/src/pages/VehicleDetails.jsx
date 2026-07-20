@@ -2305,7 +2305,6 @@ const VehicleDetails = () => {
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [printDialogConfig, setPrintDialogConfig] = useState(null);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
-  const lastHeaderPrintPressRef = useRef(0);
 
   const extractVisitItems = (visit) => {
     if (!visit) return [];
@@ -2396,34 +2395,32 @@ const VehicleDetails = () => {
 
   const openQuickPrintDialog = ({ type, visitId }) => {
     const labelMap = {
-      invoice: 'فاتورة',
-      diagnosis: 'تشخيص',
+      invoice: 'فاتورة مبيعات',
+      diagnosis: 'تقرير تشخيص',
       quote: 'عرض سعر',
-      receipt: 'سند قبض',
+      receipt: 'طباعة الزيارة',
     };
     const visit = visitId ? visits.find((v) => v.id === visitId) : visits[0];
-    setPrintDialogConfig({
+    const nextConfig = {
       key: `${type}-${visit?.id || 'vehicle'}-${Date.now()}`,
       title: labelMap[type] || 'طباعة مستند',
       phone: vehicle?.customerPhone || vehicle?.ownerPhone || '',
       payloadBuilder: () => buildVisitPayload(type, visit),
-    });
+    };
+    setPrintDialogConfig(nextConfig);
     setPrintDialogOpen(true);
   };
 
   const openHeaderPrintDialog = (type) => {
     const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
     const vid = active?.id;
-    openQuickPrintDialog({ type, visitId: vid });
-    window.setTimeout(() => setPrintMenuOpen(false), 80);
+    setPrintMenuOpen(false);
+    window.requestAnimationFrame(() => openQuickPrintDialog({ type, visitId: vid }));
   };
 
   const handleHeaderPrintPress = (event, type) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
-    const now = Date.now();
-    if (now - lastHeaderPrintPressRef.current < 250) return;
-    lastHeaderPrintPressRef.current = now;
     openHeaderPrintDialog(type);
   };
 
@@ -4237,20 +4234,6 @@ const VehicleDetails = () => {
           </div>
 
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={(event) => handleHeaderPrintPress(event, 'diagnosis')}
-              className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
-              style={{
-                background: 'rgba(253,230,138,0.28)',
-                border: '1px solid rgba(245,158,11,0.35)',
-                color: 'rgba(120,53,15,0.95)',
-              }}
-              data-testid="vehicle-print-diagnosis"
-            >
-              <ClipboardList size={16} />
-              <span className="hidden sm:inline">تقرير تشخيص</span>
-            </button>
             <div className="relative">
               <button
                 type="button"
@@ -4270,20 +4253,22 @@ const VehicleDetails = () => {
               </button>
               {/* Dropdown Menu */}
               {printMenuOpen && (
+              <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/20 p-4 sm:p-8" data-testid="vehicle-print-menu-overlay">
               <div
                 id="vehicle-print-menu"
-                className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl overflow-hidden z-50"
+                className="mt-20 w-72 rounded-2xl shadow-2xl overflow-hidden"
                 style={{
-                  background: 'rgba(255,255,255,0.98)',
-                  border: '1px solid rgba(203,213,225,0.8)',
+                  background: 'rgba(255,255,255,0.99)',
+                  border: '1px solid rgba(203,213,225,0.9)',
                 }}
                 data-testid="vehicle-print-menu"
               >
+                <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+                  <span className="text-sm font-bold" style={{ color: 'rgba(15,23,42,0.95)' }}>اختر نوع الطباعة</span>
+                  <button type="button" onClick={() => setPrintMenuOpen(false)} className="text-xs px-2 py-1 rounded-lg" data-testid="vehicle-print-menu-close">إغلاق</button>
+                </div>
                 <button
                   type="button"
-                  onMouseDown={(event) => {
-                    handleHeaderPrintPress(event, 'invoice');
-                  }}
                   onClick={(event) => {
                     handleHeaderPrintPress(event, 'invoice');
                   }}
@@ -4292,13 +4277,10 @@ const VehicleDetails = () => {
                   data-testid="vehicle-print-invoice"
                 >
                   <Receipt size={16} style={{ color: 'rgba(4,120,87,0.95)' }} />
-                  فاتورة مبيعات
+                  <span>فاتورة مبيعات</span>
                 </button>
                 <button
                   type="button"
-                  onMouseDown={(event) => {
-                    handleHeaderPrintPress(event, 'quote');
-                  }}
                   onClick={(event) => {
                     handleHeaderPrintPress(event, 'quote');
                   }}
@@ -4310,8 +4292,24 @@ const VehicleDetails = () => {
                   data-testid="vehicle-print-quote"
                 >
                   <FileCheck size={16} style={{ color: 'rgba(3,105,161,0.95)' }} />
-                  عرض سعر
+                  <span>عرض سعر</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    handleHeaderPrintPress(event, 'diagnosis');
+                  }}
+                  className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
+                  style={{
+                    borderTop: '1px solid rgba(203,213,225,0.8)',
+                    color: 'rgba(15,23,42,0.9)',
+                  }}
+                  data-testid="vehicle-print-diagnosis"
+                >
+                  <ClipboardList size={16} style={{ color: 'rgba(180,83,9,0.95)' }} />
+                  <span>تقرير تشخيص</span>
+                </button>
+              </div>
               </div>
               )}
             </div>
