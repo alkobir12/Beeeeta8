@@ -284,6 +284,9 @@ async def _workshop_active_visits(workshop_id: str = "finmodule-sync") -> Dict[s
 
 async def _customers_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 5) -> Dict[str, Any]:
     """🔍 بحث ذكي عن عميل بالاسم أو الهاتف (يرجع أعلى المطابقات + رصيد الذمم)."""
+    query = (query or "").strip()
+    if not query or len(query) < 2:
+        return {"query": query, "matches": [], "count": 0, "cards": [], "needs_query": True}
     import os
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
@@ -341,6 +344,9 @@ async def _customers_search(workshop_id: str = "finmodule-sync", query: str = ""
 
 async def _vehicles_search(workshop_id: str = "finmodule-sync", query: str = "", limit: int = 5) -> Dict[str, Any]:
     """🚗 بحث عن مركبة برقم اللوحة/الموديل/الماركة."""
+    query = (query or "").strip()
+    if not query or len(query) < 2:
+        return {"query": query, "matches": [], "count": 0, "cards": [], "needs_query": True}
     import os
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
@@ -521,9 +527,10 @@ async def _suppliers_search(workshop_id: str = "finmodule-sync", query: str = ""
     if not isinstance(suppliers, list):
         suppliers = []
     q = (query or "").strip()
-    if q:
-        from core.arabic_nlp import arabic_match
-        suppliers = [s for s in suppliers if arabic_match(q, s.get("name"), s.get("phone"), s.get("category"))]
+    if not q or len(q) < 2:
+        return {"query": q, "count": 0, "matches": [], "cards": [], "needs_query": True}
+    from core.arabic_nlp import arabic_match
+    suppliers = [s for s in suppliers if arabic_match(q, s.get("name"), s.get("phone"), s.get("category"))]
     suppliers = suppliers[:max(1, min(int(limit or 8), 25))]
     from core.card_builder import cards_from_suppliers
     return {
@@ -856,6 +863,8 @@ async def _operations_search(workshop_id: str = "finmodule-sync", query: str = "
     import os
     import httpx
     q = (query or "").strip()
+    if not q or len(q) < 2:
+        return {"query": q, "matches": [], "count": 0, "cards": [], "needs_query": True}
     date_range = _extract_date_range(q)
     fetch_limit = 500 if date_range else 200
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")

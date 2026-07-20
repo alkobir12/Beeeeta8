@@ -32,6 +32,7 @@ Test suites load it via dotenv (see `tests/test_auth_p1_iter256.py`).
 
 ## RBAC / Four-Eyes notes
 - Approver roles: `admin, manager, supervisor, accountant` (env `RUNTIME_APPROVER_ROLES`).
+- Developer override code for admin/system-manager self-approval: `rrr` (env `DEVELOPER_APPROVAL_CODE`).
 - Strict Four-Eyes ON: proposer cannot approve own draft → 403 `four_eyes_violation`.
 - Approve+auto-commit endpoint: `POST /api/runtime/approvals/{id}/approve`.
   Aliases: `/api/runtime/approve/{approval_id}` (approve only) +

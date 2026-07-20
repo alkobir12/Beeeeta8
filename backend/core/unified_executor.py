@@ -173,6 +173,14 @@ def _regex_fallback_action(text: str) -> Action:
     if supplier_payment is not None:
         return supplier_payment
 
+    customer_payment = _regex_customer_payment_action(text)
+    if customer_payment is not None:
+        return customer_payment
+
+    service_sale = _regex_service_sale_action(text)
+    if service_sale is not None:
+        return service_sale
+
     from core import power_mode
     intent_kind = power_mode.detect_intent_kind(text)
     if intent_kind == "unknown":
@@ -223,6 +231,71 @@ def _regex_supplier_payment_action(text: str) -> Optional[Action]:
     if re.search(r"(?:اليوم|today)", raw, re.IGNORECASE):
         payload["date"] = "today"
     return Action(action="create_expense", payload=payload)
+
+
+def _first_amount(raw: str) -> Optional[float]:
+    m = re.search(r"(\d+(?:[\.,]\d+)?)\s*(?:sr|sar|ر\.?س|ريال)?", raw, re.IGNORECASE)
+    if not m:
+        return None
+    try:
+        return float(m.group(1).replace(",", "."))
+    except Exception:
+        return None
+
+
+def _pay_method(raw: str) -> str:
+    if re.search(r"(?:حوال[هة]|تحويل|bank|transfer)", raw, re.IGNORECASE):
+        return "bank"
+    if re.search(r"(?:شبك[هة]|بطاق[هة]|مدى|mada|card|pos)", raw, re.IGNORECASE):
+        return "card"
+    if re.search(r"(?:آجل|اجل|ذم[هة]|credit)", raw, re.IGNORECASE):
+        return "credit"
+    return "cash"
+
+
+def _regex_customer_payment_action(text: str) -> Optional[Action]:
+    raw = text or ""
+    if not re.search(r"(?:تحصيل|حصّل|حصل|سداد|سدّد|سدد|دفعة|دفعه)", raw, re.IGNORECASE):
+        return None
+    if re.search(r"(?:ال)?مورد", raw, re.IGNORECASE):
+        return None
+    amount = _first_amount(raw)
+    if not amount:
+        return None
+    target = re.search(r"(?:من|للعميل|عميل|لمركب[ةه]|للسيار[ةه]|مركب[ةه])\s+(.+?)(?:\s+(?:نقد|كاش|حوال[هة]|تحويل|شبك[هة]|بطاق[هة]|اليوم|today)|\s+\d|$)", raw, re.IGNORECASE)
+    name = str(target.group(1)).strip(" .،") if target else ""
+    payload: Dict[str, Any] = {"amount": amount, "payment_method": _pay_method(raw)}
+    if name:
+        payload["customer"] = name
+    if re.search(r"(?:اليوم|today)", raw, re.IGNORECASE):
+        payload["date"] = "today"
+    return Action(action="collect_payment", payload=payload)
+
+
+def _regex_service_sale_action(text: str) -> Optional[Action]:
+    raw = text or ""
+    if not re.search(r"(?:بيع|سجل|اضف|أضف|خدمة|عملية)", raw, re.IGNORECASE) or not re.search(r"(?:خدم[ةه]|خدمة)", raw, re.IGNORECASE):
+        return None
+    amount = _first_amount(raw)
+    if not amount:
+        return None
+    service = "خدمة"
+    sm = re.search(r"خدم[ةه]\s+(.+?)(?:\s+(?:مبلغ|بسعر|سعر|نقد|كاش|آجل|اجل|حوال[هة]|تحويل)|\s+\d|$)", raw, re.IGNORECASE)
+    if sm:
+        service = str(sm.group(1)).strip(" .،") or service
+    payload: Dict[str, Any] = {
+        "service": service,
+        "total": amount,
+        "payment_method": _pay_method(raw),
+        "items": [{"name": service, "price": amount, "quantity": 1}],
+    }
+    cm = re.search(r"(?:للعميل|عميل|من|على)\s+(.+?)(?:\s+(?:نقد|كاش|حوال[هة]|تحويل|آجل|اجل|مبلغ|بسعر|سعر)|\s+\d|$)", raw, re.IGNORECASE)
+    if cm:
+        payload["customer"] = str(cm.group(1)).strip(" .،")
+    pm = re.search(r"لوح[ةه]\s+([\u0621-\u064A\w\s]{2,20}\d{2,5})", raw, re.IGNORECASE)
+    if pm:
+        payload["plate"] = str(pm.group(1)).strip()
+    return Action(action="create_invoice", payload=payload)
 
 
 def _resolve_target(action: Action) -> Dict[str, Any]:
@@ -451,11 +524,31 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
     # create_invoice / collect_payment → resolve the customer
     name = str(payload.get("customer") or payload.get("customer_name") or payload.get("name") or "").strip()
     phone = str(payload.get("customer_phone") or payload.get("phone") or "").strip()
+    plate = str(payload.get("plate") or payload.get("plate_number") or payload.get("vehicle_plate") or "").strip()
+    vehicle_row = None
+    if plate:
+        vres = action_runtime.resolve_vehicle_target({"plate": plate})
+        if not vres.get("error"):
+            vehicle_row = vres.get("row") or {}
+            name = name or str(vehicle_row.get("customerName") or vehicle_row.get("customer_name") or vehicle_row.get("ownerName") or "").strip()
+            payload["vehicle_id"] = vehicle_row.get("id")
+    pm_hint = str(payload.get("payment_method") or "").strip().lower()
+    cash_like_invoice = act == "create_invoice" and pm_hint in {"cash", "نقد", "نقدي", "كاش"}
+    if not name and not phone and cash_like_invoice:
+        name = "عميل نقدي"
     if not name and not phone:
         return {"error": "missing_fields", "entity": "financial",
-                "ask": "👤 لمن الفاتورة/الدفعة؟ زوّدني باسم العميل أو رقم جواله."}
+                "ask": "👤 لمن الفاتورة/الدفعة؟ زوّدني باسم العميل أو رقم جواله أو لوحة المركبة."}
     res = action_runtime.resolve_customer_target({"name": name, "phone": phone})
     if res.get("error"):
+        if act == "create_invoice" and res.get("error") == "not_found" and name:
+            sem = _sem()
+            amount = payload.get("total") or payload.get("amount")
+            pm = payload.get("payment_method") or "credit"
+            accounts = (f"مدين: ذمم العملاء ({sem['ar']}) / دائن: إيرادات خدمات ({sem['revenue_mech']})" if pm == "credit"
+                        else f"مدين: النقد/الشبكة / دائن: إيرادات خدمات ({sem['revenue_mech']})")
+            echo = {"type": "فاتورة", "entity": name, "amount": amount, "accounts": accounts, "new_customer": True}
+            return {"enrich": {"customer": name, "customer_phone": phone or None, "_target_label": name, "_echo": echo}}
         res["entity"] = "customer"
         return res
     row = res["row"]
@@ -477,8 +570,12 @@ def _resolve_financial_target(action: Action) -> Dict[str, Any]:
         accounts = (f"مدين: ذمم العملاء ({sem['ar']}) / دائن: إيرادات خدمات ({sem['revenue_mech']})" if pm == "credit"
                     else f"مدين: النقد/الشبكة / دائن: إيرادات خدمات ({sem['revenue_mech']})")
         echo = {"type": "فاتورة", "entity": cust_name, "amount": amount, "accounts": accounts}
-    return {"enrich": {"customer": cust_name, "customer_id": row.get("id"),
-                       "_target_label": cust_name, "_echo": echo}}
+    enrich = {"customer": cust_name, "customer_id": row.get("id"),
+              "_target_label": cust_name, "_echo": echo}
+    if vehicle_row:
+        enrich["vehicle_id"] = vehicle_row.get("id")
+        enrich["plate"] = vehicle_row.get("plateNumber") or vehicle_row.get("plate") or plate
+    return {"enrich": enrich}
 
 
 def _find_duplicate_pending(runtime_action: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:

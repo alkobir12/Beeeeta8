@@ -547,6 +547,8 @@ def _summarize_tool_result_for_user(tool: Optional[str], result: Any) -> str:
         return f"  {str(result)[:900]}"
     tool = tool or ""
     if tool == "suppliers.search":
+        if result.get("needs_query"):
+            return "  حدّد اسم المورد أو جزءاً منه لأعرض سجله فقط."
         rows = result.get("matches") or []
         if not rows:
             return "  لم أجد مورداً مطابقاً."
@@ -580,8 +582,21 @@ def _summarize_tool_result_for_user(tool: Optional[str], result: Any) -> str:
     if tool == "operations.top_services":
         return f"  أكثر البنود/الخدمات حسب البيانات: {str(result)[:700]}"
     if tool == "vehicles.search":
+        if result.get("needs_query"):
+            return "  حدّد رقم اللوحة أو جزءاً من بيانات المركبة لأعرض المطابق فقط."
         rows = result.get("matches") or result.get("items") or []
         return f"  نتائج المركبات: {len(rows)}" + (f" — {rows[:3]}" if rows else "")
+    if tool == "customers.search":
+        if result.get("needs_query"):
+            return "  حدّد اسم العميل أو جواله حتى لا أعرض كل العملاء."
+        rows = result.get("matches") or []
+        lines = [f"  نتائج العملاء: {len(rows)}"]
+        for r in rows[:5]:
+            lines.append(f"  • {r.get('name')} — {r.get('phone') or 'بدون جوال'} — الرصيد {float(r.get('ajel_balance') or 0):,.2f} ر.س")
+        return "\n".join(lines)
+    if tool == "operations.search":
+        if result.get("needs_query"):
+            return "  حدّد رقم العملية/الفاتورة أو اسم العميل أو الفترة لأعرض العمليات الخاصة فقط."
     return f"  {str(result)[:900]}"
 
 

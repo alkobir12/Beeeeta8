@@ -215,10 +215,12 @@ export const UnifiedAssistantDrawer = () => {
         const baseUrl = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_BACKEND_URL || '');
         const url = `${baseUrl}${action.endpoint}`;
         const method = (action.method || 'POST').toUpperCase();
-        const bodyData = {
-          ...(action.body || {}),
-          requester: me, approver: me, committer: me, proposer: me, by: me,
-        };
+        const bodyData = { ...(action.body || {}) };
+        if (action.id === 'approve' && action.requiresDeveloperCode) {
+          const code = window.prompt('أدخل رمز المطور لاعتماد وتنفيذ طلبك');
+          if (!code) return;
+          bodyData.developer_code = code;
+        }
 
         let resp;
         if (method === 'GET') {
@@ -251,6 +253,9 @@ export const UnifiedAssistantDrawer = () => {
           try {
             window.dispatchEvent(new CustomEvent('finance:updated', { detail: { source: 'card_action', action: action.id } }));
             window.dispatchEvent(new CustomEvent('runtime:changed', { detail: { source: 'card_action', action: action.id } }));
+            window.dispatchEvent(new CustomEvent('operations:updated', { detail: { source: 'card_action', action: action.id } }));
+            window.dispatchEvent(new CustomEvent('vehicles:updated', { detail: { source: 'card_action', action: action.id } }));
+            window.dispatchEvent(new CustomEvent('customers:updated', { detail: { source: 'card_action', action: action.id } }));
           } catch (e) { /* noop */ }
         } else {
           summary = `⚠️ ${resultData?.detail || resultData?.error || 'فشل تنفيذ العملية'}`;

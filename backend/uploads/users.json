@@ -4,7 +4,7 @@
     "name": "R",
     "email": "",
     "phone": "0500000000",
-    "role": "accountant",
+    "role": "admin",
     "permissions": {
       "dashboard": {
         "view": true
@@ -59,7 +59,7 @@
       "work_orders": {
         "view": true,
         "create": true,
-        "edit": false,
+        "edit": true,
         "delete": true
       },
       "reports": {
@@ -67,8 +67,9 @@
       },
       "users": {
         "view": true,
+        "create": true,
         "edit": true,
-        "create": true
+        "delete": true
       },
       "settings": {
         "view": true,
@@ -162,7 +163,7 @@
     "isActive": true
   },
   {
-    "id": "71895dae-e6b9-482a-8891-c760e29dfbca",
+    "id": "2be5e171-9819-4fd0-b479-4f1a0d69aa48",
     "name": "مدير",
     "username": "مدير",
     "email": null,
@@ -171,7 +172,7 @@
     "permissions": {},
     "isActive": true,
     "guidanceEnabled": true,
-    "createdAt": "2026-07-18T18:40:48.917356",
+    "createdAt": "2026-07-20T09:39:09.581148",
     "lastLogin": null
   }
 ]

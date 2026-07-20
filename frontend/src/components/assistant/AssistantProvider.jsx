@@ -354,7 +354,8 @@ function friendlyChatError(e) {
           data: { approval_id: d.approval?.approval_id, draft_id: d.draft?.id, status: 'pending', requester: proposer },
           actions: [
             { id: 'approve', label: '✓ اعتماد', intent: 'runtime',
-              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/approve`, method: 'POST' },
+              endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/approve`, method: 'POST',
+              requiresDeveloperCode: d.draft?.proposer === proposer && ['admin', 'manager', 'system_manager'].includes(String(JSON.parse(localStorage.getItem('user') || '{}')?.role || '').toLowerCase()) },
             { id: 'reject', label: '✗ رفض', intent: 'runtime',
               endpoint: `/api/runtime/approvals/${d.approval?.approval_id}/reject`, method: 'POST' },
           ],
@@ -381,7 +382,6 @@ function friendlyChatError(e) {
       if (rejected) {
         return await _answerViaChat(text);
       }
-      // eslint-disable-next-line no-console
       console.error('execute error:', e);
       setMessages((prev) => [...prev, {
         role: 'assistant',

@@ -90,14 +90,14 @@ async def _require_approver(request: Request) -> "rbac.Actor":
 @router.post("/drafts")
 async def runtime_create_draft(request: Request, payload: Dict[str, Any] = Body(...)):
     """Manually register a draft (for testing or non-power-mode flows)."""
-    await _require_approver(request)
+    actor = await _require_approver(request)
     action = (payload.get("action") or "").strip().lower()
     if action not in action_runtime.VALID_ACTIONS:
         raise HTTPException(status_code=400, detail=f"action must be one of {sorted(action_runtime.VALID_ACTIONS)}")
     draft = action_runtime.create_draft(
         action=action,
         payload=payload.get("payload") or {},
-        proposer=payload.get("proposer"),
+        proposer=actor.name or actor.id or payload.get("proposer"),
         session_id=payload.get("session_id"),
         trace_id=payload.get("trace_id"),
     )
@@ -125,9 +125,11 @@ async def runtime_get_draft(draft_id: str, request: Request):
 
 
 @router.post("/drafts/{draft_id}/request_approval")
-async def runtime_request_approval(draft_id: str, payload: Optional[Dict[str, Any]] = Body(default=None)):
+async def runtime_request_approval(draft_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
     payload = payload or {}
-    result = action_runtime.request_approval(draft_id=draft_id, requester=payload.get("requester"))
+    ident = rbac.extract_identity(request, payload)
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    result = action_runtime.request_approval(draft_id=draft_id, requester=actor.name or actor.id or payload.get("requester"))
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return {"success": True, "data": result}
@@ -252,7 +254,12 @@ async def runtime_approve(approval_id: str, request: Request, payload: Optional[
     rbac.require(rbac.can_approve(actor))
     # الهوية الحقيقية للمُعتمِد (بدون بادئة reviewer:) → الأربع أعين الصارم
     approver = actor.name or actor.id or "anonymous"
-    result = action_runtime.approve(approval_id=approval_id, approver=approver)
+    result = action_runtime.approve(
+        approval_id=approval_id,
+        approver=approver,
+        override_code=payload.get("developer_code") or payload.get("developerCode"),
+        override_role=actor.role,
+    )
     if "error" in result:
         # 4-eyes violation gets a 403, other errors 400
         code = 403 if result["error"] == "four_eyes_violation" else 400

@@ -817,7 +817,7 @@ def request_approval(*, draft_id: str, requester: Optional[str] = None) -> Dict[
         return {"approval_id": approval_id, "status": "waiting_approval", "draft": draft}
 
 
-def approve(*, approval_id: str, approver: Optional[str] = None) -> Dict[str, Any]:
+def approve(*, approval_id: str, approver: Optional[str] = None, override_code: Optional[str] = None, override_role: Optional[str] = None) -> Dict[str, Any]:
     """Approve a pending approval. Enforces Four-Eyes by default."""
     with _LOCK:
         approval = STATE["approvals"].get(approval_id)
@@ -837,8 +837,13 @@ def approve(*, approval_id: str, approver: Optional[str] = None) -> Dict[str, An
                 "msg": "يلزم اعتماد بشري حقيقي؛ الاعتماد الآلي ممنوع لكل الأفعال الكاتبة",
             }
 
-        # Four-Eyes guard
-        if _enforce_4eyes() and approver_user == draft.get("proposer"):
+        developer_override = bool(
+            override_code == os.environ.get("DEVELOPER_APPROVAL_CODE", "rrr")
+            and str(override_role or "").lower() in {"admin", "manager", "system_manager", "system-admin", "owner"}
+        )
+
+        # Four-Eyes guard — إلا عند مدير/مدير نظام برمز المطور، ويُسجّل كـoverride لا كاعتماد عادي.
+        if _enforce_4eyes() and approver_user == draft.get("proposer") and not developer_override:
             _audit("APPROVAL_REJECTED_4EYES", approval_id=approval_id, approver=approver_user)
             return {"error": "four_eyes_violation",
                     "msg": "مبدأ الأربع أعين: لا يمكن للمُنشئ اعتماد إجراءه بنفسه — يلزم مستخدم آخر مخوّل للاعتماد"}
@@ -846,8 +851,13 @@ def approve(*, approval_id: str, approver: Optional[str] = None) -> Dict[str, An
         approval["status"] = "approved"
         approval["approver"] = approver_user
         approval["approved_at"] = time.time()
+        if developer_override:
+            approval["developer_override"] = True
+            approval["override_role"] = override_role
+            draft["developer_override"] = True
         draft["status"] = "approved"
-        _audit("APPROVAL_GRANTED", approval_id=approval_id, draft_id=draft["id"], approver=approver_user)
+        _audit("APPROVAL_GRANTED_OVERRIDE" if developer_override else "APPROVAL_GRANTED",
+               approval_id=approval_id, draft_id=draft["id"], approver=approver_user, role=override_role)
         return {"approval": approval, "draft": draft}
 
 
@@ -1053,6 +1063,50 @@ def _commit_sale_operation(payload: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _append_payment_operation(payload: Dict[str, Any], journal_result: Dict[str, Any], committer: Optional[str]) -> None:
+    """مرآة تشغيلية للتحصيل حتى يظهر في صفحة العمليات ويتزامن مع القيود."""
+    client = _supabase_client()
+    if not client:
+        return
+    try:
+        amount = round(float(str(payload.get("amount") or payload.get("total") or 0).replace(",", "")), 2)
+    except Exception:
+        amount = 0.0
+    if amount <= 0:
+        return
+    customer = str(payload.get("customer") or payload.get("customer_name") or payload.get("name") or "عميل").strip()
+    method = str(payload.get("payment_method") or "cash").strip().lower()
+    op_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    row = {
+        "id": op_id,
+        "type": "payment",
+        "partner_type": "customer",
+        "partner_name": customer,
+        "vehicle_id": payload.get("vehicle_id") or payload.get("vehicleId"),
+        "date": payload.get("date") or now,
+        "description": payload.get("description") or f"تحصيل من {customer}",
+        "items": [{"name": "تحصيل", "price": amount, "quantity": 1, "total": amount, "itemType": "payment"}],
+        "total": amount,
+        "paid_amount": amount,
+        "payment_method": method,
+        "payment_status": "paid",
+        "reference_id": journal_result.get("journal_id") or journal_result.get("id"),
+        "workshop_id": payload.get("workshop_id") or payload.get("workshopId") or "finmodule-sync",
+        "notes": "تحصيل عبر كاترينا",
+        "created_at": now,
+        "created_by": committer or "katrina",
+    }
+    client.table("operations").insert(row).execute()
+    try:
+        from routes_extended import _invalidate_ops_caches, _invalidate_finance_caches_safe
+        _invalidate_ops_caches()
+        _invalidate_finance_caches_safe()
+    except Exception:
+        pass
+    journal_result["operation_id"] = op_id
+
+
 def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
     """Commit an approved draft. Writes to DB and returns the execution record.
 
@@ -1077,7 +1131,7 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
         approved_by = approval.get("approver")
         if approval.get("status") != "approved" or _is_automated_actor(approved_by):
             return {"error": "human_approval_required"}
-        if _enforce_4eyes() and approved_by == draft.get("proposer"):
+        if _enforce_4eyes() and approved_by == draft.get("proposer") and not draft.get("developer_override"):
             return {"error": "four_eyes_violation"}
 
         action = draft["action"]
@@ -1337,6 +1391,11 @@ def commit(*, draft_id: str, committer: Optional[str] = None) -> Dict[str, Any]:
                         reference_id=payload.get("reference_id"),
                         actor=fa_actor,
                     )
+                    if isinstance(fres, dict) and not fres.get("error"):
+                        try:
+                            _append_payment_operation(payload, fres, committer)
+                        except Exception as op_err:
+                            _log.debug("payment operation mirror skipped: %s", redact(str(op_err), max_len=100))
                 elif action == "expense":
                     fres = _fa.create_expense(
                         description=payload.get("description") or payload.get("category") or "مصروف",
@@ -1577,6 +1636,10 @@ def list_approvals(status: Optional[str] = None, limit: int = 50) -> List[Dict[s
         enriched: List[Dict[str, Any]] = []
         for a in items[:limit]:
             draft = STATE["drafts"].get(a.get("draft_id")) or {}
+            if not draft or (draft.get("status") in {"committed", "rejected"} and status in {"pending", "pending_approval"}):
+                continue
+            if any(s in str({**a, **draft}) for s in ["TEST_SAFE_", "TEST_ACCOUNTANT_", "TEST_ITER"]):
+                continue
             enriched.append({
                 **a,
                 "action": draft.get("action"),

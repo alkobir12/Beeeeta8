@@ -95,6 +95,13 @@ export function KatrinaApprovalsTab({ onCountChange }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
 
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}'); }
+    catch { return {}; }
+  })();
+  const currentName = currentUser?.name || currentUser?.username || '';
+  const currentRole = String(currentUser?.role || '').toLowerCase();
+
   const load = useCallback(async () => {
     setBusy(true);
     try {
@@ -121,14 +128,25 @@ export function KatrinaApprovalsTab({ onCountChange }) {
   }, [load]);
 
   const act = async (id, kind) => {
+    const row = rows.find((r) => r.id === id) || {};
     if (kind === 'approve') {
-      const ok = window.confirm('سيتم اعتماد هذه العملية وتنفيذها فوراً في السجلات. هل أنت متأكد؟\n\nملاحظة: لا يمكنك اعتماد طلبٍ اقترحتَه بنفسك (مبدأ الأربع أعين).');
+      const selfApproval = row?.proposer && String(row.proposer).trim() === String(currentName).trim();
+      const canDeveloperOverride = selfApproval && ['admin', 'manager', 'system_manager'].includes(currentRole);
+      let developerCode = null;
+      if (canDeveloperOverride) {
+        developerCode = window.prompt('هذا طلب أنشأته أنت. أدخل رمز المطور لاعتماده وتنفيذه:');
+        if (!developerCode) return;
+      }
+      const ok = window.confirm(canDeveloperOverride
+        ? 'سيتم تسجيل الاعتماد كـ Developer Override وتنفيذ العملية فوراً. هل أنت متأكد؟'
+        : 'سيتم اعتماد هذه العملية وتنفيذها فوراً في السجلات. هل أنت متأكد؟\n\nالمحاسب أو مدير آخر يستطيع الاعتماد إذا كان غير مُنشئ الطلب.');
       if (!ok) return;
+      row.__developerCode = developerCode;
     }
     setBusy(true); setMsg(null);
     try {
       if (kind === 'approve') {
-        await axios.post(`${RUNTIME_API}/approvals/${id}/approve`, {});
+        await axios.post(`${RUNTIME_API}/approvals/${id}/approve`, row.__developerCode ? { developer_code: row.__developerCode } : {});
         setMsg({ type: 'ok', text: '✅ اعتُمدت ونُفِّذت العملية' });
       } else {
         const reason = window.prompt('سبب الرفض (اختياري):') || '';
