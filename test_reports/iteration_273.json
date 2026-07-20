@@ -1,0 +1,73 @@
+{
+  "summary": "Retested preview print/PDF regression for vehicle visit flow. Backend document regression test remains green (3/3). Frontend still blocked by auth/CORS behavior and intermittent vehicle-details loading state, so visit-level print button/actions could not be fully validated end-to-end.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Preview login response still returns Access-Control-Allow-Origin: * without Access-Control-Allow-Credentials, causing browser credential/session instability in UI login flow.",
+        "priority": "HIGH"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "VehicleDetails",
+        "issue": "Target /vehicle/:id intermittently remains in loading state (e.g., \"جاري التحميل %10\") and required testids are not rendered in time.",
+        "selector": "[data-testid=\"vehicle-print-menu-button\"], [data-testid^=\"visit-card-\"]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Login",
+        "issue": "UI login with مدير/123123 submitted but remained on login page in browser test run.",
+        "selector": "[data-testid=\"login-submit-button\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Visit print button -> quick print preview -> print/download/WhatsApp",
+        "issue": "Could not complete because visit-level elements were not reliably rendered on target vehicle page during test window.",
+        "affected_selectors": [
+          "[data-testid^=\"visit-print-button-\"]",
+          "[data-testid=\"quick-print-preview\"]",
+          "[data-testid=\"quick-print-action-print\"]",
+          "[data-testid=\"quick-print-action-download-pdf\"]",
+          "[data-testid=\"quick-print-action-whatsapp\"]"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter272_vehicle_print_regression.py",
+    "/app/test_reports/pytest/iter273_vehicle_print_regression.xml",
+    "/root/.emergent/automation_output/20260720_220352/console_20260720_220352.log",
+    "/root/.emergent/automation_output/20260720_220458/console_20260720_220458.log",
+    "/root/.emergent/automation_output/20260720_220529/console_20260720_220529.log"
+  ],
+  "action_items": [
+    "Fix preview auth CORS/credentials behavior on /api/auth/login so browser login session is stable (explicit origin + allow-credentials).",
+    "Investigate VehicleDetails loading gate for target vehicle ff...05cd; ensure visit cards and visit-print-button-* render without expand in normal loaded state.",
+    "After loading/auth stabilization, rerun required visit quick-print action pack (preview <=20s, print/download/WhatsApp, and no duplicate standalone diagnosis control)."
+  ],
+  "critical_code_review_comments": [
+    "VehicleDetails.jsx remains very large/state-heavy; async loading dependencies appear brittle and can hide required controls behind prolonged loading state.",
+    "Auth path still shows preview-edge CORS mismatch symptoms in real browser despite successful raw API call, impacting deterministic UI testing."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_273.json"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3 for targeted regression suite)",
+    "frontend": "40% (auth/session and vehicle shell partially loaded; required visit print flow blocked)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Use manager creds from memory file. Backend document generation currently passes. Frontend retest should start from stabilized login/session and confirm target vehicle page exits loading state before asserting visit-print-button-* and quick-print actions.",
+  "rca of the issue": "Primary blocker is environment-level auth/session instability in browser (login request CORS credentials headers mismatch on preview) plus VehicleDetails async loading gate for target vehicle that sometimes stalls around loading 10%. When this happens, visit cards and visit print entry points are not rendered, preventing full visit-level print action validation even though backend /api/documents/generate endpoint itself passes regression tests.",
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123.",
+  "mocked_api": "NO MOCKED APIs used"
+}

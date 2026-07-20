@@ -1651,7 +1651,28 @@ const VisitCard = ({
           </div>
         </div>
 
-        <div className="shrink-0 pt-1" style={{ color: 'rgba(100,116,139,0.9)' }}>
+        <div className="shrink-0 pt-1 flex items-center gap-2" style={{ color: 'rgba(100,116,139,0.9)' }}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const st = (visit.status || '').toLowerCase();
+              const type = st === 'quotation' ? 'quote' : st === 'diagnosis' ? 'diagnosis' : 'invoice';
+              onOpenQuickPrintDialog?.({ type, visitId: visit.id });
+            }}
+            className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
+            style={{
+              background: 'rgba(255,255,255,0.86)',
+              border: '1px solid rgba(203,213,225,0.9)',
+              color: 'rgba(15,23,42,0.92)',
+            }}
+            title="طباعة هذه الزيارة"
+            data-testid={`visit-print-button-${visit.id}`}
+          >
+            <Printer size={14} />
+            <span className="hidden sm:inline">طباعة</span>
+          </button>
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
       </button>
@@ -2139,7 +2160,7 @@ const VisitCard = ({
                 color: 'rgba(15,23,42,0.92)',
               }}
               title="طباعة هذه الزيارة"
-              data-testid={`visit-print-button-${visit.id}`}
+              data-testid={`visit-print-button-expanded-${visit.id}`}
             >
               <Printer size={14} /> طباعة الزيارة
             </button>
