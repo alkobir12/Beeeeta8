@@ -2402,6 +2402,7 @@ const VehicleDetails = () => {
     };
     const visit = visitId ? visits.find((v) => v.id === visitId) : visits[0];
     setPrintDialogConfig({
+      key: `${type}-${visit?.id || 'vehicle'}-${Date.now()}`,
       title: labelMap[type] || 'طباعة مستند',
       phone: vehicle?.customerPhone || vehicle?.ownerPhone || '',
       payloadBuilder: () => buildVisitPayload(type, visit),
@@ -4584,6 +4585,7 @@ const VehicleDetails = () => {
       />
 
       <QuickPrintDialog
+        key={printDialogConfig?.key || 'quick-print'}
         open={printDialogOpen}
         title={printDialogConfig?.title || 'خيارات الطباعة'}
         description="معاينة تفاصيل الزيارة قبل الطباعة أو الإرسال"

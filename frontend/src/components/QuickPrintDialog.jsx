@@ -18,6 +18,7 @@ const QuickPrintDialog = ({
   const [phone, setPhone] = useState(initialPhone || '');
   const iframeRef = useRef(null);
   const payloadBuilderRef = useRef(payloadBuilder);
+  const generationStartedRef = useRef(false);
 
   useEffect(() => {
     payloadBuilderRef.current = payloadBuilder;
@@ -36,6 +37,7 @@ const QuickPrintDialog = ({
     if (open) {
       setPhone(initialPhone || '');
     } else {
+      generationStartedRef.current = false;
       setLoading(false);
       setHtml('');
       setError('');
@@ -51,9 +53,13 @@ const QuickPrintDialog = ({
     });
   }, []);
 
-  const generateHtml = useCallback(async () => {
-    const currentPayloadBuilder = payloadBuilderRef.current;
-    if (!currentPayloadBuilder) return '';
+  const generateHtml = useCallback(async (builderOverride = null) => {
+    const currentPayloadBuilder = builderOverride || payloadBuilderRef.current;
+    if (!currentPayloadBuilder) {
+      setLoading(false);
+      setError('بيانات الطباعة غير جاهزة — أعد فتح المستند');
+      return '';
+    }
     setLoading(true);
     setError('');
     try {
@@ -86,10 +92,15 @@ const QuickPrintDialog = ({
   }, [loadWorkshop, runWithTimeout]);
 
   useEffect(() => {
-    if (!open || !payloadBuilder) return;
+    if (!open || generationStartedRef.current) return;
     let isActive = true;
+    generationStartedRef.current = true;
+    setHtml('');
+    setError('');
+    setLoading(true);
     (async () => {
-      const nextHtml = await generateHtml();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const nextHtml = await generateHtml(payloadBuilderRef.current || payloadBuilder);
       if (!isActive) return;
       if (nextHtml) {
         setHtml(nextHtml);
