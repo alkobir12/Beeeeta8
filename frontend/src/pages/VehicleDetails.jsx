@@ -2305,6 +2305,7 @@ const VehicleDetails = () => {
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [printDialogConfig, setPrintDialogConfig] = useState(null);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const lastHeaderPrintPressRef = useRef(0);
 
   const extractVisitItems = (visit) => {
     if (!visit) return [];
@@ -2415,6 +2416,15 @@ const VehicleDetails = () => {
     const vid = active?.id;
     openQuickPrintDialog({ type, visitId: vid });
     window.setTimeout(() => setPrintMenuOpen(false), 80);
+  };
+
+  const handleHeaderPrintPress = (event, type) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const now = Date.now();
+    if (now - lastHeaderPrintPressRef.current < 250) return;
+    lastHeaderPrintPressRef.current = now;
+    openHeaderPrintDialog(type);
   };
 
   useEffect(() => {
@@ -4258,8 +4268,10 @@ const VehicleDetails = () => {
                 <button
                   type="button"
                   onMouseDown={(event) => {
-                    event.preventDefault();
-                    openHeaderPrintDialog('invoice');
+                    handleHeaderPrintPress(event, 'invoice');
+                  }}
+                  onClick={(event) => {
+                    handleHeaderPrintPress(event, 'invoice');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{ color: 'rgba(15,23,42,0.9)' }}
@@ -4271,8 +4283,10 @@ const VehicleDetails = () => {
                 <button
                   type="button"
                   onMouseDown={(event) => {
-                    event.preventDefault();
-                    openHeaderPrintDialog('quote');
+                    handleHeaderPrintPress(event, 'quote');
+                  }}
+                  onClick={(event) => {
+                    handleHeaderPrintPress(event, 'quote');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{
@@ -4287,8 +4301,10 @@ const VehicleDetails = () => {
                 <button
                   type="button"
                   onMouseDown={(event) => {
-                    event.preventDefault();
-                    openHeaderPrintDialog('diagnosis');
+                    handleHeaderPrintPress(event, 'diagnosis');
+                  }}
+                  onClick={(event) => {
+                    handleHeaderPrintPress(event, 'diagnosis');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{
