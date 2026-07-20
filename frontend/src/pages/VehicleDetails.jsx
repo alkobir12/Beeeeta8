@@ -4245,9 +4245,10 @@ const VehicleDetails = () => {
                 <span className="hidden sm:inline">طباعة / PDF</span>
               </button>
               {/* Dropdown Menu */}
+              {printMenuOpen && (
               <div
                 id="vehicle-print-menu"
-                className={`absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl overflow-hidden z-50 ${printMenuOpen ? 'block' : 'hidden'}`}
+                className="absolute top-full left-0 mt-2 w-48 rounded-xl shadow-xl overflow-hidden z-50"
                 style={{
                   background: 'rgba(255,255,255,0.98)',
                   border: '1px solid rgba(203,213,225,0.8)',
@@ -4256,7 +4257,8 @@ const VehicleDetails = () => {
               >
                 <button
                   type="button"
-                  onClick={() => {
+                  onMouseDown={(event) => {
+                    event.preventDefault();
                     openHeaderPrintDialog('invoice');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
@@ -4268,7 +4270,8 @@ const VehicleDetails = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onMouseDown={(event) => {
+                    event.preventDefault();
                     openHeaderPrintDialog('quote');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
@@ -4283,7 +4286,8 @@ const VehicleDetails = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onMouseDown={(event) => {
+                    event.preventDefault();
                     openHeaderPrintDialog('diagnosis');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
@@ -4297,6 +4301,7 @@ const VehicleDetails = () => {
                   تقرير تشخيص
                 </button>
               </div>
+              )}
             </div>
           </div>
         </div>
