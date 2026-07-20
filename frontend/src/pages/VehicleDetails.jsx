@@ -1567,10 +1567,17 @@ const VisitCard = ({
       }}
     >
       {/* Header */}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className="w-full text-right px-4 py-4 flex items-start justify-between gap-3"
         onClick={() => setIsExpanded((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setIsExpanded((v) => !v);
+          }
+        }}
         data-testid={`visit-card-toggle-${visit.id}`}
         style={{ background: 'transparent' }}
       >
@@ -1675,7 +1682,7 @@ const VisitCard = ({
           </button>
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
-      </button>
+      </div>
 
       {/* Expanded Content */}
       {isExpanded && (
@@ -2325,6 +2332,7 @@ const VehicleDetails = () => {
   const [technicians, setTechnicians] = useState([]);
   const [printDialogConfig, setPrintDialogConfig] = useState(null);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const extractVisitItems = (visit) => {
     if (!visit) return [];
@@ -2710,7 +2718,7 @@ const VehicleDetails = () => {
 
       const vehiclePromise = withTimeout(vehicleAPI.getById(id), null).then((r) => {
         setLoadingProgress(40);
-        if (!r) throw new Error('vehicle_timeout');
+        if (!r) return { data: null, timedOut: true };
         return r;
       });
       const techPromise = withTimeout(technicianAPI.getAll(), { data: [] }).then((r) => {
@@ -2732,6 +2740,14 @@ const VehicleDetails = () => {
         visitsPromise,
       ]);
       
+      if (!vehicleRes?.data) {
+        setLoadError('تعذر تحميل بيانات المركبة حالياً. حاول إعادة فتح الصفحة.');
+        setLoadingProgress(100);
+        return;
+      }
+
+      setLoadError('');
+
       setVehicle(vehicleRes.data);
       setStatus(vehicleRes.data.status || 'diagnosis');
       setNotes(vehicleRes.data.notes || '');
@@ -3268,7 +3284,7 @@ const VehicleDetails = () => {
   }
   if (!vehicle) return (
     <div className="text-center py-20" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid="vehicle-not-found">
-      المركبة غير موجودة
+      {loadError || 'المركبة غير موجودة'}
     </div>
   );
 
