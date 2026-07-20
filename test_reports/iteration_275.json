@@ -1,0 +1,57 @@
+{
+  "summary": "Frontend-only targeted retest for vehicle quick print blocker completed. Newly added top-level visit-print-button is now rendered and functional; visit quick preview, print, download PDF, WhatsApp click actions, and header invoice/quote/diagnosis menu all worked. Remaining issue: VehicleDetails emits console errors/warnings during visit print flow.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "VehicleDetails visit quick print",
+        "issue": "Console error appears during visit print flow: `Error: vehicle_timeout` from VehicleDetails chunk. Requirement \"No QuickPrintDialog/VehicleDetails console errors\" is not fully met.",
+        "affected_selectors": [
+          "[data-testid^='visit-print-button-']",
+          "[data-testid='quick-print-preview']"
+        ]
+      },
+      {
+        "flow": "Visit card rendering",
+        "issue": "React warning `validateDOMNesting(...): <button> cannot appear as a descendant of <button>` emitted from VisitCard/VehicleDetails.",
+        "affected_selectors": [
+          "[data-testid^='visit-card-toggle-']",
+          "[data-testid^='visit-print-button-']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/frontend/src/pages/VehicleDetails.jsx",
+    "/app/frontend/src/components/QuickPrintDialog.jsx",
+    "/root/.emergent/automation_output/20260720_221417/console_20260720_221417.log"
+  ],
+  "action_items": [
+    "Investigate and fix `vehicle_timeout` source in VehicleDetails async loading path triggered around visit print open.",
+    "Fix nested button structure in VisitCard (header toggle button contains inner print button) to remove DOM nesting warning.",
+    "Re-run this exact preview retest and confirm zero QuickPrintDialog/VehicleDetails console errors."
+  ],
+  "critical_code_review_comments": [
+    "VehicleDetails.jsx is very large and has coupled async/state paths; non-blocking fetch timeout currently leaks as console error during otherwise successful print workflow.",
+    "Visit card markup has invalid interactive nesting (<button> inside <button>), causing React warning and potential accessibility/input inconsistencies."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_275.json"
+  ],
+  "success_rate": {
+    "backend": "N/A (frontend-only scope)",
+    "frontend": "92% (all requested functional checks passed except console-cleanliness requirement)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Use manager PIN login (مدير/123123), open /vehicle/ffcf800c-d1bb-40df-8df3-effa59bc05cd, click first [data-testid^='visit-print-button-']; quick preview resolves with workshop identity values and /api/documents/generate returns 200. Focus next run on removing VehicleDetails console error and validateDOMNesting warning.",
+  "rca of the issue": "RCA-1: `vehicle_timeout` appears to originate from VehicleDetails Promise-based fetch path (chunk lines near async Promise.all), likely a timeout guard for non-critical data that still logs as error during print interaction. Repro: open target vehicle page, click visit-print-button, observe console. Mitigation: downgrade non-critical timeout to warn/debug or gate it from user-triggered print path. RCA-2: DOM nesting warning root cause is structural: visit card header uses button wrapper (`visit-card-toggle-*`) while containing another button (`visit-print-button-*`), violating HTML interactive-content nesting rules. Mitigation: change outer wrapper to div with role/button keyboard handlers, or move inner print trigger outside toggle button.",
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123.",
+  "mocked_api": "NO MOCKED APIs used"
+}

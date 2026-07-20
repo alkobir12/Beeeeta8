@@ -2443,6 +2443,16 @@ const VehicleDetails = () => {
     openHeaderPrintDialog(type);
   };
 
+  const openLatestVisitPrintDialog = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const visit = visits.find(v => (v.status || '').toLowerCase() === 'in_progress') || filteredVisits[0] || visits[0];
+    if (!visit) return;
+    const st = (visit.status || '').toLowerCase();
+    const type = st === 'quotation' ? 'quote' : st === 'diagnosis' ? 'diagnosis' : 'invoice';
+    openQuickPrintDialog({ type, visitId: visit.id });
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -4277,6 +4287,23 @@ const VehicleDetails = () => {
                 <span className="hidden sm:inline">طباعة / PDF</span>
               </button>
             </div>
+            {visits.length > 0 && (
+              <button
+                type="button"
+                onClick={openLatestVisitPrintDialog}
+                className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
+                style={{
+                  background: 'rgba(255,255,255,0.82)',
+                  border: '1px solid rgba(203,213,225,0.9)',
+                  color: 'rgba(15,23,42,0.92)',
+                }}
+                data-testid={`visit-print-button-${visits[0]?.id || 'latest'}`}
+                title="طباعة آخر/الزيارة النشطة"
+              >
+                <Printer size={16} />
+                <span className="hidden sm:inline">طباعة الزيارة</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
