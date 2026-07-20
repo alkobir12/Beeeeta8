@@ -2410,6 +2410,13 @@ const VehicleDetails = () => {
     setPrintDialogOpen(true);
   };
 
+  const openHeaderPrintDialog = (type) => {
+    const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
+    const vid = active?.id;
+    openQuickPrintDialog({ type, visitId: vid });
+    window.setTimeout(() => setPrintMenuOpen(false), 80);
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -4248,11 +4255,9 @@ const VehicleDetails = () => {
                 data-testid="vehicle-print-menu"
               >
                 <button
+                  type="button"
                   onClick={() => {
-                    const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
-                    const vid = active?.id;
-                    setPrintMenuOpen(false);
-                    openQuickPrintDialog({ type: 'invoice', visitId: vid });
+                    openHeaderPrintDialog('invoice');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{ color: 'rgba(15,23,42,0.9)' }}
@@ -4262,11 +4267,9 @@ const VehicleDetails = () => {
                   فاتورة مبيعات
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
-                    const vid = active?.id;
-                    setPrintMenuOpen(false);
-                    openQuickPrintDialog({ type: 'quote', visitId: vid });
+                    openHeaderPrintDialog('quote');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{
@@ -4279,11 +4282,9 @@ const VehicleDetails = () => {
                   عرض سعر
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
-                    const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
-                    const vid = active?.id;
-                    setPrintMenuOpen(false);
-                    openQuickPrintDialog({ type: 'diagnosis', visitId: vid });
+                    openHeaderPrintDialog('diagnosis');
                   }}
                   className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
                   style={{
