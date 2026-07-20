@@ -4237,6 +4237,20 @@ const VehicleDetails = () => {
           </div>
 
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={(event) => handleHeaderPrintPress(event, 'diagnosis')}
+              className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
+              style={{
+                background: 'rgba(253,230,138,0.28)',
+                border: '1px solid rgba(245,158,11,0.35)',
+                color: 'rgba(120,53,15,0.95)',
+              }}
+              data-testid="vehicle-print-diagnosis"
+            >
+              <ClipboardList size={16} />
+              <span className="hidden sm:inline">تقرير تشخيص</span>
+            </button>
             <div className="relative">
               <button
                 type="button"
@@ -4297,24 +4311,6 @@ const VehicleDetails = () => {
                 >
                   <FileCheck size={16} style={{ color: 'rgba(3,105,161,0.95)' }} />
                   عرض سعر
-                </button>
-                <button
-                  type="button"
-                  onMouseDown={(event) => {
-                    handleHeaderPrintPress(event, 'diagnosis');
-                  }}
-                  onClick={(event) => {
-                    handleHeaderPrintPress(event, 'diagnosis');
-                  }}
-                  className="w-full text-right px-4 py-3 flex items-center gap-2 text-sm transition-colors"
-                  style={{
-                    borderTop: '1px solid rgba(203,213,225,0.8)',
-                    color: 'rgba(15,23,42,0.9)',
-                  }}
-                  data-testid="vehicle-print-diagnosis"
-                >
-                  <ClipboardList size={16} style={{ color: 'rgba(253,230,138,0.95)' }} />
-                  تقرير تشخيص
                 </button>
               </div>
               )}
