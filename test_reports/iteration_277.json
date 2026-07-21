@@ -1,0 +1,57 @@
+{
+  "summary": "Executed both backend and frontend regression for new /print DocumentPrint flow on preview URL. Core print workflows passed (document types, edit/totals, add/remove items, PDF download, WhatsApp behaviors, and /api/documents/generate=200), with one backend security mismatch detected on CORS header behavior.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Credentialed auth response returned Access-Control-Allow-Origin='*' in preview request with Origin header. This violates explicit-origin requirement for credentialed auth responses.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Initial login bootstrap",
+        "issue": "Console showed 2x 401 resource errors before session establishment. DocumentPrint/pdfGenerator-specific runtime errors were not observed.",
+        "affected_selectors": [
+          "[data-testid='login-username-input']",
+          "[data-testid='document-print-page']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_document_print_iter277.py",
+    "/app/test_reports/pytest/iter277_document_print.xml",
+    "/root/.emergent/automation_output/20260721_223828/console_20260721_223828.log",
+    "/app/frontend/src/pages/DocumentPrint.jsx",
+    "/app/frontend/src/utils/pdfGenerator.js"
+  ],
+  "action_items": [
+    "Investigate wildcard ACAO ('*') returned on credentialed auth response path in preview ingress/backend chain.",
+    "Keep monitoring bootstrap 401 console noise; not blocking print flow but still visible in runtime logs."
+  ],
+  "critical_code_review_comments": [
+    "DocumentPrint and pdfGenerator are integration-ready for requested scope; all critical interactions are wired with stable data-testid selectors and passed E2E.",
+    "Security/CORS behavior appears inconsistent with backend explicit-origin middleware expectation; likely ingress/header layer override or response-path mismatch."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_document_print_iter277.py",
+    "/app/test_reports/iteration_277.json"
+  ],
+  "success_rate": {
+    "backend": "86% (6/7 tests passed)",
+    "frontend": "100% for requested DocumentPrint functional flows"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Used credentials from /app/memory/test_credentials.md (مدير / 123123). Verified /print?type=invoice with vehicleId works, document-sheet/electronic seal present, type switching invoice/diagnosis/quote/receipt works, totals recalc and remaining update correctly, add/remove item works, PDF downloads, WhatsApp shows missing-phone message then opens wa.me after PDF when phone exists, and /api/documents/generate returns 200 for all 4 doc types. Remaining backend failure: auth login CORS explicit-origin test returned '*' in response header.",
+  "rca of the issue": "RCA: test_documents_generate path is healthy; failure is isolated to CORS credentialed response behavior in auth path. Reproduction: POST /api/auth/login with Origin set to allowed domain -> status 200 but Access-Control-Allow-Origin='*'. Potential mitigation: enforce explicit origin rewrite at final response layer (including ingress/proxy) and block wildcard when credentials are enabled.",
+  "test_credentials": "Read from /app/memory/test_credentials.md; used مدير / PIN 123123.",
+  "mocked_api": "NO MOCKED APIs used"
+}

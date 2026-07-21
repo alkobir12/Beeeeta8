@@ -17,8 +17,23 @@ export const downloadPDF = async (
   const backgroundColor = options.backgroundColor ?? '#ffffff';
 
   try {
-    // Ensure layout is stable before snapshot.
-    await new Promise((r) => setTimeout(r, 20));
+    // Ensure layout, web fonts, and embedded images are stable before snapshot.
+    if (document?.fonts?.ready) {
+      await document.fonts.ready.catch(() => null);
+    }
+    const images = Array.from(element.querySelectorAll('img'));
+    await Promise.all(images.map((img) => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+    }));
+    await new Promise((r) => setTimeout(r, 60));
+
+    const rect = element.getBoundingClientRect();
+    const width = Math.ceil(element.scrollWidth || rect.width || 794);
+    const height = Math.ceil(element.scrollHeight || rect.height || 1123);
 
     const canvas = await html2canvas(element, {
       scale,
@@ -26,9 +41,21 @@ export const downloadPDF = async (
       allowTaint: true,
       logging: false,
       backgroundColor,
-      windowWidth: 794,
-      width: element.scrollWidth || 794,
-      height: element.scrollHeight || element.clientHeight,
+      width,
+      height,
+      windowWidth: Math.max(width, 794),
+      windowHeight: Math.max(height, 1123),
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (clonedDocument) => {
+        const style = clonedDocument.createElement('style');
+        style.textContent = `
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { margin: 0 !important; background: ${backgroundColor} !important; }
+          img { max-width: 100%; }
+        `;
+        clonedDocument.head.appendChild(style);
+      },
     });
 
     const pdf = new jsPDF('p', 'mm', format);

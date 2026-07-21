@@ -1,6 +1,26 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Download, Eye, FileText, Maximize2, Minus, Plus, Printer, RefreshCw, Share2, Settings, ShieldCheck, X } from 'lucide-react';
+import {
+  BadgeCheck,
+  CalendarDays,
+  Car,
+  CheckCircle2,
+  CircleDollarSign,
+  Download,
+  Eye,
+  FileText,
+  Maximize2,
+  Minus,
+  Phone,
+  Plus,
+  Printer,
+  RefreshCw,
+  Share2,
+  ShieldCheck,
+  Trash2,
+  UserRound,
+  Wrench,
+} from 'lucide-react';
 import { api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { getWhatsAppLink } from '../utils/constants';
@@ -8,28 +28,50 @@ import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 
 const SAR = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 const today = () => new Date().toISOString().slice(0, 10);
-const docLabels = { invoice: 'فاتورة إصلاح مركبة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'طباعة زيارة' };
-
+const docLabels = {
+  invoice: 'فاتورة الورشة — ختم إلكتروني',
+  diagnosis: 'تقرير تشخيص إلكتروني',
+  quote: 'عرض سعر مختوم',
+  receipt: 'سند زيارة مختوم',
+};
+const statusLabels = {
+  draft: 'مسودة',
+  unpaid: 'غير مدفوعة',
+  partial: 'مدفوعة جزئياً',
+  paid: 'مدفوعة',
+  deferred: 'آجلة',
+};
 const emptyItem = { description: '', quantity: 1, unit_price: 0, discount: 0, vatRate: 0, type: 'service' };
 
+const safeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 const normalizeItem = (item = {}) => {
-  const quantity = Number(item.quantity || item.qty || 1);
-  const unit = Number(item.unit_price || item.price || item.amount || 0);
-  const discount = Number(item.discount || 0);
+  const quantity = safeNumber(item.quantity || item.qty || 1, 1);
+  const unit = safeNumber(item.unit_price || item.price || item.amount || item.total || 0);
   return {
-    description: item.description || item.name || item.serviceName || 'بند',
+    description: item.description || item.name || item.serviceName || item.title || 'بند ورشة',
     quantity,
     unit_price: unit,
-    discount,
-    vatRate: Number(item.vatRate || item.tax_rate || 0),
+    discount: safeNumber(item.discount || 0),
+    vatRate: safeNumber(item.vatRate || item.tax_rate || item.vat || 0),
     type: item.type || item.itemType || 'service',
   };
 };
 
-const getResponseRows = (data, keys = []) => {
+const getRows = (data, keys = []) => {
   if (Array.isArray(data)) return data;
   for (const key of keys) if (Array.isArray(data?.[key])) return data[key];
   return [];
+};
+
+const buildSealCode = (number, date) => {
+  const seed = `${number || 'INV'}-${date || today()}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+  return `ES-${Math.abs(hash).toString(16).slice(0, 8).toUpperCase()}`;
 };
 
 export default function DocumentPrint() {
@@ -43,102 +85,180 @@ export default function DocumentPrint() {
   const previewRef = useRef(null);
   const autoActionRef = useRef(false);
 
-  const [zoom, setZoom] = useState(0.72);
-  const [modePreview, setModePreview] = useState(true);
+  const [zoom, setZoom] = useState(0.76);
+  const [showPreview, setShowPreview] = useState(true);
   const [loading, setLoading] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [saveState, setSaveState] = useState('جاهز');
+  const [alertMessage, setAlertMessage] = useState('');
   const [docType, setDocType] = useState(searchParams.get('type') || 'invoice');
   const [formData, setFormData] = useState({
-    workshop: { name: '', name_en: '', phone: '', email: '', address: '', tax_number: '', commercial_register: '', website: '', logo: '', tagline: 'ميكانيكا عامة — كهرباء — سمكرة ودهان — فحص كمبيوتر' },
+    workshop: {
+      name: 'ورشة داش برو لصيانة السيارات',
+      name_en: 'Dash Pro Auto Care',
+      phone: '',
+      email: '',
+      address: '',
+      tax_number: '',
+      commercial_register: '',
+      website: '',
+      logo: '',
+      tagline: 'ميكانيكا عامة · كهرباء · برمجة · فحص كمبيوتر',
+    },
     customer: { name: '', phone: '', email: '', address: '', taxNo: '' },
     vehicle: { brand: '', model: '', year: '', plateNumber: '', vin: '', color: '', mileage: '', notes: '' },
     items: [emptyItem],
-    settings: { document_number: `INV-${new Date().toISOString().slice(2,10).replace(/-/g,'')}-${Math.floor(100 + Math.random() * 900)}`, date: today(), receivedTime: '09:00', status: 'draft', notes: '', warranty: 'ضمان الإصلاح 30 يوماً أو 1,000 كم من تاريخ التسليم، ولا يشمل سوء الاستخدام.', approval_token: '' },
+    settings: {
+      document_number: `INV-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`,
+      date: today(),
+      receivedTime: '09:00',
+      status: 'draft',
+      notes: '',
+      warranty: 'ضمان الإصلاح 30 يوماً أو 1,000 كم من تاريخ التسليم، ولا يشمل سوء الاستخدام أو القطع المستعملة.',
+    },
     payment: { method: 'cash', paid: 0 },
   });
 
   const totals = useMemo(() => {
-    const rows = (formData.items || []).filter((item) => item.description).map((item) => {
-      const subtotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
-      const discount = Number(item.discount || 0);
+    const rows = (formData.items || []).filter((item) => item.description || Number(item.unit_price) > 0).map((item) => {
+      const subtotal = safeNumber(item.quantity) * safeNumber(item.unit_price);
+      const discount = safeNumber(item.discount);
       const afterDiscount = Math.max(subtotal - discount, 0);
-      const tax = Math.round(afterDiscount * Number(item.vatRate || 0)) / 100;
+      const tax = Math.round(afterDiscount * safeNumber(item.vatRate)) / 100;
       return { ...item, subtotal, discount, tax, total: afterDiscount + tax };
     });
     const subtotal = rows.reduce((sum, item) => sum + item.subtotal, 0);
     const discount = rows.reduce((sum, item) => sum + item.discount, 0);
     const tax = rows.reduce((sum, item) => sum + item.tax, 0);
     const total = rows.reduce((sum, item) => sum + item.total, 0);
-    const paid = Number(formData.payment?.paid || 0);
+    const paid = safeNumber(formData.payment?.paid);
     return { rows, subtotal, discount, tax, total, paid, remain: total - paid };
   }, [formData.items, formData.payment?.paid]);
 
+  const sealCode = useMemo(() => buildSealCode(formData.settings.document_number, formData.settings.date), [formData.settings.date, formData.settings.document_number]);
+
   const patchForm = useCallback((patch) => setFormData((prev) => ({ ...prev, ...patch })), []);
-  const patchNested = useCallback((section, key, value) => setFormData((prev) => ({ ...prev, [section]: { ...prev[section], [key]: value } })), []);
+  const patchNested = useCallback((section, key, value) => {
+    setFormData((prev) => ({ ...prev, [section]: { ...prev[section], [key]: value } }));
+  }, []);
 
   const loadWorkshop = useCallback(async () => {
     const ws = await loadWorkshopPrintInfo(async (path) => {
       const response = await api.get(path);
       return { ok: true, json: async () => response.data };
     });
-    patchForm({ workshop: { ...formData.workshop, ...ws, tagline: ws.slogan || ws.tagline || formData.workshop.tagline } });
-  }, [formData.workshop, patchForm]);
+    setFormData((prev) => ({
+      ...prev,
+      workshop: {
+        ...prev.workshop,
+        ...ws,
+        tagline: ws.slogan || ws.tagline || prev.workshop.tagline,
+      },
+    }));
+  }, []);
 
   const loadCustomer = useCallback(async (customerId) => {
     if (!customerId) return;
     try {
       const response = await api.get('/customers');
-      const rows = getResponseRows(response.data, ['customers', 'data']);
+      const rows = getRows(response.data, ['customers', 'data']);
       const match = rows.find((c) => c.id === customerId || c.customerId === customerId);
-      if (match) patchForm({ customer: { name: match.name || '', phone: match.phone || '', email: match.email || '', address: match.address || match.company || '', taxNo: match.taxNo || match.tax_number || '' } });
-    } catch (_) {}
-  }, [patchForm]);
+      if (!match) return;
+      setFormData((prev) => ({
+        ...prev,
+        customer: {
+          ...prev.customer,
+          name: match.name || prev.customer.name,
+          phone: match.phone || prev.customer.phone,
+          email: match.email || prev.customer.email,
+          address: match.address || match.company || prev.customer.address,
+          taxNo: match.taxNo || match.tax_number || prev.customer.taxNo,
+        },
+      }));
+    } catch (e) {
+      setAlertMessage('تعذر جلب بيانات العميل، يمكنك إكمالها يدوياً.');
+    }
+  }, []);
 
   const loadVehicle = useCallback(async (id, preserveItems = false) => {
     if (!id) return;
     try {
       const { data } = await api.get(`/vehicles/${id}`);
       if (!data) return;
-      patchForm({
-        customer: { ...formData.customer, name: data.customerName || data.customer_name || formData.customer.name, phone: data.customerPhone || data.customer_phone || formData.customer.phone },
-        vehicle: { brand: data.brand || data.vehicleBrand || '', model: data.model || data.vehicleModel || '', year: data.year || data.vehicleYear || '', plateNumber: data.plateNumber || data.plate || '', vin: data.vin || data.chassisNumber || '', color: data.color || '', mileage: data.mileage || '', notes: data.notes || '' },
-        items: preserveItems ? formData.items : (Array.isArray(data.parts) && data.parts.length ? data.parts.map(normalizeItem) : formData.items),
-      });
-      if (data.customerId || data.customer_id) loadCustomer(data.customerId || data.customer_id);
-    } catch (_) {}
-  }, [formData.customer, formData.items, loadCustomer, patchForm]);
+      setFormData((prev) => ({
+        ...prev,
+        customer: {
+          ...prev.customer,
+          name: data.customerName || data.customer_name || prev.customer.name,
+          phone: data.customerPhone || data.customer_phone || prev.customer.phone,
+        },
+        vehicle: {
+          ...prev.vehicle,
+          brand: data.brand || data.vehicleBrand || prev.vehicle.brand,
+          model: data.model || data.vehicleModel || prev.vehicle.model,
+          year: data.year || data.vehicleYear || prev.vehicle.year,
+          plateNumber: data.plateNumber || data.plate || prev.vehicle.plateNumber,
+          vin: data.vin || data.chassisNumber || prev.vehicle.vin,
+          color: data.color || prev.vehicle.color,
+          mileage: data.mileage || prev.vehicle.mileage,
+          notes: data.notes || prev.vehicle.notes,
+        },
+        items: preserveItems ? prev.items : (Array.isArray(data.parts) && data.parts.length ? data.parts.map(normalizeItem) : prev.items),
+      }));
+      if (data.customerId || data.customer_id) await loadCustomer(data.customerId || data.customer_id);
+    } catch (e) {
+      setAlertMessage('تعذر جلب بيانات المركبة، يمكنك إكمالها يدوياً.');
+    }
+  }, [loadCustomer]);
 
   const loadVisit = useCallback(async () => {
     if (!visitId) return;
     try {
       const opsResponse = await api.get(`/visits/${visitId}/operations`).catch(() => ({ data: [] }));
-      const ops = getResponseRows(opsResponse.data, ['operations', 'data']);
+      const ops = getRows(opsResponse.data, ['operations', 'data']);
       if (ops.length) {
         const op = ops[0];
         const items = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
-        patchForm({
-          items: items.length ? items.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'زيارة ورشة', price: op.total || 0 })],
-          customer: { ...formData.customer, name: op.customerName || op.customer_name || op.partnerName || formData.customer.name, phone: op.customerPhone || op.customer_phone || formData.customer.phone },
-          settings: { ...formData.settings, document_number: op.invoiceNumber || op.invoice_number || formData.settings.document_number, date: String(op.date || op.createdAt || today()).slice(0, 10), notes: op.notes || formData.settings.notes },
-        });
+        setFormData((prev) => ({
+          ...prev,
+          items: items.length ? items.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'زيارة ورشة', price: op.total || op.amount || 0 })],
+          customer: {
+            ...prev.customer,
+            name: op.customerName || op.customer_name || op.partnerName || prev.customer.name,
+            phone: op.customerPhone || op.customer_phone || prev.customer.phone,
+          },
+          settings: {
+            ...prev.settings,
+            document_number: op.invoiceNumber || op.invoice_number || prev.settings.document_number,
+            date: String(op.date || op.createdAt || today()).slice(0, 10),
+            notes: op.notes || prev.settings.notes,
+          },
+        }));
         return;
       }
       if (!vehicleId) return;
       const visitsResponse = await api.get(`/vehicles/${vehicleId}/visits`).catch(() => ({ data: [] }));
-      const visits = getResponseRows(visitsResponse.data, ['visits', 'data']);
+      const visits = getRows(visitsResponse.data, ['visits', 'data']);
       const visit = visits.find((v) => v.id === visitId || v.visitId === visitId);
       if (!visit) return;
       let parsed = [];
       if (String(visit.notes || '').trim().startsWith('{')) {
-        try { parsed = JSON.parse(visit.notes).items || []; } catch (_) { parsed = []; }
+        try { parsed = JSON.parse(visit.notes).items || []; } catch (e) { parsed = []; }
       }
-      patchForm({
+      setFormData((prev) => ({
+        ...prev,
         items: parsed.length ? parsed.map(normalizeItem) : [normalizeItem({ description: docType === 'diagnosis' ? 'تقرير تشخيص' : 'زيارة ورشة', price: visit.total_workshop || visit.total || 0 })],
-        settings: { ...formData.settings, document_number: visit.invoiceNumber || visit.id || formData.settings.document_number, date: String(visit.created_at || visit.createdAt || today()).slice(0, 10), notes: typeof visit.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : formData.settings.notes },
-      });
-    } catch (_) {}
-  }, [docType, formData.customer, formData.settings, patchForm, vehicleId, visitId]);
+        settings: {
+          ...prev.settings,
+          document_number: visit.invoiceNumber || visit.id || prev.settings.document_number,
+          date: String(visit.created_at || visit.createdAt || today()).slice(0, 10),
+          notes: typeof visit.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : prev.settings.notes,
+        },
+      }));
+    } catch (e) {
+      setAlertMessage('تعذر جلب بيانات الزيارة، يمكنك إكمالها يدوياً.');
+    }
+  }, [docType, vehicleId, visitId]);
 
   const loadOperation = useCallback(async (id) => {
     if (!id) return;
@@ -146,14 +266,26 @@ export default function DocumentPrint() {
       const { data: op } = await api.get(`/operations/${id}`);
       if (!op) return;
       const opItems = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
-      patchForm({
-        items: opItems.length ? opItems.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'عملية', price: op.total || op.amount || 0 })],
-        customer: { ...formData.customer, name: op.customerName || op.customer_name || op.partnerName || formData.customer.name, phone: op.customerPhone || op.customer_phone || formData.customer.phone },
-        settings: { ...formData.settings, document_number: op.invoiceNumber || op.invoice_number || `OP-${op.id || ''}`, date: String(op.date || op.createdAt || today()).slice(0, 10), notes: op.notes || formData.settings.notes },
-      });
-      if (op.vehicleId || op.vehicle_id) loadVehicle(op.vehicleId || op.vehicle_id, true);
-    } catch (_) {}
-  }, [formData.customer, formData.settings, loadVehicle, patchForm]);
+      setFormData((prev) => ({
+        ...prev,
+        items: opItems.length ? opItems.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'عملية ورشة', price: op.total || op.amount || 0 })],
+        customer: {
+          ...prev.customer,
+          name: op.customerName || op.customer_name || op.partnerName || prev.customer.name,
+          phone: op.customerPhone || op.customer_phone || prev.customer.phone,
+        },
+        settings: {
+          ...prev.settings,
+          document_number: op.invoiceNumber || op.invoice_number || `OP-${op.id || ''}`,
+          date: String(op.date || op.createdAt || today()).slice(0, 10),
+          notes: op.notes || prev.settings.notes,
+        },
+      }));
+      if (op.vehicleId || op.vehicle_id) await loadVehicle(op.vehicleId || op.vehicle_id, true);
+    } catch (e) {
+      setAlertMessage('تعذر جلب بيانات العملية، يمكنك إكمالها يدوياً.');
+    }
+  }, [loadVehicle]);
 
   const loadInvoice = useCallback(async (id) => {
     if (!id) return;
@@ -161,17 +293,26 @@ export default function DocumentPrint() {
       const { data } = await api.get(`/invoices/${id}`);
       if (!data) return;
       const items = typeof data.items === 'string' ? JSON.parse(data.items || '[]') : (data.items || []);
-      patchForm({
-        items: items.length ? items.map(normalizeItem) : formData.items,
-        customer: { ...formData.customer, name: data.partner_name || data.partnerName || formData.customer.name },
-        settings: { ...formData.settings, document_number: data.invoice_number || data.invoiceNumber || formData.settings.document_number, date: String(data.created_at || data.createdAt || today()).slice(0, 10), notes: data.notes || formData.settings.notes },
-      });
-      if (data.vehicleId || data.vehicle_id) loadVehicle(data.vehicleId || data.vehicle_id, true);
-    } catch (_) {}
-  }, [formData.customer, formData.items, formData.settings, loadVehicle, patchForm]);
+      setFormData((prev) => ({
+        ...prev,
+        items: items.length ? items.map(normalizeItem) : prev.items,
+        customer: { ...prev.customer, name: data.partner_name || data.partnerName || prev.customer.name },
+        settings: {
+          ...prev.settings,
+          document_number: data.invoice_number || data.invoiceNumber || prev.settings.document_number,
+          date: String(data.created_at || data.createdAt || today()).slice(0, 10),
+          notes: data.notes || prev.settings.notes,
+        },
+      }));
+      if (data.vehicleId || data.vehicle_id) await loadVehicle(data.vehicleId || data.vehicle_id, true);
+    } catch (e) {
+      setAlertMessage('تعذر جلب بيانات الفاتورة، يمكنك إكمالها يدوياً.');
+    }
+  }, [loadVehicle]);
 
   const refreshData = useCallback(async () => {
     setLoading(true);
+    setAlertMessage('');
     setSaveState('تحديث البيانات...');
     try {
       await loadWorkshop();
@@ -186,48 +327,9 @@ export default function DocumentPrint() {
     }
   }, [invoiceId, loadInvoice, loadOperation, loadVehicle, loadVisit, loadWorkshop, operationId, vehicleId, visitId]);
 
-  useEffect(() => { refreshData(); }, []);
+  useEffect(() => { refreshData(); }, [refreshData]);
 
   const numberToWords = (value) => value <= 0 ? 'فقط صفر ريال لا غير' : `فقط ${SAR(value)} لا غير`;
-  const statusClass = formData.settings.status === 'paid' ? 'st-paid' : formData.settings.status === 'partial' ? 'st-partial' : formData.settings.status === 'deferred' ? 'st-deferred' : formData.settings.status === 'unpaid' ? 'st-unpaid' : 'st-draft';
-
-  const buildSheetHtml = useCallback(() => {
-    const w = formData.workshop;
-    const c = formData.customer;
-    const v = formData.vehicle;
-    const title = formData.settings.document_title || docLabels[docType] || 'فاتورة إصلاح مركبة';
-    return `<div class="doc-sheet" dir="rtl">
-      <div class="p-top"></div>
-      <header class="p-head">
-        <aside class="p-meta">
-          <span class="p-doctype">${title}</span>
-          <div class="p-mrow"><span>رقم المستند</span><b>${formData.settings.document_number || '—'}</b></div>
-          <div class="p-mrow"><span>تاريخ الإصدار</span><b>${formData.settings.date || today()}</b></div>
-          <div class="p-mrow"><span>وقت الاستلام</span><b>${formData.settings.receivedTime || '09:00'}</b></div>
-          <div class="p-mrow"><span>الحالة</span><b><span class="pill ${statusClass}">${formData.settings.status === 'paid' ? 'مدفوعة' : formData.settings.status === 'deferred' ? 'آجلة' : formData.settings.status === 'partial' ? 'مدفوعة جزئياً' : formData.settings.status === 'unpaid' ? 'غير مدفوعة' : 'مسودة'}</span></b></div>
-          <div class="p-chip">الإجمالي المستحق<b>${SAR(totals.total)}</b></div>
-        </aside>
-        <section class="p-brand">
-          <div class="p-logo">✺</div>
-          <h1>${w.name || 'ورشة النخبة لصيانة السيارات'}</h1>
-          <div class="p-tag">${w.tagline || w.slogan || 'ميكانيكا عامة — كهرباء — فحص كمبيوتر'}</div>
-          <div class="p-contact">${w.phone || ''} • ${w.email || ''} • ${w.address || ''}</div>
-          <div class="p-contact">الرقم الضريبي: ${w.tax_number || w.taxNumber || ''} • س.ت: ${w.commercial_register || w.commercialRegister || ''} • ${w.website || ''}</div>
-        </section>
-      </header>
-      <section class="p-parties">
-        <div class="p-box"><h3>بيانات المركبة</h3>${row('الماركة', v.brand)}${row('الموديل', v.model)}${row('سنة الصنع', v.year)}${row('اللوحة', v.plateNumber || v.plate)}${row('VIN', v.vin)}${row('العداد', v.mileage)}</div>
-        <div class="p-box"><h3>بيانات العميل</h3>${row('الاسم', c.name || 'عميل نقدي')}${row('الجوال', c.phone)}${row('البريد', c.email)}${row('العنوان', c.address)}${row('الرقم الضريبي', c.taxNo)}</div>
-      </section>
-      <table class="p-table"><thead><tr><th>#</th><th>البيان</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead><tbody>${totals.rows.length ? totals.rows.map((item, idx) => `<tr><td class="n">${idx + 1}</td><td>${item.description}</td><td class="n">${item.quantity}</td><td class="n">${SAR(item.unit_price)}</td><td class="n">${item.discount ? SAR(item.discount) : '—'}</td><td class="n">${item.tax ? SAR(item.tax) : '—'}</td><td class="n"><b>${SAR(item.total)}</b></td></tr>`).join('') : '<tr><td colspan="7" class="empty-row">لا توجد بنود</td></tr>'}</tbody></table>
-      <section class="p-after"><div class="p-notes"><h4>شروط الضمان</h4><p>${formData.settings.warranty || 'ضمان الإصلاح 30 يوماً أو 1,000 كم من تاريخ التسليم، ولا يشمل سوء الاستخدام.'}</p>${formData.settings.notes ? `<h4>ملاحظات</h4><p>${formData.settings.notes}</p>` : ''}</div><div class="p-totals"><div class="p-trow"><span>المجموع قبل الخصم</span><b>${SAR(totals.subtotal)}</b></div><div class="p-trow"><span>إجمالي الخصومات</span><b>− ${SAR(totals.discount)}</b></div><div class="p-trow"><span>الضريبة</span><b>${SAR(totals.tax)}</b></div><div class="p-trow grand"><span>الإجمالي النهائي</span><b>${SAR(totals.total)}</b></div><div class="p-trow"><span>المدفوع</span><b>${SAR(totals.paid)}</b></div><div class="p-trow"><span>المتبقي</span><b>${SAR(totals.remain)}</b></div></div></section>
-      <div class="p-words"><b>المبلغ كتابةً:</b> ${numberToWords(totals.total)}</div>
-      <section class="p-signs"><div class="p-sig"><h4>توقيع الورشة</h4><div class="p-sigbox"></div><div class="p-auth">عند الموافقة، الورشة مخولة لتبديل وشراء كل ما يتطلب للصيانة.</div></div><div class="p-sig"><h4>توقيع العميل</h4><div class="p-sigbox"></div></div></section>
-      <footer class="p-foot"><span>${w.website || ''} • ${w.phone || ''}</span><span class="mid">شكراً لثقتكم — سلامتكم أولويتنا</span><span>${formData.settings.document_number || ''}</span></footer>
-    </div>`;
-  }, [docType, formData, totals, statusClass]);
-
-  const row = (label, value) => value ? `<div class="row"><span>${label}</span><b>${value}</b></div>` : '';
 
   const downloadCurrentPdf = async () => {
     if (!previewRef.current) return;
@@ -244,11 +346,11 @@ export default function DocumentPrint() {
   const sendWhatsApp = async () => {
     const phone = formData.customer.phone;
     if (!phone) {
-      alert('أضف رقم جوال العميل أولاً');
+      setAlertMessage('أضف رقم جوال العميل أولاً حتى أفتح واتساب بالرسالة الصحيحة.');
       return;
     }
     await downloadCurrentPdf();
-    const message = `تم تجهيز المستند ${formData.settings.document_number || ''}\nالعميل: ${formData.customer.name || ''}\nالإجمالي: ${SAR(totals.total)}\nيرجى إرفاق ملف PDF الذي تم تحميله.`;
+    const message = `تم تجهيز المستند ${formData.settings.document_number || ''}\nالعميل: ${formData.customer.name || ''}\nالإجمالي: ${SAR(totals.total)}\nالختم الإلكتروني: ${sealCode}\nيرجى إرفاق ملف PDF الذي تم تحميله.`;
     window.open(getWhatsAppLink(phone, message), '_blank');
   };
 
@@ -258,43 +360,303 @@ export default function DocumentPrint() {
     setTimeout(() => { autoPrint ? printCurrent() : sendWhatsApp(); }, 900);
   }, [autoPrint, autoWhatsApp]);
 
-  const updateItem = (index, key, value) => setFormData((prev) => ({ ...prev, items: prev.items.map((item, i) => i === index ? { ...item, [key]: key === 'description' ? value : Number(value || 0) } : item) }));
+  const updateItem = (index, key, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.map((item, i) => i === index ? { ...item, [key]: key === 'description' || key === 'type' ? value : safeNumber(value) } : item),
+    }));
+  };
 
-  return <div className="doc-page" dir="rtl">
-    <style>{styles}</style>
-    <header className="doc-topbar">
-      <div className="brand"><FileText size={22}/> فاتورة الورشة</div>
-      <div className={`save-pill ${loading ? 'saving' : 'ok'}`}><span className="dot"/><span>{saveState}</span></div>
-      <div className="top-actions">
-        <button className="icon-btn" onClick={refreshData} title="تحديث" data-testid="document-refresh-button"><RefreshCw size={20}/></button>
-        <button className="icon-btn" onClick={() => setModePreview((v) => !v)} title="معاينة" data-testid="document-toggle-preview-button"><Eye size={20}/></button>
-      </div>
-    </header>
-    <main className="doc-app">
-      <section className="editor">
-        <section className="sec"><h2><span className="chip">1</span> نوع المستند</h2><div className="doc-type-grid">{Object.entries(docLabels).map(([key, label]) => <button key={key} className={`doc-type ${docType === key ? 'active' : ''}`} onClick={() => setDocType(key)} data-testid={`document-type-${key}`}>{label}</button>)}</div></section>
-        <section className="sec"><h2><span className="chip">2</span> بيانات الفاتورة</h2><div className="grid2"><Field label="رقم المستند" value={formData.settings.document_number} onChange={(v) => patchNested('settings','document_number',v)}/><Field label="التاريخ" type="date" value={formData.settings.date} onChange={(v) => patchNested('settings','date',v)}/><Field label="وقت الاستلام" type="time" value={formData.settings.receivedTime} onChange={(v) => patchNested('settings','receivedTime',v)}/><SelectField label="الحالة" value={formData.settings.status} onChange={(v) => patchNested('settings','status',v)} options={{draft:'مسودة', unpaid:'غير مدفوعة', partial:'مدفوعة جزئياً', paid:'مدفوعة', deferred:'آجلة'}} /></div></section>
-        <section className="sec"><h2><span className="chip">3</span> العميل والمركبة</h2><div className="grid2"><Field label="اسم العميل" value={formData.customer.name} onChange={(v) => patchNested('customer','name',v)}/><Field label="جوال العميل" value={formData.customer.phone} onChange={(v) => patchNested('customer','phone',v)}/><Field label="رقم اللوحة" value={formData.vehicle.plateNumber} onChange={(v) => patchNested('vehicle','plateNumber',v)}/><Field label="المركبة" value={`${formData.vehicle.brand || ''} ${formData.vehicle.model || ''}`.trim()} onChange={() => {}} disabled/><Field label="VIN" value={formData.vehicle.vin} onChange={(v) => patchNested('vehicle','vin',v)}/><Field label="العداد" value={formData.vehicle.mileage} onChange={(v) => patchNested('vehicle','mileage',v)}/></div></section>
-        <section className="sec"><h2><span className="chip">4</span> البنود</h2><div className="items-list">{formData.items.map((item, index) => <div className="item-card" key={index}><Field label="الوصف" value={item.description} onChange={(v) => updateItem(index,'description',v)}/><Field label="الكمية" type="number" value={item.quantity} onChange={(v) => updateItem(index,'quantity',v)}/><Field label="السعر" type="number" value={item.unit_price} onChange={(v) => updateItem(index,'unit_price',v)}/><Field label="الخصم" type="number" value={item.discount} onChange={(v) => updateItem(index,'discount',v)}/></div>)}</div><button className="btn gold" onClick={() => patchForm({ items: [...formData.items, emptyItem] })} data-testid="document-add-item-button"><Plus size={18}/> إضافة بند</button></section>
-        <section className="sec"><h2><span className="chip">5</span> الدفع والملاحظات</h2><div className="grid2"><Field label="المدفوع" type="number" value={formData.payment.paid} onChange={(v) => patchForm({ payment: { ...formData.payment, paid: Number(v || 0) } })}/><Field label="الملاحظات" value={formData.settings.notes} onChange={(v) => patchNested('settings','notes',v)}/></div><div className="summary"><div><span>الإجمالي</span><b>{SAR(totals.total)}</b></div><div><span>المتبقي</span><b>{SAR(totals.remain)}</b></div></div></section>
-        <section className="sec"><h2><span className="chip">6</span> إجراءات</h2><div className="btn-row"><button className="btn gold" onClick={printCurrent} data-testid="document-print-button"><Printer size={18}/> طباعة / PDF</button><button className="btn" onClick={downloadCurrentPdf} disabled={pdfBusy} data-testid="document-download-button"><Download size={18}/> تحميل PDF</button><button className="btn" onClick={sendWhatsApp} disabled={pdfBusy} data-testid="document-whatsapp-button"><Share2 size={18}/> واتساب PDF</button><button className="btn" onClick={() => setZoom(0.72)} data-testid="document-fit-button"><Maximize2 size={18}/> ملاءمة</button></div></section>
-      </section>
-      <section className="preview-panel ${modePreview ? 'show' : ''}" data-testid="document-preview-panel">
-        <div className="preview-bar"><button className="icon-btn" onClick={() => setZoom((z) => Math.max(0.35, z - 0.08))}><Minus size={18}/></button><span className="zoom-val">{Math.round(zoom * 100)}%</span><button className="icon-btn" onClick={() => setZoom((z) => Math.min(1.5, z + 0.08))}><Plus size={18}/></button><button className="icon-btn" onClick={printCurrent} data-testid="document-preview-print-button"><Printer size={18}/></button><button className="icon-btn" onClick={downloadCurrentPdf} data-testid="document-preview-download-button"><Download size={18}/></button><button className="icon-btn" onClick={sendWhatsApp} data-testid="document-preview-whatsapp-button"><Share2 size={18}/></button></div>
-        <div className="viewport"><div className="sheet-scale" style={{ transform: `scale(${zoom})`, height: `${1123 * zoom}px` }}><article ref={previewRef} className="sheet" data-testid="document-sheet" dangerouslySetInnerHTML={{ __html: buildSheetHtml() }} /></div></div>
-      </section>
-    </main>
-  </div>;
+  const removeItem = (index) => {
+    setFormData((prev) => ({ ...prev, items: prev.items.length > 1 ? prev.items.filter((_, i) => i !== index) : [emptyItem] }));
+  };
+
+  return (
+    <div className="document-print-page" dir="rtl" data-testid="document-print-page">
+      <style>{styles}</style>
+      <header className="doc-shell-header" data-testid="document-shell-header">
+        <div className="doc-brand-block">
+          <div className="doc-brand-icon"><ShieldCheck size={24} /></div>
+          <div>
+            <p className="doc-kicker" data-testid="document-page-kicker">داش برو · مستندات الورشة</p>
+            <h1 data-testid="document-page-title">فاتورة الورشة — ختم إلكتروني</h1>
+          </div>
+        </div>
+        <div className="doc-header-actions">
+          {alertMessage && <div className="doc-alert" data-testid="document-alert-message">{alertMessage}</div>}
+          <div className={`doc-save-pill ${loading ? 'is-loading' : ''}`} data-testid="document-save-state"><span />{saveState}</div>
+          <button type="button" className="doc-icon-button" onClick={refreshData} data-testid="document-refresh-button" aria-label="تحديث"><RefreshCw size={19} /></button>
+          <button type="button" className="doc-icon-button" onClick={() => setShowPreview((v) => !v)} data-testid="document-toggle-preview-button" aria-label="إظهار المعاينة"><Eye size={19} /></button>
+        </div>
+      </header>
+
+      <main className={`doc-workspace ${showPreview ? 'with-preview' : 'editor-only'}`} data-testid="document-workspace">
+        <section className="doc-editor" data-testid="document-editor-panel">
+          <Panel title="نوع المستند" icon={<FileText size={18} />} testId="document-type-section">
+            <div className="doc-type-grid">
+              {Object.entries(docLabels).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`doc-type-card ${docType === key ? 'active' : ''}`}
+                  onClick={() => setDocType(key)}
+                  data-testid={`document-type-${key}`}
+                >
+                  <span>{label}</span>
+                  {docType === key && <CheckCircle2 size={18} />}
+                </button>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel title="بيانات المستند" icon={<CalendarDays size={18} />} testId="document-settings-section">
+            <div className="doc-grid two">
+              <Field testId="document-number-input" label="رقم المستند" value={formData.settings.document_number} onChange={(v) => patchNested('settings', 'document_number', v)} />
+              <Field testId="document-date-input" label="التاريخ" type="date" value={formData.settings.date} onChange={(v) => patchNested('settings', 'date', v)} />
+              <Field testId="document-time-input" label="وقت الاستلام" type="time" value={formData.settings.receivedTime} onChange={(v) => patchNested('settings', 'receivedTime', v)} />
+              <SelectField testId="document-status-select" label="الحالة" value={formData.settings.status} onChange={(v) => patchNested('settings', 'status', v)} options={statusLabels} />
+            </div>
+          </Panel>
+
+          <Panel title="العميل والمركبة" icon={<Car size={18} />} testId="document-party-section">
+            <div className="doc-grid two">
+              <Field testId="document-customer-name-input" label="اسم العميل" value={formData.customer.name} onChange={(v) => patchNested('customer', 'name', v)} />
+              <Field testId="document-customer-phone-input" label="جوال العميل" value={formData.customer.phone} onChange={(v) => patchNested('customer', 'phone', v)} />
+              <Field testId="document-plate-input" label="رقم اللوحة" value={formData.vehicle.plateNumber} onChange={(v) => patchNested('vehicle', 'plateNumber', v)} />
+              <Field testId="document-mileage-input" label="العداد" value={formData.vehicle.mileage} onChange={(v) => patchNested('vehicle', 'mileage', v)} />
+              <Field testId="document-vehicle-brand-input" label="الماركة" value={formData.vehicle.brand} onChange={(v) => patchNested('vehicle', 'brand', v)} />
+              <Field testId="document-vehicle-model-input" label="الموديل" value={formData.vehicle.model} onChange={(v) => patchNested('vehicle', 'model', v)} />
+              <Field testId="document-vehicle-year-input" label="السنة" value={formData.vehicle.year} onChange={(v) => patchNested('vehicle', 'year', v)} />
+              <Field testId="document-vin-input" label="VIN" value={formData.vehicle.vin} onChange={(v) => patchNested('vehicle', 'vin', v)} />
+            </div>
+          </Panel>
+
+          <Panel title="بنود الورشة" icon={<Wrench size={18} />} testId="document-items-section">
+            <div className="doc-items-list" data-testid="document-items-list">
+              {formData.items.map((item, index) => (
+                <div className="doc-item-row" key={`item-${index}`} data-testid={`document-item-row-${index}`}>
+                  <Field testId={`document-item-description-${index}`} label="الوصف" value={item.description} onChange={(v) => updateItem(index, 'description', v)} />
+                  <Field testId={`document-item-quantity-${index}`} label="الكمية" type="number" value={item.quantity} onChange={(v) => updateItem(index, 'quantity', v)} />
+                  <Field testId={`document-item-price-${index}`} label="السعر" type="number" value={item.unit_price} onChange={(v) => updateItem(index, 'unit_price', v)} />
+                  <Field testId={`document-item-discount-${index}`} label="الخصم" type="number" value={item.discount} onChange={(v) => updateItem(index, 'discount', v)} />
+                  <button type="button" className="doc-remove-button" onClick={() => removeItem(index)} data-testid={`document-remove-item-${index}`} aria-label="حذف البند"><Trash2 size={17} /></button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="doc-action primary" onClick={() => patchForm({ items: [...formData.items, emptyItem] })} data-testid="document-add-item-button"><Plus size={18} /> إضافة بند</button>
+          </Panel>
+
+          <Panel title="الدفع والملاحظات" icon={<CircleDollarSign size={18} />} testId="document-payment-section">
+            <div className="doc-grid two">
+              <Field testId="document-paid-input" label="المدفوع" type="number" value={formData.payment.paid} onChange={(v) => patchForm({ payment: { ...formData.payment, paid: safeNumber(v) } })} />
+              <Field testId="document-warranty-input" label="الضمان" value={formData.settings.warranty} onChange={(v) => patchNested('settings', 'warranty', v)} />
+            </div>
+            <label className="doc-field wide" data-testid="document-notes-field">
+              <span>ملاحظات</span>
+              <textarea value={formData.settings.notes} onChange={(e) => patchNested('settings', 'notes', e.target.value)} data-testid="document-notes-input" />
+            </label>
+            <div className="doc-summary-strip">
+              <SummaryItem label="الإجمالي" value={SAR(totals.total)} testId="document-editor-total" />
+              <SummaryItem label="المدفوع" value={SAR(totals.paid)} testId="document-editor-paid" />
+              <SummaryItem label="المتبقي" value={SAR(totals.remain)} testId="document-editor-remaining" />
+            </div>
+          </Panel>
+
+          <Panel title="الإجراءات" icon={<ShieldCheck size={18} />} testId="document-actions-section">
+            <div className="doc-actions-grid">
+              <button type="button" className="doc-action primary" onClick={printCurrent} data-testid="document-print-button"><Printer size={18} /> طباعة</button>
+              <button type="button" className="doc-action" onClick={downloadCurrentPdf} disabled={pdfBusy} data-testid="document-download-button"><Download size={18} /> تحميل PDF</button>
+              <button type="button" className="doc-action whatsapp" onClick={sendWhatsApp} disabled={pdfBusy} data-testid="document-whatsapp-button"><Share2 size={18} /> واتساب</button>
+              <button type="button" className="doc-action" onClick={() => setZoom(0.76)} data-testid="document-fit-button"><Maximize2 size={18} /> ملاءمة</button>
+            </div>
+          </Panel>
+        </section>
+
+        {showPreview && (
+          <section className="doc-preview-panel" data-testid="document-preview-panel">
+            <div className="doc-preview-toolbar" data-testid="document-preview-toolbar">
+              <button type="button" className="doc-icon-button" onClick={() => setZoom((z) => Math.max(0.38, z - 0.08))} data-testid="document-zoom-out-button" aria-label="تصغير"><Minus size={18} /></button>
+              <span className="doc-zoom" data-testid="document-zoom-value">{Math.round(zoom * 100)}%</span>
+              <button type="button" className="doc-icon-button" onClick={() => setZoom((z) => Math.min(1.45, z + 0.08))} data-testid="document-zoom-in-button" aria-label="تكبير"><Plus size={18} /></button>
+              <button type="button" className="doc-icon-button" onClick={printCurrent} data-testid="document-preview-print-button" aria-label="طباعة"><Printer size={18} /></button>
+              <button type="button" className="doc-icon-button" onClick={downloadCurrentPdf} data-testid="document-preview-download-button" aria-label="تحميل"><Download size={18} /></button>
+              <button type="button" className="doc-icon-button" onClick={sendWhatsApp} data-testid="document-preview-whatsapp-button" aria-label="واتساب"><Share2 size={18} /></button>
+            </div>
+            <div className="doc-preview-viewport" data-testid="document-preview-viewport">
+              <div className="doc-sheet-scale" style={{ transform: `scale(${zoom})`, height: `${1124 * zoom}px` }}>
+                <InvoiceSheet
+                  ref={previewRef}
+                  docType={docType}
+                  formData={formData}
+                  totals={totals}
+                  sealCode={sealCode}
+                  numberToWords={numberToWords}
+                />
+              </div>
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
 }
 
-function Field({ label, value, onChange, type = 'text', disabled = false }) {
-  return <label className="fld"><span>{label}</span><input className="inp" type={type} value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value)} /></label>;
+const InvoiceSheet = React.forwardRef(({ docType, formData, totals, sealCode, numberToWords }, ref) => {
+  const w = formData.workshop || {};
+  const c = formData.customer || {};
+  const v = formData.vehicle || {};
+  const settings = formData.settings || {};
+  const title = docLabels[docType] || docLabels.invoice;
+  const workshopInitial = String(w.name || 'د').trim().slice(0, 1);
+
+  return (
+    <article className="electronic-invoice-sheet" ref={ref} data-testid="document-sheet">
+      <div className="invoice-watermark" data-testid="document-watermark">مختوم</div>
+      <header className="invoice-hero" data-testid="document-invoice-header">
+        <div className="invoice-identity">
+          <div className="invoice-logo" data-testid="document-workshop-logo">
+            {w.logo ? <img src={w.logo} alt="شعار الورشة" /> : <span>{workshopInitial}</span>}
+          </div>
+          <div>
+            <p className="invoice-overline" data-testid="document-invoice-overline">ELECTRONICALLY SEALED INVOICE</p>
+            <h2 data-testid="document-workshop-name">{w.name || 'ورشة داش برو لصيانة السيارات'}</h2>
+            <p data-testid="document-workshop-tagline">{w.tagline || 'ميكانيكا عامة · كهرباء · فحص كمبيوتر'}</p>
+          </div>
+        </div>
+        <div className="invoice-seal" data-testid="document-electronic-seal">
+          <div className="seal-ring"><BadgeCheck size={38} /></div>
+          <strong>ختم إلكتروني</strong>
+          <span data-testid="document-seal-code">{sealCode}</span>
+        </div>
+      </header>
+
+      <section className="invoice-title-band" data-testid="document-title-band">
+        <div>
+          <p data-testid="document-title-label">{title}</p>
+          <h1 data-testid="document-invoice-number">{settings.document_number || '—'}</h1>
+        </div>
+        <div className="invoice-status-block">
+          <span className={`invoice-status ${settings.status || 'draft'}`} data-testid="document-status-label">{statusLabels[settings.status] || 'مسودة'}</span>
+          <small data-testid="document-date-value">{settings.date || today()} · {settings.receivedTime || '09:00'}</small>
+        </div>
+      </section>
+
+      <section className="invoice-contact-grid" data-testid="document-contact-grid">
+        <InfoCard icon={<UserRound size={18} />} title="بيانات العميل" testId="document-customer-card">
+          <InfoLine label="الاسم" value={c.name || 'عميل نقدي'} testId="document-customer-name" />
+          <InfoLine label="الجوال" value={c.phone || '—'} testId="document-customer-phone" />
+          <InfoLine label="العنوان" value={c.address || '—'} testId="document-customer-address" />
+          <InfoLine label="الرقم الضريبي" value={c.taxNo || '—'} testId="document-customer-tax" />
+        </InfoCard>
+        <InfoCard icon={<Car size={18} />} title="بيانات المركبة" testId="document-vehicle-card">
+          <InfoLine label="المركبة" value={`${v.brand || '—'} ${v.model || ''}`.trim()} testId="document-vehicle-name" />
+          <InfoLine label="اللوحة" value={v.plateNumber || '—'} testId="document-vehicle-plate" />
+          <InfoLine label="السنة" value={v.year || '—'} testId="document-vehicle-year" />
+          <InfoLine label="العداد" value={v.mileage || '—'} testId="document-vehicle-mileage" />
+        </InfoCard>
+        <InfoCard icon={<Phone size={18} />} title="بيانات الورشة" testId="document-workshop-card">
+          <InfoLine label="الجوال" value={w.phone || '—'} testId="document-workshop-phone" />
+          <InfoLine label="العنوان" value={w.address || '—'} testId="document-workshop-address" />
+          <InfoLine label="السجل" value={w.commercial_register || w.commercialRegister || '—'} testId="document-workshop-cr" />
+          <InfoLine label="الضريبي" value={w.tax_number || w.taxNumber || '—'} testId="document-workshop-tax" />
+        </InfoCard>
+      </section>
+
+      <section className="invoice-table-section" data-testid="document-table-section">
+        <div className="section-heading"><Wrench size={17} /><span data-testid="document-items-heading">بنود الإصلاح والخدمات</span></div>
+        <table className="invoice-items-table" data-testid="document-items-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>البيان</th>
+              <th>الكمية</th>
+              <th>السعر</th>
+              <th>الخصم</th>
+              <th>الضريبة</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            {totals.rows.length ? totals.rows.map((item, idx) => (
+              <tr key={`${item.description}-${idx}`} data-testid={`document-table-row-${idx}`}>
+                <td data-testid={`document-table-index-${idx}`}>{idx + 1}</td>
+                <td className="item-desc" data-testid={`document-table-description-${idx}`}>{item.description}</td>
+                <td data-testid={`document-table-quantity-${idx}`}>{item.quantity}</td>
+                <td data-testid={`document-table-price-${idx}`}>{SAR(item.unit_price)}</td>
+                <td data-testid={`document-table-discount-${idx}`}>{item.discount ? SAR(item.discount) : '—'}</td>
+                <td data-testid={`document-table-tax-${idx}`}>{item.tax ? SAR(item.tax) : '—'}</td>
+                <td className="strong" data-testid={`document-table-total-${idx}`}>{SAR(item.total)}</td>
+              </tr>
+            )) : (
+              <tr><td colSpan="7" className="empty-table" data-testid="document-empty-items">لا توجد بنود</td></tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="invoice-bottom-grid" data-testid="document-bottom-grid">
+        <div className="invoice-notes" data-testid="document-notes-box">
+          <h3 data-testid="document-warranty-title">شروط الضمان</h3>
+          <p data-testid="document-warranty-text">{settings.warranty || '—'}</p>
+          <h3 data-testid="document-notes-title">ملاحظات</h3>
+          <p data-testid="document-notes-text">{settings.notes || 'لا توجد ملاحظات إضافية.'}</p>
+          <div className="amount-words" data-testid="document-amount-words"><strong>المبلغ كتابةً:</strong> {numberToWords(totals.total)}</div>
+        </div>
+        <div className="invoice-totals-card" data-testid="document-totals-card">
+          <TotalLine label="المجموع قبل الخصم" value={SAR(totals.subtotal)} testId="document-subtotal" />
+          <TotalLine label="إجمالي الخصومات" value={`− ${SAR(totals.discount)}`} testId="document-discount" />
+          <TotalLine label="الضريبة" value={SAR(totals.tax)} testId="document-tax" />
+          <TotalLine label="الإجمالي النهائي" value={SAR(totals.total)} accent testId="document-grand-total" />
+          <TotalLine label="المدفوع" value={SAR(totals.paid)} testId="document-paid" />
+          <TotalLine label="المتبقي" value={SAR(totals.remain)} testId="document-remaining" />
+        </div>
+      </section>
+
+      <section className="invoice-signature-grid" data-testid="document-signature-grid">
+        <div className="signature-box" data-testid="document-workshop-signature"><span>توقيع الورشة</span></div>
+        <div className="signature-box" data-testid="document-customer-signature"><span>توقيع العميل</span></div>
+        <div className="qr-box" data-testid="document-qr-box"><div /> <span>رمز تحقق</span></div>
+      </section>
+
+      <footer className="invoice-footer" data-testid="document-footer">
+        <span data-testid="document-footer-contact">{w.phone || ''} {w.website ? `· ${w.website}` : ''}</span>
+        <strong data-testid="document-footer-message">تم إصدار هذا المستند إلكترونياً عبر نظام داش برو</strong>
+        <span data-testid="document-footer-seal">{sealCode}</span>
+      </footer>
+    </article>
+  );
+});
+
+InvoiceSheet.displayName = 'InvoiceSheet';
+
+function Panel({ title, icon, children, testId }) {
+  return <section className="doc-panel" data-testid={testId}><h2 data-testid={`${testId}-title`}>{icon}{title}</h2>{children}</section>;
 }
 
-function SelectField({ label, value, onChange, options }) {
-  return <label className="fld"><span>{label}</span><select className="inp" value={value} onChange={(e) => onChange(e.target.value)}>{Object.entries(options).map(([k, v]) => <option value={k} key={k}>{v}</option>)}</select></label>;
+function Field({ label, value, onChange, type = 'text', testId }) {
+  return <label className="doc-field" data-testid={`${testId}-field`}><span>{label}</span><input type={type} value={value ?? ''} onChange={(e) => onChange(e.target.value)} data-testid={testId} /></label>;
+}
+
+function SelectField({ label, value, onChange, options, testId }) {
+  return <label className="doc-field" data-testid={`${testId}-field`}><span>{label}</span><select value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}>{Object.entries(options).map(([key, labelText]) => <option value={key} key={key}>{labelText}</option>)}</select></label>;
+}
+
+function SummaryItem({ label, value, testId }) {
+  return <div className="doc-summary-item" data-testid={testId}><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function InfoCard({ icon, title, children, testId }) {
+  return <div className="invoice-info-card" data-testid={testId}><h3 data-testid={`${testId}-title`}>{icon}{title}</h3>{children}</div>;
+}
+
+function InfoLine({ label, value, testId }) {
+  return <div className="invoice-info-line" data-testid={testId}><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function TotalLine({ label, value, accent = false, testId }) {
+  return <div className={`invoice-total-line ${accent ? 'accent' : ''}`} data-testid={testId}><span>{label}</span><strong>{value}</strong></div>;
 }
 
 const styles = `
-.doc-page{min-height:100vh;background:#101318;color:#eceef1;font-family:Almarai,Tahoma,Arial,sans-serif;direction:rtl}.doc-page:before{content:'';position:fixed;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(620px 420px at 85% 0%,rgba(247,166,0,.10),transparent 60%),radial-gradient(700px 520px at 8% 100%,rgba(247,166,0,.05),transparent 55%),radial-gradient(520px 320px at 50% 45%,rgba(70,90,115,.10),transparent 60%)}.doc-topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(16,19,24,.86);backdrop-filter:blur(10px);border-bottom:1px solid #2a3038}.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px}.save-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:#98a1ac;background:#12151b;border:1px solid #2a3038;padding:4px 10px;border-radius:99px}.save-pill .dot{width:8px;height:8px;border-radius:50%;background:#3dd68c}.save-pill.saving .dot{background:#f7a600}.top-actions{margin-inline-start:auto;display:flex;gap:6px}.icon-btn{width:44px;height:44px;display:grid;place-items:center;background:#12151b;border:1px solid #2a3038;border-radius:10px;color:#98a1ac}.icon-btn:hover{color:#f7a600;border-color:#f7a600}.doc-app{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,520px);gap:16px}.editor{min-width:0}.sec{background:linear-gradient(180deg,#1a1e25,#171b21);border:1px solid #2a3038;border-radius:12px;padding:14px;margin-bottom:12px}.sec h2{font-size:16px;margin:0 0 12px;display:flex;gap:8px;align-items:center}.chip{width:22px;height:22px;display:grid;place-items:center;border-radius:7px;background:linear-gradient(135deg,#f7a600,#ffc751);color:#171204;font-weight:800}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fld span{display:block;font-size:12px;font-weight:700;color:#98a1ac;margin-bottom:4px}.inp{width:100%;min-height:44px;padding:8px 12px;background:#12151b;color:#eceef1;border:1px solid #2a3038;border-radius:9px;font-size:14px}.inp:focus{border-color:#f7a600;outline:none;box-shadow:0 0 0 3px rgba(247,166,0,.15)}.doc-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.doc-type{min-height:54px;border-radius:12px;border:1px solid #2a3038;background:#12151b;color:#eceef1;font-weight:800}.doc-type.active{background:linear-gradient(135deg,#f7a600,#ffc751);color:#171204}.item-card{display:grid;grid-template-columns:2fr .7fr .8fr .8fr;gap:8px;padding:10px;border:1px solid #2a3038;border-radius:10px;background:#12151b;margin-bottom:8px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:8px 16px;border-radius:10px;border:1px solid #2a3038;background:#1a1e25;color:#eceef1;font-weight:800}.btn.gold{background:linear-gradient(135deg,#f7a600,#ffc751);border:none;color:#171204}.btn-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary{margin-top:12px;display:grid;gap:6px}.summary div{display:flex;justify-content:space-between;padding:8px 10px;border-radius:8px;background:#12151b}.preview-panel{position:sticky;top:76px;height:calc(100vh - 96px);border:1px solid #2a3038;border-radius:12px;overflow:hidden;background:#0b0d10}.preview-bar{display:flex;align-items:center;gap:6px;padding:8px;background:#0f1114;border-bottom:1px solid #2a3038}.zoom-val{min-width:52px;text-align:center;color:#98a1ac;font-weight:800}.viewport{height:calc(100% - 62px);overflow:auto;padding:18px;display:flex;justify-content:center}.sheet-scale{transform-origin:top center;flex:none}.sheet{width:210mm;min-height:296mm;background:#fff;color:#1a1a1a;padding:12mm;box-shadow:0 24px 70px rgba(0,0,0,.55);font-size:11px}.p-top{height:5px;margin-bottom:6mm;background:linear-gradient(90deg,#15181d 0%,#454b54 55%,#f7a600 100%)}.p-head{display:flex;justify-content:space-between;gap:6mm;padding-bottom:5mm;border-bottom:1px solid #ddd}.p-brand{flex:1;text-align:right}.p-logo{width:14mm;height:14mm;border:1.5px solid #15181d;border-radius:50%;display:grid;place-items:center;margin-bottom:2mm;margin-inline-start:auto}.p-brand h1{font-size:20px;margin:0;color:#111;font-weight:900}.p-tag{font-size:10px;color:#555;margin:2px 0 5px}.p-contact{font-size:9.5px;color:#444;line-height:1.8}.p-meta{width:58mm;border:1px solid #ccc;padding:3mm}.p-doctype{display:block;text-align:center;background:#15181d;color:#fff;font-weight:900;font-size:12px;padding:4px 6px;margin-bottom:6px}.p-mrow{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#555;padding:3px 0;border-bottom:1px dashed #e5e5e5}.p-mrow b{color:#111}.p-chip{margin-top:7px;background:#f5f5f5;border:1px solid #ddd;text-align:center;padding:5px;font-size:9.5px;font-weight:900}.p-chip b{display:block;font-size:16px}.p-parties{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:5mm}.p-box{border:1px solid #ccc}.p-box h3{font-size:11.5px;margin:0;padding:5px 8px;background:#f5f5f5;border-bottom:1px solid #ccc}.row{display:flex;justify-content:space-between;gap:8px;padding:4px 8px;border-bottom:1px dashed #eee;font-size:10px}.row span{color:#777}.row b{color:#111;text-align:left}.p-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:10px;table-layout:fixed}.p-table th{background:#f0f0f0;border:1px solid #bbb;padding:6px;font-weight:900}.p-table td{border:1px solid #ddd;padding:6px;vertical-align:top;word-break:break-word}.p-table .n{text-align:center;white-space:nowrap}.empty-row{text-align:center!important;color:#999;padding:14px!important}.p-after{display:grid;grid-template-columns:1.1fr .9fr;gap:4mm;margin-top:5mm}.p-notes h4{font-size:11px;margin:8px 0 2px;color:#111}.p-notes p{margin:0;font-size:9.5px;color:#333;line-height:1.8}.p-totals{border:1px solid #ccc}.p-trow{display:flex;justify-content:space-between;padding:6px 9px;font-size:10.5px;border-bottom:1px solid #e5e5e5}.p-trow.grand{background:#15181d;color:#fff}.p-trow.grand b{font-size:14px}.p-words{margin-top:4mm;background:#f7f7f7;border:1px dashed #ccc;padding:6px 9px;font-size:10px}.p-signs{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:7mm}.p-sig h4{font-size:11.5px;margin:0 0 2mm}.p-sigbox{height:18mm;border:1px dashed #aaa}.p-auth{margin-top:2mm;border:1px solid #ccc;border-inline-start:3px solid #15181d;padding:5px 8px;font-size:9.5px;font-weight:700;color:#333}.p-foot{margin-top:7mm;border-top:1px solid #ddd;padding-top:3mm;display:flex;justify-content:space-between;gap:4mm;font-size:9px;color:#777}.p-foot .mid{font-weight:900;color:#111}.pill{display:inline-block;font-size:10px;font-weight:900;padding:2px 10px;border-radius:99px;border:1px solid}.st-draft{color:#555;border-color:#bbb;background:#f0f0f0}.st-unpaid{color:#b3261e;border-color:#e0a8a5;background:#fdeceb}.st-partial{color:#8a6100;border-color:#e8cf8a;background:#fff6dd}.st-paid{color:#116932;border-color:#9ad3b0;background:#e7f6ee}.st-deferred{color:#1a56a8;border-color:#a8c3e6;background:#eaf1fb}@media(max-width:980px){.doc-app{display:block}.preview-panel{position:relative;top:0;height:70vh;margin-top:12px}.grid2,.doc-type-grid,.btn-row{grid-template-columns:1fr 1fr}.item-card{grid-template-columns:1fr}.sheet{transform-origin:top center}}@media print{.doc-topbar,.editor,.preview-bar{display:none!important}.doc-app{display:block;padding:0}.preview-panel{position:static;height:auto;border:0}.viewport{overflow:visible;padding:0}.sheet-scale{transform:none!important;height:auto!important}.sheet{width:auto;min-height:auto;box-shadow:none;margin:0;padding:0}.doc-page{background:#fff}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.document-print-page{--dp-bg:#f6f7fb;--dp-card:#ffffff;--dp-navy:#172033;--dp-blue:#2563eb;--dp-blue2:#0ea5e9;--dp-text:#172033;--dp-muted:#64748b;--dp-line:#e2e8f0;--dp-green:#10b981;--dp-orange:#f59e0b;min-height:100vh;background:linear-gradient(180deg,#f6f7fb 0%,#eef3f8 100%);color:var(--dp-text);font-family:Parastoo,Tahoma,Arial,sans-serif;direction:rtl;padding:18px}.document-print-page *{box-sizing:border-box;letter-spacing:0}.doc-shell-header{position:sticky;top:10px;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 auto 18px;max-width:1480px;padding:16px 18px;background:rgba(255,255,255,.88);border:1px solid rgba(226,232,240,.9);border-radius:20px;box-shadow:0 16px 40px rgba(15,23,42,.08);backdrop-filter:blur(16px)}.doc-brand-block{display:flex;align-items:center;gap:14px;min-width:0}.doc-brand-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,#1e3a5f,#172033);color:#fff;box-shadow:0 16px 34px rgba(30,58,95,.24)}.doc-kicker{margin:0 0 2px;font-size:12px;font-weight:800;color:var(--dp-blue)!important}.doc-shell-header h1{margin:0;font-size:24px;font-weight:900;color:var(--dp-text)!important}.doc-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.doc-alert{max-width:360px;padding:9px 12px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412!important;font-size:12px;font-weight:800}.doc-save-pill{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;background:#ecfdf5;color:#047857!important;border:1px solid #bbf7d0;font-size:12px;font-weight:900}.doc-save-pill span{width:8px;height:8px;border-radius:50%;background:#10b981}.doc-save-pill.is-loading{background:#fffbeb;color:#92400e!important;border-color:#fde68a}.doc-save-pill.is-loading span{background:#f59e0b}.doc-icon-button{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;border:1px solid var(--dp-line);background:#fff;color:var(--dp-text);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.doc-icon-button:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:0 10px 24px rgba(37,99,235,.14);color:var(--dp-blue)}.doc-workspace{max-width:1480px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(440px,570px);gap:18px;align-items:start}.doc-workspace.editor-only{grid-template-columns:minmax(0,920px);justify-content:center}.doc-editor{min-width:0}.doc-panel{background:var(--dp-card);border:1px solid var(--dp-line);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 10px 28px rgba(15,23,42,.06);animation:docRise .28s ease both}.doc-panel h2{margin:0 0 14px;display:flex;align-items:center;gap:9px;font-size:16px;font-weight:900;color:var(--dp-text)!important}.doc-panel h2 svg{color:var(--dp-blue)}.doc-grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.doc-field{display:block;min-width:0}.doc-field span{display:block;margin-bottom:6px;font-size:12px;font-weight:900;color:var(--dp-muted)!important}.doc-field input,.doc-field select,.doc-field textarea{width:100%;min-height:46px;border:1px solid var(--dp-line);border-radius:12px;background:#fff;color:var(--dp-text);font-size:14px;font-weight:700;padding:10px 12px;outline:none;transition:border-color .18s ease,box-shadow .18s ease}.doc-field textarea{min-height:92px;resize:vertical;line-height:1.7}.doc-field input:focus,.doc-field select:focus,.doc-field textarea:focus{border-color:#93c5fd;box-shadow:0 0 0 4px rgba(37,99,235,.10)}.doc-type-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.doc-type-card{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid var(--dp-line);border-radius:16px;background:#fff;color:var(--dp-text);font-size:13px;font-weight:900;text-align:right;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.doc-type-card:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:0 12px 26px rgba(37,99,235,.10)}.doc-type-card.active{background:linear-gradient(135deg,#2563eb,#0ea5e9);border-color:transparent;color:#fff}.doc-type-card.active span,.doc-type-card.active svg{color:#fff!important}.doc-items-list{display:grid;gap:10px;margin-bottom:12px}.doc-item-row{display:grid;grid-template-columns:minmax(180px,2fr) minmax(76px,.7fr) minmax(90px,.9fr) minmax(80px,.8fr) 46px;gap:10px;align-items:end;padding:12px;border-radius:16px;background:#f8fafc;border:1px solid #edf2f7}.doc-remove-button{height:46px;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:12px;display:grid;place-items:center;cursor:pointer}.doc-action{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border:1px solid var(--dp-line);border-radius:14px;background:#fff;color:var(--dp-text);font-size:14px;font-weight:900;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}.doc-action:hover{transform:translateY(-1px);box-shadow:0 12px 25px rgba(15,23,42,.10)}.doc-action.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);border-color:transparent;color:#fff}.doc-action.primary svg,.doc-action.whatsapp svg{color:#fff!important}.doc-action.whatsapp{background:linear-gradient(135deg,#10b981,#059669);border-color:transparent;color:#fff}.doc-action:disabled{opacity:.58;cursor:not-allowed;transform:none}.doc-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.doc-summary-item{padding:12px;border-radius:15px;background:#f8fafc;border:1px solid var(--dp-line)}.doc-summary-item span{display:block;font-size:12px;color:var(--dp-muted)!important;font-weight:800}.doc-summary-item strong{display:block;margin-top:4px;font-size:16px;color:var(--dp-text)!important;font-weight:950}.doc-actions-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.doc-preview-panel{position:sticky;top:96px;height:calc(100vh - 116px);overflow:hidden;border-radius:22px;background:#172033;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 60px rgba(15,23,42,.18)}.doc-preview-toolbar{display:flex;align-items:center;gap:8px;padding:10px;background:linear-gradient(135deg,#1e3a5f,#172033);border-bottom:1px solid rgba(255,255,255,.10)}.doc-preview-toolbar .doc-icon-button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:#e2e8f0}.doc-preview-toolbar .doc-icon-button:hover{color:#fff;border-color:rgba(125,211,252,.5)}.doc-zoom{min-width:58px;text-align:center;color:#e2e8f0!important;font-size:13px;font-weight:900}.doc-preview-viewport{height:calc(100% - 63px);overflow:auto;padding:22px;display:flex;justify-content:center;align-items:flex-start}.doc-sheet-scale{transform-origin:top center;flex:none}.electronic-invoice-sheet{position:relative;width:210mm;min-height:297mm;overflow:hidden;background:#fff;color:#172033;padding:13mm;box-shadow:0 24px 70px rgba(0,0,0,.34);font-family:Parastoo,Tahoma,Arial,sans-serif;direction:rtl}.electronic-invoice-sheet:before{content:'';position:absolute;inset:0 0 auto;height:8mm;background:linear-gradient(90deg,#172033 0%,#1e3a5f 48%,#2563eb 73%,#0ea5e9 100%)}.invoice-watermark{position:absolute;top:122mm;left:18mm;transform:rotate(-28deg);font-size:74px;font-weight:950;color:rgba(37,99,235,.045)!important;pointer-events:none}.invoice-hero{position:relative;margin-top:6mm;display:flex;align-items:flex-start;justify-content:space-between;gap:8mm;padding-bottom:7mm;border-bottom:1px solid #dbe4ee}.invoice-identity{display:flex;align-items:flex-start;gap:4mm;min-width:0}.invoice-logo{width:19mm;height:19mm;border-radius:6mm;background:linear-gradient(135deg,#172033,#1e3a5f);display:grid;place-items:center;color:#fff;overflow:hidden;flex:none}.invoice-logo img{width:100%;height:100%;object-fit:contain;background:#fff;padding:2mm}.invoice-logo span{font-size:22px;font-weight:950;color:#fff!important}.invoice-overline{margin:0 0 1mm;font-size:8px;font-weight:950;color:#2563eb!important}.invoice-identity h2{margin:0;font-size:19px;line-height:1.35;font-weight:950;color:#172033!important}.invoice-identity p:last-child{margin:1mm 0 0;font-size:9.5px;color:#64748b!important}.invoice-seal{width:34mm;height:34mm;border:1.4px dashed #2563eb;border-radius:50%;display:grid;place-items:center;text-align:center;color:#1d4ed8;background:#eff6ff}.seal-ring{width:13mm;height:13mm;border-radius:50%;display:grid;place-items:center;color:#2563eb}.invoice-seal strong{font-size:9px;color:#1d4ed8!important}.invoice-seal span{font-size:7.5px;font-weight:900;color:#0f172a!important}.invoice-title-band{margin-top:5mm;display:flex;align-items:center;justify-content:space-between;gap:6mm;padding:5mm;border-radius:5mm;background:linear-gradient(135deg,#f8fafc,#eef6ff);border:1px solid #dbeafe}.invoice-title-band p{margin:0;color:#64748b!important;font-size:10px;font-weight:900}.invoice-title-band h1{margin:1mm 0 0;font-size:23px;font-weight:950;color:#172033!important}.invoice-status-block{text-align:left}.invoice-status{display:inline-flex;align-items:center;justify-content:center;padding:2mm 4mm;border-radius:999px;font-size:9px;font-weight:950}.invoice-status.draft{background:#f1f5f9;color:#475569}.invoice-status.unpaid{background:#fee2e2;color:#b91c1c}.invoice-status.partial{background:#fef3c7;color:#92400e}.invoice-status.paid{background:#d1fae5;color:#047857}.invoice-status.deferred{background:#dbeafe;color:#1d4ed8}.invoice-status-block small{display:block;margin-top:2mm;color:#64748b!important;font-size:8.5px;font-weight:800}.invoice-contact-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3.5mm;margin-top:5mm}.invoice-info-card{border:1px solid #e2e8f0;border-radius:4mm;padding:3.5mm;background:#fff}.invoice-info-card h3{display:flex;align-items:center;gap:1.5mm;margin:0 0 2.5mm;font-size:10.5px;font-weight:950;color:#172033!important}.invoice-info-card h3 svg{color:#2563eb}.invoice-info-line{display:flex;justify-content:space-between;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #edf2f7;font-size:9px}.invoice-info-line:last-child{border-bottom:0}.invoice-info-line span{color:#64748b!important;font-weight:800}.invoice-info-line strong{color:#172033!important;font-weight:950;text-align:left;word-break:break-word}.invoice-table-section{margin-top:5mm}.section-heading{display:flex;align-items:center;gap:2mm;margin-bottom:2mm;color:#172033;font-size:11px;font-weight:950}.section-heading svg{color:#2563eb}.invoice-items-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;overflow:hidden;border:1px solid #dbe4ee;border-radius:3mm;font-size:8.7px}.invoice-items-table th{background:#172033;color:#fff!important;padding:2.2mm;border-left:1px solid rgba(255,255,255,.12);font-weight:950}.invoice-items-table td{padding:2.2mm;border-left:1px solid #e2e8f0;border-top:1px solid #e2e8f0;text-align:center;vertical-align:top;color:#172033!important;word-break:break-word}.invoice-items-table th:nth-child(2),.invoice-items-table td:nth-child(2){width:34%;text-align:right}.invoice-items-table tbody tr:nth-child(even) td{background:#f8fafc}.invoice-items-table .item-desc{font-weight:850}.invoice-items-table .strong{font-weight:950;color:#0f172a!important}.empty-table{text-align:center!important;color:#94a3b8!important;padding:8mm!important}.invoice-bottom-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:4mm;margin-top:5mm}.invoice-notes{padding:4mm;border-radius:4mm;border:1px solid #e2e8f0;background:#f8fafc}.invoice-notes h3{margin:0 0 1mm;font-size:10.5px;font-weight:950;color:#172033!important}.invoice-notes p{margin:0 0 3mm;font-size:9px;line-height:1.8;color:#475569!important}.amount-words{margin-top:2mm;padding:2.5mm;border-radius:3mm;background:#fff;border:1px dashed #bfdbfe;color:#172033!important;font-size:9px}.amount-words strong{color:#1d4ed8!important}.invoice-totals-card{border:1px solid #dbe4ee;border-radius:4mm;overflow:hidden;background:#fff}.invoice-total-line{display:flex;align-items:center;justify-content:space-between;gap:3mm;padding:2.3mm 3mm;border-bottom:1px solid #edf2f7;font-size:9.5px}.invoice-total-line:last-child{border-bottom:0}.invoice-total-line span{color:#64748b!important;font-weight:850}.invoice-total-line strong{color:#172033!important;font-weight:950}.invoice-total-line.accent{background:linear-gradient(135deg,#172033,#1e3a5f)}.invoice-total-line.accent span,.invoice-total-line.accent strong{color:#fff!important}.invoice-total-line.accent strong{font-size:13px}.invoice-signature-grid{display:grid;grid-template-columns:1fr 1fr 28mm;gap:4mm;margin-top:6mm;align-items:stretch}.signature-box{height:22mm;border:1px dashed #94a3b8;border-radius:3mm;background:#fff;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2mm}.signature-box span{font-size:9px;font-weight:900;color:#64748b!important}.qr-box{height:22mm;border:1px solid #dbe4ee;border-radius:3mm;display:grid;place-items:center;background:#f8fafc}.qr-box div{width:13mm;height:13mm;background:repeating-linear-gradient(45deg,#172033 0 2px,#fff 2px 4px)}.qr-box span{font-size:7px;font-weight:900;color:#64748b!important}.invoice-footer{position:absolute;left:13mm;right:13mm;bottom:9mm;display:flex;justify-content:space-between;align-items:center;gap:4mm;padding-top:3mm;border-top:1px solid #dbe4ee;font-size:8.2px;color:#64748b!important}.invoice-footer strong{color:#172033!important}.invoice-footer span{color:#64748b!important}@keyframes docRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@media(max-width:1180px){.doc-workspace{grid-template-columns:1fr}.doc-preview-panel{position:relative;top:0;height:76vh}.doc-type-grid,.doc-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.document-print-page{padding:10px}.doc-shell-header{position:relative;top:0;align-items:flex-start;flex-direction:column}.doc-header-actions{width:100%;justify-content:flex-start}.doc-grid.two,.doc-summary-strip,.doc-type-grid,.doc-actions-grid{grid-template-columns:1fr}.doc-item-row{grid-template-columns:1fr}.doc-remove-button{width:100%}.doc-preview-viewport{padding:12px;justify-content:flex-start}.doc-preview-panel{height:70vh}.doc-shell-header h1{font-size:20px}.doc-brand-icon{width:46px;height:46px}}@media print{.document-print-page{background:#fff!important;padding:0!important}.doc-shell-header,.doc-editor,.doc-preview-toolbar{display:none!important}.doc-workspace{display:block;margin:0;max-width:none}.doc-preview-panel{position:static;height:auto;border:0;border-radius:0;box-shadow:none;background:#fff;overflow:visible}.doc-preview-viewport{height:auto;overflow:visible;padding:0;display:block}.doc-sheet-scale{transform:none!important;height:auto!important}.electronic-invoice-sheet{width:210mm;min-height:297mm;box-shadow:none;margin:0;padding:13mm;page-break-after:always}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:0}}
 `;
