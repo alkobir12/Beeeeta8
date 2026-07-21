@@ -1,1234 +1,300 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { 
-  Plus, Trash2, FileText, Download, Eye, Loader2, Printer,
-  Receipt, ClipboardList, FileCheck, Car, Save, Check, Share2
-} from 'lucide-react';
-import axios from 'axios';
-import { useTranslation } from 'react-i18next';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { downloadPDF } from '../utils/pdfGenerator'; // New utility
+import { Download, Eye, FileText, Maximize2, Minus, Plus, Printer, RefreshCw, Share2, Settings, ShieldCheck, X } from 'lucide-react';
+import { api } from '../services/api';
+import { downloadPDF } from '../utils/pdfGenerator';
 import { getWhatsAppLink } from '../utils/constants';
-import { resolveBackendBase } from '../utils/backendBase';
+import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 
-const API_URL = process.env.NODE_ENV === 'production'
-  ? '/api'
-  : `${resolveBackendBase()}/api`.replace('//api', '/api');
+const SAR = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
+const today = () => new Date().toISOString().slice(0, 10);
+const docLabels = { invoice: 'فاتورة إصلاح مركبة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'طباعة زيارة' };
 
-const DocumentPrint = () => {
-  const { i18n } = useTranslation();
-  const isArabic = i18n.language === 'ar';
+const emptyItem = { description: '', quantity: 1, unit_price: 0, discount: 0, vatRate: 0, type: 'service' };
+
+const normalizeItem = (item = {}) => {
+  const quantity = Number(item.quantity || item.qty || 1);
+  const unit = Number(item.unit_price || item.price || item.amount || 0);
+  const discount = Number(item.discount || 0);
+  return {
+    description: item.description || item.name || item.serviceName || 'بند',
+    quantity,
+    unit_price: unit,
+    discount,
+    vatRate: Number(item.vatRate || item.tax_rate || 0),
+    type: item.type || item.itemType || 'service',
+  };
+};
+
+const getResponseRows = (data, keys = []) => {
+  if (Array.isArray(data)) return data;
+  for (const key of keys) if (Array.isArray(data?.[key])) return data[key];
+  return [];
+};
+
+export default function DocumentPrint() {
   const [searchParams] = useSearchParams();
-  const previewRef = useRef(null);
-  const pdfIframeRef = useRef(null);
-  const autoRefreshRef = useRef(false);
-  
-  const [loading, setLoading] = useState(false);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
-  const [previewHtml, setPreviewHtml] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [workshopSettings, setWorkshopSettings] = useState(null);
-  const [workshopLoaded, setWorkshopLoaded] = useState(false);
-  const [pdfSourceHtml, setPdfSourceHtml] = useState('');
-  
-  // نوع المستند من URL أو افتراضي
-  const initialType = searchParams.get('type') || 'invoice';
   const vehicleId = searchParams.get('vehicleId');
   const visitId = searchParams.get('visitId');
   const operationId = searchParams.get('operationId');
   const invoiceId = searchParams.get('invoiceId');
   const autoPrint = searchParams.get('autoPrint') === '1';
   const autoWhatsApp = searchParams.get('autoWhatsApp') === '1';
-  const autoClose = searchParams.get('autoClose') === '1';
+  const previewRef = useRef(null);
   const autoActionRef = useRef(false);
-  
-  const [docType, setDocType] = useState(initialType);
-  
+
+  const [zoom, setZoom] = useState(0.72);
+  const [modePreview, setModePreview] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [saveState, setSaveState] = useState('جاهز');
+  const [docType, setDocType] = useState(searchParams.get('type') || 'invoice');
   const [formData, setFormData] = useState({
-    workshop: {
-      name: '',
-      name_en: '',
-      address: '',
-      phone: '',
-      email: '',
-      website: '',
-      commercial_register: ''
-    },
-    customer: {
-      name: '',
-      company: '',
-      address: '',
-      phone: '',
-      email: ''
-    },
-    vehicle: {
-      brand: '',
-      model: '',
-      year: '',
-      plateNumber: '',
-      vin: '',
-      color: '',
-      mileage: '',
-      notes: ''
-    },
-    items: [{ description: '', quantity: 1, unit_price: 0, discount: 0 }],
-    settings: {
-      theme: 'أزرق',
-      style: 'حديث',
-      tax_rate: 0,
-      description: '',
-      notes: '',
-      approval_token: '',
-      date: new Date().toISOString().split('T')[0],
-      terms: []
-    }
+    workshop: { name: '', name_en: '', phone: '', email: '', address: '', tax_number: '', commercial_register: '', website: '', logo: '', tagline: 'ميكانيكا عامة — كهرباء — سمكرة ودهان — فحص كمبيوتر' },
+    customer: { name: '', phone: '', email: '', address: '', taxNo: '' },
+    vehicle: { brand: '', model: '', year: '', plateNumber: '', vin: '', color: '', mileage: '', notes: '' },
+    items: [emptyItem],
+    settings: { document_number: `INV-${new Date().toISOString().slice(2,10).replace(/-/g,'')}-${Math.floor(100 + Math.random() * 900)}`, date: today(), receivedTime: '09:00', status: 'draft', notes: '', warranty: 'ضمان الإصلاح 30 يوماً أو 1,000 كم من تاريخ التسليم، ولا يشمل سوء الاستخدام.', approval_token: '' },
+    payment: { method: 'cash', paid: 0 },
   });
 
-  const isDataReady = Boolean(
-    formData?.items?.length ||
-    formData?.customer?.name ||
-    formData?.customerName ||
-    formData?.settings?.document_number
-  );
+  const totals = useMemo(() => {
+    const rows = (formData.items || []).filter((item) => item.description).map((item) => {
+      const subtotal = Number(item.quantity || 0) * Number(item.unit_price || 0);
+      const discount = Number(item.discount || 0);
+      const afterDiscount = Math.max(subtotal - discount, 0);
+      const tax = Math.round(afterDiscount * Number(item.vatRate || 0)) / 100;
+      return { ...item, subtotal, discount, tax, total: afterDiscount + tax };
+    });
+    const subtotal = rows.reduce((sum, item) => sum + item.subtotal, 0);
+    const discount = rows.reduce((sum, item) => sum + item.discount, 0);
+    const tax = rows.reduce((sum, item) => sum + item.tax, 0);
+    const total = rows.reduce((sum, item) => sum + item.total, 0);
+    const paid = Number(formData.payment?.paid || 0);
+    return { rows, subtotal, discount, tax, total, paid, remain: total - paid };
+  }, [formData.items, formData.payment?.paid]);
 
-  const themes = ['أزرق', 'أخضر', 'بنفسجي', 'برتقالي', 'أحمر', 'تركوازي', 'ذهبي', 'رمادي'];
-  const styles = ['حديث', 'كلاسيكي', 'فاخر'];
-  
-  const docTypes = {
-    invoice: { label: isArabic ? 'فاتورة مبيعات' : 'Sales Invoice', icon: Receipt },
-    diagnosis: { label: isArabic ? 'تقرير تشخيص' : 'Diagnosis Report', icon: ClipboardList },
-    quote: { label: isArabic ? 'عرض سعر' : 'Price Quote', icon: FileCheck },
-    receipt: { label: isArabic ? 'إيصال استلام' : 'Receipt', icon: FileText }
-  };
+  const patchForm = useCallback((patch) => setFormData((prev) => ({ ...prev, ...patch })), []);
+  const patchNested = useCallback((section, key, value) => setFormData((prev) => ({ ...prev, [section]: { ...prev[section], [key]: value } })), []);
 
-  useEffect(() => {
-    loadWorkshopSettings();
-    if (vehicleId) {
-      loadVehicleData(vehicleId, { preserveItems: Boolean(visitId || operationId || invoiceId) });
-      loadLatestApprovalToken(vehicleId);
-    }
-    if (visitId) {
-      loadVisitItems(vehicleId || null, visitId);
-    }
-    if (operationId) {
-      loadOperationData(operationId);
-    }
-    if (invoiceId) {
-      loadInvoiceData(invoiceId);
-    }
-  }, [vehicleId, visitId, operationId, invoiceId]);
+  const loadWorkshop = useCallback(async () => {
+    const ws = await loadWorkshopPrintInfo(async (path) => {
+      const response = await api.get(path);
+      return { ok: true, json: async () => response.data };
+    });
+    patchForm({ workshop: { ...formData.workshop, ...ws, tagline: ws.slogan || ws.tagline || formData.workshop.tagline } });
+  }, [formData.workshop, patchForm]);
 
-  useEffect(() => {
-    const loadPrintDefaults = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/settings`);
-        const defaults = res.data?.printDefaults;
-        if (defaults) {
-          setFormData(prev => ({
-            ...prev,
-            settings: {
-              ...prev.settings,
-              theme: defaults.theme || prev.settings.theme,
-              style: defaults.style || prev.settings.style,
-              tax_rate: 0,
-            }
-          }));
-        }
-      } catch (e) {
-        // ignore
-      }
-    };
-
-    loadPrintDefaults();
-  }, []);
-
-  useEffect(() => {
-    autoRefreshRef.current = false;
-    autoActionRef.current = false;
-  }, [vehicleId, visitId, operationId, invoiceId]);
-
-  useEffect(() => {
-    if (!autoPrint && !autoWhatsApp) return;
-    if (!workshopLoaded || !isDataReady) return;
-    if (autoActionRef.current) return;
-    autoActionRef.current = true;
-
-    if (autoPrint) {
-      printDocument({ useCurrentWindow: true, closeAfter: autoClose });
-    } else if (autoWhatsApp) {
-      handleWhatsAppSend({ closeAfter: autoClose });
-    }
-  }, [autoPrint, autoWhatsApp, autoClose, workshopLoaded, isDataReady]);
-
-  const loadWorkshopSettings = async () => {
-    try {
-      const [settingsRes, profileRes] = await Promise.all([
-        axios.get(`${API_URL}/settings`),
-        axios.get(`${API_URL}/profile`).catch(() => ({ data: null })),
-      ]);
-
-      const data = settingsRes.data || {};
-      const profile = profileRes.data || {};
-
-      setWorkshopSettings(data);
-      setFormData(prev => ({
-        ...prev,
-        workshop: {
-          name: profile.name || data.workshopName || '',
-          name_en: profile.nameEnglish || data.workshopNameEn || '',
-          address: profile.address || data.address || '',
-          phone: profile.phone || data.phone || '',
-          email: profile.email || data.email || '',
-          website: data.website || '',
-          commercial_register: profile.commercialRegister || data.commercialRegister || '',
-          logo: profile.logo || '',
-          slogan: profile.slogan || '',
-          slogan_en: profile.sloganEnglish || ''
-        }
-      }));
-    } catch (e) {
-      console.error('Error loading settings/profile:', e);
-    } finally {
-      setWorkshopLoaded(true);
-    }
-  };
-
-  const loadCustomerData = async (customerId) => {
+  const loadCustomer = useCallback(async (customerId) => {
     if (!customerId) return;
     try {
-      const response = await axios.get(`${API_URL}/customers`);
-      const rows = Array.isArray(response.data) ? response.data : (response.data?.customers || []);
+      const response = await api.get('/customers');
+      const rows = getResponseRows(response.data, ['customers', 'data']);
       const match = rows.find((c) => c.id === customerId || c.customerId === customerId);
-      if (!match) return;
-      setFormData((prev) => ({
-        ...prev,
-        customer: {
-          ...prev.customer,
-          name: match.name || prev.customer.name,
-          phone: match.phone || prev.customer.phone,
-          email: match.email || prev.customer.email,
-          address: match.address || match.company || prev.customer.address,
-        }
-      }));
-    } catch (e) {
-      console.error('Error loading customer:', e);
-    }
-  };
+      if (match) patchForm({ customer: { name: match.name || '', phone: match.phone || '', email: match.email || '', address: match.address || match.company || '', taxNo: match.taxNo || match.tax_number || '' } });
+    } catch (_) {}
+  }, [patchForm]);
 
-  const loadVehicleData = async (id, options = {}) => {
-    const { preserveItems = false } = options;
+  const loadVehicle = useCallback(async (id, preserveItems = false) => {
+    if (!id) return;
     try {
-      const { data } = await axios.get(`${API_URL}/vehicles/${id}`);
-      if (data) {
-        const vehicleParts = data.parts || [];
-        const itemsFromParts = vehicleParts.map(part => ({
-          description: part.name || part.description || '',
-          quantity: part.quantity || 1,
-          unit_price: part.price || 0,
-          discount: 0
-        }));
+      const { data } = await api.get(`/vehicles/${id}`);
+      if (!data) return;
+      patchForm({
+        customer: { ...formData.customer, name: data.customerName || data.customer_name || formData.customer.name, phone: data.customerPhone || data.customer_phone || formData.customer.phone },
+        vehicle: { brand: data.brand || data.vehicleBrand || '', model: data.model || data.vehicleModel || '', year: data.year || data.vehicleYear || '', plateNumber: data.plateNumber || data.plate || '', vin: data.vin || data.chassisNumber || '', color: data.color || '', mileage: data.mileage || '', notes: data.notes || '' },
+        items: preserveItems ? formData.items : (Array.isArray(data.parts) && data.parts.length ? data.parts.map(normalizeItem) : formData.items),
+      });
+      if (data.customerId || data.customer_id) loadCustomer(data.customerId || data.customer_id);
+    } catch (_) {}
+  }, [formData.customer, formData.items, loadCustomer, patchForm]);
 
-        const finalItems = itemsFromParts.length > 0 
-          ? itemsFromParts 
-          : (data.services || []).map(s => ({
-              description: s,
-              quantity: 1,
-              unit_price: 0,
-              discount: 0
-            }));
-
-        const customerName = data.customerName || data.customer_name || '';
-        const customerPhone = data.customerPhone || data.customer_phone || '';
-        const customerId = data.customerId || data.customer_id || '';
-
-        setFormData(prev => ({
-          ...prev,
-          customer: {
-            ...prev.customer,
-            name: customerName || prev.customer.name,
-            phone: customerPhone || prev.customer.phone
-          },
-          vehicle: {
-            brand: data.brand || '',
-            model: data.model || '',
-            year: data.year || '',
-            plateNumber: data.plateNumber || '',
-            vin: data.vin || '',
-            color: data.color || '',
-            mileage: data.mileage || '',
-            notes: data.notes || ''
-          },
-          items: preserveItems ? prev.items : (finalItems.length > 0 ? finalItems : [{ description: '', quantity: 1, unit_price: 0, discount: 0 }])
-        }));
-
-        if (customerId && !customerName) {
-          loadCustomerData(customerId);
-        }
-      }
-    } catch (e) {
-      console.error('Error loading vehicle:', e);
-    }
-  };
-
-  const loadVisitItems = async (vId, vVisitId) => {
+  const loadVisit = useCallback(async () => {
+    if (!visitId) return;
     try {
-      // 1) Prefer finance operations linked to the visit (most accurate for invoices/receipts).
-      const opsRes = await axios.get(`${API_URL}/visits/${vVisitId}/operations`).catch(() => ({ data: [] }));
-      const ops = Array.isArray(opsRes.data) ? opsRes.data : [];
-
-      if (ops.length > 0) {
-        const op = ops[0]; // latest
-        // When printing from a specific visit, we derive doc type from the visit status.
-        // This matches the “print حسب الحالة” requirement.
-        if (docType === initialType && visitId) {
-          const st = String(op.status || '').toLowerCase();
-          const mapped = st === 'quotation' ? 'quote' : st === 'diagnosis' ? 'diagnosis' : st === 'receipt' ? 'receipt' : 'invoice';
-          setDocType(mapped);
-        }
-        let opItems = op.items || [];
-        if (typeof opItems === 'string') {
-          try {
-            opItems = JSON.parse(opItems);
-          } catch (e) {
-            opItems = [];
-          }
-        }
-        const mappedItems = (opItems || []).map((it) => ({
-          description: it.name || it.description || '',
-          quantity: Number(it.quantity || 1),
-          unit_price: Number(it.price || it.unit_price || 0),
-          discount: 0,
-        }));
-
-        const opCustomerName = op.customerName || op.customer_name || op.partnerName || op.partner_name || '';
-        const opCustomerPhone = op.customerPhone || op.customer_phone || op.phone || '';
-        const opCustomerId = op.customerId || op.customer_id || '';
-
-        setFormData((prev) => ({
-          ...prev,
-          items: mappedItems.length > 0 ? mappedItems : prev.items,
-          customer: {
-            ...prev.customer,
-            name: opCustomerName || prev.customer.name,
-            phone: opCustomerPhone || prev.customer.phone,
-          },
-          settings: {
-            ...prev.settings,
-            document_number: op.invoice_number || op.invoiceNumber || prev.settings.document_number,
-            date: (op.op_date || op.date || '').toString().slice(0, 10) || prev.settings.date,
-          },
-        }));
-
-        if (opCustomerId && !opCustomerName) {
-          loadCustomerData(opCustomerId);
-        }
-
-        // Map doc type based on vehicle/visit status when not explicitly specified.
-        if (!searchParams.get('type')) {
-          // fallback logic: keep existing
-        }
-
+      const opsResponse = await api.get(`/visits/${visitId}/operations`).catch(() => ({ data: [] }));
+      const ops = getResponseRows(opsResponse.data, ['operations', 'data']);
+      if (ops.length) {
+        const op = ops[0];
+        const items = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+        patchForm({
+          items: items.length ? items.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'زيارة ورشة', price: op.total || 0 })],
+          customer: { ...formData.customer, name: op.customerName || op.customer_name || op.partnerName || formData.customer.name, phone: op.customerPhone || op.customer_phone || formData.customer.phone },
+          settings: { ...formData.settings, document_number: op.invoiceNumber || op.invoice_number || formData.settings.document_number, date: String(op.date || op.createdAt || today()).slice(0, 10), notes: op.notes || formData.settings.notes },
+        });
         return;
       }
-
-      // 2) Fallback: load visit notes->items from vehicle visits endpoint.
-      if (!vId) return;
-      const visitsRes = await axios.get(`${API_URL}/vehicles/${vId}/visits`).catch(() => ({ data: [] }));
-      const visits = Array.isArray(visitsRes.data) ? visitsRes.data : [];
-      const match = visits.find((x) => (x.id || x.visitId) === vVisitId);
-
-      if (match && match.notes && String(match.notes).trim().startsWith('{')) {
-        try {
-          const obj = JSON.parse(match.notes);
-          const parsed = (obj.items || []).map((it) => ({
-            description: it.name || it.description || '',
-            quantity: Number(it.quantity || 1),
-            unit_price: Number(it.price || it.unit_price || 0),
-            discount: 0,
-          }));
-          if (parsed.length > 0) {
-            setFormData((prev) => ({
-              ...prev,
-              items: parsed,
-            }));
-          }
-        } catch (_) {
-          // ignore
-        }
+      if (!vehicleId) return;
+      const visitsResponse = await api.get(`/vehicles/${vehicleId}/visits`).catch(() => ({ data: [] }));
+      const visits = getResponseRows(visitsResponse.data, ['visits', 'data']);
+      const visit = visits.find((v) => v.id === visitId || v.visitId === visitId);
+      if (!visit) return;
+      let parsed = [];
+      if (String(visit.notes || '').trim().startsWith('{')) {
+        try { parsed = JSON.parse(visit.notes).items || []; } catch (_) { parsed = []; }
       }
-    } catch (e) {
-      console.error('Error loading visit items:', e);
-    }
-  };
-
-  const loadLatestApprovalToken = async (id) => {
-    try {
-      const { data } = await axios.get(`${API_URL}/approvals?vehicle_id=${id}`);
-      if (!Array.isArray(data) || data.length === 0) return;
-
-      const approved = data.filter(a => (a.status || '').toLowerCase() === 'approved');
-      const candidates = approved.length > 0 ? approved : data;
-
-      const sorted = [...candidates].sort((a, b) => {
-        const aDate = a.respondedAt || a.responded_at || a.createdAt || a.created_at || a.requestedAt || a.requested_at;
-        const bDate = b.respondedAt || b.responded_at || b.createdAt || b.created_at || b.requestedAt || b.requested_at;
-        return new Date(bDate || 0) - new Date(aDate || 0);
+      patchForm({
+        items: parsed.length ? parsed.map(normalizeItem) : [normalizeItem({ description: docType === 'diagnosis' ? 'تقرير تشخيص' : 'زيارة ورشة', price: visit.total_workshop || visit.total || 0 })],
+        settings: { ...formData.settings, document_number: visit.invoiceNumber || visit.id || formData.settings.document_number, date: String(visit.created_at || visit.createdAt || today()).slice(0, 10), notes: typeof visit.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : formData.settings.notes },
       });
+    } catch (_) {}
+  }, [docType, formData.customer, formData.settings, patchForm, vehicleId, visitId]);
 
-      const latest = sorted[0];
-      if (latest && latest.token) {
-        setFormData(prev => ({
-          ...prev,
-          settings: {
-            ...prev.settings,
-            approval_token: latest.token,
-          },
-        }));
-      }
-    } catch (e) {
-      console.error('Error loading latest approval token:', e);
-    }
-  };
-
-  const loadOperationData = async (opId) => {
+  const loadOperation = useCallback(async (id) => {
+    if (!id) return;
     try {
-      const { data: op } = await axios.get(`${API_URL}/operations/${opId}`);
+      const { data: op } = await api.get(`/operations/${id}`);
       if (!op) return;
-
-      let opItems = op.items || [];
-      if (typeof opItems === 'string') {
-        try {
-          opItems = JSON.parse(opItems);
-        } catch (e) {
-          opItems = [];
-        }
-      }
-      const mappedItems = (opItems || []).map((it) => ({
-        description: it.name || it.description || '',
-        quantity: Number(it.quantity || 1),
-        unit_price: Number(it.price || it.unit_price || 0),
-        discount: 0,
-      }));
-
-      const opVehicleId = op.vehicleId || op.vehicle_id;
-      if (opVehicleId && !vehicleId) {
-        loadVehicleData(opVehicleId, { preserveItems: true });
-        loadLatestApprovalToken(opVehicleId);
-      }
-
-      const opType = op.type || op.operation_type || 'sale';
-      const normalizedType = String(opType).toLowerCase();
-      const isPurchase = ['purchase', 'expense', 'out'].includes(normalizedType);
-      const accountLabel = op.accountName || op.account_name || op.accountLabel || '';
-      const documentTitle = isPurchase ? (accountLabel || 'فاتورة شراء') : 'فاتورة مبيعات';
-
-      setDocType('invoice');
-
-      const opCustomerName = op.customerName || op.customer_name || op.partnerName || '';
-      const opCustomerPhone = op.customerPhone || op.customer_phone || op.phone || '';
-      const opCustomerId = op.customerId || op.customer_id || '';
-
-      setFormData((prev) => ({
-        ...prev,
-        customer: {
-          ...prev.customer,
-          name: opCustomerName || prev.customer.name,
-          phone: opCustomerPhone || prev.customer.phone,
-        },
-        items: mappedItems.length > 0 ? mappedItems : prev.items,
-        settings: {
-          ...prev.settings,
-          date: (op.date || op.op_date || op.createdAt || '').toString().slice(0, 10) || prev.settings.date,
-          document_number: op.invoice_number || op.invoiceNumber || prev.settings.document_number || `OP-${op.id}`,
-          document_title: documentTitle,
-          notes: op.notes || prev.settings.notes,
-        },
-      }));
-
-      if (opCustomerId && !opCustomerName) {
-        loadCustomerData(opCustomerId);
-      }
-    } catch (e) {
-      console.error('Error loading operation:', e);
-    }
-  };
-
-  const handleWorkshopChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      workshop: { ...prev.workshop, [field]: value }
-    }));
-  };
-
-  const handleCustomerChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      customer: { ...prev.customer, [field]: value }
-    }));
-  };
-
-  const handleVehicleChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      vehicle: { ...prev.vehicle, [field]: value }
-    }));
-  };
-
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...formData.items];
-    newItems[index] = { 
-      ...newItems[index], 
-      [field]: field === 'description' ? value : parseFloat(value) || 0 
-    };
-    setFormData(prev => ({ ...prev, items: newItems }));
-  };
-
-  const addItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, { description: '', quantity: 1, unit_price: 0, discount: 0 }]
-    }));
-  };
-
-  const loadInvoiceData = async (invId) => {
-    try {
-      const { data: inv } = await axios.get(`${API_URL}/invoices/${invId}`);
-      if (!inv) return;
-
-      let invItems = inv.items || [];
-      if (typeof invItems === 'string') {
-        try {
-          invItems = JSON.parse(invItems);
-        } catch (e) {
-          invItems = [];
-        }
-      }
-      const mappedItems = (invItems || []).map((it) => ({
-        description: it.description || it.name || '',
-        quantity: Number(it.quantity || 1),
-        unit_price: Number(it.unit_price || it.price || 0),
-        discount: Number(it.discount || 0),
-      }));
-
-      const invVehicleId = inv.vehicleId || inv.vehicle_id;
-      if (invVehicleId && !vehicleId) {
-        loadVehicleData(invVehicleId, { preserveItems: true });
-        loadLatestApprovalToken(invVehicleId);
-      }
-
-      setDocType(inv.type || 'invoice');
-
-      const invCustomerName = inv.partner_name || inv.partnerName || '';
-      const invCustomerId = inv.customer_id || inv.customerId || '';
-
-      setFormData((prev) => ({
-        ...prev,
-        customer: {
-          ...prev.customer,
-          name: invCustomerName || prev.customer.name,
-        },
-        items: mappedItems.length > 0 ? mappedItems : prev.items,
-        settings: {
-          ...prev.settings,
-          date: (inv.created_at || inv.createdAt || '').toString().slice(0, 10) || prev.settings.date,
-          document_number: inv.invoice_number || inv.invoiceNumber || prev.settings.document_number,
-          notes: inv.notes || prev.settings.notes,
-        },
-      }));
-
-      if (invCustomerId && !invCustomerName) {
-        loadCustomerData(invCustomerId);
-      }
-    } catch (e) {
-      console.error('Error loading invoice:', e);
-    }
-  };
-
-  const removeItem = (index) => {
-    if (formData.items.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        items: prev.items.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleSettingsChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      settings: { ...prev.settings, [field]: value }
-    }));
-  };
-
-  const calculateTotal = () => {
-    const subtotal = formData.items.reduce((sum, item) => {
-      return sum + (item.quantity * item.unit_price) - item.discount;
-    }, 0);
-    const tax = 0;
-    return { subtotal, tax, total: subtotal };
-  };
-
-  const buildDocumentPayload = () => ({
-    doc_type: docType,
-    workshop: formData.workshop,
-    customer: formData.customer,
-    vehicle: formData.vehicle,
-    items: formData.items.filter(item => item.description),
-    settings: {
-      ...formData.settings,
-      approval_token: formData.settings.approval_token || undefined,
-      approval_vehicle_id: vehicleId || undefined,
-      visit_id: visitId || undefined,
-    },
-  });
-
-  const refreshDocumentData = async () => {
-    await loadWorkshopSettings();
-    if (vehicleId) {
-      await loadVehicleData(vehicleId, { preserveItems: Boolean(visitId || operationId || invoiceId) });
-      await loadLatestApprovalToken(vehicleId);
-    }
-    if (visitId) {
-      await loadVisitItems(vehicleId || null, visitId);
-    }
-    if (operationId) {
-      await loadOperationData(operationId);
-    }
-    if (invoiceId) {
-      await loadInvoiceData(invoiceId);
-    }
-  };
-
-  const getDocumentHtml = async () => {
-    if ((!formData.workshop.name || !formData.customer.name) && !autoRefreshRef.current) {
-      autoRefreshRef.current = true;
-      await refreshDocumentData();
-      await new Promise((r) => setTimeout(r, 120));
-    }
-
-    const response = await axios.post(`${API_URL}/documents/generate`, buildDocumentPayload());
-    if (response.data?.success) {
-      return response.data.html;
-    }
-    throw new Error(response.data?.message || 'فشل');
-  };
-
-  const getPdfBodyFromHtml = async (html) => {
-    const previewIframe = previewRef?.current?.querySelector?.('iframe');
-    if (previewIframe?.contentDocument?.readyState === 'complete' && previewIframe?.contentDocument?.body?.innerHTML?.trim()) {
-      return { doc: previewIframe.contentDocument, body: previewIframe.contentDocument.body };
-    }
-
-    setPdfSourceHtml(html);
-    await new Promise((r) => setTimeout(r, 60));
-    const hiddenIframe = pdfIframeRef.current;
-    if (!hiddenIframe) {
-      throw new Error('تعذر إنشاء المعاينة المخفية');
-    }
-
-    await new Promise((resolve) => {
-      if (hiddenIframe.contentDocument?.readyState === 'complete') {
-        resolve();
-        return;
-      }
-      const handler = () => {
-        hiddenIframe.removeEventListener('load', handler);
-        resolve();
-      };
-      hiddenIframe.addEventListener('load', handler);
-      setTimeout(() => {
-        hiddenIframe.removeEventListener('load', handler);
-        resolve();
-      }, 1200);
-    });
-
-    const doc = hiddenIframe.contentDocument;
-    return { doc, body: doc?.body };
-  };
-
-  const handleDownloadPDF = async () => {
-    setGeneratingPdf(true);
-    try {
-      const html = previewHtml || (await getDocumentHtml());
-      const { doc, body } = await getPdfBodyFromHtml(html);
-      if (!body) {
-        throw new Error(isArabic ? 'تعذر تجهيز المعاينة للطباعة' : 'Unable to prepare preview');
-      }
-
-      if (doc?.fonts?.ready) {
-        try {
-          await doc.fonts.ready;
-        } catch (_) {
-          // ignore
-        }
-      }
-      await new Promise((r) => setTimeout(r, 120));
-
-      // Try multiple scales to avoid failures across devices.
-      const fileName = `${docType}_${formData.settings.document_number || 'doc'}.pdf`;
-      const scales = [2, 1.5, 1];
-      let lastErr = null;
-      for (const sc of scales) {
-        try {
-          await downloadPDF(body, fileName, {
-            scale: sc,
-            backgroundColor: '#ffffff',
-          });
-          lastErr = null;
-          break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      if (lastErr) throw lastErr;
-
-    } catch (e) {
-      console.error('PDF Download Error:', e);
-      alert((isArabic ? 'فشل تحميل PDF: ' : 'PDF Download Failed: ') + (e?.message || ''));
-    } finally {
-      setGeneratingPdf(false);
-    }
-  };
-
-  const handleWhatsAppSend = async ({ closeAfter = false } = {}) => {
-    setGeneratingPdf(true);
-    try {
-      const html = previewHtml || (await getDocumentHtml());
-      const { doc, body } = await getPdfBodyFromHtml(html);
-      if (!body) {
-        throw new Error(isArabic ? 'تعذر تجهيز المعاينة للطباعة' : 'Unable to prepare preview');
-      }
-
-      if (doc?.fonts?.ready) {
-        try {
-          await doc.fonts.ready;
-        } catch (_) {
-          // ignore
-        }
-      }
-      await new Promise((r) => setTimeout(r, 120));
-
-      const fileName = `${docType}_${formData.settings.document_number || 'doc'}.pdf`;
-      await downloadPDF(body, fileName, {
-        scale: 1.5,
-        backgroundColor: '#ffffff',
+      const opItems = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+      patchForm({
+        items: opItems.length ? opItems.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'عملية', price: op.total || op.amount || 0 })],
+        customer: { ...formData.customer, name: op.customerName || op.customer_name || op.partnerName || formData.customer.name, phone: op.customerPhone || op.customer_phone || formData.customer.phone },
+        settings: { ...formData.settings, document_number: op.invoiceNumber || op.invoice_number || `OP-${op.id || ''}`, date: String(op.date || op.createdAt || today()).slice(0, 10), notes: op.notes || formData.settings.notes },
       });
+      if (op.vehicleId || op.vehicle_id) loadVehicle(op.vehicleId || op.vehicle_id, true);
+    } catch (_) {}
+  }, [formData.customer, formData.settings, loadVehicle, patchForm]);
 
-      const phone = formData.customer?.phone || formData.supplier?.phone || formData.customerPhone || '';
-      if (phone) {
-        const message = `فاتورة ${docType}\nالعميل: ${formData.customer?.name || formData.customerName || ''}\nالإجمالي: ${formatCurrency(totalAmount)}\n${workshop?.name || ''}`;
-        window.open(getWhatsAppLink(phone, message), '_blank');
-      } else {
-        alert(isArabic ? 'يرجى إضافة رقم الجوال للعميل لإرسال واتس اب' : 'Customer phone is missing');
-      }
-    } catch (e) {
-      console.error('PDF WhatsApp Error:', e);
-      alert((isArabic ? 'فشل تجهيز PDF للإرسال: ' : 'Failed to prepare PDF: ') + (e?.message || ''));
-    } finally {
-      setGeneratingPdf(false);
-      if (closeAfter) {
-        setTimeout(() => window.close(), 800);
-      }
-    }
-  };
-
-  const generateDocument = async (preview = false) => {
-    if (!preview) {
-      // If triggered by "Download" button that is not using handleDownloadPDF, use it
-      return handleDownloadPDF();
-    }
-    
-    setLoading(true);
+  const loadInvoice = useCallback(async (id) => {
+    if (!id) return;
     try {
-      const html = await getDocumentHtml();
-      setPreviewHtml(html);
-      setShowPreview(true);
-    } catch (error) {
-      console.error('Error:', error);
-      alert(error.message);
+      const { data } = await api.get(`/invoices/${id}`);
+      if (!data) return;
+      const items = typeof data.items === 'string' ? JSON.parse(data.items || '[]') : (data.items || []);
+      patchForm({
+        items: items.length ? items.map(normalizeItem) : formData.items,
+        customer: { ...formData.customer, name: data.partner_name || data.partnerName || formData.customer.name },
+        settings: { ...formData.settings, document_number: data.invoice_number || data.invoiceNumber || formData.settings.document_number, date: String(data.created_at || data.createdAt || today()).slice(0, 10), notes: data.notes || formData.settings.notes },
+      });
+      if (data.vehicleId || data.vehicle_id) loadVehicle(data.vehicleId || data.vehicle_id, true);
+    } catch (_) {}
+  }, [formData.customer, formData.items, formData.settings, loadVehicle, patchForm]);
+
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    setSaveState('تحديث البيانات...');
+    try {
+      await loadWorkshop();
+      if (vehicleId) await loadVehicle(vehicleId, Boolean(visitId || operationId || invoiceId));
+      if (visitId) await loadVisit();
+      if (operationId) await loadOperation(operationId);
+      if (invoiceId) await loadInvoice(invoiceId);
+      setSaveState('محفوظ');
     } finally {
       setLoading(false);
+      setTimeout(() => setSaveState('جاهز'), 1200);
+    }
+  }, [invoiceId, loadInvoice, loadOperation, loadVehicle, loadVisit, loadWorkshop, operationId, vehicleId, visitId]);
+
+  useEffect(() => { refreshData(); }, []);
+
+  const numberToWords = (value) => value <= 0 ? 'فقط صفر ريال لا غير' : `فقط ${SAR(value)} لا غير`;
+  const statusClass = formData.settings.status === 'paid' ? 'st-paid' : formData.settings.status === 'partial' ? 'st-partial' : formData.settings.status === 'deferred' ? 'st-deferred' : formData.settings.status === 'unpaid' ? 'st-unpaid' : 'st-draft';
+
+  const buildSheetHtml = useCallback(() => {
+    const w = formData.workshop;
+    const c = formData.customer;
+    const v = formData.vehicle;
+    const title = formData.settings.document_title || docLabels[docType] || 'فاتورة إصلاح مركبة';
+    return `<div class="doc-sheet" dir="rtl">
+      <div class="p-top"></div>
+      <header class="p-head">
+        <aside class="p-meta">
+          <span class="p-doctype">${title}</span>
+          <div class="p-mrow"><span>رقم المستند</span><b>${formData.settings.document_number || '—'}</b></div>
+          <div class="p-mrow"><span>تاريخ الإصدار</span><b>${formData.settings.date || today()}</b></div>
+          <div class="p-mrow"><span>وقت الاستلام</span><b>${formData.settings.receivedTime || '09:00'}</b></div>
+          <div class="p-mrow"><span>الحالة</span><b><span class="pill ${statusClass}">${formData.settings.status === 'paid' ? 'مدفوعة' : formData.settings.status === 'deferred' ? 'آجلة' : formData.settings.status === 'partial' ? 'مدفوعة جزئياً' : formData.settings.status === 'unpaid' ? 'غير مدفوعة' : 'مسودة'}</span></b></div>
+          <div class="p-chip">الإجمالي المستحق<b>${SAR(totals.total)}</b></div>
+        </aside>
+        <section class="p-brand">
+          <div class="p-logo">✺</div>
+          <h1>${w.name || 'ورشة النخبة لصيانة السيارات'}</h1>
+          <div class="p-tag">${w.tagline || w.slogan || 'ميكانيكا عامة — كهرباء — فحص كمبيوتر'}</div>
+          <div class="p-contact">${w.phone || ''} • ${w.email || ''} • ${w.address || ''}</div>
+          <div class="p-contact">الرقم الضريبي: ${w.tax_number || w.taxNumber || ''} • س.ت: ${w.commercial_register || w.commercialRegister || ''} • ${w.website || ''}</div>
+        </section>
+      </header>
+      <section class="p-parties">
+        <div class="p-box"><h3>بيانات المركبة</h3>${row('الماركة', v.brand)}${row('الموديل', v.model)}${row('سنة الصنع', v.year)}${row('اللوحة', v.plateNumber || v.plate)}${row('VIN', v.vin)}${row('العداد', v.mileage)}</div>
+        <div class="p-box"><h3>بيانات العميل</h3>${row('الاسم', c.name || 'عميل نقدي')}${row('الجوال', c.phone)}${row('البريد', c.email)}${row('العنوان', c.address)}${row('الرقم الضريبي', c.taxNo)}</div>
+      </section>
+      <table class="p-table"><thead><tr><th>#</th><th>البيان</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead><tbody>${totals.rows.length ? totals.rows.map((item, idx) => `<tr><td class="n">${idx + 1}</td><td>${item.description}</td><td class="n">${item.quantity}</td><td class="n">${SAR(item.unit_price)}</td><td class="n">${item.discount ? SAR(item.discount) : '—'}</td><td class="n">${item.tax ? SAR(item.tax) : '—'}</td><td class="n"><b>${SAR(item.total)}</b></td></tr>`).join('') : '<tr><td colspan="7" class="empty-row">لا توجد بنود</td></tr>'}</tbody></table>
+      <section class="p-after"><div class="p-notes"><h4>شروط الضمان</h4><p>${formData.settings.warranty || 'ضمان الإصلاح 30 يوماً أو 1,000 كم من تاريخ التسليم، ولا يشمل سوء الاستخدام.'}</p>${formData.settings.notes ? `<h4>ملاحظات</h4><p>${formData.settings.notes}</p>` : ''}</div><div class="p-totals"><div class="p-trow"><span>المجموع قبل الخصم</span><b>${SAR(totals.subtotal)}</b></div><div class="p-trow"><span>إجمالي الخصومات</span><b>− ${SAR(totals.discount)}</b></div><div class="p-trow"><span>الضريبة</span><b>${SAR(totals.tax)}</b></div><div class="p-trow grand"><span>الإجمالي النهائي</span><b>${SAR(totals.total)}</b></div><div class="p-trow"><span>المدفوع</span><b>${SAR(totals.paid)}</b></div><div class="p-trow"><span>المتبقي</span><b>${SAR(totals.remain)}</b></div></div></section>
+      <div class="p-words"><b>المبلغ كتابةً:</b> ${numberToWords(totals.total)}</div>
+      <section class="p-signs"><div class="p-sig"><h4>توقيع الورشة</h4><div class="p-sigbox"></div><div class="p-auth">عند الموافقة، الورشة مخولة لتبديل وشراء كل ما يتطلب للصيانة.</div></div><div class="p-sig"><h4>توقيع العميل</h4><div class="p-sigbox"></div></div></section>
+      <footer class="p-foot"><span>${w.website || ''} • ${w.phone || ''}</span><span class="mid">شكراً لثقتكم — سلامتكم أولويتنا</span><span>${formData.settings.document_number || ''}</span></footer>
+    </div>`;
+  }, [docType, formData, totals, statusClass]);
+
+  const row = (label, value) => value ? `<div class="row"><span>${label}</span><b>${value}</b></div>` : '';
+
+  const downloadCurrentPdf = async () => {
+    if (!previewRef.current) return;
+    setPdfBusy(true);
+    try {
+      await downloadPDF(previewRef.current, `${docType}_${formData.settings.document_number || 'document'}.pdf`, { scale: 2, backgroundColor: '#ffffff' });
+    } finally {
+      setPdfBusy(false);
     }
   };
 
-  const printDocument = async ({ useCurrentWindow = false, closeAfter = false } = {}) => {
-    const printWindow = useCurrentWindow ? window : window.open('', '_blank');
-    if (!printWindow) {
-      alert(isArabic ? 'تم حظر النافذة المنبثقة' : 'Popup blocked');
+  const printCurrent = () => window.print();
+
+  const sendWhatsApp = async () => {
+    const phone = formData.customer.phone;
+    if (!phone) {
+      alert('أضف رقم جوال العميل أولاً');
       return;
     }
-
-    setLoading(true);
-    try {
-      const html = previewHtml || (await getDocumentHtml());
-      if (html) {
-        printWindow.document.open();
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-          printWindow.print();
-          if (closeAfter) {
-            setTimeout(() => printWindow.close(), 800);
-          }
-        }, 800);
-      }
-    } catch (error) {
-      if (!useCurrentWindow) {
-        printWindow.close();
-      }
-      alert(isArabic ? 'فشل الطباعة' : 'Print failed');
-    } finally {
-      setLoading(false);
-    }
+    await downloadCurrentPdf();
+    const message = `تم تجهيز المستند ${formData.settings.document_number || ''}\nالعميل: ${formData.customer.name || ''}\nالإجمالي: ${SAR(totals.total)}\nيرجى إرفاق ملف PDF الذي تم تحميله.`;
+    window.open(getWhatsAppLink(phone, message), '_blank');
   };
 
-  const totals = calculateTotal();
-  const DocIcon = docTypes[docType]?.icon || FileText;
+  useEffect(() => {
+    if ((!autoPrint && !autoWhatsApp) || autoActionRef.current) return;
+    autoActionRef.current = true;
+    setTimeout(() => { autoPrint ? printCurrent() : sendWhatsApp(); }, 900);
+  }, [autoPrint, autoWhatsApp]);
 
-  const saveDefaults = async () => {
-    try {
-      setLoading(true);
-      await axios.post(`${API_URL}/settings/print-defaults`, {
-        theme: formData.settings.theme,
-        style: formData.settings.style,
-        tax_rate: 0,
-      });
-      alert(isArabic ? 'تم حفظ الإعدادات الافتراضية' : 'Default settings saved');
-    } catch (error) {
-      alert(isArabic ? 'فشل الحفظ' : 'Failed to save');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateItem = (index, key, value) => setFormData((prev) => ({ ...prev, items: prev.items.map((item, i) => i === index ? { ...item, [key]: key === 'description' ? value : Number(value || 0) } : item) }));
 
-  return (
-    <div className="container mx-auto p-4 sm:p-6 max-w-6xl">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
-              <DocIcon size={28} />
-              {isArabic ? 'طباعة المستندات' : 'Document Printing'}
-            </h1>
-            <p className="text-muted-foreground">
-              {isArabic ? 'فواتير - تشخيص - عروض أسعار - إيصالات' : 'Invoices - Diagnosis - Quotes - Receipts'}
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              onClick={() => generateDocument(true)}
-              disabled={loading}
-              className="w-full sm:w-auto"
-              data-testid="document-preview-button"
-            >
-              <Eye size={18} className={isArabic ? 'ml-2' : 'mr-2'} />
-              {isArabic ? 'معاينة' : 'Preview'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={printDocument}
-              disabled={loading}
-              className="w-full sm:w-auto"
-              data-testid="document-print-button"
-            >
-              <Printer size={18} className={isArabic ? 'ml-2' : 'mr-2'} />
-              {isArabic ? 'طباعة' : 'Print'}
-            </Button>
-            <Button
-              onClick={handleDownloadPDF}
-              disabled={loading || generatingPdf}
-              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600"
-              data-testid="document-download-button"
-            >
-              {generatingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} className={isArabic ? 'ml-2' : 'mr-2'} />}
-              {isArabic ? 'تحميل PDF' : 'Download PDF'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={saveDefaults}
-              disabled={loading}
-              className="w-full sm:w-auto"
-              data-testid="document-save-defaults-button"
-            >
-              <Save size={18} className={isArabic ? 'ml-2' : 'mr-2'} />
-              {isArabic ? 'حفظ كافتراضي' : 'Save Default'}
-            </Button>
-          </div>
-        </div>
+  return <div className="doc-page" dir="rtl">
+    <style>{styles}</style>
+    <header className="doc-topbar">
+      <div className="brand"><FileText size={22}/> فاتورة الورشة</div>
+      <div className={`save-pill ${loading ? 'saving' : 'ok'}`}><span className="dot"/><span>{saveState}</span></div>
+      <div className="top-actions">
+        <button className="icon-btn" onClick={refreshData} title="تحديث" data-testid="document-refresh-button"><RefreshCw size={20}/></button>
+        <button className="icon-btn" onClick={() => setModePreview((v) => !v)} title="معاينة" data-testid="document-toggle-preview-button"><Eye size={20}/></button>
+      </div>
+    </header>
+    <main className="doc-app">
+      <section className="editor">
+        <section className="sec"><h2><span className="chip">1</span> نوع المستند</h2><div className="doc-type-grid">{Object.entries(docLabels).map(([key, label]) => <button key={key} className={`doc-type ${docType === key ? 'active' : ''}`} onClick={() => setDocType(key)} data-testid={`document-type-${key}`}>{label}</button>)}</div></section>
+        <section className="sec"><h2><span className="chip">2</span> بيانات الفاتورة</h2><div className="grid2"><Field label="رقم المستند" value={formData.settings.document_number} onChange={(v) => patchNested('settings','document_number',v)}/><Field label="التاريخ" type="date" value={formData.settings.date} onChange={(v) => patchNested('settings','date',v)}/><Field label="وقت الاستلام" type="time" value={formData.settings.receivedTime} onChange={(v) => patchNested('settings','receivedTime',v)}/><SelectField label="الحالة" value={formData.settings.status} onChange={(v) => patchNested('settings','status',v)} options={{draft:'مسودة', unpaid:'غير مدفوعة', partial:'مدفوعة جزئياً', paid:'مدفوعة', deferred:'آجلة'}} /></div></section>
+        <section className="sec"><h2><span className="chip">3</span> العميل والمركبة</h2><div className="grid2"><Field label="اسم العميل" value={formData.customer.name} onChange={(v) => patchNested('customer','name',v)}/><Field label="جوال العميل" value={formData.customer.phone} onChange={(v) => patchNested('customer','phone',v)}/><Field label="رقم اللوحة" value={formData.vehicle.plateNumber} onChange={(v) => patchNested('vehicle','plateNumber',v)}/><Field label="المركبة" value={`${formData.vehicle.brand || ''} ${formData.vehicle.model || ''}`.trim()} onChange={() => {}} disabled/><Field label="VIN" value={formData.vehicle.vin} onChange={(v) => patchNested('vehicle','vin',v)}/><Field label="العداد" value={formData.vehicle.mileage} onChange={(v) => patchNested('vehicle','mileage',v)}/></div></section>
+        <section className="sec"><h2><span className="chip">4</span> البنود</h2><div className="items-list">{formData.items.map((item, index) => <div className="item-card" key={index}><Field label="الوصف" value={item.description} onChange={(v) => updateItem(index,'description',v)}/><Field label="الكمية" type="number" value={item.quantity} onChange={(v) => updateItem(index,'quantity',v)}/><Field label="السعر" type="number" value={item.unit_price} onChange={(v) => updateItem(index,'unit_price',v)}/><Field label="الخصم" type="number" value={item.discount} onChange={(v) => updateItem(index,'discount',v)}/></div>)}</div><button className="btn gold" onClick={() => patchForm({ items: [...formData.items, emptyItem] })} data-testid="document-add-item-button"><Plus size={18}/> إضافة بند</button></section>
+        <section className="sec"><h2><span className="chip">5</span> الدفع والملاحظات</h2><div className="grid2"><Field label="المدفوع" type="number" value={formData.payment.paid} onChange={(v) => patchForm({ payment: { ...formData.payment, paid: Number(v || 0) } })}/><Field label="الملاحظات" value={formData.settings.notes} onChange={(v) => patchNested('settings','notes',v)}/></div><div className="summary"><div><span>الإجمالي</span><b>{SAR(totals.total)}</b></div><div><span>المتبقي</span><b>{SAR(totals.remain)}</b></div></div></section>
+        <section className="sec"><h2><span className="chip">6</span> إجراءات</h2><div className="btn-row"><button className="btn gold" onClick={printCurrent} data-testid="document-print-button"><Printer size={18}/> طباعة / PDF</button><button className="btn" onClick={downloadCurrentPdf} disabled={pdfBusy} data-testid="document-download-button"><Download size={18}/> تحميل PDF</button><button className="btn" onClick={sendWhatsApp} disabled={pdfBusy} data-testid="document-whatsapp-button"><Share2 size={18}/> واتساب PDF</button><button className="btn" onClick={() => setZoom(0.72)} data-testid="document-fit-button"><Maximize2 size={18}/> ملاءمة</button></div></section>
+      </section>
+      <section className="preview-panel ${modePreview ? 'show' : ''}" data-testid="document-preview-panel">
+        <div className="preview-bar"><button className="icon-btn" onClick={() => setZoom((z) => Math.max(0.35, z - 0.08))}><Minus size={18}/></button><span className="zoom-val">{Math.round(zoom * 100)}%</span><button className="icon-btn" onClick={() => setZoom((z) => Math.min(1.5, z + 0.08))}><Plus size={18}/></button><button className="icon-btn" onClick={printCurrent} data-testid="document-preview-print-button"><Printer size={18}/></button><button className="icon-btn" onClick={downloadCurrentPdf} data-testid="document-preview-download-button"><Download size={18}/></button><button className="icon-btn" onClick={sendWhatsApp} data-testid="document-preview-whatsapp-button"><Share2 size={18}/></button></div>
+        <div className="viewport"><div className="sheet-scale" style={{ transform: `scale(${zoom})`, height: `${1123 * zoom}px` }}><article ref={previewRef} className="sheet" data-testid="document-sheet" dangerouslySetInnerHTML={{ __html: buildSheetHtml() }} /></div></div>
+      </section>
+    </main>
+  </div>;
+}
 
-        {/* Document Type Selection */}
-        <Card className="mb-6 bg-slate-900">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {Object.entries(docTypes).map(([type, { label, icon: Icon }]) => {
-                const isActive = docType === type;
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setDocType(type)}
-                    className={`relative h-auto py-5 px-4 flex flex-col items-center gap-3 rounded-xl transition-all duration-300 ${
-                      isActive 
-                        ? 'bg-blue-600 text-white border-4 border-blue-400 shadow-2xl shadow-blue-500/50 scale-105' 
-                        : 'bg-slate-800/80 text-slate-400 border-2 border-slate-700 hover:border-blue-600 hover:text-white hover:bg-slate-700'
-                    }`}
-                  >
-                    {isActive && (
-                      <div className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                        <Check size={18} className="text-white font-bold" />
-                      </div>
-                    )}
-                    <Icon size={32} className={isActive ? 'text-white' : 'text-slate-500'} strokeWidth={isActive ? 2.5 : 2} />
-                    <span className={`text-sm font-bold text-center leading-tight ${isActive ? 'text-white' : 'text-slate-400'}`}>
-                      {label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+function Field({ label, value, onChange, type = 'text', disabled = false }) {
+  return <label className="fld"><span>{label}</span><input className="inp" type={type} value={value ?? ''} disabled={disabled} onChange={(e) => onChange(e.target.value)} /></label>;
+}
 
-        <Tabs defaultValue="customer" className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-md">
-            <TabsTrigger value="customer">{isArabic ? 'العميل' : 'Customer'}</TabsTrigger>
-            <TabsTrigger value="vehicle">{isArabic ? 'المركبة' : 'Vehicle'}</TabsTrigger>
-            <TabsTrigger value="items">{isArabic ? 'البنود' : 'Items'}</TabsTrigger>
-            <TabsTrigger value="settings">{isArabic ? 'الإعدادات' : 'Settings'}</TabsTrigger>
-          </TabsList>
+function SelectField({ label, value, onChange, options }) {
+  return <label className="fld"><span>{label}</span><select className="inp" value={value} onChange={(e) => onChange(e.target.value)}>{Object.entries(options).map(([k, v]) => <option value={k} key={k}>{v}</option>)}</select></label>;
+}
 
-          {/* Customer Tab */}
-          <TabsContent value="customer">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* بيانات الورشة */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{isArabic ? 'بيانات الورشة' : 'Workshop Details'}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Logo & Slogan */}
-                  {(formData.workshop.logo || formData.workshop.slogan) && (
-                    <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border">
-                      {formData.workshop.logo && (
-                        <img src={formData.workshop.logo} alt="شعار الورشة" className="w-16 h-16 object-contain rounded" />
-                      )}
-                      {formData.workshop.slogan && (
-                        <p className="text-sm text-muted-foreground italic">{formData.workshop.slogan}</p>
-                      )}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>{isArabic ? 'اسم الورشة' : 'Workshop Name'}</Label>
-                      <Input value={formData.workshop.name} onChange={(e) => handleWorkshopChange('name', e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>{isArabic ? 'الهاتف' : 'Phone'}</Label>
-                      <Input value={formData.workshop.phone} onChange={(e) => handleWorkshopChange('phone', e.target.value)} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'العنوان' : 'Address'}</Label>
-                    <Input value={formData.workshop.address} onChange={(e) => handleWorkshopChange('address', e.target.value)} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>{isArabic ? 'البريد' : 'Email'}</Label>
-                      <Input value={formData.workshop.email} onChange={(e) => handleWorkshopChange('email', e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>{isArabic ? 'السجل التجاري' : 'Commercial Register'}</Label>
-                      <Input value={formData.workshop.commercial_register} onChange={(e) => handleWorkshopChange('commercial_register', e.target.value)} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* بيانات العميل */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{isArabic ? 'بيانات العميل' : 'Customer Details'}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>{isArabic ? 'اسم العميل' : 'Customer Name'}</Label>
-                      <Input value={formData.customer.name} onChange={(e) => handleCustomerChange('name', e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>{isArabic ? 'الشركة' : 'Company'}</Label>
-                      <Input value={formData.customer.company} onChange={(e) => handleCustomerChange('company', e.target.value)} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'العنوان' : 'Address'}</Label>
-                    <Input value={formData.customer.address} onChange={(e) => handleCustomerChange('address', e.target.value)} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>{isArabic ? 'الهاتف' : 'Phone'}</Label>
-                      <Input value={formData.customer.phone} onChange={(e) => handleCustomerChange('phone', e.target.value)} />
-                    </div>
-                    <div>
-                      <Label>{isArabic ? 'البريد' : 'Email'}</Label>
-                      <Input value={formData.customer.email} onChange={(e) => handleCustomerChange('email', e.target.value)} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Vehicle Tab */}
-          <TabsContent value="vehicle">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car size={20} />
-                  {isArabic ? 'بيانات المركبة' : 'Vehicle Details'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <Label>{isArabic ? 'الماركة' : 'Brand'}</Label>
-                    <Input value={formData.vehicle.brand} onChange={(e) => handleVehicleChange('brand', e.target.value)} placeholder="تويوتا" />
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'الموديل' : 'Model'}</Label>
-                    <Input value={formData.vehicle.model} onChange={(e) => handleVehicleChange('model', e.target.value)} placeholder="كامري" />
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'السنة' : 'Year'}</Label>
-                    <Input value={formData.vehicle.year} onChange={(e) => handleVehicleChange('year', e.target.value)} placeholder="2022" />
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'اللون' : 'Color'}</Label>
-                    <Input value={formData.vehicle.color} onChange={(e) => handleVehicleChange('color', e.target.value)} placeholder="أبيض" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>{isArabic ? 'رقم اللوحة' : 'Plate Number'}</Label>
-                    <Input value={formData.vehicle.plateNumber} onChange={(e) => handleVehicleChange('plateNumber', e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'رقم الهيكل' : 'VIN'}</Label>
-                    <Input value={formData.vehicle.vin} onChange={(e) => handleVehicleChange('vin', e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'العداد (كم)' : 'Mileage (km)'}</Label>
-                    <Input value={formData.vehicle.mileage} onChange={(e) => handleVehicleChange('mileage', e.target.value)} />
-                  </div>
-                </div>
-                <div>
-                  <Label>{isArabic ? 'ملاحظات' : 'Notes'}</Label>
-                  <Textarea value={formData.vehicle.notes} onChange={(e) => handleVehicleChange('notes', e.target.value)} rows={3} />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Items Tab */}
-          <TabsContent value="items">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{isArabic ? 'البنود والخدمات' : 'Items & Services'}</CardTitle>
-                <Button variant="outline" size="sm" onClick={addItem}>
-                  <Plus size={16} className={isArabic ? 'ml-1' : 'mr-1'} />
-                  {isArabic ? 'إضافة بند' : 'Add Item'}
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {(formData.items || []).map((item, index) => (
-                    <div key={`item-${index}`} className="flex flex-wrap gap-2 items-end p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                      <div className="flex-1 min-w-[200px]">
-                        <Label>{isArabic ? 'الوصف' : 'Description'}</Label>
-                        <Input
-                          value={item.description}
-                          onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                          placeholder={isArabic ? 'وصف الخدمة أو القطعة' : 'Service or part description'}
-                        />
-                      </div>
-                      <div className="w-20">
-                        <Label>{isArabic ? 'الكمية' : 'Qty'}</Label>
-                        <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} min="1" />
-                      </div>
-                      <div className="w-28">
-                        <Label>{isArabic ? 'السعر' : 'Price'}</Label>
-                        <Input type="number" value={item.unit_price} onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)} min="0" />
-                      </div>
-                      <div className="w-24">
-                        <Label>{isArabic ? 'الخصم' : 'Discount'}</Label>
-                        <Input type="number" value={item.discount} onChange={(e) => handleItemChange(index, 'discount', e.target.value)} min="0" />
-                      </div>
-                      <div className="w-28 text-center">
-                        <Label>{isArabic ? 'المجموع' : 'Total'}</Label>
-                        <p className="font-bold text-lg">{((item.quantity * item.unit_price) - item.discount).toLocaleString()}</p>
-                      </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeItem(index)} disabled={formData.items.length === 1} className="text-red-500">
-                        <Trash2 size={18} />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* الإجماليات */}
-                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="flex justify-between py-2">
-                    <span>{isArabic ? 'المجموع الفرعي:' : 'Subtotal:'}</span>
-                    <span className="font-semibold">{totals.subtotal.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</span>
-                  </div>
-                  {/* Tax removed */}
-                  <div className="flex justify-between py-2 border-t-2 border-blue-200 text-lg font-bold text-blue-600">
-                    <span>{isArabic ? 'المجموع الكلي:' : 'Total:'}</span>
-                    <span>{totals.total.toLocaleString()} {isArabic ? 'ر.س' : 'SAR'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>{isArabic ? 'إعدادات الطباعة' : 'Print Settings'}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label>{isArabic ? 'لون التصميم' : 'Theme Color'}</Label>
-                    <Select value={formData.settings.theme} onValueChange={(v) => handleSettingsChange('theme', v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {themes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'نمط التصميم' : 'Style'}</Label>
-                    <Select value={formData.settings.style} onValueChange={(v) => handleSettingsChange('style', v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {styles.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label style={{ display: 'none' }}>{isArabic ? 'نسبة الضريبة (%)' : 'Tax Rate (%)'}</Label>
-                    <Input
-                      type="number"
-                      value={0}
-                      onChange={() => {}}
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <Label>{isArabic ? 'تاريخ الفاتورة' : 'Invoice Date'}</Label>
-                    <Input
-                      type="date"
-                      value={formData.settings.date}
-                      onChange={(e) => handleSettingsChange('date', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'رمز طلب الاعتماد (APR-...)' : 'Approval Request Token (APR-...)'}</Label>
-                    <Input
-                      value={formData.settings.approval_token || ''}
-                      onChange={(e) => handleSettingsChange('approval_token', e.target.value)}
-                      readOnly={!!vehicleId}
-                      placeholder={isArabic ? 'رمز الاعتماد (داخلي فقط - لا يظهر في المستند)' : 'Approval token (internal only - not printed)'}
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {isArabic
-                        ? 'هذا الرمز للاستخدام الداخلي فقط (متابعة الاعتماد داخل النظام) ولن يظهر في المستند المطبوع.'
-                        : 'This token is internal-only and will not be embedded in the printed document.'}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4 mt-4">
-                  <div>
-                    <Label>{isArabic ? 'ملاحظات إضافية' : 'Additional Notes'}</Label>
-                    <Textarea
-                      value={formData.settings.notes}
-                      onChange={(e) => handleSettingsChange('notes', e.target.value)}
-                      placeholder={isArabic ? 'ملاحظات تظهر في المستند...' : 'Notes to appear in document...'}
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label>{isArabic ? 'الشروط والأحكام (سطر واحد لكل شرط)' : 'Terms and Conditions (one per line)'}</Label>
-                    <Textarea
-                      value={formData.settings.terms?.join('\n') || ''}
-                      onChange={(e) => handleSettingsChange('terms', e.target.value.split('\n').filter(t => t.trim()))}
-                      placeholder={isArabic ? 'أدخل كل شرط في سطر منفصل...' : 'Enter each term on a new line...'}
-                      rows={5}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Preview Modal */}
-        {showPreview && previewHtml && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="p-4 border-b flex justify-between items-center">
-                <h3 className="font-bold text-lg">{isArabic ? 'معاينة المستند' : 'Document Preview'}</h3>
-                <div className="flex gap-2 flex-wrap">
-                  <Button variant="outline" onClick={printDocument} className="w-full sm:w-auto" data-testid="document-preview-print-button">
-                    <Printer size={16} className={isArabic ? 'ml-1' : 'mr-1'} />
-                    {isArabic ? 'طباعة' : 'Print'}
-                  </Button>
-                  <Button variant="outline" onClick={handleDownloadPDF} disabled={generatingPdf} className="w-full sm:w-auto" data-testid="document-preview-download-button">
-                    {generatingPdf ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} className={isArabic ? 'ml-1' : 'mr-1'} />}
-                    {isArabic ? 'تحميل PDF' : 'Download PDF'}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setShowPreview(false)} className="w-full sm:w-auto" data-testid="document-preview-close-button">
-                    {isArabic ? 'إغلاق' : 'Close'}
-                  </Button>
-                </div>
-              </div>
-              <div className="flex-1 overflow-auto">
-                <div className="w-full flex justify-center bg-gray-100 p-4">
-                  <div className="bg-white shadow" style={{ width: 794 }}>
-                    <div ref={previewRef}>
-                      <iframe
-                        srcDoc={previewHtml}
-                        className="w-[794px] h-[1123px]"
-                        title="Document Preview"
-                        style={{ border: '0' }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="hidden" data-testid="document-hidden-iframe">
-          <iframe
-            ref={pdfIframeRef}
-            srcDoc={pdfSourceHtml}
-            title="Document PDF Hidden"
-          />
-        </div>
-    </div>
-  );
-};
-
-export default DocumentPrint;
+const styles = `
+.doc-page{min-height:100vh;background:#101318;color:#eceef1;font-family:Almarai,Tahoma,Arial,sans-serif;direction:rtl}.doc-page:before{content:'';position:fixed;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(620px 420px at 85% 0%,rgba(247,166,0,.10),transparent 60%),radial-gradient(700px 520px at 8% 100%,rgba(247,166,0,.05),transparent 55%),radial-gradient(520px 320px at 50% 45%,rgba(70,90,115,.10),transparent 60%)}.doc-topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(16,19,24,.86);backdrop-filter:blur(10px);border-bottom:1px solid #2a3038}.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px}.save-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:#98a1ac;background:#12151b;border:1px solid #2a3038;padding:4px 10px;border-radius:99px}.save-pill .dot{width:8px;height:8px;border-radius:50%;background:#3dd68c}.save-pill.saving .dot{background:#f7a600}.top-actions{margin-inline-start:auto;display:flex;gap:6px}.icon-btn{width:44px;height:44px;display:grid;place-items:center;background:#12151b;border:1px solid #2a3038;border-radius:10px;color:#98a1ac}.icon-btn:hover{color:#f7a600;border-color:#f7a600}.doc-app{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,520px);gap:16px}.editor{min-width:0}.sec{background:linear-gradient(180deg,#1a1e25,#171b21);border:1px solid #2a3038;border-radius:12px;padding:14px;margin-bottom:12px}.sec h2{font-size:16px;margin:0 0 12px;display:flex;gap:8px;align-items:center}.chip{width:22px;height:22px;display:grid;place-items:center;border-radius:7px;background:linear-gradient(135deg,#f7a600,#ffc751);color:#171204;font-weight:800}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fld span{display:block;font-size:12px;font-weight:700;color:#98a1ac;margin-bottom:4px}.inp{width:100%;min-height:44px;padding:8px 12px;background:#12151b;color:#eceef1;border:1px solid #2a3038;border-radius:9px;font-size:14px}.inp:focus{border-color:#f7a600;outline:none;box-shadow:0 0 0 3px rgba(247,166,0,.15)}.doc-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.doc-type{min-height:54px;border-radius:12px;border:1px solid #2a3038;background:#12151b;color:#eceef1;font-weight:800}.doc-type.active{background:linear-gradient(135deg,#f7a600,#ffc751);color:#171204}.item-card{display:grid;grid-template-columns:2fr .7fr .8fr .8fr;gap:8px;padding:10px;border:1px solid #2a3038;border-radius:10px;background:#12151b;margin-bottom:8px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:8px 16px;border-radius:10px;border:1px solid #2a3038;background:#1a1e25;color:#eceef1;font-weight:800}.btn.gold{background:linear-gradient(135deg,#f7a600,#ffc751);border:none;color:#171204}.btn-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.summary{margin-top:12px;display:grid;gap:6px}.summary div{display:flex;justify-content:space-between;padding:8px 10px;border-radius:8px;background:#12151b}.preview-panel{position:sticky;top:76px;height:calc(100vh - 96px);border:1px solid #2a3038;border-radius:12px;overflow:hidden;background:#0b0d10}.preview-bar{display:flex;align-items:center;gap:6px;padding:8px;background:#0f1114;border-bottom:1px solid #2a3038}.zoom-val{min-width:52px;text-align:center;color:#98a1ac;font-weight:800}.viewport{height:calc(100% - 62px);overflow:auto;padding:18px;display:flex;justify-content:center}.sheet-scale{transform-origin:top center;flex:none}.sheet{width:210mm;min-height:296mm;background:#fff;color:#1a1a1a;padding:12mm;box-shadow:0 24px 70px rgba(0,0,0,.55);font-size:11px}.p-top{height:5px;margin-bottom:6mm;background:linear-gradient(90deg,#15181d 0%,#454b54 55%,#f7a600 100%)}.p-head{display:flex;justify-content:space-between;gap:6mm;padding-bottom:5mm;border-bottom:1px solid #ddd}.p-brand{flex:1;text-align:right}.p-logo{width:14mm;height:14mm;border:1.5px solid #15181d;border-radius:50%;display:grid;place-items:center;margin-bottom:2mm;margin-inline-start:auto}.p-brand h1{font-size:20px;margin:0;color:#111;font-weight:900}.p-tag{font-size:10px;color:#555;margin:2px 0 5px}.p-contact{font-size:9.5px;color:#444;line-height:1.8}.p-meta{width:58mm;border:1px solid #ccc;padding:3mm}.p-doctype{display:block;text-align:center;background:#15181d;color:#fff;font-weight:900;font-size:12px;padding:4px 6px;margin-bottom:6px}.p-mrow{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#555;padding:3px 0;border-bottom:1px dashed #e5e5e5}.p-mrow b{color:#111}.p-chip{margin-top:7px;background:#f5f5f5;border:1px solid #ddd;text-align:center;padding:5px;font-size:9.5px;font-weight:900}.p-chip b{display:block;font-size:16px}.p-parties{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:5mm}.p-box{border:1px solid #ccc}.p-box h3{font-size:11.5px;margin:0;padding:5px 8px;background:#f5f5f5;border-bottom:1px solid #ccc}.row{display:flex;justify-content:space-between;gap:8px;padding:4px 8px;border-bottom:1px dashed #eee;font-size:10px}.row span{color:#777}.row b{color:#111;text-align:left}.p-table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:10px;table-layout:fixed}.p-table th{background:#f0f0f0;border:1px solid #bbb;padding:6px;font-weight:900}.p-table td{border:1px solid #ddd;padding:6px;vertical-align:top;word-break:break-word}.p-table .n{text-align:center;white-space:nowrap}.empty-row{text-align:center!important;color:#999;padding:14px!important}.p-after{display:grid;grid-template-columns:1.1fr .9fr;gap:4mm;margin-top:5mm}.p-notes h4{font-size:11px;margin:8px 0 2px;color:#111}.p-notes p{margin:0;font-size:9.5px;color:#333;line-height:1.8}.p-totals{border:1px solid #ccc}.p-trow{display:flex;justify-content:space-between;padding:6px 9px;font-size:10.5px;border-bottom:1px solid #e5e5e5}.p-trow.grand{background:#15181d;color:#fff}.p-trow.grand b{font-size:14px}.p-words{margin-top:4mm;background:#f7f7f7;border:1px dashed #ccc;padding:6px 9px;font-size:10px}.p-signs{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:7mm}.p-sig h4{font-size:11.5px;margin:0 0 2mm}.p-sigbox{height:18mm;border:1px dashed #aaa}.p-auth{margin-top:2mm;border:1px solid #ccc;border-inline-start:3px solid #15181d;padding:5px 8px;font-size:9.5px;font-weight:700;color:#333}.p-foot{margin-top:7mm;border-top:1px solid #ddd;padding-top:3mm;display:flex;justify-content:space-between;gap:4mm;font-size:9px;color:#777}.p-foot .mid{font-weight:900;color:#111}.pill{display:inline-block;font-size:10px;font-weight:900;padding:2px 10px;border-radius:99px;border:1px solid}.st-draft{color:#555;border-color:#bbb;background:#f0f0f0}.st-unpaid{color:#b3261e;border-color:#e0a8a5;background:#fdeceb}.st-partial{color:#8a6100;border-color:#e8cf8a;background:#fff6dd}.st-paid{color:#116932;border-color:#9ad3b0;background:#e7f6ee}.st-deferred{color:#1a56a8;border-color:#a8c3e6;background:#eaf1fb}@media(max-width:980px){.doc-app{display:block}.preview-panel{position:relative;top:0;height:70vh;margin-top:12px}.grid2,.doc-type-grid,.btn-row{grid-template-columns:1fr 1fr}.item-card{grid-template-columns:1fr}.sheet{transform-origin:top center}}@media print{.doc-topbar,.editor,.preview-bar{display:none!important}.doc-app{display:block;padding:0}.preview-panel{position:static;height:auto;border:0}.viewport{overflow:visible;padding:0}.sheet-scale{transform:none!important;height:auto!important}.sheet{width:auto;min-height:auto;box-shadow:none;margin:0;padding:0}.doc-page{background:#fff}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+`;
