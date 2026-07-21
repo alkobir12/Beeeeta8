@@ -388,3 +388,12 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - **PDF:** أضيف زر `تحميل PDF` مستقل داخل `QuickPrintDialog`، مع بقاء أزرار الطباعة وواتساب.
 - **ثبات الواجهة:** أصلحت تحذير nested button في بطاقة الزيارة بتحويل رأس البطاقة إلى `div role=button`، وأزلت خطأ `vehicle_timeout` من console باستبداله برسالة تحميل آمنة.
 - **التحقق الإلزامي:** Testing Agent iterations 272–276. النهائي `iteration_276` نجح: صفحة المركبة تحمل، زر طباعة الزيارة ظاهر بدون توسعة، preview يعمل، invoice menu يعمل، أزرار print/download/WhatsApp قابلة للنقر، لا nested-button warning، لا `vehicle_timeout`, ولا فشل `/api/documents/generate`. **MOCKED: NONE**.
+
+## جلسة 2026-07-21 — صفحة `/print` بتصميم «فاتورة الورشة — ختم إلكتروني» وهوية Dash Pro
+- **P0 مكتمل وظيفياً:** استُبدلت صفحة `DocumentPrint.jsx` بتجربة جديدة بالكامل لهوية Dash Pro: محرر عربي، معاينة A4، ختم إلكتروني برمز تحقق ثابت، كروت بيانات العميل/المركبة/الورشة، جدول بنود، الإجماليات، التواقيع، ورمز تحقق بصري.
+- **التكامل:** الصفحة ما زالت تدعم `type=invoice|diagnosis|quote|receipt` وروابط `vehicleId/visitId/operationId/invoiceId` قدر الإمكان، وتستخدم بيانات الورشة من `loadWorkshopPrintInfo`. كل العناصر التفاعلية والمعلومات الحرجة أضيفت لها `data-testid`.
+- **PDF/واتساب:** تم تحسين `pdfGenerator.js` لانتظار الخطوط والصور قبل `html2canvas` وضبط أبعاد الالتقاط؛ اختبار تحميل PDF نجح، وواتساب يفتح رسالة مختصرة مع رقم المستند والإجمالي والختم الإلكتروني بعد تجهيز PDF.
+- **Backend:** نقطة `POST /api/documents/generate` بقيت تعمل 200 لكل أنواع المستندات الأربعة.
+- **التحقق:** self-test + Testing Agent `iteration_277`: تدفقات DocumentPrint الأمامية 100%، وBackend generate 6/7 ناجح. **MOCKED: NONE**.
+- **ملاحظة غير مانعة للتدفق:** اختبار CORS الخارجي عبر نطاق المعاينة أظهر `Access-Control-Allow-Origin: *` على `/api/auth/login`. الفحص الداخلي المباشر `localhost:8001` يعيد origin صريحاً و`allow-credentials=true`، ما يعني أن wildcard يأتي من طبقة المعاينة/Cloudflare وليس من كود التطبيق. تدفق الطباعة/PDF/واتساب غير متعطل.
+- **التالي:** إن لزم إغلاق فحص CORS الخارجي نفسه، يحتاج ضبط طبقة ingress/preview، بينما كود backend الحالي يثبت CORS صحيحاً داخلياً.
