@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>فاتورة ورشة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Changa:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15181d; --gold:#c98600; --line:#d7dbe0; --soft:#f6f7f9; --mut:#6b7480;
+  }
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  html,body{margin:0;background:#e9ebee}
+  body{font-family:'Almarai',sans-serif;color:#1a1a1a;direction:rtl;
+    display:flex;flex-direction:column;align-items:center;padding:24px 12px 60px}
+
+  /* شريط صغير للطباعة (يختفي عند الطباعة) */
+  .bar{position:fixed;top:14px;left:14px;z-index:50;display:flex;gap:8px;align-items:center}
+  .bar button{font-family:'Changa';font-weight:600;font-size:14px;cursor:pointer;
+    border:none;border-radius:8px;padding:10px 18px;background:var(--ink);color:#fff;
+    box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .bar button:hover{background:#000}
+  .bar .tip{font-size:11px;color:#555;background:#fff;padding:6px 10px;border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1)}
+
+  /* ===== المستند ===== */
+  .invoice{width:210mm;min-height:297mm;background:#fff;padding:12mm;
+    box-shadow:0 20px 60px rgba(0,0,0,.2);font-size:11px;position:relative}
+  .top-line{height:5px;margin-bottom:6mm;
+    background:linear-gradient(90deg,var(--ink) 0%,#454b54 55%,var(--gold) 100%)}
+
+  [contenteditable]{outline:none;border-radius:2px;transition:background .12s}
+  [contenteditable]:hover{background:#fff7e0}
+  [contenteditable]:focus{background:#fffdf2;box-shadow:0 0 0 1.5px var(--gold)}
+
+  /* الترويسة */
+  .head{display:flex;justify-content:space-between;gap:6mm;padding-bottom:5mm;border-bottom:1px solid var(--line)}
+  .brand{min-width:0;flex:1}
+  .logo{width:14mm;height:14mm;border:1.5px solid var(--ink);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;margin-bottom:2mm;font-size:20px}
+  .brand h1{font-family:'Changa';font-size:20px;margin:0;line-height:1.3}
+  .brand .tag{font-size:10px;color:#555;margin:2px 0 5px}
+  .brand .contact{font-size:9.5px;color:#444;line-height:1.8;overflow-wrap:anywhere}
+  .meta{flex:none;width:56mm;border:1px solid #ccc;padding:3mm;position:relative}
+  .doctype{display:block;text-align:center;background:var(--ink);color:#fff;
+    font-family:'Changa';font-weight:700;font-size:12px;padding:3px 6px;margin-bottom:6px}
+  .mrow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10px;
+    color:#555;padding:2.5px 0;border-bottom:1px dashed #e5e5e5}
+  .mrow b{font-family:'Changa';color:#111}
+  .chip{margin-top:7px;background:var(--soft);border:1px solid var(--line);text-align:center;
+    padding:4px;font-size:9.5px;font-weight:800}
+  .chip b{display:block;font-family:'Changa';font-size:16px}
+  .pill{display:inline-block;font-size:10px;font-weight:800;padding:1px 9px;border-radius:99px;
+    border:1px solid #9ad3b0;color:#116932;background:#e7f6ee}
+
+  /* العميل والمركبة */
+  .parties{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:5mm}
+  .box{border:1px solid #ccc;break-inside:avoid}
+  .box h3{font-family:'Changa';font-size:11.5px;margin:0;padding:4px 8px;background:var(--soft);border-bottom:1px solid #ccc}
+  .box .row{display:flex;justify-content:space-between;gap:8px;padding:3px 8px;border-bottom:1px dashed #eee;font-size:10px}
+  .box .row:last-child{border:none}
+  .box .row span{color:#777;flex:none}
+  .box .row b{font-weight:700;overflow-wrap:anywhere;text-align:left}
+
+  /* الجدول */
+  table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:10px}
+  th{background:#f0f0f0;border:1px solid #bbb;padding:5px 6px;font-family:'Changa';font-weight:600;font-size:10.5px}
+  td{border:1px solid #ddd;padding:5px 6px;vertical-align:top}
+  td.n{font-family:'Changa';text-align:center;white-space:nowrap}
+  tbody tr:nth-child(even) td{background:#fafafa}
+  .itype{display:inline-block;font-size:8.5px;color:#666;border:1px solid #ddd;border-radius:3px;padding:0 4px;margin-bottom:2px}
+
+  /* الإجماليات والملاحظات */
+  .after{display:grid;grid-template-columns:1.1fr .9fr;gap:4mm;margin-top:5mm}
+  .notes h4{font-family:'Changa';font-size:11px;margin:8px 0 2px}
+  .notes p{margin:0;font-size:9.5px;color:#333;line-height:1.8}
+  .totals{border:1px solid #ccc}
+  .trow{display:flex;justify-content:space-between;padding:5px 9px;font-size:10.5px;border-bottom:1px solid #e5e5e5}
+  .trow b{font-family:'Changa'}
+  .trow.grand{background:var(--ink);color:#fff;border:none;padding:7px 9px}
+  .trow.grand b{font-size:14px}
+  .words{margin-top:4mm;background:#f7f7f7;border:1px dashed #ccc;padding:5px 9px;font-size:10px}
+
+  /* التواقيع والختم */
+  .signs{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:7mm}
+  .sig h4{font-family:'Changa';font-size:11.5px;margin:0 0 2mm}
+  .sigbox{height:18mm;border:1px dashed #aaa}
+  .auth{margin-top:2mm;border:1px solid #ccc;border-inline-start:3px solid var(--ink);padding:5px 8px;font-size:9.5px;font-weight:700;color:#333}
+  .sig.sealed{position:relative}
+  .seal{position:absolute;top:-9mm;left:1mm;width:37mm;height:37mm;color:#146c43;
+    transform:rotate(-11deg);opacity:.92;mix-blend-mode:multiply;pointer-events:none}
+  .seal text{font-family:'Changa',sans-serif;fill:currentColor}
+  .verify{margin-top:5mm;border:1px dashed #b9b9b9;background:#fbfbf7;padding:6px 10px;
+    font-size:9px;color:#444;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .verify b{color:#146c43}
+  .foot{margin-top:7mm;border-top:1px solid #ddd;padding-top:3mm;display:flex;
+    justify-content:space-between;gap:4mm;font-size:9px;color:#777}
+  .foot .mid{font-family:'Changa';font-weight:700;color:#111}
+
+  /* ============================================================
+     دعم الأجهزة — تصميم متجاوب (يعمل على الشاشة فقط، الطباعة لا تتأثر)
+     ============================================================ */
+
+  /* لوحياً وأصغر: الورقة تصبح مرنة بعرض الشاشة بدل مقاس A4 الثابت */
+  @media screen and (max-width:860px){
+    body{padding:12px 10px calc(88px + env(safe-area-inset-bottom))}
+
+    .invoice{
+      width:100%;
+      max-width:210mm;
+      min-height:auto;
+      padding:18px 16px 22px;
+      font-size:12px;                      /* أكبر قليلاً لسهولة القراءة على الشاشة */
+      box-shadow:0 10px 30px rgba(0,0,0,.15);
+    }
+    .top-line{margin-bottom:16px}
+
+    /* الترويسة تتراص عمودياً */
+    .head{flex-direction:column;gap:14px}
+    .meta{width:100%}
+    .brand h1{font-size:19px}
+
+    /* البطاقات والإجماليات والتواقيع عمود واحد */
+    .parties{grid-template-columns:1fr;gap:12px;margin-top:16px}
+    .after{grid-template-columns:1fr;gap:14px;margin-top:16px}
+    .signs{grid-template-columns:1fr;gap:18px;margin-top:20px}
+
+    /* الختم لا يخرج عن حدود الصفحة */
+    .seal{left:auto;right:2mm;width:34mm;height:34mm}
+
+    table{margin-top:16px}
+
+    /* شريط الأدوات يتحول إلى شريط سفلي ثابت يسهل الوصول إليه بالإبهام */
+    .bar{
+      top:auto;left:0;right:0;bottom:0;
+      justify-content:center;gap:8px;flex-wrap:wrap;
+      padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+      background:rgba(255,255,255,.96);
+      box-shadow:0 -4px 16px rgba(0,0,0,.12);
+    }
+    .bar .tip{order:2;background:transparent;box-shadow:none;color:#888;padding:2px}
+    .bar button{order:1;flex:1 1 auto;max-width:260px;padding:12px 18px;font-size:15px}
+  }
+
+  /* الجوال: جدول البنود يتحول إلى بطاقات مقروءة بدل التمرير الأفقي */
+  @media screen and (max-width:560px){
+    .invoice{padding:14px 12px 20px}
+    .brand h1{font-size:17px}
+    .bar .tip{display:none}
+
+    table{display:block;margin-top:14px}
+    thead{display:none}
+    tbody{display:block}
+
+    #rows tr{
+      display:block;background:#fff;
+      border:1px solid #ccc;border-radius:8px;
+      margin-bottom:10px;padding:6px 8px;
+    }
+    #rows tr:nth-child(even) td{background:transparent}
+
+    #rows td{
+      display:block;border:none;border-bottom:1px dashed #eee;
+      padding:6px 2px;text-align:right;white-space:normal;
+    }
+    #rows td:last-child{border-bottom:none}
+
+    /* عنوان كل خلية يظهر تلقائياً من data-label */
+    #rows td[data-label]::before{
+      content:attr(data-label) ': ';
+      font-family:'Changa';font-weight:600;color:#666;
+    }
+
+    /* رقم البند يظهر كرأس صغير للبطاقة */
+    #rows td.idx{
+      background:var(--soft);margin:-6px -8px 8px;padding:7px 8px;
+      border-bottom:1px solid #e5e5e5;border-radius:8px 8px 0 0;
+      font-family:'Changa';font-weight:700;color:#111;
+    }
+    #rows td.idx::before{content:'بند ';color:#555}
+
+    /* خلية البيان تأخذ العرض كاملاً */
+    #rows td.desc{font-size:11.5px}
+
+    .trow{padding:7px 10px}
+  }
+
+  /* الطباعة */
+  @page{size:A4 portrait;margin:12mm;
+    @bottom-center{content:counter(page) " / " counter(pages);font-family:'Almarai';font-size:9pt;color:#777}}
+  @media print{
+    body{background:#fff;padding:0}
+    .bar{display:none!important}
+    .invoice{width:auto;min-height:auto;box-shadow:none}
+    .top-line{background:#111}
+    thead{display:table-header-group}
+    tr,.box,.totals,.sig,.words,.verify{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="tip">اضغطي على أي نص لتعديله</span>
+  <button onclick="window.print()">طباعة / حفظ PDF</button>
+</div>
+
+<article class="invoice" id="inv">
+  <div class="top-line"></div>
+
+  <!-- الترويسة -->
+  <header class="head">
+    <div class="brand">
+      <div class="logo">⚙</div>
+      <h1 contenteditable>ورشة النخبة لصيانة السيارات</h1>
+      <div class="tag" contenteditable>ميكانيكا عامة — كهرباء — سمكرة ودهان — فحص كمبيوتر</div>
+      <div class="contact" contenteditable>الرياض – حي الصناعية، شارع الورش 12 • 0550000000 • info@elite-garage.sa</div>
+      <div class="contact" contenteditable>الرقم الضريبي: 310123456700003 • س.ت: 1010456789 • elite-garage.sa</div>
+    </div>
+    <div class="meta">
+      <span class="doctype" contenteditable>فاتورة إصلاح مركبة</span>
+      <div class="mrow"><span>رقم الفاتورة</span><b contenteditable>INV-260722-001</b></div>
+      <div class="mrow"><span>أمر العمل</span><b contenteditable>WO-1042</b></div>
+      <div class="mrow"><span>تاريخ الإصدار</span><b class="js-date">22/07/2026</b></div>
+      <div class="mrow"><span>وقت الاستلام</span><b contenteditable>09:30 ص</b></div>
+      <div class="mrow"><span>الحالة</span><b><span class="pill" contenteditable>مدفوعة</span></b></div>
+      <div class="chip">الإجمالي المستحق<b class="js-grand">0.00</b><span>ريال سعودي</span></div>
+    </div>
+  </header>
+
+  <!-- العميل والمركبة -->
+  <div class="parties">
+    <div class="box">
+      <h3>بيانات العميل</h3>
+      <div class="row"><span>الاسم</span><b contenteditable>محمد عبدالله العتيبي</b></div>
+      <div class="row"><span>الجوال</span><b contenteditable>0551234567</b></div>
+      <div class="row"><span>الرقم الضريبي</span><b contenteditable>—</b></div>
+      <div class="row"><span>العنوان</span><b contenteditable>الرياض – حي النرجس</b></div>
+    </div>
+    <div class="box">
+      <h3>بيانات المركبة</h3>
+      <div class="row"><span>الماركة / الموديل</span><b contenteditable>تويوتا كامري GLE</b></div>
+      <div class="row"><span>سنة الصنع</span><b contenteditable>2019</b></div>
+      <div class="row"><span>رقم اللوحة</span><b contenteditable>د س ن 4321</b></div>
+      <div class="row"><span>رقم الهيكل VIN</span><b contenteditable>JTNB11HK5030XXXXX</b></div>
+      <div class="row"><span>قراءة العداد</span><b contenteditable>87,500 كم</b></div>
+    </div>
+  </div>
+
+  <!-- البنود -->
+  <table>
+    <thead>
+      <tr>
+        <th style="width:7mm">#</th><th>البيان</th>
+        <th style="width:14mm">الكمية</th><th style="width:20mm">السعر</th>
+        <th style="width:18mm">الخصم</th><th style="width:24mm">الإجمالي</th>
+      </tr>
+    </thead>
+    <tbody id="rows">
+      <tr>
+        <td class="n idx">1</td>
+        <td class="desc" contenteditable><span class="itype">خدمة</span><br>تغيير زيت محرك 5W-30 أصلي + فلتر</td>
+        <td class="n qty" data-label="الكمية" contenteditable>1</td>
+        <td class="n price" data-label="السعر" contenteditable>185.00</td>
+        <td class="n disc" data-label="الخصم" contenteditable>0</td>
+        <td class="n total" data-label="الإجمالي">0.00</td>
+      </tr>
+      <tr>
+        <td class="n idx">2</td>
+        <td class="desc" contenteditable><span class="itype">قطعة غيار</span><br>تيل فرامل أمامي أصلي مع حساس</td>
+        <td class="n qty" data-label="الكمية" contenteditable>1</td>
+        <td class="n price" data-label="السعر" contenteditable>320.00</td>
+        <td class="n disc" data-label="الخصم" contenteditable>0</td>
+        <td class="n total" data-label="الإجمالي">0.00</td>
+      </tr>
+      <tr>
+        <td class="n idx">3</td>
+        <td class="desc" contenteditable><span class="itype">أجرة يد</span><br>فحص كمبيوتر شامل وتقرير حالة</td>
+        <td class="n qty" data-label="الكمية" contenteditable>1</td>
+        <td class="n price" data-label="السعر" contenteditable>100.00</td>
+        <td class="n disc" data-label="الخصم" contenteditable>0</td>
+        <td class="n total" data-label="الإجمالي">0.00</td>
+      </tr>
+      <tr>
+        <td class="n idx">4</td>
+        <td class="desc" contenteditable><span class="itype">مواد استهلاكية</span><br>فلتر هواء</td>
+        <td class="n qty" data-label="الكمية" contenteditable>2</td>
+        <td class="n price" data-label="السعر" contenteditable>45.00</td>
+        <td class="n disc" data-label="الخصم" contenteditable>0</td>
+        <td class="n total" data-label="الإجمالي">0.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- الملاحظات والإجماليات -->
+  <div class="after">
+    <div class="notes">
+      <h4>وصف العطل</h4>
+      <p contenteditable>صوت احتكاك عند الفرامل الأمامية مع اهتزاز خفيف في المقود.</p>
+      <h4>الأعمال المنفذة</h4>
+      <p contenteditable>تغيير الزيت والفلتر، استبدال تيل الفرامل الأمامي، فحص الكمبيوتر الشامل.</p>
+      <h4>شروط الضمان</h4>
+      <p contenteditable>ضمان الإصلاح 30 يوماً أو 1,000 كم من تاريخ التسليم، ولا يشمل سوء الاستخدام.</p>
+    </div>
+    <div class="totals">
+      <div class="trow"><span>المجموع قبل الخصم</span><b class="js-sub">0.00</b></div>
+      <div class="trow"><span>خصم عام</span><b><span class="js-disc" contenteditable>0.00</span> ر.س</b></div>
+      <div class="trow"><span>ضريبة القيمة المضافة (<span class="js-rate" contenteditable>15</span>٪)</span><b class="js-vat">0.00</b></div>
+      <div class="trow grand"><span>الإجمالي النهائي</span><b><span class="js-grand2">0.00</span> ر.س</b></div>
+      <div class="trow"><span>المدفوع</span><b><span class="js-paid" contenteditable>0.00</span> ر.س</b></div>
+      <div class="trow"><span>المتبقي</span><b class="js-remain">0.00</b></div>
+    </div>
+  </div>
+
+  <div class="words"><b>المبلغ كتابةً:</b> <span class="js-words">—</span></div>
+
+  <!-- التواقيع والختم -->
+  <div class="signs">
+    <div class="sig">
+      <h4>توقيع العميل</h4>
+      <div class="sigbox"></div>
+    </div>
+    <div class="sig sealed">
+      <h4>توقيع الورشة</h4>
+      <div class="sigbox"></div>
+      <div class="auth" contenteditable>عند الموافقة، الورشة مخوّلة لتبديل وشراء كل ما يتطلب للصيانة.</div>
+      <!-- ختم الموافقة الإلكترونية -->
+      <svg class="seal" viewBox="0 0 200 200" aria-label="ختم الموافقة الإلكترونية">
+        <defs>
+          <path id="arcTop" d="M 100 100 m -70 0 a 70 70 0 1 1 140 0"/>
+          <path id="arcBot" d="M 100 100 m -56 0 a 56 56 0 1 0 112 0"/>
+        </defs>
+        <circle cx="100" cy="100" r="94" fill="none" stroke="currentColor" stroke-width="3.5"/>
+        <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text font-size="13" font-weight="800" letter-spacing="1.5"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">ورشة النخبة لصيانة السيارات</textPath></text>
+        <text font-size="10.5" letter-spacing="1"><textPath href="#arcBot" startOffset="50%" text-anchor="middle">موافقة إلكترونية موثقة</textPath></text>
+        <text x="24" y="105" text-anchor="middle" font-size="13">✦</text>
+        <text x="176" y="105" text-anchor="middle" font-size="13">✦</text>
+        <text x="100" y="90" text-anchor="middle" font-size="23" font-weight="800">معتمد</text>
+        <text x="100" y="106" text-anchor="middle" font-size="9.5">22 يوليو 2026 — 10:15 ص</text>
+        <text x="100" y="120" text-anchor="middle" font-size="9.5" letter-spacing="1.5">APR-7F3K9Q2A</text>
+        <text x="100" y="134" text-anchor="middle" font-size="8.5">بواسطة: م. خالد العنزي</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="verify">
+    <span>تم الاعتماد إلكترونياً بواسطة: <b>م. خالد العنزي</b></span>
+    <span>رمز التحقق: <b>APR-7F3K9Q2A</b></span>
+    <span>22/07/2026 10:15 ص</span>
+  </div>
+
+  <footer class="foot">
+    <span contenteditable>0550000000 • elite-garage.sa</span>
+    <span class="mid" contenteditable>شكراً لثقتكم — سلامتكم أولويتنا</span>
+    <span contenteditable>INV-260722-001</span>
+  </footer>
+</article>
+
+<script>
+(function(){
+  'use strict';
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const num=el=>parseFloat((el.textContent||'').replace(/[^\d.\-]/g,''))||0;
+  const fmt=n=>n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  /* التاريخ الحالي */
+  $('.js-date').textContent=new Date().toLocaleDateString('en-GB');
+
+  /* تفقيط عربي */
+  const O=['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const T=['','عشرة','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+  const H=['','مائة','مائتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+  const u1000=n=>{const p=[],h=Math.floor(n/100),r=n%100;
+    if(h)p.push(H[h]);
+    if(r){if(r<20)p.push(O[r]);else{const o=r%10,t=Math.floor(r/10);p.push(o?O[o]+' و'+T[t]:T[t]);}}
+    return p.join(' و');};
+  function tafqit(amount){
+    const n=Math.max(Math.round(amount),0),rial=Math.floor(n/100),hal=n%100;
+    if(!rial&&!hal)return 'فقط صفر ريال لا غير';
+    const mil=Math.floor(rial/1e6),th=Math.floor(rial%1e6/1000),rem=rial%1000,seg=[];
+    if(mil)seg.push(mil===1?'مليون':mil===2?'مليونان':u1000(mil)+' ملايين');
+    if(th)seg.push(th===1?'ألف':th===2?'ألفان':u1000(th)+' آلاف');
+    if(rem)seg.push(u1000(rem));
+    let w='';
+    if(seg.length){const cur=rial===1?'ريال سعودي':rial===2?'ريالان سعوديان':(rem>=3&&rem<=10)?'ريالات سعودية':'ريالاً سعودياً';w=seg.join(' و')+' '+cur;}
+    if(hal){const hc=hal===1?'هللة':hal===2?'هللتان':(hal>=3&&hal<=10)?'هللات':'هللة';w=(w?w+' و':'')+u1000(hal)+' '+hc;}
+    return 'فقط '+w+' لا غير';
+  }
+
+  /* الحساب التلقائي */
+  function recalc(){
+    let sub=0;
+    $$('#rows tr').forEach(tr=>{
+      const q=num(tr.querySelector('.qty')), p=num(tr.querySelector('.price')), d=num(tr.querySelector('.disc'));
+      const gross=q*p, disc=Math.min(Math.max(d,0),gross), t=gross-disc;
+      tr.querySelector('.total').textContent=fmt(t);
+      sub+=gross;
+    });
+    const gDisc=Math.min(Math.max(num($('.js-disc')),0),sub);
+    const afterDisc=sub-gDisc;
+    const rate=num($('.js-rate'));
+    const vat=Math.round(afterDisc*rate)/100;
+    const grand=afterDisc+vat;
+    const paid=num($('.js-paid'));
+    $('.js-sub').textContent=fmt(sub);
+    $('.js-vat').textContent=fmt(vat);
+    $('.js-grand').textContent=fmt(grand);
+    $('.js-grand2').textContent=fmt(grand);
+    $('.js-remain').textContent=fmt(grand-paid);
+    $('.js-words').textContent=tafqit(Math.round(grand*100));
+  }
+
+  $('#inv').addEventListener('input',recalc);
+  recalc();
+})();
+</script>
+</body>
+</html>

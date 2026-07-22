@@ -1,376 +1,199 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Upload, FileText, Trash2, Download, Eye, Plus, File } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BadgeCheck, CheckCircle2, Download, Eye, FileCode2, FileText, RefreshCw, Star, Trash2, UploadCloud } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from '../hooks/use-toast';
-import { useTranslation } from 'react-i18next';
 import { resolveBackendBase } from '../utils/backendBase';
 
 const API_URL = `${resolveBackendBase()}/api`;
+const docTypes = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
+
+const formatSize = (bytes = 0) => {
+  if (!bytes) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 const TemplatesManager = () => {
   const { toast } = useToast();
-  const { t, i18n } = useTranslation();
-  const isArabic = i18n.language === 'ar';
-  
-  const [templatesList, setTemplatesList] = useState([]);
+  const fileRef = useRef(null);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [uploadForm, setUploadForm] = useState({
-    name: '',
-    description: '',
-    type: 'invoice'
-  });
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [selectedType, setSelectedType] = useState('invoice');
+  const [templateName, setTemplateName] = useState('');
+  const [description, setDescription] = useState('');
+  const [preview, setPreview] = useState(null);
 
-  const docTypes = {
-    invoice: isArabic ? 'فاتورة مبيعات' : 'Sales Invoice',
-    diagnosis: isArabic ? 'تقرير تشخيص' : 'Diagnosis Report',
-    quote: isArabic ? 'عرض سعر' : 'Price Quote',
-    receipt: isArabic ? 'إيصال استلام' : 'Receipt'
-  };
+  const grouped = useMemo(() => Object.keys(docTypes).reduce((acc, key) => {
+    acc[key] = templates.filter((tpl) => (tpl.type || 'invoice') === key);
+    return acc;
+  }, {}), [templates]);
 
-  useEffect(() => {
-    loadTemplates();
-  }, []);
+  const activeCount = useMemo(() => templates.filter((tpl) => tpl.is_default || tpl.isActive).length, [templates]);
 
   const loadTemplates = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/templates`);
-      const templatesData = response.data?.templates;
-      if (Array.isArray(templatesData)) {
-        setTemplatesList(templatesData);
-      } else {
-        console.warn('Templates data is not an array:', templatesData);
-        setTemplatesList([]);
-      }
-    } catch (error) {
-      console.error('Error loading templates:', error);
-      setTemplatesList([]);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // التحقق من نوع الملف
-      const allowedTypes = ['text/html', 'application/pdf'];
-      const fileExt = file.name.split('.').pop().toLowerCase();
-      
-      if (!['html', 'htm', 'pdf'].includes(fileExt)) {
-        toast({
-          title: isArabic ? 'خطأ' : 'Error',
-          description: isArabic ? 'يُسمح فقط بملفات HTML أو PDF' : 'Only HTML or PDF files allowed',
-          variant: 'destructive'
-        });
-        return;
-      }
-      
-      setSelectedFile(file);
-      // تعيين الاسم تلقائياً من اسم الملف
-      if (!uploadForm.name) {
-        setUploadForm(prev => ({ ...prev, name: file.name }));
-      }
-    }
-  };
-
-  const uploadTemplate = async () => {
-    if (!selectedFile) {
-      toast({
-        title: isArabic ? 'خطأ' : 'Error',
-        description: isArabic ? 'الرجاء اختيار ملف' : 'Please select a file',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (!uploadForm.name) {
-      toast({
-        title: isArabic ? 'خطأ' : 'Error',
-        description: isArabic ? 'الرجاء إدخال اسم النموذج' : 'Please enter template name',
-        variant: 'destructive'
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('name', uploadForm.name);
-      formData.append('description', uploadForm.description);
-      formData.append('type', uploadForm.type);
-
-      const response = await axios.post(`${API_URL}/templates/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      toast({
-        title: isArabic ? 'نجح' : 'Success',
-        description: isArabic ? 'تم رفع النموذج بنجاح' : 'Template uploaded successfully'
-      });
-
-      // إعادة تعيين النموذج
-      setUploadForm({ name: '', description: '', type: 'invoice' });
-      setSelectedFile(null);
-      document.getElementById('file-input').value = '';
-      
-      // إعادة تحميل القائمة
-      loadTemplates();
+      const response = await axios.get(`${API_URL}/templates`);
+      setTemplates(Array.isArray(response.data?.templates) ? response.data.templates : []);
     } catch (error) {
-      toast({
-        title: isArabic ? 'خطأ' : 'Error',
-        description: error.response?.data?.detail || (isArabic ? 'فشل في رفع النموذج' : 'Failed to upload template'),
-        variant: 'destructive'
-      });
+      toast({ title: 'تعذر تحميل النماذج', description: 'تأكد من الاتصال وحاول مرة أخرى', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteTemplate = async (templateId) => {
-    if (!confirm(isArabic ? 'هل أنت متأكد من حذف هذا النموذج؟' : 'Are you sure you want to delete this template?')) {
+  useEffect(() => { loadTemplates(); }, []);
+
+  const uploadTemplate = async (file) => {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['html', 'htm', 'pdf'].includes(ext)) {
+      toast({ title: 'ملف غير مدعوم', description: 'ارفع HTML أو PDF فقط', variant: 'destructive' });
       return;
     }
-
+    setUploading(true);
     try {
-      await axios.delete(`${API_URL}/templates/${templateId}`);
-      toast({
-        title: isArabic ? 'نجح' : 'Success',
-        description: isArabic ? 'تم حذف النموذج' : 'Template deleted'
-      });
-      loadTemplates();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', templateName || file.name.replace(/\.(html|htm|pdf)$/i, ''));
+      formData.append('description', description || 'نموذج مرفوع من إدارة النماذج');
+      formData.append('type', selectedType);
+      formData.append('make_default', ext === 'html' || ext === 'htm' ? 'true' : 'false');
+      const response = await axios.post(`${API_URL}/templates/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast({ title: 'تم حفظ النموذج', description: ext === 'pdf' ? 'تمت إضافته للتحميل فقط' : 'تمت إضافته تلقائياً للنماذج الافتراضية لهذا النوع' });
+      setTemplateName('');
+      setDescription('');
+      if (fileRef.current) fileRef.current.value = '';
+      await loadTemplates();
+      setPreview(response.data?.template || null);
     } catch (error) {
-      toast({
-        title: isArabic ? 'خطأ' : 'Error',
-        description: isArabic ? 'فشل في حذف النموذج' : 'Failed to delete template',
-        variant: 'destructive'
-      });
+      toast({ title: 'فشل رفع النموذج', description: error.response?.data?.detail || 'حاول مرة أخرى', variant: 'destructive' });
+    } finally {
+      setUploading(false);
     }
   };
 
-  const downloadTemplate = async (templateId, filename) => {
+  const makeDefault = async (template) => {
     try {
-      const response = await axios.get(`${API_URL}/templates/${templateId}/download`, {
-        responseType: 'blob'
-      });
-      
+      await axios.post(`${API_URL}/templates/${template.id}/make-default`);
+      toast({ title: 'تم التعيين', description: `صار «${template.name}» النموذج الافتراضي` });
+      await loadTemplates();
+    } catch (error) {
+      toast({ title: 'تعذر التعيين', description: 'حاول مرة أخرى', variant: 'destructive' });
+    }
+  };
+
+  const deleteTemplate = async (template) => {
+    if (template.is_builtin) {
+      toast({ title: 'نموذج أساسي', description: 'النموذج الرسمي لا يُحذف، اختر نموذجاً آخر كافتراضي بدلاً منه.' });
+      return;
+    }
+    if (!window.confirm(`حذف النموذج «${template.name}»؟`)) return;
+    try {
+      await axios.delete(`${API_URL}/templates/${template.id}`);
+      toast({ title: 'تم الحذف', description: 'أزيل النموذج من القائمة' });
+      await loadTemplates();
+    } catch (error) {
+      toast({ title: 'فشل الحذف', description: 'حاول مرة أخرى', variant: 'destructive' });
+    }
+  };
+
+  const downloadTemplate = async (template) => {
+    try {
+      const response = await axios.get(`${API_URL}/templates/${template.id}/download`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', filename);
+      link.setAttribute('download', template.original_filename || `${template.name}.html`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      URL.revokeObjectURL(url);
     } catch (error) {
-      toast({
-        title: isArabic ? 'خطأ' : 'Error',
-        description: isArabic ? 'فشل في تحميل النموذج' : 'Failed to download template',
-        variant: 'destructive'
-      });
+      toast({ title: 'فشل التحميل', description: 'حاول مرة أخرى', variant: 'destructive' });
     }
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="templates-page" dir="rtl" data-testid="templates-manager-page">
+      <style>{styles}</style>
+      <header className="templates-hero" data-testid="templates-manager-header">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isArabic ? 'إدارة النماذج المخصصة' : 'Custom Templates Manager'}
-          </h1>
-          <p className="text-gray-500 mt-1">
-            {isArabic ? 'رفع وإدارة نماذج الفواتير بصيغة HTML أو PDF' : 'Upload and manage invoice templates (HTML or PDF)'}
-          </p>
+          <p data-testid="templates-manager-kicker">Dash Pro · مركز النماذج</p>
+          <h1 data-testid="templates-manager-title">إدارة النماذج</h1>
+          <span data-testid="templates-manager-description">أي ملف HTML تحفظه هنا يصبح تلقائياً خياراً افتراضياً عند ضغط أي زر طباعة.</span>
         </div>
-      </div>
+        <button type="button" className="tm-button ghost" onClick={loadTemplates} data-testid="templates-refresh-button"><RefreshCw size={18} /> تحديث</button>
+      </header>
 
-      {/* رفع نموذج جديد */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload size={20} />
-            {isArabic ? 'رفع نموذج جديد' : 'Upload New Template'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>{isArabic ? 'اسم النموذج' : 'Template Name'}</Label>
-              <Input
-                value={uploadForm.name}
-                onChange={(e) => setUploadForm({ ...uploadForm, name: e.target.value })}
-                placeholder={isArabic ? 'مثال: فاتورة Canva الاحترافية' : 'e.g., Professional Canva Invoice'}
-              />
-            </div>
-            <div>
-              <Label>{isArabic ? 'نوع المستند' : 'Document Type'}</Label>
-              <Select value={uploadForm.type} onValueChange={(v) => setUploadForm({ ...uploadForm, type: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(docTypes).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <section className="templates-stats" data-testid="templates-stats">
+        <Stat label="كل النماذج" value={templates.length} testId="templates-total-count" />
+        <Stat label="النماذج الافتراضية" value={activeCount} testId="templates-default-count" />
+        <Stat label="أنواع المستندات" value={Object.keys(docTypes).length} testId="templates-types-count" />
+      </section>
+
+      <main className="templates-layout">
+        <section className="upload-panel" data-testid="template-upload-panel">
+          <div className="panel-heading"><UploadCloud size={22} /><div><h2>رفع نموذج HTML</h2><p>ارفع ملفك واحفظه؛ سيتم إضافته تلقائياً لقائمة النماذج وخيارات الطباعة.</p></div></div>
+          <div className="upload-grid">
+            <label className="tm-field" data-testid="template-name-field"><span>اسم النموذج</span><input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="مثال: فاتورة الورشة المختومة" data-testid="template-name-input" /></label>
+            <label className="tm-field" data-testid="template-type-field"><span>نوع المستند</span><select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} data-testid="template-type-select">{Object.entries(docTypes).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
           </div>
-
-          <div>
-            <Label>{isArabic ? 'الوصف (اختياري)' : 'Description (optional)'}</Label>
-            <Textarea
-              value={uploadForm.description}
-              onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
-              placeholder={isArabic ? 'وصف مختصر عن النموذج...' : 'Brief description...'}
-              rows={2}
-            />
+          <label className="tm-field" data-testid="template-description-field"><span>الوصف</span><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="وصف مختصر للنموذج" data-testid="template-description-input" /></label>
+          <div className="drop-zone" onClick={() => fileRef.current?.click()} data-testid="template-file-dropzone">
+            <FileCode2 size={34} />
+            <strong>اختر ملف HTML أو PDF</strong>
+            <span>HTML يصبح نموذج طباعة افتراضي — PDF يبقى للتحميل والأرشفة</span>
+            <input ref={fileRef} type="file" accept=".html,.htm,.pdf" onChange={(e) => uploadTemplate(e.target.files?.[0])} data-testid="template-file-input" />
           </div>
+          <button type="button" className="tm-button primary full" disabled={uploading} onClick={() => fileRef.current?.click()} data-testid="template-upload-button"><UploadCloud size={18} />{uploading ? 'جارٍ الحفظ...' : 'إرفاق وحفظ كنموذج'}</button>
+        </section>
 
-          <div>
-            <Label>{isArabic ? 'الملف (HTML أو PDF)' : 'File (HTML or PDF)'}</Label>
-            <div className="flex items-center gap-4 mt-2">
-              <Input
-                id="file-input"
-                type="file"
-                accept=".html,.htm,.pdf"
-                onChange={handleFileChange}
-                className="flex-1"
-              />
-              {selectedFile && (
-                <div className="text-sm text-green-600 flex items-center gap-2">
-                  <File size={16} />
-                  <span>{selectedFile.name}</span>
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {isArabic ? 'الأنواع المدعومة: HTML, PDF (حجم أقصى: 5MB)' : 'Supported: HTML, PDF (Max: 5MB)'}
-            </p>
-          </div>
-
-          <Button onClick={uploadTemplate} disabled={loading || !selectedFile} className="w-full">
-            <Upload size={18} className={isArabic ? 'ml-2' : 'mr-2'} />
-            {loading ? (isArabic ? 'جاري الرفع...' : 'Uploading...') : (isArabic ? 'رفع النموذج' : 'Upload Template')}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* قائمة النماذج */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText size={20} />
-            {isArabic ? 'النماذج المحفوظة' : 'Saved Templates'}
-            <span className="text-sm font-normal text-muted-foreground">
-              ({Array.isArray(templatesList) ? templatesList.length : 0})
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!Array.isArray(templatesList) || templatesList.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText size={48} className="mx-auto mb-4 opacity-20" />
-              <p>{isArabic ? 'لا توجد نماذج محفوظة بعد' : 'No templates saved yet'}</p>
-              <p className="text-sm mt-2">
-                {isArabic ? 'ابدأ برفع نموذج HTML أو PDF من الأعلى' : 'Start by uploading an HTML or PDF template above'}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.isArray(templatesList) && templatesList.map((template) => (
-                <div
-                  key={template.id}
-                  className="border rounded-lg p-4 hover:shadow-lg transition-shadow bg-slate-50 dark:bg-slate-800"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {template.file_type === 'pdf' ? (
-                        <div className="w-10 h-10 rounded bg-red-100 flex items-center justify-center">
-                          <FileText size={20} className="text-red-600" />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded bg-blue-100 flex items-center justify-center">
-                          <FileText size={20} className="text-blue-600" />
-                        </div>
-                      )}
-                      <div>
-                        <h4 className="font-semibold text-sm">{template.name}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {docTypes[template.type]} • {template.file_type.toUpperCase()}
-                        </p>
+        <section className="templates-list-panel" data-testid="templates-list-panel">
+          <div className="panel-heading compact"><FileText size={22} /><div><h2>النماذج الافتراضية والمرفوعة</h2><p>اختر الافتراضي لكل نوع، وسيظهر في كل نوافذ الطباعة.</p></div></div>
+          {loading ? <div className="empty" data-testid="templates-loading">جارٍ تحميل النماذج...</div> : Object.entries(docTypes).map(([type, label]) => (
+            <div className="type-group" key={type} data-testid={`templates-group-${type}`}>
+              <h3>{label}<span>{grouped[type]?.length || 0}</span></h3>
+              <div className="template-cards">
+                {(grouped[type] || []).map((template) => (
+                  <article className={`template-card ${template.is_default || template.isActive ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
+                    <div className="template-icon">{template.file_type === 'pdf' ? <FileText size={20} /> : <FileCode2 size={20} />}</div>
+                    <div className="template-main">
+                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{(template.is_default || template.isActive) && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> افتراضي</span>}</div>
+                      <p data-testid={`template-description-${template.id}`}>{template.description || 'بدون وصف'}</p>
+                      <small data-testid={`template-meta-${template.id}`}>{template.file_type?.toUpperCase()} · {formatSize(template.file_size)} · {template.is_builtin ? 'رسمي' : 'مرفوع'}</small>
+                      <div className="template-actions">
+                        <button type="button" onClick={() => setPreview(template)} data-testid={`template-preview-${template.id}`}><Eye size={15} /> معاينة</button>
+                        <button type="button" onClick={() => downloadTemplate(template)} data-testid={`template-download-${template.id}`}><Download size={15} /> تحميل</button>
+                        {template.file_type === 'html' && <button type="button" onClick={() => makeDefault(template)} data-testid={`template-make-default-${template.id}`}><Star size={15} /> افتراضي</button>}
+                        <button type="button" className="danger" onClick={() => deleteTemplate(template)} data-testid={`template-delete-${template.id}`}><Trash2 size={15} /> حذف</button>
                       </div>
                     </div>
-                  </div>
-
-                  {template.description && (
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                      {template.description}
-                    </p>
-                  )}
-
-                  <div className="text-xs text-muted-foreground mb-3">
-                    <p>{formatFileSize(template.file_size)}</p>
-                    <p>{new Date(template.created_at).toLocaleDateString('ar-SA')}</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => downloadTemplate(template.id, template.original_filename)}
-                      className="flex-1"
-                    >
-                      <Download size={14} className={isArabic ? 'ml-1' : 'mr-1'} />
-                      {isArabic ? 'تحميل' : 'Download'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => deleteTemplate(template.id)}
-                      className="text-red-500 hover:text-red-600"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                  </article>
+                ))}
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </section>
+      </main>
 
-      {/* إرشادات */}
-      <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200">
-        <CardContent className="p-4">
-          <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
-            <FileText size={16} />
-            {isArabic ? '📋 كيفية إضافة نموذج من Canva' : '📋 How to Add Template from Canva'}
-          </h4>
-          <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
-            <li>{isArabic ? 'افتح تصميمك في Canva' : 'Open your design in Canva'}</li>
-            <li>{isArabic ? 'اضغط Share → Download' : 'Click Share → Download'}</li>
-            <li>{isArabic ? 'اختر PDF (Standard) أو PNG' : 'Choose PDF (Standard) or PNG'}</li>
-            <li>{isArabic ? 'حمّل الملف على جهازك' : 'Download to your device'}</li>
-            <li>{isArabic ? 'ارفعه هنا باستخدام الزر أعلاه' : 'Upload it here using the button above'}</li>
-          </ol>
-          <p className="text-xs text-blue-700 dark:text-blue-300 mt-3">
-            💡 {isArabic ? 'يمكنك أيضاً رفع ملفات HTML إذا كان لديك تصميم مخصص' : 'You can also upload HTML files if you have a custom design'}
-          </p>
-        </CardContent>
-      </Card>
+      {preview && <TemplatePreview template={preview} onClose={() => setPreview(null)} />}
     </div>
   );
 };
+
+function Stat({ label, value, testId }) {
+  return <div className="tm-stat" data-testid={testId}><span>{label}</span><strong>{value}</strong><CheckCircle2 size={18} /></div>;
+}
+
+function TemplatePreview({ template, onClose }) {
+  return <div className="preview-modal" data-testid="template-preview-modal"><div className="preview-card"><div className="preview-head"><div><h3 data-testid="template-preview-title">{template.name}</h3><p data-testid="template-preview-subtitle">{docTypes[template.type]} · {template.file_type?.toUpperCase()}</p></div><button type="button" onClick={onClose} data-testid="template-preview-close">إغلاق</button></div><div className="preview-body"><p data-testid="template-preview-description">{template.description || 'سيظهر هذا النموذج في نافذة اختيار النماذج عند الطباعة.'}</p><div className="preview-paper"><FileCode2 size={46} /><strong>{template.is_builtin ? 'نموذج داش برو المختوم' : 'نموذج مرفوع'}</strong><span>{template.is_default || template.isActive ? 'مستخدم حالياً كافتراضي' : 'متاح للاختيار'}</span></div></div></div></div>;
+}
+
+const styles = `
+.templates-page{min-height:100vh;padding:20px;background:linear-gradient(180deg,#f6f7fb,#eef3f8);color:#172033;direction:rtl}.templates-page *{box-sizing:border-box}.templates-hero{max-width:1320px;margin:0 auto 18px;padding:22px;border-radius:24px;background:linear-gradient(135deg,#172033,#1e3a5f);display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 22px 50px rgba(23,32,51,.18)}.templates-hero p{margin:0 0 5px;color:#93c5fd!important;font-weight:900;font-size:13px}.templates-hero h1{margin:0;color:#fff!important;font-size:34px;font-weight:950}.templates-hero span{color:#dbeafe!important;font-size:14px}.tm-button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;color:#172033;font-weight:900;padding:9px 15px;cursor:pointer}.tm-button.primary{background:linear-gradient(135deg,#2563eb,#0ea5e9);border:0;color:#fff}.tm-button.ghost{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.18);color:#fff}.tm-button.full{width:100%;margin-top:12px}.templates-stats{max-width:1320px;margin:0 auto 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.tm-stat{padding:18px;border:1px solid #e2e8f0;border-radius:20px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.06);display:flex;align-items:center;justify-content:space-between}.tm-stat span{color:#64748b!important;font-size:13px;font-weight:850}.tm-stat strong{font-size:28px;color:#172033!important}.tm-stat svg{color:#2563eb}.templates-layout{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:420px minmax(0,1fr);gap:16px;align-items:start}.upload-panel,.templates-list-panel{border:1px solid #e2e8f0;background:#fff;border-radius:24px;padding:18px;box-shadow:0 12px 32px rgba(15,23,42,.07)}.upload-panel{position:sticky;top:18px}.panel-heading{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px}.panel-heading svg{color:#2563eb;flex:none}.panel-heading h2{margin:0;color:#172033!important;font-size:18px;font-weight:950}.panel-heading p{margin:3px 0 0;color:#64748b!important;font-size:13px}.panel-heading.compact{border-bottom:1px solid #eef2f7;padding-bottom:14px}.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tm-field{display:block;margin-bottom:10px}.tm-field span{display:block;margin-bottom:6px;color:#64748b!important;font-size:12px;font-weight:900}.tm-field input,.tm-field select,.tm-field textarea{width:100%;border:1px solid #e2e8f0;background:#fff;border-radius:14px;min-height:44px;padding:10px 12px;color:#172033;font-weight:800;outline:none}.tm-field textarea{min-height:86px;resize:vertical}.drop-zone{min-height:180px;border:2px dashed #bfdbfe;border-radius:20px;background:#f8fbff;display:grid;place-items:center;text-align:center;padding:22px;cursor:pointer}.drop-zone svg{color:#2563eb}.drop-zone strong{color:#172033!important;font-size:17px}.drop-zone span{color:#64748b!important;font-size:12px}.drop-zone input{display:none}.type-group{margin-top:18px}.type-group h3{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;color:#172033!important;font-size:16px;font-weight:950}.type-group h3 span{background:#eff6ff;color:#2563eb!important;border-radius:999px;padding:3px 10px;font-size:12px}.template-cards{display:grid;gap:10px}.template-card{display:flex;gap:12px;padding:14px;border:1px solid #e2e8f0;border-radius:18px;background:#fff;transition:box-shadow .18s ease,border-color .18s ease}.template-card.active{border-color:#93c5fd;background:#f8fbff}.template-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:#eff6ff;color:#2563eb;flex:none}.template-main{min-width:0;flex:1}.template-title-row{display:flex;gap:8px;align-items:center;justify-content:space-between}.template-title-row h4{margin:0;color:#172033!important;font-size:15px;font-weight:950}.template-title-row span{display:inline-flex;align-items:center;gap:4px;border-radius:999px;background:#d1fae5;color:#047857!important;padding:3px 9px;font-size:11px;font-weight:900}.template-main p{margin:5px 0;color:#64748b!important;font-size:12px}.template-main small{color:#94a3b8!important;font-size:11px}.template-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.template-actions button{border:1px solid #e2e8f0;background:#fff;border-radius:10px;min-height:34px;padding:6px 10px;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:850;color:#172033;cursor:pointer}.template-actions button.danger{color:#be123c;background:#fff1f2;border-color:#fecdd3}.empty{padding:30px;text-align:center;color:#64748b}.preview-modal{position:fixed;inset:0;background:rgba(15,23,42,.68);display:grid;place-items:center;z-index:80;padding:18px}.preview-card{width:min(620px,100%);border-radius:24px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 30px 80px rgba(0,0,0,.28);overflow:hidden}.preview-head{padding:18px;background:#172033;display:flex;align-items:center;justify-content:space-between;gap:12px}.preview-head h3{margin:0;color:#fff!important}.preview-head p{margin:3px 0 0;color:#bfdbfe!important;font-size:12px}.preview-head button{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.10);color:#fff;border-radius:12px;padding:8px 12px}.preview-body{padding:18px}.preview-body p{color:#64748b!important}.preview-paper{height:260px;border-radius:18px;border:1px solid #e2e8f0;background:linear-gradient(180deg,#fff,#f8fbff);display:grid;place-items:center;text-align:center;color:#172033}.preview-paper svg{color:#2563eb}.preview-paper strong{color:#172033!important}.preview-paper span{color:#64748b!important}@media(max-width:980px){.templates-layout{grid-template-columns:1fr}.upload-panel{position:static}.templates-stats{grid-template-columns:1fr}.templates-hero{align-items:flex-start;flex-direction:column}.upload-grid{grid-template-columns:1fr}}
+`;
 
 export default TemplatesManager;

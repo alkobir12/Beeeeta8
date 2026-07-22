@@ -1,8 +1,46 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { getWhatsAppLink } from '../utils/constants';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
+
+const DOC_TYPE_LABELS = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
+const money = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
+const escapeHtml = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const sealCode = (number) => {
+  const seed = `${number || 'DOC'}-${new Date().toISOString().slice(0, 10)}`;
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+  return `ES-${Math.abs(hash).toString(16).slice(0, 8).toUpperCase()}`;
+};
+const normalizeRows = (items = []) => (Array.isArray(items) ? items : []).map((item) => {
+  const quantity = Number(item.quantity || item.qty || 1);
+  const price = Number(item.unit_price || item.price || item.amount || 0);
+  const discount = Number(item.discount || 0);
+  const total = Number(item.total || (quantity * price) - discount);
+  return { ...item, quantity, price, discount, total, description: item.description || item.name || item.itemName || 'بند' };
+});
+const renderTemplateHtml = (templateHtml, payload = {}, workshop = {}) => {
+  const settings = payload.settings || {};
+  const customer = payload.customer || payload.client || {};
+  const supplier = payload.supplier || {};
+  const party = customer.name ? customer : supplier;
+  const vehicle = payload.vehicle || {};
+  const rows = normalizeRows(payload.items || []);
+  const subtotal = rows.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  const discount = rows.reduce((sum, item) => sum + item.discount, 0);
+  const total = rows.reduce((sum, item) => sum + item.total, 0);
+  const paid = Number(settings?.totals?.paid || payload?.payment?.paid || 0);
+  const remaining = total - paid;
+  const docNumber = settings.document_number || payload.document_number || `DOC-${Date.now().toString().slice(-6)}`;
+  const itemsRows = rows.length ? rows.map((item, idx) => `<tr><td>${idx + 1}</td><td class="desc">${escapeHtml(item.description)}</td><td>${escapeHtml(item.quantity)}</td><td>${money(item.price)}</td><td>${item.discount ? money(item.discount) : '—'}</td><td><b>${money(item.total)}</b></td></tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:18px;color:#94a3b8">لا توجد بنود</td></tr>';
+  const values = {
+    WORKSHOP_NAME: workshop.name || workshop.business_name || 'الورشة', WORKSHOP_ADDRESS: workshop.address || '', WORKSHOP_PHONE: workshop.phone || workshop.whatsapp || '', WORKSHOP_EMAIL: workshop.email || '', COMPANY_CR: workshop.commercial_register || workshop.commercialRegister || '', COMPANY_TAX: workshop.tax_number || workshop.taxNumber || '', TAX_NUMBER: workshop.tax_number || workshop.taxNumber || '', CUSTOMER_NAME: party.name || party.customerName || 'عميل نقدي', CUSTOMER_PHONE: party.phone || party.customerPhone || '', VEHICLE_INFO: `${vehicle.brand || ''} ${vehicle.model || ''} ${vehicle.year || ''}`.trim(), PLATE_NO: vehicle.plateNumber || vehicle.plate || '', VEHICLE_PLATE: vehicle.plateNumber || vehicle.plate || '', STATUS_LABEL: settings.status || 'مسودة', INVOICE_NO: docNumber, INVOICE_DATE: settings.date || payload.date || new Date().toISOString().slice(0, 10), DATE: settings.date || payload.date || new Date().toISOString().slice(0, 10), ITEMS_ROWS: itemsRows, SUBTOTAL: money(subtotal), DISCOUNT: money(discount), TAX: money(0), TOTAL: money(total), PAID: money(paid), REMAINING: money(remaining), NOTES: settings.notes || payload.notes || '', AMOUNT_WORDS: `فقط ${money(total)} لا غير`, SEAL_CODE: sealCode(docNumber),
+  };
+  let html = templateHtml || '';
+  Object.entries(values).forEach(([key, value]) => { html = html.replaceAll(`{{${key}}}`, String(value)); });
+  return html.replace(/{{[^}]+}}/g, '');
+};
 
 const QuickPrintDialog = ({
   open,
@@ -16,6 +54,9 @@ const QuickPrintDialog = ({
   const [html, setHtml] = useState('');
   const [error, setError] = useState('');
   const [phone, setPhone] = useState(initialPhone || '');
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [templateLoading, setTemplateLoading] = useState(false);
   const iframeRef = useRef(null);
   const payloadBuilderRef = useRef(payloadBuilder);
   const generationStartedRef = useRef(false);
@@ -33,16 +74,45 @@ const QuickPrintDialog = ({
     ]);
   }, []);
 
+  const currentDocType = useMemo(() => {
+    const text = String(title || '');
+    if (text.includes('تشخيص')) return 'diagnosis';
+    if (text.includes('عرض')) return 'quote';
+    if (text.includes('سند') || text.includes('زيارة') || text.includes('إيصال')) return 'receipt';
+    return 'invoice';
+  }, [title]);
+
+  const filteredTemplates = useMemo(() => templates.filter((tpl) => (tpl.type || 'invoice') === currentDocType && tpl.file_type === 'html'), [currentDocType, templates]);
+  const selectedTemplate = useMemo(() => filteredTemplates.find((tpl) => tpl.id === selectedTemplateId) || filteredTemplates[0] || null, [filteredTemplates, selectedTemplateId]);
+
+  const loadTemplates = useCallback(async () => {
+    setTemplateLoading(true);
+    try {
+      const response = await api.get('/templates');
+      const rows = Array.isArray(response.data?.templates) ? response.data.templates : [];
+      setTemplates(rows);
+      const sameType = rows.filter((tpl) => (tpl.type || 'invoice') === currentDocType && tpl.file_type === 'html');
+      const preferred = sameType.find((tpl) => tpl.is_default || tpl.isActive) || sameType[0];
+      setSelectedTemplateId(preferred?.id || '');
+    } catch (e) {
+      setTemplates([]);
+      setSelectedTemplateId('');
+    } finally {
+      setTemplateLoading(false);
+    }
+  }, [currentDocType]);
+
   useEffect(() => {
     if (open) {
       setPhone(initialPhone || '');
+      loadTemplates();
     } else {
       generationStartedRef.current = false;
       setLoading(false);
       setHtml('');
       setError('');
     }
-  }, [open, initialPhone]);
+  }, [open, initialPhone, loadTemplates]);
 
   const loadWorkshop = useCallback(async () => {
     // يستخدم الأداة المساعدة الموحَّدة لجلب بيانات الورشة (اسم/شعار/ضريبي/ت.تجاري/…)
@@ -125,15 +195,22 @@ const QuickPrintDialog = ({
         throw new Error('missing-payload');
       }
       const workshop = { ...(await loadWorkshop()), ...(basePayload.workshop || {}) };
-      const response = await runWithTimeout(
-        api.post('/documents/generate', { ...basePayload, workshop }, { timeout: 15000 }),
-        15000
-      );
-      const data = response.data;
-      if (!data?.success) {
-        throw new Error(data?.error || 'failed');
+      let rawHtml = '';
+      if (selectedTemplate?.id) {
+        const templateResponse = await runWithTimeout(api.post(`/templates/${selectedTemplate.id}/use`, {}, { timeout: 15000 }), 15000);
+        rawHtml = renderTemplateHtml(templateResponse.data?.content || '', basePayload, workshop);
+      } else {
+        const response = await runWithTimeout(
+          api.post('/documents/generate', { ...basePayload, workshop }, { timeout: 15000 }),
+          15000
+        );
+        const data = response.data;
+        if (!data?.success) {
+          throw new Error(data?.error || 'failed');
+        }
+        rawHtml = data?.html || data?.data?.html || '';
       }
-      const nextHtml = wrapPrintableHtml(data?.html || data?.data?.html || '');
+      const nextHtml = wrapPrintableHtml(rawHtml);
       if (!nextHtml) {
         throw new Error('empty');
       }
@@ -146,7 +223,7 @@ const QuickPrintDialog = ({
     } finally {
       setLoading(false);
     }
-  }, [loadWorkshop, runWithTimeout, wrapPrintableHtml]);
+  }, [loadWorkshop, runWithTimeout, selectedTemplate?.id, wrapPrintableHtml]);
 
   useEffect(() => {
     if (!open) return;
@@ -166,6 +243,11 @@ const QuickPrintDialog = ({
       isActive = false;
     };
   }, [open, payloadBuilder, generateHtml]);
+
+  useEffect(() => {
+    if (!open || !selectedTemplateId) return;
+    generateHtml(payloadBuilderRef.current || payloadBuilder);
+  }, [open, payloadBuilder, selectedTemplateId, generateHtml]);
 
   useEffect(() => {
     if (!open || !html || !iframeRef.current) return;
@@ -242,6 +324,39 @@ const QuickPrintDialog = ({
           >
             إغلاق
           </button>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4" data-testid="quick-print-template-selector">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-bold text-white" data-testid="quick-print-template-selector-title">اختر نموذج الطباعة</div>
+              <div className="text-xs text-slate-400" data-testid="quick-print-template-selector-subtitle">{DOC_TYPE_LABELS[currentDocType]} · يظهر هذا الخيار عند كل زر طباعة</div>
+            </div>
+            <button
+              type="button"
+              onClick={loadTemplates}
+              className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
+              data-testid="quick-print-reload-templates"
+            >
+              تحديث النماذج
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {templateLoading && <div className="text-sm text-slate-300" data-testid="quick-print-templates-loading">جارٍ تحميل النماذج...</div>}
+            {!templateLoading && filteredTemplates.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => setSelectedTemplateId(tpl.id)}
+                className={`rounded-xl border p-3 text-right transition ${selectedTemplateId === tpl.id ? 'border-sky-300 bg-sky-400/15' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}
+                data-testid={`quick-print-template-option-${tpl.id}`}
+              >
+                <div className="text-sm font-bold text-white">{tpl.name}</div>
+                <div className="mt-1 text-xs text-slate-400">{tpl.is_builtin ? 'افتراضي جديد' : 'مرفوع'} {tpl.is_default || tpl.isActive ? '· مستخدم حالياً' : ''}</div>
+              </button>
+            ))}
+          </div>
+          {!templateLoading && filteredTemplates.length === 0 && <div className="text-sm text-amber-200" data-testid="quick-print-no-templates">لا يوجد نموذج HTML لهذا النوع، سيتم استخدام مولد المستندات.</div>}
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
