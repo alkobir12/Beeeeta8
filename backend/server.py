@@ -78,6 +78,7 @@ from routes_fault_knowledge import router as fault_knowledge_router
 
 # Import Templates Routes
 from routes_templates import router as templates_router
+from routes_outbound import router as outbound_router, set_db as set_db_outbound
 
 # Import Chart of Accounts Routes
 from routes_accounts_chart import router as accounts_chart_router
@@ -333,6 +334,7 @@ set_db_gemini_chat(db)
 set_db_payroll(db)
 set_db_extended(db)
 set_db_templates_extended(db)
+set_db_outbound(db)
 set_db_workshop_config(db)
 set_db_approvals(db)
 set_db_accounts_extended(db)
@@ -645,6 +647,7 @@ app.include_router(whatsapp_bot_router)
 app.include_router(smart_inventory_router)
 app.include_router(extended_router)
 app.include_router(templates_extended_router)
+app.include_router(outbound_router)
 app.include_router(workshop_config_router)
 app.include_router(approvals_router)
 app.include_router(accounts_extended_router)

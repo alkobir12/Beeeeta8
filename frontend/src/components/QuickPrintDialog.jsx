@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
-import { getWhatsAppLink } from '../utils/constants';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
+import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
+import WhatsAppSharePreview from './WhatsAppSharePreview';
 
 const DOC_TYPE_LABELS = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
 const money = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
@@ -60,6 +61,8 @@ const QuickPrintDialog = ({
   const iframeRef = useRef(null);
   const payloadBuilderRef = useRef(payloadBuilder);
   const generationStartedRef = useRef(false);
+  const lastPayloadRef = useRef(null);
+  const { share, prepare: prepareShare, reset: resetShare, logEvent: logShareEvent } = useWhatsAppShare();
 
   useEffect(() => {
     payloadBuilderRef.current = payloadBuilder;
@@ -147,14 +150,31 @@ const QuickPrintDialog = ({
       @media print { html, body { background: #fff; } }
     </style>`;
 
-  const wrapPrintableHtml = useCallback((rawHtml) => {
+  const statusWatermarkBlock = (status) => {
+    const raw = String(status || '').trim().toLowerCase();
+    const label = ['draft', 'مسودة'].includes(raw)
+      ? 'مسودة'
+      : (['cancelled', 'canceled', 'ملغي', 'ملغاة'].includes(raw) ? 'ملغي' : '');
+    if (!label) return '';
+    return `<div class="qp-status-watermark" data-testid="quick-print-status-watermark">${label}</div><style>.qp-status-watermark{position:fixed;top:45%;left:50%;transform:translate(-50%,-50%) rotate(-24deg);font-size:110px;font-weight:900;color:rgba(190,18,60,.15);z-index:9999;pointer-events:none;white-space:nowrap}</style>`;
+  };
+
+  const wrapPrintableHtml = useCallback((rawHtml, status = '') => {
     if (!rawHtml) return '';
+    const watermark = statusWatermarkBlock(status);
     if (/<html[\s>]/i.test(rawHtml)) {
-      if (rawHtml.includes('quick-print-stability-css')) return rawHtml;
-      if (/<head[\s>]/i.test(rawHtml)) {
-        return rawHtml.replace(/<head([^>]*)>/i, `<head$1>${printStabilityCss}`);
+      let full = rawHtml;
+      if (!full.includes('quick-print-stability-css')) {
+        if (/<head[\s>]/i.test(full)) {
+          full = full.replace(/<head([^>]*)>/i, `<head$1>${printStabilityCss}`);
+        } else {
+          full = full.replace(/<html([^>]*)>/i, `<html$1><head>${printStabilityCss}</head>`);
+        }
       }
-      return rawHtml.replace(/<html([^>]*)>/i, `<html$1><head>${printStabilityCss}</head>`);
+      if (watermark && !full.includes('qp-status-watermark')) {
+        full = /<\/body>/i.test(full) ? full.replace(/<\/body>/i, `${watermark}</body>`) : full + watermark;
+      }
+      return full;
     }
     return `<!doctype html>
 <html lang="ar" dir="rtl">
@@ -163,7 +183,7 @@ const QuickPrintDialog = ({
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   ${printStabilityCss}
 </head>
-<body><main class="print-shell">${rawHtml}</main></body></html>`;
+<body><main class="print-shell">${rawHtml}</main>${watermark}</body></html>`;
   }, []);
 
   const htmlToCanvasWrapper = (htmlContent) => {
@@ -195,6 +215,7 @@ const QuickPrintDialog = ({
         throw new Error('missing-payload');
       }
       const workshop = { ...(await loadWorkshop()), ...(basePayload.workshop || {}) };
+      lastPayloadRef.current = { payload: basePayload, workshop };
       let rawHtml = '';
       if (selectedTemplate?.id) {
         const templateResponse = await runWithTimeout(api.post(`/templates/${selectedTemplate.id}/use`, {}, { timeout: 15000 }), 15000);
@@ -210,7 +231,7 @@ const QuickPrintDialog = ({
         }
         rawHtml = data?.html || data?.data?.html || '';
       }
-      const nextHtml = wrapPrintableHtml(rawHtml);
+      const nextHtml = wrapPrintableHtml(rawHtml, basePayload?.settings?.status || basePayload?.status || '');
       if (!nextHtml) {
         throw new Error('empty');
       }
@@ -296,14 +317,24 @@ const QuickPrintDialog = ({
     }
   };
 
-  const handleWhatsApp = async () => {
-    await handleDownloadPdf();
-    if (!phone) {
-      alert('يرجى إدخال رقم الجوال لإرسال واتس اب');
-      return;
-    }
-    const message = `تم تجهيز المستند: ${title}. الرجاء إرفاق ملف PDF.`;
-    window.open(getWhatsAppLink(phone, message), '_blank');
+  const handlePdfWhatsApp = async () => {
+    const htmlContent = html || (await generateHtml());
+    if (!htmlContent) return;
+    const meta = lastPayloadRef.current || {};
+    await prepareShare({
+      docType: currentDocType,
+      payload: meta.payload || {},
+      workshop: meta.workshop || {},
+      templateId: selectedTemplate?.id || 'unified-generator',
+      templateVersion: selectedTemplate?.created_at || selectedTemplate?.updated_at || 'v1',
+      phone,
+      fileBaseName: `${title.replace(/\s+/g, '_')}`,
+      context: 'quick-print-dialog',
+      getElement: async () => {
+        const wrapper = htmlToCanvasWrapper(htmlContent);
+        return { element: wrapper, cleanup: () => wrapper.remove() };
+      },
+    });
   };
 
   if (!open) return null;
@@ -371,12 +402,12 @@ const QuickPrintDialog = ({
           </button>
           <button
             type="button"
-            onClick={handleWhatsApp}
-            className="rounded-lg bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/30"
+            onClick={handlePdfWhatsApp}
+            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400"
             data-testid="quick-print-action-whatsapp"
-            disabled={loading}
+            disabled={loading || share.stage === 'preparing'}
           >
-            إرسال PDF عبر واتس اب
+            {share.stage === 'preparing' ? 'جارٍ التجهيز...' : 'PDF وواتساب'}
           </button>
           <button
             type="button"
@@ -425,6 +456,7 @@ const QuickPrintDialog = ({
           )}
         </div>
       </div>
+      <WhatsAppSharePreview share={share} onClose={resetShare} logEvent={logShareEvent} />
     </div>
   );
 };
