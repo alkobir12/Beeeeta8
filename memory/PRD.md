@@ -1,5 +1,22 @@
 # Workshop ERP — Product Requirements (PRD)
 
+## CHANGELOG — 2026-07-22 · 🚀 «PDF وواتساب» الموحد + قوالب رسائل صادرة + بصمة/كاش + سجل تدقيق صارم
+**مختبَر 100%: pytest 20/20 (`tests/test_outbound_share_iter278.py`) + وكيل الاختبار iteration_278 (7/7 تدفقات واجهة) — MOCKED: NONE**
+- **Backend جديد `routes_outbound.py`** (مسجل في server.py) — كل المسارات تحت `/api/outbound/*` بحماية JWT:
+  - `GET/PUT /templates` + `POST /templates/{id}/restore-default` + `GET /variables` — قوالب رسائل ثابتة بصيغة `{{VAR}}` الموحدة (نفس registry الطباعة)، versioning (تاريخ 20 نسخة)، validation صارم (متغير مجهول → 422، action_key نشط مكرر → 409)، تفعيل/تعطيل.
+  - `POST /resolve-message` — حل الرسالة سيرفرياً حسب doc_type + الحالة (paid→invoice_paid، partial→invoice_partial، unpaid/deferred→invoice_unpaid، fallback `*`)، **superseded → 409 حظر مشاركة**، تطبيع الجوال E.164 (+966).
+  - `POST /fingerprint` + `POST/GET /assets` — بصمة SHA-256 **تُحسب في الخلفية حصراً** من مواد مثبتة (whitelist: tenant/document_number/version/template/snapshots/line_items/totals/taxes) بعد canonicalization؛ تطابق البصمة → إعادة استخدام PDF/الصورة من `document_output_assets` (immutable، فهرس فريد tenant+fingerprint، عزل مستأجرين مثبت بالاختبار).
+  - `POST /share-attempts` + `/events` + `GET` — سجل تدقيق: أحداث مسموحة فقط (message_prepared/pdf_generated/preview_image_generated/cache_hit/share_sheet_opened/whatsapp_opened/files_downloaded/text_copied/user_cancelled/prepare_failed/phone_saved_to_customer)؛ **sent/delivered/read مرفوضة 422 صراحة**؛ idempotency_key فريد؛ كل محاولة تسك trace حقيقي `tr-*` عبر llm_traces (channel=outbound).
+  - Seeds idempotent: 7 قوالب (invoice_paid/partial/unpaid/default + quote/diagnosis/receipt_default).
+- **Frontend (فصل منطق نظيف — QuickPrintDialog للعرض فقط)**: خدمة `services/outboundShare.js` + hook `hooks/useWhatsAppShare.js` (resolve→fingerprint→attempt→cache-or-generate) + مودال `components/WhatsAppSharePreview.jsx` (معاينة الإرسال: نص قابل للتعديل حسب القالب، صورة مصغرة، جوال مطبع مع تعديل مؤقت + زر منفصل «حفظ الرقم في ملف العميل» بتأكيد، Web Share API للملفات على الجوال المدعوم، wa.me نص-فقط، تنزيل+تعليمات إرفاق يدوي على الكمبيوتر، **بانر صدق: لا ادعاء إرسال/إرفاق تلقائي**، حظر الأزرار عند رقم غير صالح).
+- **`pdfGenerator.js`**: أضيفت `renderPdfAssets` (PDF blob+base64 + صورة معاينة JPEG مصغرة) بمشاركة نفس pipeline مع downloadPDF.
+- **زر «PDF وواتساب»** في `QuickPrintDialog` (يخدم المركبة/العمليات/كل نوافذ الطباعة تلقائياً) وفي صفحة `/print` (DocumentPrint) — نفس الـflow الموحد.
+- **علامات مائية**: draft→«مسودة»، cancelled→«ملغي»، superseded→«مستبدل» في DocumentPrint sheet وحقن watermark في HTML طباعة QuickPrintDialog؛ statusLabels تشمل cancelled/superseded.
+- **تبويب «رسائل واتساب»** داخل `TemplatesManager` (بدون صفحة مستقلة): `components/OutboundMessagesTab.jsx` — عرض/تحرير/استرجاع افتراضي/تفعيل-تعطيل/عداد نسخ.
+- Collections جديدة: `outbound_message_templates`، `document_output_assets`، `outbound_share_attempts` (فهارس فريدة: active action_key جزئي، tenant+fingerprint، idempotency_key sparse).
+- أمثلة traces حقيقية: tr-9e71b9d0e9ea (whatsapp_opened+files_downloaded)، tr-70f52df55fbc (cache_hit)، tr-136f2c983d13 (user_cancelled).
+- **مؤجل بوضوح**: إرفاق تلقائي/حالات تسليم تتطلب WhatsApp Business API (قرار مالك مستقبلي)؛ chunked upload للأصول فوق الحد الحالي (20MB base64)؛ ربط زر «PDF وواتساب» بأوامر كاترينا الصوتية/النصية.
+
 ## CHANGELOG — 2026-07-08 (ب) · 🛠️ إصلاح شكوى «مركز التحكم/زر الاعتماد + 404»
 - **تشخيص 404**: عابر — حدث أثناء إعادة تشغيل الخادم وقت التطوير (المسار يعمل 200 الآن). **علاج وقائي**: `postChatWithRetry` في AssistantProvider — إعادة محاولة تلقائية واحدة عند 404/502/503/504 + رسائل ودّية («⏳ الخادم يُعاد تشغيله…») بدل رسالة axios الخام.
 - **زر الاعتماد**: كان يرفض بأربع أعين (المالك مُقترِح كل الطلبات) — الآن الكرت يعرض «👁️👁️ بانتظار معتمدٍ آخر (أنت المُقترِح)» بدل زر فاشل، والزر الفعلي يظهر فقط لغير المُقترِح. **تحقق E2E**: مدير يقترح → 403 لنفسه → «احمد1» (supervisor) يعتمد → تنفيذ فوري ✓.
