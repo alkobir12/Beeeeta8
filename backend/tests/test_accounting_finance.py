@@ -17,7 +17,7 @@ import requests
 import os
 
 BASE_URL = os.environ.get(
-    "REACT_APP_BACKEND_URL", "https://payment-defaults.preview.emergentagent.com"
+    "REACT_APP_BACKEND_URL", "https://workshop-engine.preview.emergentagent.com"
 )
 
 

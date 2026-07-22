@@ -10,7 +10,7 @@ import requests
 import os
 import re
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://payment-defaults.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://workshop-engine.preview.emergentagent.com')
 WORKSHOP_ID = os.environ.get('REACT_APP_WORKSHOP_ID', 'finmodule-sync')
 
 LEGACY_CODES = ['1101', '1102', '1103', '1104', '2101', '4000', '4100', '5000', '5100', '6000', '6100']

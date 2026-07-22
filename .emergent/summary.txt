@@ -1,165 +1,163 @@
-<analysis>**original_problem_statement**: Transform the existing conversational bot into a secure, persisted Enterprise Operator with CRUD capabilities. Enforce strict Backend RBAC, True Four-Eyes principles, Centralized Accounting Engine, Financial Write Actions, RRR Memory Engine, and PDPL Data Privacy Compliance. The system acts as a strict financial firewall, relying on a Single Source of Truth (SSOT) for accounting. PRODUCT REQUIREMENTS include fixing accounting gaps, implementing a Fabrication Guard (D5), and rolling out an adaptive Qassimi conversational persona via strict Prompt Governance.
+<analysis>**original_problem_statement**: Transform the existing conversational bot into a secure, persisted Enterprise Operator. Specifically, replace  with an Electronically Sealed Invoice (فاتورة الورشة — ختم إلكتروني) template. PRODUCT REQUIREMENTS: Delete the old blue template, link template selection to all print buttons via a unified template manager, and implement a massive architectural enhancement for the Workshop Print Engine including a contextual PDF وواتساب action, outbound message templates, and strict audit logging without rebuilding the existing print engine.
 
 **User's preferred language**: Arabic (العربية)
-**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic. NEVER suggest English solutions or prompts.
+**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic ONLY. NEVER suggest English solutions or prompts.
 
 **what currently exists?** 
-P0 and P1 (Auth) are complete. The bot UI has been redesigned to a Kodee-style interactive popup. The agent recently built and tested the D5 Fabrication Guard (which blocks hallucinated IDs) and created the v4.1 Qassimi adaptive persona prompt (currently saved in DB but inactive). The user is manually auditing massive accounting gaps (missing invoices for visit receipts) and has paused all major refactoring. The system is strictly bound by .
+The application has a stabilized Quick Print menu (), a Dash Pro electronic invoice in , and a refactored . The backend handles basic document generation. The user has provided an extensive set of strict rules (ROAST MODE) to enhance this existing engine with WhatsApp sharing capabilities, fixed outbound message templates, and PDF fingerprint caching, explicitly forbidding the creation of a duplicate print/template engine. The agent has just read the PRD and sent the proposed architectural Discovery Summary map to the user for approval.
 
 **Last working item**: 
-    - Last item agent was working: Delivered comprehensive diagnostic reports (, , ), documented undefined variables safely without refactoring, and resolved critical security review flags (hardcoded passwords, dynamic imports).
+    - Last item agent was working: Formulating and sending the Architectural Discovery Summary and execution plan via the  tool, based on the user's ROAST MODE requirements.
     - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y
-    - Which testing method agent to use? manual testing by pytest / backend scripts
+    - Agent Testing Done: N
+    - Which testing method agent to use? both (Frontend testing agent for new Print/WhatsApp UI flows + backend testing for audit logs and caching, once implementation starts)
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: P0 - User Decisions Pending (Absolute Blocker)
-     - Attempted fixes: Agent provided all requested diagnostic tables and proofs. Now waiting for user's explicit response.
-     - Next debug checklist: Await user instructions on the following 5 pending items: 
-       1. The isolation choice from .
-       2. Approval to execute the  drafts.
-       3. Decision on D7 (whether routine receipt vouchers remain outside Four-Eyes approval).
-       4. Approval of the 5 pending drafts for Yousef's visit ().
-       5. Command to activate the  prompt.
-     - Why fix this issue and what will be achieved with the fix? It unblocks the locked progression path (D5 → D1 → D2 → D6 → S3 → L14 Round 3).
-     - Status: BLOCKED
+  Issue 1: P0 - Provide Architecture Discovery Summary & Confirm Plan
+     - Attempted fixes: Agent reviewed  and previous context, and submitted the plan to the user using the  tool.
+     - Next debug checklist: Await user response. Based on approval or requested changes, proceed strictly with enhancing the existing architecture.
+     - Why fix this issue and what will be achieved with the fix? Complies with the user's strict instruction to output a Discovery Summary map containing current routes, endpoints, storage models, and gaps BEFORE implementing any code.
+     - Status: USER VERIFICATION PENDING
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix? NA
-     - Blocked on other issue: User response.
+     - Blocked on other issue: None.
 
-  Issue 2: P0 - Active Accounting Gap (Bleeding unjournalized visits)
-     - Attempted fixes: Agent identified a 70,120 SAR gap across 58 closed visits and an additional 12,490 SAR gap in new/open visits. Created settlement previews.
-     - Next debug checklist: Once the user approves the 51-visit preview table, generate and commit the missing journal entries.
-     - Why fix this issue and what will be achieved with the fix? Resolves the massive financial discrepancy in the firewall reports.
-     - Status: USER VERIFICATION PENDING
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix? Backend
+  Issue 2: P0 - Implement PDF وواتساب (PDF & WhatsApp) Unified Action
+     - Attempted fixes: Not started yet. Waiting for plan approval.
+     - Next debug checklist: Add the contextual button to desktop and mobile action bars (e.g., in , , ). Build the UI flow that resolves context, generates PDF & Image, resolves fixed message templates, and shows a Send Preview UI before launching the WhatsApp URL.
+     - Why fix this issue and what will be achieved with the fix? Core feature request for securely sharing official documents with customers.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on other issue: Issue 1 (Discovery Approval).
 
 **In progress Task List**:
-  Task 1: P0 - Katrina Verification Suite (L14 Round 3 Progression)
-     - Where to resume: D5 is complete. Next steps are D1 → D2 → D6 → S3, followed by L14 Round 3 execution.
-     - What will be achieved with this? Full verification of the provenance guard and AI behavior.
-     - Status: BLOCKED
+  Task 1: P1 - Outbound Message Templates & Audit Logging
+     - Where to resume: Backend schema/routes (upon plan approval).
+     - What will be achieved with this? Adding structures (like , , ) to support fixed template sending and strict auditing without altering the immutable approved documents.
+     - Status: NOT STARTED
      - Should Test frontend/backend/both after fix? Backend
-     - Blocked on something: User decisions on Issue 1.
+     - Blocked on something: Issue 1 (Discovery Approval).
+
+  Task 2: P1 - PDF & Preview Image Fingerprinting / Caching
+     - Where to resume:  / .
+     - What will be achieved with this? Prevents regenerating identical documents. Reuses the exact same PDF/Image if inputs haven't changed.
+     - Status: NOT STARTED
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: Task 1
 
 **Upcoming and Future Tasks**
-  - **P0**: Hybrid Router for deterministic financial validation (Ops via bot). (Phase B)
-  - **P1**: Expansion of CRUD capabilities via the bot (Operation updates, Suppliers U/D, Parts/Inventory CRUD, Services CRUD, Technicians). (Phase C)
-  - **P2**: Refactoring Phase (Migrate localStorage auth to httpOnly cookies, split massive frontend components like , resolve circular import in ). *Strictly paused until L14 is closed.*
-  - **P3**: Persist Session State to DB (P4).
-  - **P4**: Advanced Tracing (P5).
-  - **P5**: Unified Reference Display (Invoice + Visit + Journal Entry IDs combined without renumbering).
+  Task 1: P1 - Convert  (مركز التحكم القديم) page into a full Katrina-driven conversational experience.
+  Task 2: P2 - Improve invoice/receipt logic so collecting a payment via Katrina automatically links to and closes specific vehicle plates/invoices.
 
 **Completed work in this session**
-- Built, integrated, and unit-tested D5 Fabrication Guard in  (DONE)
-- Developed and validated v4.1 Qassimi conversational style prompt against the Golden Dataset (DONE)
-- Created  and  for 51 missing invoices (DONE)
-- Created  to document the  test contamination issue (DONE)
-- Resolved critical security review findings: removed  dynamic imports, moved hardcoded test passwords to  (DONE)
-- Delivered deep-dive JSON reports on  approvals, 1695 payment trace, and 18266 vs 70120 gap analysis (DONE)
+- Read  to refresh architecture and requirements.
+- Formulated the Discovery Summary and submitted it for user review via .
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: Code Quality / Massive Refactoring Required
-   - Debug checklist:  circular imports,  XSS vulnerabilities, and massive React components (>1,400 lines).
-   - Why to solve this issue and what will be achieved with this? Eliminates tech debt and secures the application.
-   - Should Test frontend/backend/both after fix: Both
+   Issue 1: Preview layer wildcard CORS
+   - Debug checklist: Confirmed it originates from the external ingress/preview layer, not the internal FastAPI server.
+   - Why to solve this issue and what will be achieved with this? Removes browser console warnings during hot-reloads.
+   - Should Test frontend/backend/both after fix: Backend
    - Is recurring issue? Y
-   *Note: User explicitly commanded NOT to fix these until L14 Round 3 is closed.*
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Agents ignoring  and executing unauthorized code refactoring or auto-approving drafts.
-  - Recurrence count: 5
-  - Status: RESOLVED (The current agent strictly obeyed the lock and stopped when required).
+  - Issue recurrence in previous fork: Unauthorized massive refactoring breaking the app.
+  - Recurrence count: 5+
+  - Status: RESOLVED. **WARNING:** The user explicitly triggered ROAST MODE to prevent the agent from building duplicate engines or modifying the core architecture. DO NOT rebuild the print engine. DO NOT create new routing for printing. REUSE existing features.
 
 **Code Architecture**
 /app
 ├── backend
-│   ├── core
-│   │   ├── provenance_guard.py (D5 logic here)
-│   │   ├── assistant_kernel.py
-│   │   ├── action_runtime.py
-│   │   └── prompt_registry.py
-│   ├── firewall_engine.py
-│   ├── routes_assistant.py
-│   ├── tests
-│   │   └── test_d5_fabrication_guard.py
-└── docs
-    ├── verification
-    │   ├── DECISIONS_LOCK.md
-    │   ├── TICKET_TEST_ISOLATION.md
-    │   └── UNDEFINED_VARS_AUDIT.md
-    └── diagnostics
-        ├── PREVIEW_SETTLEMENT_51_VISITS.md
-        └── AUTO_POLICY_FULL_AUDIT.json
+│   ├── routes_templates.py (Template APIs)
+│   ├── routes_templates_extended.py
+│   ├── unified_document_service.py (Document logic)
+│   ├── auth_guard.py
+│   └── server.py
+├── frontend
+│   └── src
+│       ├── pages
+│       │   ├── DocumentPrint.jsx (New Electronic Invoice Template)
+│       │   ├── TemplatesManager.jsx (New Template Dashboard)
+│       │   ├── VehicleDetails.jsx
+│       │   └── Operations.jsx
+│       ├── components
+│       │   └── QuickPrintDialog.jsx (Print & Template Selector Modal)
+│       └── utils
+│           ├── pdfGenerator.js (html2canvas/jsPDF implementation)
+│           ├── constants.js
+│           └── permissions.js
 
 **Key Technical Concepts**
-Single Source of Truth (SSOT) Accounting, True Four-Eyes Principle, Provenance Guard, D5 Fabrication Guard, Prompt Governance, Strict RBAC.
+- React frontend + FastAPI backend + MongoDB.
+- Client-side PDF generation ( / ).
+- Template resolution and immutable document logic.
 
 **key DB schema**
-  - : The SSOT for accounting.
-  - : Tracks four-eyes approvals (affected by  bug).
-  - : Stores versions of the system prompt (v3 active, v4.1 inactive).
-  - : Mandatory tracing for every AI interaction.
+  - Potential new collections required (To be confirmed via plan approval): , , .
 
 **changes in tech stack**
   - None.
 
-**All files of reference** 
-  - 
-  - 
-  - 
-  - 
+**All files of reference**
+  -  (Reviewed in this session to inform the discovery summary)
+  -  
+  -  
+  -  
+  -  
   - 
 
 **Areas that need refactoring**: 
--  (circular dependency)
-- Frontend  auth token usage
--  and 
-*DO NOT REFACTOR THESE YET. User has explicitly pushed this to a later phase.*
+- Implement caching/fingerprinting logic in  and document services.
+- Action bars in  and  need the new  action.
 
 **key api endpoints**
 - 
 - 
 
-**Critical Info for New Agent**
-- **LANGUAGE**: Respond ONLY in Arabic.
-- **DO NOT PROCEED WITH NEW TASKS**: You are currently in a holding pattern. The user MUST reply to the 5 pending deliverables (Isolation choice, 51-visits table, D7 decision, Yousef's 5 drafts, and v4.1 prompt activation). Wait for their exact commands.
-- **NO REFACTORING**: The user explicitly forbade fixing the circular imports or frontend components during this step. Obey .
+**Critical Info for New Agent**:
+- **LANGUAGE**: Respond ONLY in Arabic. The user communicates entirely in Arabic.
+- **CRITICAL DIRECTIVE (ROAST MODE)**: The user provided a massive prompt in the past. **Do not create a new print engine.** You must enhance the existing one. You are tasked with adding a unified  button that generates a PDF, a preview image, resolves a fixed text message with variables, and shows a preview modal before opening a WhatsApp share link. Strict audit logging () is required. 
+- **CURRENT STATE**: You are waiting on the user to respond to the  tool outputting the Architectural Discovery Summary. Process their feedback carefully before writing code.
 
 **documents and test reports created in this job**
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - N/A (Only read operations and plan proposal occurred in this immediate session).
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - *User*: Requested the complete status of Katrina's CRUD capabilities and what remains to prevent hallucination.
- - *Agent*: Provided the full status report, showing D5 (Fabrication Guard) and Hybrid Router as the missing links.
- - *User*: Provided prompt specifications for a Qassimi Conversational Style upgrade, requiring it to pass D5 before activation.
- - *Agent*: Built D5, wrote unit tests (which passed), built the v4.1 prompt, ran the regression suite (passed), and left v4.1 inactive waiting for the user.
- - *User*: Pasted a Code Quality Review (Security/Refactoring) and asked the agent to fix circular imports, hardcoded secrets, and large files.
- - *Agent*: Fixed the security issues (secrets, dynamic imports) but paused on the structural refactoring, citing , and asked the user how to proceed.
- - *User*: Agreed to pause refactoring. Asked for clarification on D7's status and requested the 3 missing deliverables ( audit, 1695 payment details, 18266 vs 70120 gap).
- - *Agent*: Provided all final reports and clarified that D7 is documented but the decision itself is pending the user. Yielded control to the user. (PENDING HUMAN MESSAGE: User needs to make the 5 decisions).
+ 1. *User*: Provided handoff summary outlining ROAST MODE constraints and requirement for a Discovery Summary.
+ 2. *User*: Please use ask_human tool and confirm your plan now.
+ 3. *User*: Tool result returning the contents of .
+ 4. *User*: (PENDING HUMAN MESSAGE) - System indicates Question has been sent to the user. Waiting for response via the  tool.
+ 
+ *Note: The very next message you receive will be the user's approval or modification of your proposed Discovery Summary and plan.*
 
 **Project Health Check:**
-- Broken:  test executions have contaminated production data (documented in ).
+- Broken: None.
+- Mocked: None.
 
 **3rd Party Integrations**
-- Emergent LLM Key (Used for Claude Sonnet 4.6) — uses Emergent LLM Key
+- Emergent LLM Key (Used for Claude Sonnet) — uses Emergent LLM Key.
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Self-tested via pytest and bash)
+  - Testing agent used after significant changes: NO (Only planning occurred)
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
-  - Known regressions: None. D5 passed 8/8 unit tests and the L14 regression suite passed 29/29.
+  - Test files created: None this session.
+  - Known regressions: None
 
 **Credentials to test flow:**
-- Check  (Note:  was moved to backend ).
+- Manager (Admin): Username , PIN 
+- Accountant: Username , PIN 
 
 **What agent forgot to execute**
-- The agent did not forget anything. It correctly halted execution to wait for the user's explicit decisions regarding the locked deliverables, as instructed by the strict governance rules.</analysis>
+- Nothing. The agent successfully oriented itself, read the PRD, and requested user verification for the Discovery Summary plan via  as explicitly instructed.
+
+**Debugging checklist for current issue**
+    Issue: Provide Architectural Discovery Summary & Plan Implementation (Pending User Approval).
+
+    Frontend files to check (Once Coding Begins): 
+    - Assess  to map where the new Send Preview UI and  button will go.
+    - Assess  for where to hook in the Preview Image generation (e.g., using  alone to get a base64 image alongside the PDF).
+  
+    Backend files to check (Once Coding Begins):
+    - Assess  and MongoDB schema for where to store  and .</analysis>
