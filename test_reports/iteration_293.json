@@ -1,0 +1,85 @@
+{
+  "summary": "Tested backend and frontend against the single primary invoice template scope. Backend confirms singleton template exists and /use works, but found a critical HTML structure bug in returned template content. Frontend mobile 390px confirms resolved template HTML rendering path works after required data, while incomplete data correctly blocks output and flags missing placeholders.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/document-templates/primary-mobile-a4-invoice-v1/use",
+        "issue": "Returned HTML places {{ITEMS_ROWS}} outside <tbody> (template row placeholder extracted before table body), breaking required tabular invoice row rendering contract.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/auth/login (CORS headers)",
+        "issue": "Credentialed auth response still returns Access-Control-Allow-Origin: *; this is invalid for credentialed browser CORS flows.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DocumentPrint (mobile 390px initial state)",
+        "issue": "Preview fails into template error state when required placeholder data is missing (e.g., CUSTOMER_NAME), so the final invoice HTML is not shown until user fills required fields.",
+        "selector": "[data-testid='document-template-error']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "DocumentPrint -> Print",
+        "issue": "Print action uses window.print() at page level, not iframe/template-targeted print. This conflicts with strict requirement to avoid printing app page/body context.",
+        "affected_selectors": [
+          "[data-testid='document-print-button']"
+        ]
+      },
+      {
+        "flow": "DocumentPrint -> WhatsApp",
+        "issue": "When placeholders unresolved, WhatsApp is correctly blocked with missing-variable message; after filling required fields the blocking alert disappears.",
+        "affected_selectors": [
+          "[data-testid='document-whatsapp-button']",
+          "[data-testid='document-alert-message']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "DocumentPrint (mobile 390x844)",
+        "issues": [
+          "Floating assistant FAB overlaps lower preview/action area and can obscure part of the template viewport on small screens."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter293_primary_invoice_template_contract.py",
+    "/app/test_reports/pytest/iter293_primary_invoice_template_contract.xml",
+    "/root/.emergent/automation_output/20260723_214117/console_20260723_214117.log",
+    "/root/.emergent/automation_output/20260723_214216/console_20260723_214216.log"
+  ],
+  "action_items": [
+    "Fix template source/sanitization pipeline so {{ITEMS_ROWS}} remains strictly inside <tbody> for primary-mobile-a4-invoice-v1 output.",
+    "Ensure final rendered invoice on first load has required customer/vehicle/workshop data to avoid immediate template-incomplete blocking state.",
+    "Align print behavior with requirement: print only template HTML target (iframe/template node), not page-level window.print on full app document.",
+    "Fix credentialed CORS response headers to return explicit origin instead of wildcard for auth endpoints."
+  ],
+  "critical_code_review_comments": [
+    "DocumentPrint.jsx is 800+ lines; split into focused modules/components (state loader, template resolver, preview/actions) to reduce regression risk.",
+    "Two rendering contracts coexist (resolved template vs legacy sheet) which increases branching complexity; centralize single rendering contract for invoice output channels.",
+    "No MOCKED APIs were used in this run."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter293_primary_invoice_template_contract.py",
+    "/app/test_reports/iteration_293.json"
+  ],
+  "success_rate": {
+    "backend": "66.7% (2/3)",
+    "frontend": "70% (core mobile template render verified after required data; strict print-target requirement still failing)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123",
+  "seed_data_creation": "No new seed data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend singleton template check passes. Critical defect reproduced: /use output contains {{ITEMS_ROWS}} outside <tbody>. On mobile 390px, DocumentPrint resolves to template HTML only after filling required customer/vehicle fields. Print button currently triggers window.print (page-level).",
+  "rca of the issue": "RCA-1: Template HTML integrity issue likely introduced by sanitization/storage path (or seeded HTML mutation), causing {{ITEMS_ROWS}} displacement from tbody; this breaks invoice table row injection contract. Repro: POST /api/document-templates/primary-mobile-a4-invoice-v1/use then inspect placeholder order around table/tbody. RCA-2: DocumentPrint hardcodes printCurrent => window.print(), which is page-context print, not template-isolated target. RCA-3: Initial document payload may lack mandatory placeholders (CUSTOMER_NAME), resulting in template-incomplete state and blocked channels until user input.",
+  "mocked_api": "NO MOCKED APIs used"
+}
