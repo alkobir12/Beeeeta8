@@ -1,0 +1,78 @@
+{
+  "summary": "Executed backend+frontend testing for QuickPrint mobile redesign scope. Backend contracts passed, but frontend QuickPrint flow is blocked by template-loading/auth integration issues, so preview/output-channel parity checks could not complete.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "QuickPrintDialog",
+        "issue": "Main QuickPrint actions area shows 4 buttons (includes 'معاينة') while requested main output controls were WhatsApp/PDF/Print only.",
+        "selector": "[data-testid='quick-print-output-actions'] button",
+        "priority": "HIGH"
+      },
+      {
+        "component": "QuickPrintDialog",
+        "issue": "Current template remains 'جارٍ التحميل…' and Bottom Sheet opens with zero template options; template selection flow cannot proceed.",
+        "selector": "[data-testid='quick-print-current-template'], [data-testid='quick-print-template-sheet'], [data-testid^='quick-print-template-option-']",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "QuickPrint template loading -> selection -> preview -> output channels",
+        "issue": "In UI run, template-loading path did not produce usable template list, so selected-template propagation into preview/PDF/print/WhatsApp could not be verified end-to-end.",
+        "affected_selectors": [
+          "[data-testid='quick-print-change-template']",
+          "[data-testid='quick-print-template-sheet']",
+          "[data-testid='quick-print-open-preview']",
+          "[data-testid='quick-print-action-whatsapp']",
+          "[data-testid='quick-print-action-download-pdf']",
+          "[data-testid='quick-print-action-print']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "QuickPrint mobile (390x844)",
+        "issues": [
+          "Bottom toolbar and assistant floating button overlap the dialog action strip in tested state, reducing action clarity on small viewport."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter290_quickprint_template_contract.py",
+    "/app/test_reports/pytest/iter290_quickprint_template_contract.xml",
+    "/root/.emergent/automation_output/20260723_193700/console_20260723_193700.log",
+    "/root/.emergent/automation_output/20260723_193741/console_20260723_193741.log",
+    "/root/.emergent/automation_output/20260723_193826/console_20260723_193826.log"
+  ],
+  "action_items": [
+    "Fix QuickPrint template loading/auth wiring so /api/document-templates reliably populates filteredTemplates in dialog context.",
+    "Align QuickPrint mobile main actions with requirement (only WhatsApp/PDF/Print on main surface) or update acceptance criteria if preview button must remain there.",
+    "After template sheet population is fixed, re-verify selected template id parity across preview, PDF, print, and WhatsApp flows.",
+    "Reduce mobile overlap between fixed bottom controls and assistant/floating UI on 390px viewport."
+  ],
+  "critical_code_review_comments": [
+    "Probable root cause: QuickPrint imports and uses custom axios instance `api` from services/api.js (`axios.create`) while auth interceptors are installed on default axios in App.js. This can leave QuickPrint calls unauthenticated and silently caught, resulting in empty templates and perpetual 'جارٍ التحميل…'.",
+    "QuickPrint template-load failure is swallowed (`catch` sets empty templates) without user-visible error, making production diagnosis harder.",
+    "No MOCKED API detected in this run; failures came from real integrated environment behavior."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter290_quickprint_template_contract.py",
+    "/app/test_reports/iteration_290.json"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3)",
+    "frontend": "40% (dialog opens, but core template-switch/preview-channel parity blocked)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123",
+  "seed_data_creation": "No new seed data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Use vehicle id 46de32fb-1d40-4303-af28-43b4f55ee59e and open QuickPrint via vehicle-print-menu-button -> vehicle-print-invoice on mobile 390x844. Observe current template stuck at 'جارٍ التحميل…' and empty quick-print-template-sheet despite backend /api/document-templates returning valid rows under authenticated curl.",
+  "rca of the issue": "RCA: QuickPrint template retrieval path likely uses axios client without the installed auth interceptors, so protected template requests fail and are swallowed, leaving selectedTemplateId unset. Repro: login, open vehicle QuickPrint invoice; current template never resolves and template sheet has zero options. Mitigation: ensure the same authenticated client/interceptors are applied to `api` instance (or inject Authorization for this client), and surface explicit UI error on template-load failure.",
+  "mocked_api": "NO MOCKED APIs used"
+}

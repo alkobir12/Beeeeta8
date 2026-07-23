@@ -61,6 +61,8 @@ const QuickPrintDialog = ({
   const [templateLoading, setTemplateLoading] = useState(false);
   const [templateSelectionReason, setTemplateSelectionReason] = useState('');
   const [phoneRequired, setPhoneRequired] = useState(false);
+  const [templateSheetOpen, setTemplateSheetOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const iframeRef = useRef(null);
   const payloadBuilderRef = useRef(payloadBuilder);
   const generationStartedRef = useRef(false);
@@ -362,41 +364,13 @@ const QuickPrintDialog = ({
           </button>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4" data-testid="quick-print-template-selector">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-bold text-white" data-testid="quick-print-template-selector-title">اختر نموذج الطباعة</div>
-              <div className="text-xs text-slate-400" data-testid="quick-print-template-selector-subtitle">{DOC_TYPE_LABELS[currentDocType]} · نفس القالب يستخدم للمعاينة وPDF وواتساب</div>
-            </div>
-            <button
-              type="button"
-              onClick={loadTemplates}
-              className="rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10"
-              data-testid="quick-print-reload-templates"
-            >
-              تحديث النماذج
-            </button>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {templateLoading && <div className="text-sm text-slate-300" data-testid="quick-print-templates-loading">جارٍ تحميل النماذج...</div>}
-            {!templateLoading && filteredTemplates.map((tpl) => (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => setSelectedTemplateId(tpl.id)}
-                className={`rounded-xl border p-3 text-right transition ${selectedTemplateId === tpl.id ? 'border-sky-300 bg-sky-400/15' : 'border-white/10 bg-black/20 hover:bg-white/10'}`}
-                data-testid={`quick-print-template-option-${tpl.id}`}
-              >
-                <div className="text-sm font-bold text-white">{tpl.name}</div>
-                <div className="mt-1 text-xs text-slate-400">{tpl.is_builtin ? 'نظامي' : 'مرفوع'} · v{tpl.version} {tpl.is_default ? '· افتراضي' : ''}</div>
-              </button>
-            ))}
-          </div>
-          {!templateLoading && filteredTemplates.length === 0 && <div className="text-sm text-amber-200" data-testid="quick-print-no-templates">لا يوجد قالب صالح لهذا النوع. لن يتم إنشاء مستند بديل تلقائياً.</div>}
-          {templateSelectionReason && <div className="mt-2 text-xs text-emerald-300" data-testid="quick-print-template-reason">سبب الاختيار: {templateSelectionReason}</div>}
+        <div className="mt-5 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4" data-testid="quick-print-current-template">
+          <div><div className="text-xs text-slate-400">القالب الحالي</div><div className="mt-1 font-bold text-white">{selectedTemplate?.name || 'جارٍ التحميل…'}</div><div className="mt-1 text-xs text-emerald-300">{templateSelectionReason && `سبب الاختيار: ${templateSelectionReason}`}</div></div>
+          <button type="button" onClick={() => setTemplateSheetOpen(true)} className="rounded-xl border border-sky-300/30 px-4 py-2 text-sm font-bold text-sky-200" data-testid="quick-print-change-template">تغيير القالب</button>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-[60] max-md:border-t max-md:border-white/10 max-md:bg-slate-950 max-md:p-3" data-testid="quick-print-output-actions">
+          <button type="button" onClick={() => setPreviewOpen(true)} className="rounded-lg border border-white/10 px-4 py-2 text-sm font-semibold text-white" data-testid="quick-print-open-preview">معاينة</button>
           <button
             type="button"
             onClick={handleWhatsApp}
@@ -437,6 +411,8 @@ const QuickPrintDialog = ({
           }
         </div>
 
+        {templateSheetOpen && <div className="fixed inset-0 z-[70] bg-black/60" data-testid="quick-print-template-sheet"><div className="absolute inset-x-0 bottom-0 max-h-[75dvh] overflow-y-auto rounded-t-3xl bg-slate-950 p-5"><div className="mb-4 flex items-center justify-between"><strong className="text-white">تغيير القالب</strong><button onClick={() => setTemplateSheetOpen(false)} className="text-slate-300">إغلاق</button></div>{templateLoading && <div className="text-slate-300">جارٍ التحميل…</div>}{filteredTemplates.map((tpl) => <button key={tpl.id} onClick={() => { setSelectedTemplateId(tpl.id); setTemplateSheetOpen(false); }} className="mb-2 block w-full rounded-xl border border-white/10 p-4 text-right text-white" data-testid={`quick-print-template-option-${tpl.id}`}><b>{tpl.name}</b><small className="mt-1 block text-slate-400">إصدار {tpl.version} · {tpl.is_builtin ? 'نظامي' : 'مخصص'} {tpl.is_default ? '· افتراضي' : ''}</small></button>)}</div></div>}
+        {previewOpen && <div className="document-preview-modal fixed inset-0 z-[80] flex h-[100dvh] w-screen flex-col overflow-hidden bg-slate-950" data-testid="quick-print-preview-modal"><header className="flex shrink-0 items-center justify-between border-b border-white/10 p-4 text-white"><strong>معاينة المستند</strong><button onClick={() => setPreviewOpen(false)} className="rounded-lg border border-white/20 px-3 py-2" data-testid="quick-print-preview-close">إغلاق</button></header><div className="document-preview-body min-h-0 flex-1 overflow-y-auto p-3" data-testid="quick-print-preview-body">{loading && <div className="text-slate-300">جارٍ تجهيز المعاينة…</div>}{error && <div className="text-rose-300">{error}</div>}{html && <iframe ref={iframeRef} title="print-preview" className="h-[1120px] w-full rounded-xl bg-white" srcDoc={html} data-testid="quick-print-preview" />}</div><div className="document-preview-actions sticky bottom-0 grid shrink-0 grid-cols-3 gap-2 border-t border-white/10 bg-slate-950 p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><button onClick={handleWhatsApp} className="rounded-lg bg-emerald-500 p-3 font-bold text-white">واتساب</button><button onClick={handleDownloadPdf} className="rounded-lg bg-white/10 p-3 font-bold text-white">PDF</button><button onClick={handlePrint} className="rounded-lg bg-blue-500 p-3 font-bold text-white">طباعة</button></div></div>}
         <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-3">
           {loading && <div className="text-sm text-slate-300" data-testid="quick-print-loading">جارٍ تجهيز المعاينة...</div>}
           {error && (
