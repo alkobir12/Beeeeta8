@@ -1,0 +1,77 @@
+{
+  "summary": "تم تنفيذ اختبار P0 (Backend + Frontend) لسيناريو القوالب الموحدة: QuickPrint من VehicleDetails، منع fallback الصامت، مسار DocumentPrint عبر resolve، وتحقق Templates Manager من سجل document-templates. نتائج الباكند: 4/5 ناجحة (فشل واحد خاص CORS auth/login على preview edge). نتائج الواجهة: QuickPrint من صفحة المركبة يعمل ويستدعي /use خلال 20 ثانية مع ظهور السبب والمعاينة، وDocumentPrint لا يستدعي /documents/generate ويعرض سبب الاختيار والقالب المحلول.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "عند Origin=preview، الاستجابة الفعلية تعرض Access-Control-Allow-Origin='*' ولا تُظهر Access-Control-Allow-Credentials (رغم إعداد CORS_ORIGINS ووجود middleware لضبط Origin صريح). الدليل يشير لاحتمال حقن/إعادة كتابة من preview edge (Cloudflare) وليس خلل منطق التطبيق الداخلي.",
+        "priority": "HIGH"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "VehicleDetails QuickPrint",
+        "issue": "تم التحقق بنجاح: زر رأس واحد vehicle-print-menu-button، لا وجود لـ visit-print-button-expanded-*، وبعد اختيار فاتورة تم استدعاء /api/document-templates/{id}/use مرة واحدة خلال أقل من 20 ثانية، وظهر quick-print-template-reason و quick-print-preview، دون استدعاء /api/documents/generate.",
+        "affected_selectors": [
+          "[data-testid='vehicle-print-menu-button']",
+          "[data-testid='vehicle-print-invoice']",
+          "[data-testid='quick-print-template-reason']",
+          "[data-testid='quick-print-preview']"
+        ]
+      },
+      {
+        "flow": "DocumentPrint",
+        "issue": "تم التحقق بنجاح: يستدعي /api/document-templates/resolve ويعرض document-template-selection-reason وdocument-resolved-template-sheet، ولا يستدعي /api/documents/generate ضمن هذا المسار.",
+        "affected_selectors": [
+          "[data-testid='document-template-selection-reason']",
+          "[data-testid='document-resolved-template-sheet']"
+        ]
+      },
+      {
+        "flow": "Templates Manager defaults visualization",
+        "issue": "الواجهة أظهرت في مجموعة invoice شارتين (default badges) بعد التحديث، بينما قيد الباكند للتحكم بالافتراضي الواحد لكل tenant/type/locale اجتاز الاختبار. هذه غالباً قراءة واجهة مجمعة عبر system+default وليست كسر قيد backend، لكنها تسبب لبس تشغيلي.",
+        "affected_selectors": [
+          "[data-testid='templates-group-invoice']",
+          "[data-testid^='template-default-badge-']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter282_templates_quickprint_p0.py",
+    "/app/test_reports/pytest/iter282_templates_quickprint.xml",
+    "/root/.emergent/automation_output/20260723_164416/console_20260723_164416.log",
+    "/root/.emergent/automation_output/20260723_164532/console_20260723_164532.log",
+    "/root/.emergent/automation_output/20260723_164608/console_20260723_164608.log"
+  ],
+  "action_items": [
+    "اعتماد نتيجة CORS الحالية كـ preview-edge injection مع التحقق من الهيدر مباشرة من backend origin عند توفر قناة bypass للـ edge.",
+    "تحسين عرض الافتراضي في TemplatesManager بحيث يوضح scope (tenant/system) لتفادي تفسير وجود افتراضيين كخطأ قيد.",
+    "إعادة Retest سريع بعد أي تعديل واجهة على VehicleDetails لضمان بقاء سلوك QuickPrint الحالي (/use + reason + preview) ثابتاً."
+  ],
+  "critical_code_review_comments": [
+    "routes_document_templates.py يطبق متطلبات P0 الخلفية بشكل صحيح: resolve موحد، /use صريح، وفشل explicit غير صالح بـ409 بدون fallback صامت.",
+    "QuickPrintDialog لا يستدعي /documents/generate ويعتمد فعلياً على /document-templates/{id}/use ثم renderDocumentTemplate، وهذا يحقق شرط توحيد القالب بين المعاينة/PDF/واتساب.",
+    "TemplatesManager يستخدم واجهات السجل الجديد (/api/document-templates/*) كما هو مطلوب."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter282_templates_quickprint_p0.py",
+    "/app/test_reports/iteration_282.json"
+  ],
+  "success_rate": {
+    "backend": "80% (4/5)",
+    "frontend": "85%"
+  },
+  "test_credentials": "تمت القراءة من /app/memory/test_credentials.md واستخدام: مدير / 123123.",
+  "seed_data_creation": "لم يتم إنشاء seed دائم.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "QuickPrint من VehicleDetails يعمل حالياً عند الدخول المباشر لصفحة المركبة: زر واحد في الرأس + /use + reason + preview. DocumentPrint يعمل عبر /resolve فقط. الفشل الوحيد المتبقي في هذه الجولة متعلق CORS auth/login عند مرور الطلب عبر preview edge.",
+  "rca of the issue": "RCA (CORS): بالرغم من أن backend يجهّز CORS_ORIGINS وmiddleware يعيد Origin صريحاً، الاستجابة المشاهدة من public preview كانت تحمل server: cloudflare وaccess-control-allow-origin='*' مع غياب allow-credentials؛ هذا متسق مع إعادة كتابة الهيدر على edge. لذلك تُسجل كـ preview-edge injection evidence لا كفشل منطق تطبيق.",
+  "mocked_api": "NO MOCKED APIs used"
+}

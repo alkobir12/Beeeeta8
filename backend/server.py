@@ -452,6 +452,17 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def enforce_credentialed_cors(request, call_next):
+    response = await call_next(request)
+    origin = _credentialed_cors_origin(request.headers.get("origin"))
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+    return response
+
+
 # --------------------- Basic Security Hardening Middleware ---------------------
 # NOTE: This is a lightweight in-memory limiter (single-process). It is designed to
 # reduce abuse for low-volume deployments. For stronger protection, use Cloudflare WAF/Rate Limiting.

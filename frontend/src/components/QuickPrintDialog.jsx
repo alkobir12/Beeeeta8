@@ -212,17 +212,19 @@ const QuickPrintDialog = ({
     setLoading(true);
     setError('');
     try {
+      if (!selectedTemplate?.id) throw new Error('template_unavailable');
+      const templateResponse = await runWithTimeout(
+        api.post(`/document-templates/${selectedTemplate.id}/use`, { document_type: currentDocType }, { timeout: 15000 }),
+        15000
+      );
+      setTemplateSelectionReason(templateResponse.data?.selection_reason || '');
       const basePayload = await runWithTimeout(currentPayloadBuilder(), 15000);
       if (!basePayload) {
         throw new Error('missing-payload');
       }
-      const workshop = { ...(await loadWorkshop()), ...(basePayload.workshop || {}) };
+      const workshop = { ...(await runWithTimeout(loadWorkshop(), 15000)), ...(basePayload.workshop || {}) };
       lastPayloadRef.current = { payload: basePayload, workshop };
-      let rawHtml = '';
-      if (!selectedTemplate?.id) throw new Error('template_unavailable');
-      const templateResponse = await runWithTimeout(api.post(`/document-templates/${selectedTemplate.id}/use`, { document_type: currentDocType }, { timeout: 15000 }), 15000);
-      setTemplateSelectionReason(templateResponse.data?.selection_reason || '');
-      rawHtml = renderDocumentTemplate(templateResponse.data?.content || '', basePayload, workshop);
+      const rawHtml = renderDocumentTemplate(templateResponse.data?.content || '', basePayload, workshop);
       const nextHtml = wrapPrintableHtml(rawHtml, basePayload?.settings?.status || basePayload?.status || '');
       if (!nextHtml) {
         throw new Error('empty');
@@ -239,28 +241,15 @@ const QuickPrintDialog = ({
   }, [currentDocType, loadWorkshop, runWithTimeout, selectedTemplate?.id, wrapPrintableHtml]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || templateLoading || !selectedTemplate?.id) return;
     let isActive = true;
     setHtml('');
     setError('');
-    setLoading(true);
-    (async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      const nextHtml = await generateHtml(payloadBuilderRef.current || payloadBuilder);
-      if (!isActive) return;
-      if (nextHtml) {
-        setHtml(nextHtml);
-      }
-    })();
-    return () => {
-      isActive = false;
-    };
-  }, [open, payloadBuilder, generateHtml]);
-
-  useEffect(() => {
-    if (!open || !selectedTemplateId) return;
-    generateHtml(payloadBuilderRef.current || payloadBuilder);
-  }, [open, payloadBuilder, selectedTemplateId, generateHtml]);
+    generateHtml(payloadBuilderRef.current).then((nextHtml) => {
+      if (isActive && nextHtml) setHtml(nextHtml);
+    });
+    return () => { isActive = false; };
+  }, [open, templateLoading, selectedTemplate?.id, generateHtml]);
 
   useEffect(() => {
     if (!open || !html || !iframeRef.current) return;
