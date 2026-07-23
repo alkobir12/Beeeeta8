@@ -3,8 +3,8 @@ import { API_BASE, api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
-import WhatsAppSharePreview from './WhatsAppSharePreview';
 import { assertTemplateComplete, renderDocumentTemplate } from '../utils/documentTemplate';
+import { normalizePhoneLocal } from '../services/outboundShare';
 
 const DOC_TYPE_LABELS = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
 const money = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
@@ -60,11 +60,12 @@ const QuickPrintDialog = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateLoading, setTemplateLoading] = useState(false);
   const [templateSelectionReason, setTemplateSelectionReason] = useState('');
+  const [phoneRequired, setPhoneRequired] = useState(false);
   const iframeRef = useRef(null);
   const payloadBuilderRef = useRef(payloadBuilder);
   const generationStartedRef = useRef(false);
   const lastPayloadRef = useRef(null);
-  const { share, prepare: prepareShare, reset: resetShare, logEvent: logShareEvent } = useWhatsAppShare();
+  const { share, prepare: prepareShare, logEvent: logShareEvent } = useWhatsAppShare();
 
   useEffect(() => {
     payloadBuilderRef.current = payloadBuilder;
@@ -191,7 +192,8 @@ const QuickPrintDialog = ({
   const htmlToCanvasWrapper = (htmlContent) => {
     const doc = new DOMParser().parseFromString(htmlContent, 'text/html');
     const wrapper = document.createElement('div');
-    wrapper.innerHTML = doc.body?.innerHTML || htmlContent;
+    const styles = Array.from(doc.head?.querySelectorAll('style, link[rel="stylesheet"]') || []).map((node) => node.outerHTML).join('');
+    wrapper.innerHTML = `${styles}${doc.body?.innerHTML || htmlContent}`;
     wrapper.style.position = 'fixed';
     wrapper.style.left = '-10000px';
     wrapper.style.top = '0';
@@ -278,17 +280,9 @@ const QuickPrintDialog = ({
 
   const handlePrint = async () => {
     const htmlContent = html || (await generateHtml());
-    if (!htmlContent) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('يبدو أن المتصفح منع فتح نافذة جديدة. الرجاء السماح بالنوافذ المنبثقة مؤقتًا.');
-      return;
-    }
-    printWindow.document.open();
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 600);
+    if (!htmlContent || !iframeRef.current) return;
+    iframeRef.current.contentWindow?.focus();
+    iframeRef.current.contentWindow?.print();
   };
 
   const handleDownloadPdf = async () => {
@@ -306,18 +300,24 @@ const QuickPrintDialog = ({
     }
   };
 
-  const handlePdfWhatsApp = async () => {
+  const handleWhatsApp = async () => {
     const htmlContent = html || (await generateHtml());
     if (!htmlContent) return;
     const meta = lastPayloadRef.current || {};
-    await prepareShare({
+    const phoneCandidate = phone || meta.payload?.customer?.phone || meta.payload?.client?.phone || '';
+    if (!normalizePhoneLocal(phoneCandidate).valid) {
+      setPhoneRequired(true);
+      setError('أدخل رقم جوال العميل أولاً لإرسال المستند عبر واتساب.');
+      return;
+    }
+    const result = await prepareShare({
       docType: currentDocType,
       payload: meta.payload || {},
       workshop: meta.workshop || {},
       templateId: selectedTemplate?.id || 'unified-generator',
       templateVersion: selectedTemplate?.version || 'v1',
       templateSelectionReason,
-      phone,
+      phone: phoneCandidate,
       fileBaseName: `${title.replace(/\s+/g, '_')}`,
       context: 'quick-print-dialog',
       getElement: async () => {
@@ -325,6 +325,20 @@ const QuickPrintDialog = ({
         return { element: wrapper, cleanup: () => wrapper.remove() };
       },
     });
+    if (!result?.pdfBlob) return;
+    const normalized = normalizePhoneLocal(result.phone);
+    const pdfFile = new File([result.pdfBlob], `${title.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
+    try {
+      if (navigator.canShare?.({ files: [pdfFile] })) {
+        await navigator.share({ files: [pdfFile], text: result.message });
+        logShareEvent('share_sheet_opened', { files: '1' });
+      } else {
+        window.open(`https://wa.me/${normalized.wa}?text=${encodeURIComponent(result.message)}`, '_blank', 'noopener,noreferrer');
+        logShareEvent('whatsapp_opened', { phone: normalized.e164 });
+      }
+    } catch (error) {
+      if (error?.name !== 'AbortError') setError('تعذر فتح مشاركة واتساب. تم تجهيز PDF من القالب نفسه.');
+    }
   };
 
   if (!open) return null;
@@ -381,24 +395,15 @@ const QuickPrintDialog = ({
           {templateSelectionReason && <div className="mt-2 text-xs text-emerald-300" data-testid="quick-print-template-reason">سبب الاختيار: {templateSelectionReason}</div>}
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-5 flex flex-wrap gap-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-[60] max-md:border-t max-md:border-white/10 max-md:bg-slate-950 max-md:p-3" data-testid="quick-print-output-actions">
           <button
             type="button"
-            onClick={handlePrint}
-            className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400"
-            data-testid="quick-print-action-print"
-            disabled={loading}
-          >
-            طباعة فورية
-          </button>
-          <button
-            type="button"
-            onClick={handlePdfWhatsApp}
+            onClick={handleWhatsApp}
             className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400"
             data-testid="quick-print-action-whatsapp"
             disabled={loading || share.stage === 'preparing'}
           >
-            {share.stage === 'preparing' ? 'جارٍ التجهيز...' : 'PDF وواتساب'}
+            {share.stage === 'preparing' ? 'جارٍ تجهيز PDF...' : 'واتساب'}
           </button>
           <button
             type="button"
@@ -407,9 +412,18 @@ const QuickPrintDialog = ({
             data-testid="quick-print-action-download-pdf"
             disabled={loading}
           >
-            تحميل PDF
+            PDF
           </button>
-          <div className="flex items-center gap-2 text-sm text-slate-300">
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400"
+            data-testid="quick-print-action-print"
+            disabled={loading}
+          >
+            طباعة
+          </button>
+          {phoneRequired && <div className="flex items-center gap-2 text-sm text-slate-300" data-testid="quick-print-phone-required">
             <span>رقم الجوال</span>
             <input
               value={phone}
@@ -419,6 +433,7 @@ const QuickPrintDialog = ({
               data-testid="quick-print-phone-input"
             />
           </div>
+          }
         </div>
 
         <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-3">
@@ -447,7 +462,6 @@ const QuickPrintDialog = ({
           )}
         </div>
       </div>
-      <WhatsAppSharePreview share={share} onClose={resetShare} logEvent={logShareEvent} />
     </div>
   );
 };

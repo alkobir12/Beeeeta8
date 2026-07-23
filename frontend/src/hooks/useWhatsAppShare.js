@@ -47,6 +47,12 @@ export const useWhatsAppShare = () => {
         status: material.status,
         payload: enrichedPayload,
       });
+      if (resolved.missing_variables?.length) {
+        const error = new Error(`رسالة واتساب غير مكتملة. المتغيرات الناقصة: ${resolved.missing_variables.join('، ')}`);
+        error.code = 'message_template_incomplete';
+        error.variables = resolved.missing_variables;
+        throw error;
+      }
 
       const fp = await getFingerprint(material);
 
@@ -119,6 +125,7 @@ export const useWhatsAppShare = () => {
         imageBlob,
         imageDataUrl,
       });
+      return { pdfBlob, imageBlob, message: resolved.message, phone: phone || resolved.phone?.raw || '', documentNumber: material.document_number };
     } catch (error) {
       const detail = error?.response?.data?.detail;
       const code = (typeof detail === 'object' ? detail?.code : null) || error?.code || 'prepare_failed';

@@ -1,0 +1,75 @@
+{
+  "summary": "Completed P0 regression testing for templates + output channels (backend and frontend). Backend critical scenarios passed (HTML upload/use, sanitization, set-default scope uniqueness, outbound missing_variables contract). Frontend confirmed key flows but found QuickPrint blocking issue when default template contains unresolved placeholders.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "QuickPrintDialog",
+        "issue": "When default template is incomplete (unresolved placeholder), preview iframe never renders and quick actions remain blocked by generic error. User can get stuck on current default template path.",
+        "selector": "[data-testid='quick-print-error'], [data-testid='quick-print-preview']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "TemplatesManager",
+        "issue": "Invoice group UI can show more than one default badge at once (system + tenant), which conflicts with expected single-active-default mental model for managers.",
+        "selector": "[data-testid='templates-group-invoice'] [data-testid^='template-default-badge-']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "QuickPrint WhatsApp/PDF/Print with incomplete default template",
+        "issue": "Output actions remain visible (correct), but generation fails before preview and WhatsApp open is blocked due template generation error instead of clean missing_variables guidance.",
+        "affected_selectors": [
+          "[data-testid='quick-print-action-whatsapp']",
+          "[data-testid='quick-print-action-download-pdf']",
+          "[data-testid='quick-print-action-print']",
+          "[data-testid='quick-print-error']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "QuickPrint dialog",
+        "issues": [
+          "Error messaging in failure state is generic and does not clearly expose unresolved template variables for manager action"
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter286_templates_output_channels.py",
+    "/app/test_reports/pytest/iter286_templates_output_channels.xml",
+    "/root/.emergent/automation_output/20260723_185045/console_20260723_185045.log",
+    "/root/.emergent/automation_output/20260723_185254/console_20260723_185254.log",
+    "/root/.emergent/automation_output/20260723_185358/console_20260723_185358.log"
+  ],
+  "action_items": [
+    "In QuickPrint, provide deterministic recovery path when default template is incomplete (auto-select next valid template OR block with explicit missing_variables and selector guidance).",
+    "Align TemplatesManager default badge display with scope semantics so manager sees one effective default per selected tenant/type/locale.",
+    "Add explicit UI assertion path for WhatsApp preconditions: differentiate missing phone vs missing template variables vs template load failure."
+  ],
+  "critical_code_review_comments": [
+    "Backend sanitizer and resolver contract are solid for this scope: upload sanitization strips script/event handlers and /use returns explicit_document_template reason with content.",
+    "set-default backend enforcement for default+invoice+ar-SA scope is correct in API-level tests; observed ambiguity is mainly UI representation in mixed system/tenant list.",
+    "QuickPrint currently couples output actions to successful preview generation; with incomplete default templates this degrades to generic generation error and weak guidance UX."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter286_templates_output_channels.py",
+    "/app/test_reports/iteration_286.json"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 in iter286 suite)",
+    "frontend": "75% (core requested flows mostly pass; QuickPrint incomplete-default flow remains problematic)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123",
+  "seed_data_creation": "Created UI test templates: ITER286_UI_SAFE, ITER286_UI_MAL, ITER286_UI_GUARD (and temporary backend upload test templates archived during backend tests).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "DocumentPrint validated with only 3 output buttons (WhatsApp/PDF/Print) and no duplicate output controls in preview toolbar. WhatsApp secondary preview modal did not appear (as required). QuickPrint error state is reproducible when selected/default template is incomplete (REQUIRED_BLOCKER).",
+  "rca of the issue": "RCA: If default/selected QuickPrint template contains unresolved placeholders, generateHtml path fails early (template guard) and quick-print-preview iframe is never rendered. Actions remain present but effectively blocked by generic error text, causing manager-facing flow break. This is not a backend resolver/sanitizer failure; it is a frontend flow/UX handling gap around incomplete template defaults.",
+  "mocked_api": "NO MOCKED APIs used"
+}

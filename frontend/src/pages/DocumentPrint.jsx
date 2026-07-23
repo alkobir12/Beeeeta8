@@ -25,8 +25,8 @@ import { api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
-import WhatsAppSharePreview from '../components/WhatsAppSharePreview';
 import { findUnresolvedTemplateVariables, renderDocumentTemplate, splitTemplateHtml } from '../utils/documentTemplate';
+import { normalizePhoneLocal } from '../services/outboundShare';
 
 const SAR = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -104,7 +104,7 @@ export default function DocumentPrint() {
   const initialTemplateId = searchParams.get('templateId') || '';
   const previewRef = useRef(null);
   const autoActionRef = useRef(false);
-  const { share, prepare: prepareShare, reset: resetShare, logEvent: logShareEvent } = useWhatsAppShare();
+  const { prepare: prepareShare, logEvent: logShareEvent } = useWhatsAppShare();
 
   const [zoom, setZoom] = useState(0.76);
   const [showPreview, setShowPreview] = useState(true);
@@ -470,22 +470,37 @@ export default function DocumentPrint() {
   const sendWhatsApp = async () => {
     setAlertMessage('');
     if (!ensureTemplateComplete()) return;
-    if (!showPreview) {
-      setShowPreview(true);
-      await new Promise((resolve) => setTimeout(resolve, 400));
+    const phone = formData.customer.phone || '';
+    if (!normalizePhoneLocal(phone).valid) {
+      setAlertMessage('أدخل رقم جوال العميل أولاً لإرسال المستند عبر واتساب.');
+      return;
     }
-    await prepareShare({
+    const result = await prepareShare({
       docType,
       payload: templatePayload,
       workshop: formData.workshop,
       templateId: templateMeta?.id,
       templateVersion: templateMeta?.version,
       templateSelectionReason: templateReason,
-      phone: formData.customer.phone,
+      phone,
       fileBaseName: `${docType}_${formData.settings.document_number || 'document'}`,
       context: 'document-print-page',
       getElement: async () => ({ element: previewRef.current, cleanup: null }),
     });
+    if (!result?.pdfBlob) return;
+    const normalized = normalizePhoneLocal(result.phone);
+    const file = new File([result.pdfBlob], `${docType}_${formData.settings.document_number || 'document'}.pdf`, { type: 'application/pdf' });
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], text: result.message });
+        logShareEvent('share_sheet_opened', { files: '1' });
+      } else {
+        window.open(`https://wa.me/${normalized.wa}?text=${encodeURIComponent(result.message)}`, '_blank', 'noopener,noreferrer');
+        logShareEvent('whatsapp_opened', { phone: normalized.e164 });
+      }
+    } catch (error) {
+      if (error?.name !== 'AbortError') setAlertMessage('تعذر فتح مشاركة واتساب. تم تجهيز PDF من القالب نفسه.');
+    }
   };
 
   useEffect(() => {
@@ -611,10 +626,9 @@ export default function DocumentPrint() {
 
           <Panel title="الإجراءات" icon={<ShieldCheck size={18} />} testId="document-actions-section">
             <div className="doc-actions-grid">
-              <button type="button" className="doc-action primary" onClick={printCurrent} data-testid="document-print-button"><Printer size={18} /> طباعة</button>
-              <button type="button" className="doc-action" onClick={downloadCurrentPdf} disabled={pdfBusy} data-testid="document-download-button"><Download size={18} /> تحميل PDF</button>
               <button type="button" className="doc-action whatsapp" onClick={sendWhatsApp} disabled={pdfBusy} data-testid="document-whatsapp-button"><Share2 size={18} /> واتساب</button>
-              <button type="button" className="doc-action" onClick={() => setZoom(0.76)} data-testid="document-fit-button"><Maximize2 size={18} /> ملاءمة</button>
+              <button type="button" className="doc-action" onClick={downloadCurrentPdf} disabled={pdfBusy} data-testid="document-download-button"><Download size={18} /> PDF</button>
+              <button type="button" className="doc-action primary" onClick={printCurrent} data-testid="document-print-button"><Printer size={18} /> طباعة</button>
             </div>
           </Panel>
         </section>
@@ -625,9 +639,6 @@ export default function DocumentPrint() {
               <button type="button" className="doc-icon-button" onClick={() => setZoom((z) => Math.max(0.38, z - 0.08))} data-testid="document-zoom-out-button" aria-label="تصغير"><Minus size={18} /></button>
               <span className="doc-zoom" data-testid="document-zoom-value">{Math.round(zoom * 100)}%</span>
               <button type="button" className="doc-icon-button" onClick={() => setZoom((z) => Math.min(1.45, z + 0.08))} data-testid="document-zoom-in-button" aria-label="تكبير"><Plus size={18} /></button>
-              <button type="button" className="doc-icon-button" onClick={printCurrent} data-testid="document-preview-print-button" aria-label="طباعة"><Printer size={18} /></button>
-              <button type="button" className="doc-icon-button" onClick={downloadCurrentPdf} data-testid="document-preview-download-button" aria-label="تحميل"><Download size={18} /></button>
-              <button type="button" className="doc-icon-button" onClick={sendWhatsApp} data-testid="document-preview-whatsapp-button" aria-label="واتساب"><Share2 size={18} /></button>
             </div>
             <div className="doc-preview-viewport" data-testid="document-preview-viewport">
               <div className="doc-sheet-scale" style={{ transform: `scale(${zoom})`, height: `${1124 * zoom}px` }}>
@@ -637,7 +648,6 @@ export default function DocumentPrint() {
           </section>
         )}
       </main>
-      <WhatsAppSharePreview share={share} onClose={resetShare} logEvent={logShareEvent} />
     </div>
   );
 }

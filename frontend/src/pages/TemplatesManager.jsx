@@ -4,6 +4,7 @@ import OutboundMessagesTab from '../components/OutboundMessagesTab';
 import axios from 'axios';
 import { useToast } from '../hooks/use-toast';
 import { resolveBackendBase } from '../utils/backendBase';
+import { assertTemplateComplete, renderDocumentTemplate } from '../utils/documentTemplate';
 
 const API_URL = `${resolveBackendBase()}/api`;
 const docTypes = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
@@ -25,6 +26,10 @@ const TemplatesManager = () => {
   const [templateName, setTemplateName] = useState('');
   const [description, setDescription] = useState('');
   const [preview, setPreview] = useState(null);
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewReason, setPreviewReason] = useState('');
+  const [previewError, setPreviewError] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('print');
 
   const grouped = useMemo(() => Object.keys(docTypes).reduce((acc, key) => {
@@ -68,7 +73,7 @@ const TemplatesManager = () => {
       setDescription('');
       if (fileRef.current) fileRef.current.value = '';
       await loadTemplates();
-      setPreview(response.data?.template || null);
+      await openPreview(response.data?.template || null);
     } catch (error) {
       toast({ title: 'فشل رفع النموذج', description: error.response?.data?.detail || 'حاول مرة أخرى', variant: 'destructive' });
     } finally {
@@ -82,8 +87,26 @@ const TemplatesManager = () => {
       toast({ title: 'تم التعيين', description: `صار «${template.name}» النموذج الافتراضي` });
       await loadTemplates();
     } catch (error) {
-      toast({ title: 'تعذر التعيين', description: 'حاول مرة أخرى', variant: 'destructive' });
+      toast({ title: 'تعذر التعيين', description: error.response?.data?.detail?.message || error.response?.data?.detail?.code || 'حاول مرة أخرى', variant: 'destructive' });
     }
+  };
+
+  const openPreview = async (template) => {
+    setPreview(template); setPreviewHtml(''); setPreviewReason(''); setPreviewError(''); setPreviewLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/document-templates/${template.id}/use`, { document_type: template.document_type || template.type });
+      const rendered = renderDocumentTemplate(response.data?.content || '', {
+        settings: { document_number: 'PREVIEW-001', date: new Date().toISOString().slice(0, 10), status: 'مسودة', notes: 'معاينة داخل إدارة القوالب' },
+        customer: { name: 'عميل تجريبي', phone: '0500000000' }, vehicle: { plateNumber: 'أ ب ج 1234', brand: 'Toyota', model: 'Camry', year: 2024 },
+        items: [{ description: 'خدمة تجريبية', quantity: 1, unit_price: 100 }], payment: { paid: 100 },
+      }, { name: 'ورشة تجريبية', phone: '0500000000', address: 'الرياض', tax_number: '300000000000003' });
+      assertTemplateComplete(rendered);
+      setPreviewHtml(rendered);
+      setPreviewReason(response.data?.selection_reason || 'explicit_document_template');
+    } catch (error) {
+      const detail = error.response?.data?.detail;
+      setPreviewError(error?.code === 'template_incomplete' ? error.message : (detail?.message || detail?.code || 'تعذر تحميل القالب للمعاينة.'));
+    } finally { setPreviewLoading(false); }
   };
 
   const deleteTemplate = async (template) => {
@@ -170,13 +193,13 @@ const TemplatesManager = () => {
                   <article className={`template-card ${template.is_default ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
                     <div className="template-icon">{template.file_type === 'pdf' ? <FileText size={20} /> : <FileCode2 size={20} />}</div>
                     <div className="template-main">
-                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> {template.tenant_id === 'system' ? 'نظامي احتياطي' : 'افتراضي للمستأجر'}</span>}</div>
+                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> {template.tenant_id === 'system' ? 'افتراضي نظامي' : 'افتراضي'}</span>}</div>
                       <p data-testid={`template-description-${template.id}`}>{template.description || 'بدون وصف'}</p>
-                      <small data-testid={`template-meta-${template.id}`}>{template.file_type?.toUpperCase()} · v{template.version || 1} · {template.status || 'غير مصنف'} · {template.is_builtin ? 'رسمي' : 'مرفوع'}</small>
+                      <small data-testid={`template-meta-${template.id}`}>{template.is_builtin ? 'نظامي' : 'مخصص'} · إصدار {template.version || 1} · {template.active ? 'نشط' : 'معطل'} · {template.status || 'غير مصنف'}</small>
                       <div className="template-actions">
-                        <button type="button" onClick={() => setPreview(template)} data-testid={`template-preview-${template.id}`}><Eye size={15} /> معاينة</button>
+                        <button type="button" onClick={() => openPreview(template)} data-testid={`template-preview-${template.id}`}><Eye size={15} /> معاينة</button>
                         <button type="button" onClick={() => downloadTemplate(template)} data-testid={`template-download-${template.id}`}><Download size={15} /> تحميل</button>
-                        {template.file_type === 'html' && template.status === 'valid' && <button type="button" onClick={() => makeDefault(template)} data-testid={`template-make-default-${template.id}`}><Star size={15} /> افتراضي</button>}
+                        {template.file_type === 'html' && template.active && <button type="button" onClick={() => makeDefault(template)} data-testid={`template-make-default-${template.id}`}><Star size={15} /> تعيين كافتراضي</button>}
                         <button type="button" className="danger" onClick={() => deleteTemplate(template)} data-testid={`template-delete-${template.id}`}><Trash2 size={15} /> حذف</button>
                       </div>
                     </div>
@@ -189,7 +212,7 @@ const TemplatesManager = () => {
       </main>
       </>)}
 
-      {preview && <TemplatePreview template={preview} onClose={() => setPreview(null)} />}
+      {preview && <TemplatePreview template={preview} html={previewHtml} reason={previewReason} error={previewError} loading={previewLoading} onClose={() => setPreview(null)} />}
     </div>
   );
 };
@@ -198,8 +221,8 @@ function Stat({ label, value, testId }) {
   return <div className="tm-stat" data-testid={testId}><span>{label}</span><strong>{value}</strong><CheckCircle2 size={18} /></div>;
 }
 
-function TemplatePreview({ template, onClose }) {
-  return <div className="preview-modal" data-testid="template-preview-modal"><div className="preview-card"><div className="preview-head"><div><h3 data-testid="template-preview-title">{template.name}</h3><p data-testid="template-preview-subtitle">{docTypes[template.type]} · {template.file_type?.toUpperCase()}</p></div><button type="button" onClick={onClose} data-testid="template-preview-close">إغلاق</button></div><div className="preview-body"><p data-testid="template-preview-description">{template.description || 'سيظهر هذا النموذج في نافذة اختيار النماذج عند الطباعة.'}</p><div className="preview-paper"><FileCode2 size={46} /><strong>{template.is_builtin ? 'نموذج داش برو المختوم' : 'نموذج مرفوع'}</strong><span>{template.is_default || template.isActive ? 'مستخدم حالياً كافتراضي' : 'متاح للاختيار'}</span></div></div></div></div>;
+function TemplatePreview({ template, html, reason, error, loading, onClose }) {
+  return <div className="preview-modal" data-testid="template-preview-modal"><div className="preview-card"><div className="preview-head"><div><h3 data-testid="template-preview-title">{template.name}</h3><p data-testid="template-preview-subtitle">{docTypes[template.document_type || template.type]} · سبب الاختيار: {reason || 'جارٍ التحقق'}</p></div><button type="button" onClick={onClose} data-testid="template-preview-close">إغلاق</button></div><div className="preview-body"><p data-testid="template-preview-description">{template.description || 'قالب بلا وصف'}</p>{loading && <div className="preview-paper" data-testid="template-preview-loading">جارٍ تحميل القالب المعقّم...</div>}{error && <div className="preview-paper" data-testid="template-preview-error">فشلت المعاينة: {error}</div>}{!loading && !error && html && <iframe title={`preview-${template.id}`} srcDoc={html} sandbox="" style={{ width: '100%', height: 'min(65vh, 620px)', border: '1px solid #e2e8f0', borderRadius: 18, background: '#fff' }} data-testid="template-preview-frame" />}</div></div></div>;
 }
 
 const styles = `

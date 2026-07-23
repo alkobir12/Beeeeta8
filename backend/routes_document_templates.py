@@ -2,6 +2,7 @@
 import asyncio
 import json
 import os
+import re
 import shutil
 import uuid
 from datetime import datetime, timezone
@@ -10,12 +11,17 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+import bleach
+from bleach.css_sanitizer import CSSSanitizer
 
 from routes_templates import DOC_TYPES, INDEX_FILE, TEMPLATES_DIR, _builtin_template_content
 
 router = APIRouter(prefix="/api/document-templates", tags=["document-templates"])
 db = None
 _seed_lock = asyncio.Lock()
+_ALLOWED_TAGS = ["html", "head", "body", "meta", "title", "style", "main", "section", "article", "header", "footer", "div", "span", "p", "strong", "b", "em", "i", "small", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "ul", "ol", "li", "br", "hr", "img"]
+_ALLOWED_ATTRIBUTES = {"*": ["class", "style", "dir", "lang", "id", "data-testid"], "img": ["src", "alt", "width", "height"], "meta": ["charset", "name", "content"]}
+_SANITIZER = bleach.Cleaner(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, protocols=["http", "https", "data"], strip=True, strip_comments=True, css_sanitizer=CSSSanitizer())
 
 
 def set_db(database):
@@ -32,6 +38,21 @@ def _public(doc: Dict[str, Any]) -> Dict[str, Any]:
     result.pop("_id", None)
     result["type"] = result.get("document_type")
     return result
+
+
+def _sanitize_html(content: str) -> tuple[str, list[str]]:
+    raw = str(content or "")
+    if not raw.strip():
+        raise HTTPException(status_code=422, detail={"code": "empty_template", "message": "ملف HTML فارغ ولا يمكن معاينته."})
+    if len(raw.encode("utf-8")) > 1_000_000:
+        raise HTTPException(status_code=422, detail={"code": "template_too_large", "message": "حجم قالب HTML يتجاوز الحد المسموح."})
+    cleaned = _SANITIZER.clean(raw)
+    notes = []
+    if cleaned != raw:
+        notes.append("sanitized_unsafe_html")
+    if not re.search(r"<([a-z][a-z0-9]*)\b", cleaned, re.IGNORECASE):
+        raise HTTPException(status_code=422, detail={"code": "invalid_html", "message": "الملف لا يحتوي HTML صالحاً للعرض."})
+    return cleaned, notes
 
 
 def _legacy_rows() -> list:
@@ -103,14 +124,18 @@ async def _ensure_registry() -> None:
 
 async def _content(template: Dict[str, Any]) -> str:
     if template.get("is_builtin") or template.get("source") == "system_default_clone":
-        return _builtin_template_content(template["document_type"])
+        content = _builtin_template_content(template["document_type"])
+        return _sanitize_html(content)[0]
     filename = template.get("filename")
     path = TEMPLATES_DIR / str(filename or "")
     if not filename or not path.exists():
         raise HTTPException(status_code=409, detail={"code": "template_content_missing", "message": "ملف القالب المختار غير موجود."})
     if template.get("file_type") != "html":
         raise HTTPException(status_code=409, detail={"code": "template_not_renderable", "message": "هذا القالب ليس HTML ولا يمكن استخدامه للطباعة."})
-    return path.read_text(encoding="utf-8")
+    clean, notes = _sanitize_html(path.read_text(encoding="utf-8"))
+    if notes:
+        await db.document_templates.update_one({"id": template["id"]}, {"$set": {"sanitization_notes": notes, "sanitized_at": _now(), "updated_at": _now()}})
+    return clean
 
 
 async def resolve_template(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -128,8 +153,12 @@ async def resolve_template(payload: Dict[str, Any]) -> Dict[str, Any]:
         template = await db.document_templates.find_one({"id": explicit_id}, {"_id": 0})
         if not template:
             raise HTTPException(status_code=404, detail={"code": "explicit_template_not_found", "message": "القالب المختار غير موجود."})
-        if template.get("document_type") != doc_type or not template.get("active") or template.get("status") != "valid":
+        if template.get("document_type") != doc_type or not template.get("active") or template.get("status") not in {"valid", "needs_fix"}:
             raise HTTPException(status_code=409, detail={"code": "explicit_template_unavailable", "message": "القالب المختار غير صالح أو لا يطابق نوع المستند."})
+        if template.get("status") == "needs_fix":
+            await _content(template)
+            await db.document_templates.update_one({"id": explicit_id}, {"$set": {"status": "valid", "updated_at": _now()}})
+            template["status"] = "valid"
         reason = "explicit_document_template"
     else:
         template = await db.document_templates.find_one({
@@ -199,8 +228,14 @@ async def upload_template(
     template_id = str(uuid.uuid4())
     filename = f"{template_id}{extension}"
     target = TEMPLATES_DIR / filename
-    with target.open("wb") as output:
-        shutil.copyfileobj(file.file, output)
+    if extension in {".html", ".htm"}:
+        raw_html = (await file.read()).decode("utf-8", errors="replace")
+        clean_html, sanitization_notes = _sanitize_html(raw_html)
+        target.write_text(clean_html, encoding="utf-8")
+    else:
+        sanitization_notes = []
+        with target.open("wb") as output:
+            shutil.copyfileobj(file.file, output)
     now = _now()
     template = {
         "id": template_id, "name": name or file.filename or "قالب جديد", "description": description or "",
@@ -209,6 +244,7 @@ async def upload_template(
         "file_type": "html" if extension in {".html", ".htm"} else "pdf", "filename": filename,
         "original_filename": file.filename, "file_size": target.stat().st_size, "is_builtin": False,
         "source": "uploaded_html" if extension in {".html", ".htm"} else "uploaded_file", "created_at": now, "updated_at": now,
+        "sanitization_notes": sanitization_notes,
     }
     await db.document_templates.insert_one(template)
     return {"success": True, "template": _public(template)}
@@ -223,8 +259,15 @@ async def set_default(template_id: str, payload: Dict[str, Any] = Body(default={
         template = await db.document_templates.find_one({"id": template_id}, {"_id": 0})
         if not template:
             raise HTTPException(status_code=404, detail={"code": "template_not_found"})
-        if template.get("file_type") != "html" or template.get("status") != "valid" or not template.get("active"):
+        if template.get("file_type") != "html" or not template.get("active"):
             raise HTTPException(status_code=409, detail={"code": "template_not_eligible", "message": "لا يمكن تعيين إلا قالب HTML صالح ونشط كافتراضي."})
+        if template.get("status") != "valid":
+            try:
+                await _content(template)
+                await db.document_templates.update_one({"id": template_id}, {"$set": {"status": "valid", "updated_at": _now()}})
+                template["status"] = "valid"
+            except HTTPException as exc:
+                raise HTTPException(status_code=409, detail={"code": "template_validation_failed", "message": "فشل التحقق من القالب قبل تعيينه افتراضياً.", "reason": exc.detail}) from exc
         doc_type = template["document_type"]
         target_id = template_id
         if template.get("tenant_id") == "system" and tenant_id != "system":
