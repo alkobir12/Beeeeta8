@@ -55,8 +55,8 @@ export const renderDocumentTemplate = (templateHtml, payload = {}, workshop = {}
   let html = String(templateHtml || '');
   Object.entries(values).forEach(([key, value]) => {
     if ((key === 'WORKSHOP_NAME' || key === 'CUSTOMER_NAME') && !String(value).trim()) return;
-    html = html.replaceAll(`{{${key}}}`, String(value));
     html = html.replaceAll(`<!--{{${key}}}-->`, String(value));
+    html = html.replaceAll(`{{${key}}}`, String(value));
     html = html.replaceAll(`[[${key}]]`, String(value));
     html = html.replaceAll(`<%=${key}%>`, String(value));
     html = html.replaceAll(`<%= ${key} %>`, String(value));

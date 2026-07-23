@@ -1,0 +1,39 @@
+{
+  "summary": "Completed backend+frontend retest for iteration_295 reorder fix. ITEMS_ROWS now renders as visible tbody rows in preview, print srcdoc, and template output has no raw placeholders.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter294_template_tbody_print_contract.py",
+    "/app/test_reports/pytest/iter296_template_tbody_print_contract.xml",
+    "/root/.emergent/automation_output/20260723_222140/console_20260723_222140.log"
+  ],
+  "action_items": [
+    "No blocker found for requested scope. Keep this flow in regression suite for future template changes."
+  ],
+  "critical_code_review_comments": [
+    "renderDocumentTemplate replacement order is now correct for comment placeholder path (<!--{{ITEMS_ROWS}}--> before {{ITEMS_ROWS}}), preventing commented <tr> output.",
+    "DocumentPrint print flow creates iframe srcdoc from renderedTemplate and includes populated tbody rows.",
+    "No MOCKED APIs used.",
+    "Optional auth playbook deep checks (bcrypt/cookies/CORS/lockout/seed_admin update) were not fully executed in this scoped iteration test."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_296.json"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3)",
+    "frontend": "100% (requested DocumentPrint/template/PDF/print checks passed)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used: مدير / 123123",
+  "seed_data_creation": "No seed data created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Primary template singleton still enforced. Rows are visible in resolved template tbody and print iframe srcdoc after item entry. Prior 'rows as comments' regression is not reproducible.",
+  "rca of the issue": "Previously reproduced bug was caused by replacement-order mismatch in renderDocumentTemplate that left injected <tr> wrapped inside HTML comments. Current retest confirms fix: tbody innerHTML now contains live <tr> nodes, not commented markup."
+}
