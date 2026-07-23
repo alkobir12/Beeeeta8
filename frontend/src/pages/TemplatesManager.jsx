@@ -124,7 +124,7 @@ const TemplatesManager = () => {
         <div>
           <p data-testid="templates-manager-kicker">Dash Pro · مركز النماذج</p>
           <h1 data-testid="templates-manager-title">إدارة النماذج</h1>
-          <span data-testid="templates-manager-description">أي ملف HTML تحفظه هنا يصبح تلقائياً خياراً افتراضياً عند ضغط أي زر طباعة.</span>
+          <span data-testid="templates-manager-description">عيّن قالب HTML صالحاً كافتراض للمستأجر؛ يبقى القالب النظامي احتياطياً فقط.</span>
         </div>
         <button type="button" className="tm-button ghost" onClick={loadTemplates} data-testid="templates-refresh-button"><RefreshCw size={18} /> تحديث</button>
       </header>
@@ -154,7 +154,7 @@ const TemplatesManager = () => {
           <div className="drop-zone" onClick={() => fileRef.current?.click()} data-testid="template-file-dropzone">
             <FileCode2 size={34} />
             <strong>اختر ملف HTML أو PDF</strong>
-            <span>HTML يصبح نموذج طباعة افتراضي — PDF يبقى للتحميل والأرشفة</span>
+            <span>HTML قابل للتعيين كافتراضي — PDF يبقى للتحميل والأرشفة</span>
             <input ref={fileRef} type="file" accept=".html,.htm,.pdf" onChange={(e) => uploadTemplate(e.target.files?.[0])} data-testid="template-file-input" />
           </div>
           <button type="button" className="tm-button primary full" disabled={uploading} onClick={() => fileRef.current?.click()} data-testid="template-upload-button"><UploadCloud size={18} />{uploading ? 'جارٍ الحفظ...' : 'إرفاق وحفظ كنموذج'}</button>
@@ -167,10 +167,10 @@ const TemplatesManager = () => {
               <h3>{label}<span>{grouped[type]?.length || 0}</span></h3>
               <div className="template-cards">
                 {(grouped[type] || []).map((template) => (
-                  <article className={`template-card ${template.is_default || template.isActive ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
+                  <article className={`template-card ${template.is_default ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
                     <div className="template-icon">{template.file_type === 'pdf' ? <FileText size={20} /> : <FileCode2 size={20} />}</div>
                     <div className="template-main">
-                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> افتراضي</span>}</div>
+                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> {template.tenant_id === 'system' ? 'نظامي احتياطي' : 'افتراضي للمستأجر'}</span>}</div>
                       <p data-testid={`template-description-${template.id}`}>{template.description || 'بدون وصف'}</p>
                       <small data-testid={`template-meta-${template.id}`}>{template.file_type?.toUpperCase()} · v{template.version || 1} · {template.status || 'غير مصنف'} · {template.is_builtin ? 'رسمي' : 'مرفوع'}</small>
                       <div className="template-actions">
