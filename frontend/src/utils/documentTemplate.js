@@ -47,13 +47,14 @@ export const renderDocumentTemplate = (templateHtml, payload = {}, workshop = {}
   const paid = Number(settings?.totals?.paid || payload?.payment?.paid || 0);
   const documentNumber = settings.document_number || payload.document_number || '—';
   const values = {
-    WORKSHOP_NAME: workshop.name || workshop.business_name || 'الورشة', WORKSHOP_ADDRESS: workshop.address || '', WORKSHOP_PHONE: workshop.phone || workshop.whatsapp || '', WORKSHOP_EMAIL: workshop.email || '', COMPANY_CR: workshop.commercial_register || workshop.commercialRegister || '', COMPANY_TAX: workshop.tax_number || workshop.taxNumber || '',
-    CUSTOMER_NAME: customer.name || customer.customerName || 'عميل نقدي', CUSTOMER_PHONE: customer.phone || customer.customerPhone || '', VEHICLE_INFO: `${vehicle.brand || ''} ${vehicle.model || ''} ${vehicle.year || ''}`.trim(), PLATE_NO: vehicle.plateNumber || vehicle.plate || '', STATUS_LABEL: settings.status || 'مسودة', INVOICE_NO: documentNumber, DATE: settings.date || payload.date || new Date().toISOString().slice(0, 10),
+    WORKSHOP_NAME: workshop.name || workshop.business_name || '', WORKSHOP_ADDRESS: workshop.address || '—', WORKSHOP_PHONE: workshop.phone || workshop.whatsapp || '—', WORKSHOP_EMAIL: workshop.email || '—', COMPANY_CR: workshop.commercial_register || workshop.commercialRegister || '—', COMPANY_TAX: workshop.tax_number || workshop.taxNumber || '—',
+    CUSTOMER_NAME: customer.name || customer.customerName || '', CUSTOMER_PHONE: customer.phone || customer.customerPhone || '—', VEHICLE_INFO: `${vehicle.brand || ''} ${vehicle.model || ''} ${vehicle.year || ''}`.trim() || '—', PLATE_NO: vehicle.plateNumber || vehicle.plate || '—', STATUS_LABEL: settings.status || 'مسودة', INVOICE_NO: documentNumber, DATE: settings.date || payload.date || new Date().toISOString().slice(0, 10),
     ITEMS_ROWS: normalized.length ? normalized.map((item, index) => `<tr><td>${index + 1}</td><td class="desc">${escapeHtml(item.description)}</td><td>${escapeHtml(item.quantity)}</td><td>${money(item.price)}</td><td>${item.discount ? money(item.discount) : '—'}</td><td><b>${money(item.total)}</b></td></tr>`).join('') : '<tr><td colspan="6">لا توجد بنود</td></tr>',
-    SUBTOTAL: money(subtotal), DISCOUNT: money(discount), TAX: money(0), TOTAL: money(total), PAID: money(paid), REMAINING: money(total - paid), NOTES: settings.notes || payload.notes || '', AMOUNT_WORDS: `فقط ${money(total)} لا غير`, SEAL_CODE: settings.seal_code || '—',
+    SUBTOTAL: money(subtotal), DISCOUNT: money(discount), TAX: money(0), TOTAL: money(total), PAID: money(paid), REMAINING: money(total - paid), NOTES: settings.notes || payload.notes || '—', AMOUNT_WORDS: `فقط ${money(total)} لا غير`, SEAL_CODE: settings.seal_code || '—',
   };
   let html = String(templateHtml || '');
   Object.entries(values).forEach(([key, value]) => {
+    if ((key === 'WORKSHOP_NAME' || key === 'CUSTOMER_NAME') && !String(value).trim()) return;
     html = html.replaceAll(`{{${key}}}`, String(value));
     html = html.replaceAll(`{${key}}`, String(value));
   });

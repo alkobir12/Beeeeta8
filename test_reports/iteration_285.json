@@ -1,0 +1,47 @@
+{
+  "summary": "إعادة اختبار P0.1 اكتملت (Backend + Frontend) بعد إصلاح CUSTOMER_NAME: المتغير يبقى placeholder عند غياب الاسم، يُكتشف ضمن missing_variables، وتُمنع المعاينة/PDF/الطباعة/واتساب عند النقص. كما تم التحقق أن الحالة المكتملة ما زالت تعمل.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter285_customer_name_guard_backend.py",
+    "/app/backend/tests/test_iter285_ui_event_audit.py",
+    "/app/frontend/src/utils/documentTemplate.iter285.test.js",
+    "/app/test_reports/pytest/iter285_customer_name_backend.xml",
+    "/app/test_reports/pytest/iter285_ui_event_audit.xml",
+    "/app/test_reports/pytest/iter285_iter284_regression.xml",
+    "/root/.emergent/automation_output/20260723_174518/console_20260723_174518.log",
+    "/root/.emergent/automation_output/20260723_174651/console_20260723_174651.log"
+  ],
+  "action_items": [
+    "لا يوجد P0 blocker متبقٍ ضمن نطاق هذا الطلب.",
+    "(تحسين اختياري) إزالة/توحيد أي fallback قديم داخل QuickPrintDialog.renderTemplateHtml غير المستخدم حالياً لتقليل خطر regressions مستقبلية."
+  ],
+  "critical_code_review_comments": [
+    "documentTemplate.renderDocumentTemplate يطبق السلوك المطلوب الآن: CUSTOMER_NAME لا يُستبدل عندما تكون القيمة فارغة، فيبقى placeholder قابلاً للرصد.",
+    "حارس الاكتمال قبل PDF/المعاينة/واتساب يعمل فعلياً في DocumentPrint وQuickPrint عبر assertTemplateComplete/findUnresolvedTemplateVariables ورسائل عربية واضحة.",
+    "في QuickPrintDialog توجد دالة renderTemplateHtml محلية (غير مستخدمة في المسار الحالي) ما زالت تحتوي fallback CUSTOMER_NAME='عميل نقدي'؛ ليست سبب فشل الآن لكنها مخاطرة صيانة مستقبلية."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter285_customer_name_guard_backend.py",
+    "/app/backend/tests/test_iter285_ui_event_audit.py",
+    "/app/frontend/src/utils/documentTemplate.iter285.test.js",
+    "/app/test_reports/iteration_285.json"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10 ضمن اختبارات iter285 + إعادة تشغيل regression iter284)",
+    "frontend": "100% (تدفق DocumentPrint/QuickPrint المطلوب ضمن هذا النطاق)"
+  },
+  "seed_data_creation": "تم إنشاء بيانات اختبار فقط: قوالب HTML بأسماء ITER285_UI_CUSTOMER_NAME_ONLY_* ومركبة اختبار بلا customerName لتفعيل سيناريو النقص.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "runtime test data محفوظ في /app/test_reports/iter285_runtime.json (template_id, vehicle_id). تم التحقق من تسجيل template_incomplete مع CUSTOMER_NAME من تدفق الواجهة داخل Mongo collection: document_template_resolution_audit.",
+  "rca of the issue": "RCA السابق (fallback صامت CUSTOMER_NAME='عميل نقدي') لم يعد يظهر في مسار renderDocumentTemplate المستخدم فعلياً. إعادة الاختبار أثبتت أن placeholder يبقى عند غياب الاسم، findUnresolvedTemplateVariables تعيده ضمن CUSTOMER_NAME، وحارس DocumentPrint/QuickPrint يمنع PDF/الطباعة/واتساب ويرسل template_incomplete مع missing_variables=['CUSTOMER_NAME'].",
+  "mocked_api": "NO MOCKED APIs used"
+}
