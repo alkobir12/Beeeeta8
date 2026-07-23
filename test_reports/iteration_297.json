@@ -1,0 +1,56 @@
+{
+  "summary": "Executed backend+frontend verification for approval-stamp template behavior. Core renderDocumentTemplate and DocumentPrint wiring contracts passed; one frontend readiness issue and one preview-edge CORS mismatch observed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "OPTIONS /api/document-templates",
+        "issue": "Credentialed CORS explicit-origin check returned Access-Control-Allow-Origin='*' in preview endpoint during test run (expected exact origin)."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "DocumentPrint initial preview rendering",
+        "issue": "When customer name is empty, renderer intentionally skips CUSTOMER_NAME replacement, leaving unresolved variable and blocking resolved-template preview with 'القالب غير مكتمل: CUSTOMER_NAME'.",
+        "affected_selectors": [
+          "[data-testid='document-template-error']",
+          "[data-testid='document-alert-message']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter297_document_approval_stamp_contract.py",
+    "/app/test_reports/pytest/iter297_document_approval_stamp_contract.xml",
+    "/app/test_reports/pytest/iter297_auth_playbook_checks.xml",
+    "/root/.emergent/automation_output/20260723_233508/console_20260723_233508.log"
+  ],
+  "action_items": [
+    "If requirement is strict 'no raw placeholders in final HTML at all times', replace CUSTOMER_NAME with safe fallback (e.g., —) instead of skipping replacement when empty.",
+    "Recheck credentialed CORS response on deployment edge/proxy: explicit origin is expected with allow_credentials=true."
+  ],
+  "critical_code_review_comments": [
+    "Approval stamp matrix contract passed in renderer: no stamp without approvals, customer/workshop independent stamps, dual approvals produce two stamps, no raw CUSTOMER_APPROVAL_STAMP/WORKSHOP_APPROVAL_STAMP tokens after render.",
+    "DocumentPrint correctly passes approvals into templatePayload and uses renderedTemplate for print flow (iframe srcdoc) and resolved-template preview pipeline.",
+    "Auth playbook checks: bcrypt $2b$ hash, HttpOnly+SameSite=None cookie flags, brute-force lockout after repeated failures, and manager seed path wiring are working.",
+    "No MOCKED APIs used."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter297_document_approval_stamp_contract.py",
+    "/app/test_reports/iteration_297.json"
+  ],
+  "success_rate": {
+    "backend": "92% (11/12 selected checks passed across two pytest runs)",
+    "frontend": "80% (targeted DocumentPrint checks passed; initial unresolved CUSTOMER_NAME guard blocks ready preview until user input)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used: مدير / 123123",
+  "seed_data_creation": "No new seed data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "For strict template-completeness expectation, start from /print and inspect template guard before filling customer name. Approval stamp scenarios were validated at renderer contract level via Node-based pytest harness (UI has no direct manual approvals toggles in this page).",
+  "rca of the issue": "RCA-1 (frontend): in renderDocumentTemplate, replacement loop skips WORKSHOP_NAME/CUSTOMER_NAME when value is empty, so {CUSTOMER_NAME} survives unresolved scan and DocumentPrint guard blocks resolved template. Repro: login -> /print -> wait; alert shows missing CUSTOMER_NAME until user fills name. Mitigation: replace with fallback value instead of skipping for strict no-placeholder rule. RCA-2 (CORS): OPTIONS test on preview endpoint returned '*' despite backend explicit-origin middleware; likely edge normalization behavior, needs deployment-level verification."
+}

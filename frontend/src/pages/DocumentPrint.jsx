@@ -173,6 +173,7 @@ export default function DocumentPrint() {
     vehicle: formData.vehicle,
     items: formData.items,
     payment: formData.payment,
+    approvals: formData.approvals,
     settings: { ...formData.settings, seal_code: sealCode, totals: { paid: totals.paid } },
   }), [docType, formData, sealCode, totals.paid]);
   const renderedTemplate = useMemo(() => templateContent ? renderDocumentTemplate(templateContent, templatePayload, formData.workshop) : '', [formData.workshop, templateContent, templatePayload]);

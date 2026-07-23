@@ -46,11 +46,13 @@ export const renderDocumentTemplate = (templateHtml, payload = {}, workshop = {}
   const total = normalized.reduce((sum, item) => sum + item.total, 0);
   const paid = Number(settings?.totals?.paid || payload?.payment?.paid || 0);
   const documentNumber = settings.document_number || payload.document_number || '—';
+  const approvalStamp = (approval, label) => approval?.name && approval?.at ? `<div class="approved-stamp" style="border:2px solid #15803d;color:#15803d;border-radius:50%;width:92px;height:92px;display:grid;place-items:center;text-align:center;font-weight:900;font-size:11px;line-height:1.3;margin-top:8px">تمت الموافقة<br><small>${escapeHtml(label)}</small><small>${escapeHtml(approval.name)}</small><small>${escapeHtml(new Date(approval.at).toLocaleDateString('ar-SA'))}</small><small>${escapeHtml(String(approval.id || '').slice(0, 12))}</small></div>` : '';
+  const approvals = payload.approvals || {};
   const values = {
     WORKSHOP_NAME: workshop.name || workshop.business_name || '', WORKSHOP_ADDRESS: workshop.address || '—', WORKSHOP_PHONE: workshop.phone || workshop.whatsapp || '—', WORKSHOP_EMAIL: workshop.email || '—', COMPANY_CR: workshop.commercial_register || workshop.commercialRegister || '—', COMPANY_TAX: workshop.tax_number || workshop.taxNumber || '—',
     CUSTOMER_NAME: customer.name || customer.customerName || '', CUSTOMER_PHONE: customer.phone || customer.customerPhone || '—', VEHICLE_INFO: `${vehicle.brand || ''} ${vehicle.model || ''} ${vehicle.year || ''}`.trim() || '—', PLATE_NO: vehicle.plateNumber || vehicle.plate || '—', STATUS_LABEL: settings.status || 'مسودة', INVOICE_NO: documentNumber, DATE: settings.date || payload.date || new Date().toISOString().slice(0, 10),
     ITEMS_ROWS: normalized.length ? normalized.map((item, index) => `<tr><td>${index + 1}</td><td class="desc">${escapeHtml(item.description)}</td><td>${escapeHtml(item.quantity)}</td><td>${money(item.price)}</td><td>${item.discount ? money(item.discount) : '—'}</td><td><b>${money(item.total)}</b></td></tr>`).join('') : '<tr><td colspan="6">لا توجد بنود</td></tr>',
-    SUBTOTAL: money(subtotal), DISCOUNT: money(discount), TAX: money(0), TOTAL: money(total), PAID: money(paid), REMAINING: money(total - paid), NOTES: settings.notes || payload.notes || '—', AMOUNT_WORDS: `فقط ${money(total)} لا غير`, SEAL_CODE: settings.seal_code || '—',
+    SUBTOTAL: money(subtotal), DISCOUNT: money(discount), TAX: money(0), TOTAL: money(total), PAID: money(paid), REMAINING: money(total - paid), NOTES: settings.notes || payload.notes || '—', AMOUNT_WORDS: `فقط ${money(total)} لا غير`, SEAL_CODE: settings.seal_code || '—', CUSTOMER_APPROVAL_STAMP: approvalStamp(approvals.customer, 'اعتماد العميل'), WORKSHOP_APPROVAL_STAMP: approvalStamp(approvals.workshop, 'اعتماد الورشة'),
   };
   let html = String(templateHtml || '');
   Object.entries(values).forEach(([key, value]) => {
