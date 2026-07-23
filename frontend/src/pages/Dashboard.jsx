@@ -68,11 +68,6 @@ const Dashboard = () => {
     // Listen for vehicle updates from other pages
     const handleVehicleUpdated = () => {
       console.log('🔄 Vehicle updated - background refresh');
-      nextVehicles = nextVehicles.map((vehicle) => ({
-        ...vehicle,
-        id: String(vehicle?.id || vehicle?.vehicleId || vehicle?._id || '').trim(),
-      })).filter((vehicle) => vehicle.id);
-
       if (isMountedRef.current) {
         fetchData(false);
       }
@@ -970,6 +965,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="navigate-btn flex items-center justify-center w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all cursor-pointer border border-blue-500/30"
+                        data-testid={`dashboard-open-vehicle-${vehicle.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           const vehicleId = String(vehicle.id || vehicle.vehicleId || vehicle._id || '').trim();
