@@ -31,9 +31,18 @@ export const useWhatsAppShare = () => {
     attemptRef.current = null;
     let attemptId = null;
     try {
+      const payloadCustomer = payload.customer || payload.client || {};
+      const payloadVehicle = payload.vehicle || {};
+      const resolvedPhone = phone || payloadCustomer.phone || payloadCustomer.customerPhone || '';
       const enrichedPayload = {
         ...payload,
         workshop,
+        customer: { ...payloadCustomer, phone: resolvedPhone, customerPhone: resolvedPhone },
+        vehicle: {
+          ...payloadVehicle,
+          plateNumber: payloadVehicle.plateNumber || payloadVehicle.plate || payload.plateNumber || '',
+          plate: payloadVehicle.plate || payloadVehicle.plateNumber || payload.plateNumber || '',
+        },
         settings: {
           ...(payload.settings || {}),
           seal_code: payload.settings?.seal_code
@@ -64,7 +73,7 @@ export const useWhatsAppShare = () => {
         action_key: resolved.template?.action_key,
         template_id: resolved.template?.id,
         template_version: resolved.template?.version,
-        phone: phone || resolved.phone?.raw || '',
+        phone: resolvedPhone || resolved.phone?.raw || '',
         message_text: resolved.message,
         context,
         initial_event: 'message_prepared',
@@ -119,7 +128,7 @@ export const useWhatsAppShare = () => {
         allowEdit: resolved.template?.allow_edit_before_share !== false,
         template: resolved.template,
         phone: resolved.phone,
-        initialPhone: phone || resolved.phone?.raw || '',
+        initialPhone: resolvedPhone || resolved.phone?.raw || '',
         customerId: payload?.customer?.id || null,
         pdfBlob,
         imageBlob,
