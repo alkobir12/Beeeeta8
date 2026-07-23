@@ -21,7 +21,7 @@ db = None
 _seed_lock = asyncio.Lock()
 _ALLOWED_TAGS = ["html", "head", "body", "meta", "title", "style", "main", "section", "article", "header", "footer", "div", "span", "p", "strong", "b", "em", "i", "small", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "ul", "ol", "li", "br", "hr", "img"]
 _ALLOWED_ATTRIBUTES = {"*": ["class", "style", "dir", "lang", "id", "data-testid"], "img": ["src", "alt", "width", "height"], "meta": ["charset", "name", "content"]}
-_SANITIZER = bleach.Cleaner(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, protocols=["http", "https", "data"], strip=True, strip_comments=True, css_sanitizer=CSSSanitizer())
+_SANITIZER = bleach.Cleaner(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, protocols=["http", "https", "data"], strip=True, strip_comments=False, css_sanitizer=CSSSanitizer())
 _KNOWN_TEMPLATE_VARIABLES = {"WORKSHOP_NAME", "WORKSHOP_ADDRESS", "WORKSHOP_PHONE", "WORKSHOP_EMAIL", "COMPANY_CR", "COMPANY_TAX", "TAX_NUMBER", "CUSTOMER_NAME", "CUSTOMER_PHONE", "VEHICLE_INFO", "PLATE_NO", "VEHICLE_PLATE", "STATUS_LABEL", "INVOICE_NO", "INVOICE_DATE", "DATE", "ITEMS_ROWS", "SUBTOTAL", "DISCOUNT", "TAX", "TOTAL", "PAID", "REMAINING", "NOTES", "AMOUNT_WORDS", "SEAL_CODE"}
 
 

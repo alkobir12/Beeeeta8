@@ -1,0 +1,51 @@
+{
+  "summary": "Re-tested iteration_294 across backend + frontend. Backend contract now passes: /use keeps ITEMS_ROWS placeholder inside tbody. However, frontend renderDocumentTemplate still leaves injected rows commented inside tbody (0 visible rows), so row rendering contract is still broken in UI preview/print/PDF source HTML.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "DocumentPrint -> renderDocumentTemplate -> resolved template preview",
+        "issue": "ITEMS_ROWS replacement runs in wrong order: raw token replacement happens before comment token replacement, producing tbody like <!--<tr>...</tr>--> and resulting in 0 rendered rows.",
+        "affected_selectors": [
+          "[data-testid='document-resolved-template-sheet']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter294_template_tbody_print_contract.py",
+    "/app/test_reports/pytest/iter294_retest_tbody_print_contract.xml",
+    "/root/.emergent/automation_output/20260723_221554/console_20260723_221554.log",
+    "/root/.emergent/automation_output/20260723_221628/console_20260723_221628.log",
+    "/root/.emergent/automation_output/20260723_221650/console_20260723_221650.log",
+    "/root/.emergent/automation_output/20260723_221710/console_20260723_221710.log"
+  ],
+  "action_items": [
+    "Frontend: in renderDocumentTemplate, replace comment placeholder first (<!--{{ITEMS_ROWS}}-->) before replacing raw {{ITEMS_ROWS}} to avoid commented <tr> rows.",
+    "Re-test DocumentPrint preview tbody row count after fix (should be >=1 when items exist).",
+    "Re-verify print/PDF output after row fix to ensure exported/printed table includes visible item rows.",
+    "Auth playbook deep checks (bcrypt prefix, httpOnly cookies, brute-force lockout, seed_admin update path) were not fully executed in this scoped retest."
+  ],
+  "critical_code_review_comments": [
+    "RCA confirmed from runtime DOM: tbody innerHTML became '<!--<tr>...</tr>-->' which proves replacement order bug in /app/frontend/src/utils/documentTemplate.js.",
+    "Backend sanitizer/registry fix is effective now (iter294 backend regression is green: 3/3).",
+    "No MOCKED APIs used."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_295.json"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3)",
+    "frontend": "70% (login/load/template resolve OK; tbody row rendering still failing)"
+  },
+  "seed_data_creation": "No seed data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend /use placeholder contract is fixed. Current blocker is frontend replacement order causing commented tbody rows. After frontend fix, re-run DocumentPrint preview + PDF/print regression.",
+  "rca of the issue": "Repro: open /print, fill item fields, inspect [data-testid='document-resolved-template-sheet'] tbody => 0 tr nodes and tbodyHtml contains commented row markup. Root cause: renderDocumentTemplate replaces '{{ITEMS_ROWS}}' before '<!--{{ITEMS_ROWS}}-->', so comment wrapper remains and rows are inert comments. Mitigation: reorder replacement logic to process comment marker first (or regex-replace both patterns atomically)."
+}
