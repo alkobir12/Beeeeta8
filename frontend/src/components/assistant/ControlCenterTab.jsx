@@ -36,6 +36,13 @@ const currentUsername = () => {
   } catch (e) { return ''; }
 };
 
+const currentRole = () => {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || 'null');
+    return String(u?.role || '').toLowerCase();
+  } catch (e) { return ''; }
+};
+
 function MiniKPI({ title, value, tone, testid }) {
   const tones = {
     rose: 'text-rose-600 dark:text-rose-400',
@@ -89,7 +96,12 @@ export const ControlCenterTab = ({ onCountChange }) => {
   }, [load]);
 
   const act = async (id, kind) => {
-    if (kind === 'approve' && !window.confirm('سيتم اعتماد هذه العملية وتنفيذها فوراً في السجلات. هل أنت متأكد؟\n\nملاحظة: لا يمكنك اعتماد طلبٍ اقترحتَه بنفسك (مبدأ الأربع أعين).')) return;
+    const row = approvals.find((item) => item.id === id) || {};
+    const isAdminSelfApproval = String(row.proposer || row.requester || '').trim() === currentUsername() && currentRole() === 'admin';
+    const confirmationText = isAdminSelfApproval
+      ? 'سيُسجّل اعتمادك كاستثناء مدير نظام ويُنفّذ الإجراء فوراً. هل أنت متأكد؟'
+      : 'سيتم اعتماد هذه العملية وتنفيذها فوراً في السجلات. هل أنت متأكد؟\n\nملاحظة: لا يمكنك اعتماد طلبٍ اقترحتَه بنفسك (مبدأ الأربع أعين).';
+    if (kind === 'approve' && !window.confirm(confirmationText)) return;
     setBusy(true); setMsg(null);
     try {
       if (kind === 'approve') {
@@ -200,6 +212,7 @@ export const ControlCenterTab = ({ onCountChange }) => {
             {approvals.map((a) => {
               const me = currentUsername();
               const isMine = me && String(a.proposer || a.requester || '').trim() === me;
+              const canAdminOverride = isMine && currentRole() === 'admin';
               return (
               <div
                 key={a.id}
@@ -219,7 +232,7 @@ export const ControlCenterTab = ({ onCountChange }) => {
                   </div>
                 </div>
                 <div className="px-3 pb-3 flex gap-2">
-                  {isMine ? (
+                  {isMine && !canAdminOverride ? (
                     <div
                       data-testid={`cc-awaiting-other-${a.id}`}
                       className="flex-1 inline-flex items-center justify-center gap-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-xs font-bold cursor-not-allowed"

@@ -837,10 +837,15 @@ def approve(*, approval_id: str, approver: Optional[str] = None, override_code: 
                 "msg": "يلزم اعتماد بشري حقيقي؛ الاعتماد الآلي ممنوع لكل الأفعال الكاتبة",
             }
 
-        developer_override = bool(
+        role = str(override_role or "").lower()
+        # قرار المالك: مدير النظام يملك اعتماد طلبه الذاتي وتجاوز القيود التشغيلية.
+        # يبقى هذا المسار موثقاً بوضوح في سجل التدقيق، ولا يمتد إلى بقية الأدوار.
+        admin_override = role == "admin"
+        code_override = bool(
             override_code == os.environ.get("DEVELOPER_APPROVAL_CODE", "rrr")
-            and str(override_role or "").lower() in {"admin", "manager", "system_manager", "system-admin", "owner"}
+            and role in {"manager", "system_manager", "system-admin", "owner"}
         )
+        developer_override = admin_override or code_override
 
         # Four-Eyes guard — إلا عند مدير/مدير نظام برمز المطور، ويُسجّل كـoverride لا كاعتماد عادي.
         if _enforce_4eyes() and approver_user == draft.get("proposer") and not developer_override:
@@ -856,8 +861,9 @@ def approve(*, approval_id: str, approver: Optional[str] = None, override_code: 
             approval["override_role"] = override_role
             draft["developer_override"] = True
         draft["status"] = "approved"
-        _audit("APPROVAL_GRANTED_OVERRIDE" if developer_override else "APPROVAL_GRANTED",
-               approval_id=approval_id, draft_id=draft["id"], approver=approver_user, role=override_role)
+        _audit("APPROVAL_GRANTED_ADMIN_OVERRIDE" if admin_override else ("APPROVAL_GRANTED_OVERRIDE" if developer_override else "APPROVAL_GRANTED"),
+               approval_id=approval_id, draft_id=draft["id"], approver=approver_user, role=override_role,
+               override_kind="admin_policy" if admin_override else ("developer_code" if code_override else None))
         return {"approval": approval, "draft": draft}
 
 

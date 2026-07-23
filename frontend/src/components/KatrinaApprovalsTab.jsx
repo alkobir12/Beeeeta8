@@ -131,13 +131,16 @@ export function KatrinaApprovalsTab({ onCountChange }) {
     const row = rows.find((r) => r.id === id) || {};
     if (kind === 'approve') {
       const selfApproval = row?.proposer && String(row.proposer).trim() === String(currentName).trim();
-      const canDeveloperOverride = selfApproval && ['admin', 'manager', 'system_manager'].includes(currentRole);
+      const isAdminOverride = selfApproval && currentRole === 'admin';
+      const canDeveloperOverride = selfApproval && ['manager', 'system_manager'].includes(currentRole);
       let developerCode = null;
       if (canDeveloperOverride) {
         developerCode = window.prompt('هذا طلب أنشأته أنت. أدخل رمز المطور لاعتماده وتنفيذه:');
         if (!developerCode) return;
       }
-      const ok = window.confirm(canDeveloperOverride
+      const ok = window.confirm(isAdminOverride
+        ? 'سيُسجّل اعتمادك كاستثناء مدير نظام ويُنفّذ الإجراء فوراً. هل أنت متأكد؟'
+        : canDeveloperOverride
         ? 'سيتم تسجيل الاعتماد كـ Developer Override وتنفيذ العملية فوراً. هل أنت متأكد؟'
         : 'سيتم اعتماد هذه العملية وتنفيذها فوراً في السجلات. هل أنت متأكد؟\n\nالمحاسب أو مدير آخر يستطيع الاعتماد إذا كان غير مُنشئ الطلب.');
       if (!ok) return;
@@ -189,7 +192,7 @@ export function KatrinaApprovalsTab({ onCountChange }) {
           <RefreshCw size={14} className={busy ? 'animate-spin' : ''} /> تحديث
         </button>
         <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-          <AlertTriangle size={13} /> الاعتماد يُنفِّذ العملية فوراً — والمُعتمِد يجب أن يكون غير المُقترِح
+          <AlertTriangle size={13} /> الاعتماد يُنفِّذ العملية فوراً — مدير النظام يستطيع اعتماد طلبه مع تسجيل الاستثناء
         </span>
       </div>
 

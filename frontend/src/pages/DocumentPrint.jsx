@@ -77,6 +77,21 @@ const buildSealCode = (number, date) => {
   return `ES-${Math.abs(hash).toString(16).slice(0, 8).toUpperCase()}`;
 };
 
+const approvedStatuses = new Set(['approved', 'accepted', 'approval_accepted']);
+
+const normalizeApproval = (approval, fallbackName = '') => {
+  if (!approval) return null;
+  const approved = approvedStatuses.has(String(approval.status || '').toLowerCase());
+  if (!approved) return null;
+  return {
+    name: approval.responderName || approval.responder_name || approval.approverName || approval.approver_name || approval.approved_by || fallbackName || 'معتمد',
+    at: approval.respondedAt || approval.responded_at || approval.approvedAt || approval.approved_at || approval.updatedAt || approval.updated_at || '',
+    id: approval.id || approval.token || approval.approvalId || approval.approval_id || '',
+  };
+};
+
+const barcodeValue = (workshop = {}) => [workshop.name, workshop.tax_number || workshop.taxNumber, workshop.phone].filter(Boolean).join(' | ');
+
 export default function DocumentPrint() {
   const [searchParams] = useSearchParams();
   const vehicleId = searchParams.get('vehicleId');
@@ -95,6 +110,7 @@ export default function DocumentPrint() {
   const [pdfBusy, setPdfBusy] = useState(false);
   const [saveState, setSaveState] = useState('جاهز');
   const [alertMessage, setAlertMessage] = useState('');
+  const [sealInvalidated, setSealInvalidated] = useState(false);
   const [docType, setDocType] = useState(searchParams.get('type') || 'invoice');
   const [formData, setFormData] = useState({
     workshop: {
@@ -121,6 +137,7 @@ export default function DocumentPrint() {
       warranty: 'ضمان الإصلاح 30 يوماً أو 1,000 كم من تاريخ التسليم، ولا يشمل سوء الاستخدام أو القطع المستعملة.',
     },
     payment: { method: 'cash', paid: 0 },
+    approvals: { customer: null, workshop: null },
   });
 
   const totals = useMemo(() => {
@@ -141,10 +158,26 @@ export default function DocumentPrint() {
 
   const sealCode = useMemo(() => buildSealCode(formData.settings.document_number, formData.settings.date), [formData.settings.date, formData.settings.document_number]);
 
-  const patchForm = useCallback((patch) => setFormData((prev) => ({ ...prev, ...patch })), []);
+  const patchForm = useCallback((patch) => {
+    setSealInvalidated(true);
+    setFormData((prev) => ({ ...prev, ...patch }));
+  }, []);
   const patchNested = useCallback((section, key, value) => {
+    setSealInvalidated(true);
     setFormData((prev) => ({ ...prev, [section]: { ...prev[section], [key]: value } }));
   }, []);
+
+  const loadApprovalLogs = useCallback(async () => {
+    if (!vehicleId) return;
+    try {
+      const { data } = await api.get(`/vehicles/${vehicleId}/approval-logs`);
+      const approved = (Array.isArray(data) ? data : []).find((item) => approvedStatuses.has(String(item.status || '').toLowerCase()));
+      const customer = normalizeApproval(approved, formData.customer.name);
+      if (customer) setFormData((prev) => ({ ...prev, approvals: { ...prev.approvals, customer } }));
+    } catch (e) {
+      // غياب سجل اعتماد لا يمنع عرض المستند، لكنه يعني عدم إظهار ختم العميل.
+    }
+  }, [formData.customer.name, vehicleId]);
 
   const loadWorkshop = useCallback(async () => {
     const ws = await loadWorkshopPrintInfo(async (path) => {
@@ -237,6 +270,7 @@ export default function DocumentPrint() {
             date: String(op.date || op.createdAt || today()).slice(0, 10),
             notes: op.notes || prev.settings.notes,
           },
+          approvals: { ...prev.approvals, workshop: normalizeApproval(op.workshopApproval || op.workshop_approval || { status: op.approval_status, approved_by: op.approved_by, approved_at: op.approved_at }) },
         }));
         return;
       }
@@ -307,6 +341,7 @@ export default function DocumentPrint() {
           date: String(data.created_at || data.createdAt || today()).slice(0, 10),
           notes: data.notes || prev.settings.notes,
         },
+        approvals: { ...prev.approvals, workshop: normalizeApproval(data.workshopApproval || data.workshop_approval || { status: data.approval_status, approved_by: data.approved_by, approved_at: data.approved_at }) },
       }));
       if (data.vehicleId || data.vehicle_id) await loadVehicle(data.vehicleId || data.vehicle_id, true);
     } catch (e) {
@@ -324,12 +359,14 @@ export default function DocumentPrint() {
       if (visitId) await loadVisit();
       if (operationId) await loadOperation(operationId);
       if (invoiceId) await loadInvoice(invoiceId);
+      await loadApprovalLogs();
+      setSealInvalidated(false);
       setSaveState('محفوظ');
     } finally {
       setLoading(false);
       setTimeout(() => setSaveState('جاهز'), 1200);
     }
-  }, [invoiceId, loadInvoice, loadOperation, loadVehicle, loadVisit, loadWorkshop, operationId, vehicleId, visitId]);
+  }, [invoiceId, loadApprovalLogs, loadInvoice, loadOperation, loadVehicle, loadVisit, loadWorkshop, operationId, vehicleId, visitId]);
 
   useEffect(() => { refreshData(); }, [refreshData]);
 
@@ -382,6 +419,7 @@ export default function DocumentPrint() {
   }, [autoPrint, autoWhatsApp]);
 
   const updateItem = (index, key, value) => {
+    setSealInvalidated(true);
     setFormData((prev) => ({
       ...prev,
       items: prev.items.map((item, i) => i === index ? { ...item, [key]: key === 'description' || key === 'type' ? value : safeNumber(value) } : item),
@@ -389,12 +427,14 @@ export default function DocumentPrint() {
   };
 
   const removeItem = (index) => {
+    setSealInvalidated(true);
     setFormData((prev) => ({ ...prev, items: prev.items.length > 1 ? prev.items.filter((_, i) => i !== index) : [emptyItem] }));
   };
 
   return (
     <div className="document-print-page" dir="rtl" data-testid="document-print-page">
       <style>{styles}</style>
+      <style>{printOverrides}</style>
       <header className="doc-shell-header" data-testid="document-shell-header">
         <div className="doc-brand-block">
           <div className="doc-brand-icon"><ShieldCheck size={24} /></div>
@@ -420,7 +460,7 @@ export default function DocumentPrint() {
                   key={key}
                   type="button"
                   className={`doc-type-card ${docType === key ? 'active' : ''}`}
-                  onClick={() => setDocType(key)}
+                  onClick={() => { setSealInvalidated(true); setDocType(key); }}
                   data-testid={`document-type-${key}`}
                 >
                   <span>{label}</span>
@@ -512,6 +552,7 @@ export default function DocumentPrint() {
                   totals={totals}
                   sealCode={sealCode}
                   numberToWords={numberToWords}
+                  sealInvalidated={sealInvalidated}
                 />
               </div>
             </div>
@@ -523,13 +564,16 @@ export default function DocumentPrint() {
   );
 }
 
-const InvoiceSheet = React.forwardRef(({ docType, formData, totals, sealCode, numberToWords }, ref) => {
+const InvoiceSheet = React.forwardRef(({ docType, formData, totals, sealCode, numberToWords, sealInvalidated }, ref) => {
   const w = formData.workshop || {};
   const c = formData.customer || {};
   const v = formData.vehicle || {};
   const settings = formData.settings || {};
   const title = docLabels[docType] || docLabels.invoice;
   const workshopInitial = String(w.name || 'د').trim().slice(0, 1);
+  const customerSeal = !sealInvalidated ? formData.approvals?.customer : null;
+  const workshopSeal = !sealInvalidated ? formData.approvals?.workshop : null;
+  const barcode = barcodeValue(w);
 
   return (
     <article className="electronic-invoice-sheet" ref={ref} data-testid="document-sheet">
@@ -547,10 +591,9 @@ const InvoiceSheet = React.forwardRef(({ docType, formData, totals, sealCode, nu
             <p data-testid="document-workshop-tagline">{w.tagline || 'ميكانيكا عامة · كهرباء · فحص كمبيوتر'}</p>
           </div>
         </div>
-        <div className="invoice-seal" data-testid="document-electronic-seal">
-          <div className="seal-ring"><BadgeCheck size={38} /></div>
-          <strong>ختم إلكتروني</strong>
-          <span data-testid="document-seal-code">{sealCode}</span>
+        <div className="invoice-header-meta" data-testid="document-header-meta">
+          <strong data-testid="document-title-kind">{docType === 'invoice' ? 'فاتورة ضريبية' : title}</strong>
+          <span data-testid="document-header-tax">الرقم الضريبي: {w.tax_number || w.taxNumber || '—'}</span>
         </div>
       </header>
 
@@ -631,21 +674,28 @@ const InvoiceSheet = React.forwardRef(({ docType, formData, totals, sealCode, nu
           <TotalLine label="إجمالي الخصومات" value={`− ${SAR(totals.discount)}`} testId="document-discount" />
           <TotalLine label="الضريبة" value={SAR(totals.tax)} testId="document-tax" />
           <TotalLine label="الإجمالي النهائي" value={SAR(totals.total)} accent testId="document-grand-total" />
-          <TotalLine label="المدفوع" value={SAR(totals.paid)} testId="document-paid" />
-          <TotalLine label="المتبقي" value={SAR(totals.remain)} testId="document-remaining" />
         </div>
       </section>
 
-      <section className="invoice-signature-grid" data-testid="document-signature-grid">
-        <div className="signature-box" data-testid="document-workshop-signature"><span>توقيع الورشة</span></div>
-        <div className="signature-box" data-testid="document-customer-signature"><span>توقيع العميل</span></div>
-        <div className="qr-box" data-testid="document-qr-box"><div /> <span>رمز تحقق</span></div>
+      <section className="invoice-approval-area" data-testid="document-approval-area">
+        {sealInvalidated && (formData.approvals?.customer || formData.approvals?.workshop) && (
+          <p className="seal-invalidated" data-testid="document-seals-invalidated">تم تعديل المستند بعد الاعتماد — الأختام بحاجة لاعتماد جديد.</p>
+        )}
+        {!sealInvalidated && (customerSeal || workshopSeal) && (
+          <div className="invoice-seal-row" data-testid="document-dynamic-seals">
+            {customerSeal && <ElectronicSeal label="تمت الموافقة" approval={customerSeal} testId="document-customer-electronic-seal" />}
+            {workshopSeal && <ElectronicSeal label="معتمد" approval={workshopSeal} testId="document-workshop-electronic-seal" />}
+          </div>
+        )}
       </section>
 
       <footer className="invoice-footer" data-testid="document-footer">
         <span data-testid="document-footer-contact">{w.phone || ''} {w.website ? `· ${w.website}` : ''}</span>
         <strong data-testid="document-footer-message">تم إصدار هذا المستند إلكترونياً عبر نظام داش برو</strong>
-        <span data-testid="document-footer-seal">{sealCode}</span>
+        <div className="invoice-barcode" data-value={barcode} data-testid="document-single-barcode">
+          <div className="barcode-bars" aria-hidden="true">{Array.from({ length: 42 }, (_, index) => <i key={index} style={{ width: `${1 + ((barcode.charCodeAt(index % Math.max(barcode.length, 1)) || index) % 3)}px` }} />)}</div>
+          <span data-testid="document-barcode-value">{barcode || 'بيانات الورشة غير مكتملة'}</span>
+        </div>
       </footer>
     </article>
   );
@@ -681,6 +731,17 @@ function TotalLine({ label, value, accent = false, testId }) {
   return <div className={`invoice-total-line ${accent ? 'accent' : ''}`} data-testid={testId}><span>{label}</span><strong>{value}</strong></div>;
 }
 
+function ElectronicSeal({ label, approval, testId }) {
+  const date = approval.at ? new Date(approval.at) : null;
+  const dateText = date && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('ar-SA') : '—';
+  const timeText = date && !Number.isNaN(date.getTime()) ? date.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }) : '—';
+  return <div className="dynamic-electronic-seal" data-testid={testId}><BadgeCheck size={16} /><strong>{label}</strong><span>{approval.name}</span><small>{dateText} · {timeText}</small><em>{String(approval.id || '—').slice(0, 14)}</em></div>;
+}
+
 const styles = `
 .document-print-page{--dp-bg:#f6f7fb;--dp-card:#ffffff;--dp-navy:#172033;--dp-blue:#2563eb;--dp-blue2:#0ea5e9;--dp-text:#172033;--dp-muted:#64748b;--dp-line:#e2e8f0;--dp-green:#10b981;--dp-orange:#f59e0b;min-height:100vh;background:linear-gradient(180deg,#f6f7fb 0%,#eef3f8 100%);color:var(--dp-text);font-family:Parastoo,Tahoma,Arial,sans-serif;direction:rtl;padding:18px}.document-print-page *{box-sizing:border-box;letter-spacing:0}.doc-shell-header{position:sticky;top:10px;z-index:15;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 auto 18px;max-width:1480px;padding:16px 18px;background:rgba(255,255,255,.88);border:1px solid rgba(226,232,240,.9);border-radius:20px;box-shadow:0 16px 40px rgba(15,23,42,.08);backdrop-filter:blur(16px)}.doc-brand-block{display:flex;align-items:center;gap:14px;min-width:0}.doc-brand-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,#1e3a5f,#172033);color:#fff;box-shadow:0 16px 34px rgba(30,58,95,.24)}.doc-kicker{margin:0 0 2px;font-size:12px;font-weight:800;color:var(--dp-blue)!important}.doc-shell-header h1{margin:0;font-size:24px;font-weight:900;color:var(--dp-text)!important}.doc-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.doc-alert{max-width:360px;padding:9px 12px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412!important;font-size:12px;font-weight:800}.doc-save-pill{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;background:#ecfdf5;color:#047857!important;border:1px solid #bbf7d0;font-size:12px;font-weight:900}.doc-save-pill span{width:8px;height:8px;border-radius:50%;background:#10b981}.doc-save-pill.is-loading{background:#fffbeb;color:#92400e!important;border-color:#fde68a}.doc-save-pill.is-loading span{background:#f59e0b}.doc-icon-button{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;border:1px solid var(--dp-line);background:#fff;color:var(--dp-text);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.doc-icon-button:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:0 10px 24px rgba(37,99,235,.14);color:var(--dp-blue)}.doc-workspace{max-width:1480px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(440px,570px);gap:18px;align-items:start}.doc-workspace.editor-only{grid-template-columns:minmax(0,920px);justify-content:center}.doc-editor{min-width:0}.doc-panel{background:var(--dp-card);border:1px solid var(--dp-line);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 10px 28px rgba(15,23,42,.06);animation:docRise .28s ease both}.doc-panel h2{margin:0 0 14px;display:flex;align-items:center;gap:9px;font-size:16px;font-weight:900;color:var(--dp-text)!important}.doc-panel h2 svg{color:var(--dp-blue)}.doc-grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.doc-field{display:block;min-width:0}.doc-field span{display:block;margin-bottom:6px;font-size:12px;font-weight:900;color:var(--dp-muted)!important}.doc-field input,.doc-field select,.doc-field textarea{width:100%;min-height:46px;border:1px solid var(--dp-line);border-radius:12px;background:#fff;color:var(--dp-text);font-size:14px;font-weight:700;padding:10px 12px;outline:none;transition:border-color .18s ease,box-shadow .18s ease}.doc-field textarea{min-height:92px;resize:vertical;line-height:1.7}.doc-field input:focus,.doc-field select:focus,.doc-field textarea:focus{border-color:#93c5fd;box-shadow:0 0 0 4px rgba(37,99,235,.10)}.doc-type-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.doc-type-card{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid var(--dp-line);border-radius:16px;background:#fff;color:var(--dp-text);font-size:13px;font-weight:900;text-align:right;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.doc-type-card:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:0 12px 26px rgba(37,99,235,.10)}.doc-type-card.active{background:linear-gradient(135deg,#2563eb,#0ea5e9);border-color:transparent;color:#fff}.doc-type-card.active span,.doc-type-card.active svg{color:#fff!important}.doc-items-list{display:grid;gap:10px;margin-bottom:12px}.doc-item-row{display:grid;grid-template-columns:minmax(180px,2fr) minmax(76px,.7fr) minmax(90px,.9fr) minmax(80px,.8fr) 46px;gap:10px;align-items:end;padding:12px;border-radius:16px;background:#f8fafc;border:1px solid #edf2f7}.doc-remove-button{height:46px;border:1px solid #fecdd3;background:#fff1f2;color:#be123c;border-radius:12px;display:grid;place-items:center;cursor:pointer}.doc-action{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border:1px solid var(--dp-line);border-radius:14px;background:#fff;color:var(--dp-text);font-size:14px;font-weight:900;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}.doc-action:hover{transform:translateY(-1px);box-shadow:0 12px 25px rgba(15,23,42,.10)}.doc-action.primary{background:linear-gradient(135deg,#2563eb,#1d4ed8);border-color:transparent;color:#fff}.doc-action.primary svg,.doc-action.whatsapp svg{color:#fff!important}.doc-action.whatsapp{background:linear-gradient(135deg,#10b981,#059669);border-color:transparent;color:#fff}.doc-action:disabled{opacity:.58;cursor:not-allowed;transform:none}.doc-summary-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.doc-summary-item{padding:12px;border-radius:15px;background:#f8fafc;border:1px solid var(--dp-line)}.doc-summary-item span{display:block;font-size:12px;color:var(--dp-muted)!important;font-weight:800}.doc-summary-item strong{display:block;margin-top:4px;font-size:16px;color:var(--dp-text)!important;font-weight:950}.doc-actions-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.doc-preview-panel{position:sticky;top:96px;height:calc(100vh - 116px);overflow:hidden;border-radius:22px;background:#172033;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 60px rgba(15,23,42,.18)}.doc-preview-toolbar{display:flex;align-items:center;gap:8px;padding:10px;background:linear-gradient(135deg,#1e3a5f,#172033);border-bottom:1px solid rgba(255,255,255,.10)}.doc-preview-toolbar .doc-icon-button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:#e2e8f0}.doc-preview-toolbar .doc-icon-button:hover{color:#fff;border-color:rgba(125,211,252,.5)}.doc-zoom{min-width:58px;text-align:center;color:#e2e8f0!important;font-size:13px;font-weight:900}.doc-preview-viewport{height:calc(100% - 63px);overflow:auto;padding:22px;display:flex;justify-content:center;align-items:flex-start}.doc-sheet-scale{transform-origin:top center;flex:none}.electronic-invoice-sheet{position:relative;width:210mm;min-height:297mm;overflow:hidden;background:#fff;color:#172033;padding:13mm;box-shadow:0 24px 70px rgba(0,0,0,.34);font-family:Parastoo,Tahoma,Arial,sans-serif;direction:rtl}.electronic-invoice-sheet:before{content:'';position:absolute;inset:0 0 auto;height:8mm;background:linear-gradient(90deg,#172033 0%,#1e3a5f 48%,#2563eb 73%,#0ea5e9 100%)}.invoice-watermark{position:absolute;top:122mm;left:18mm;transform:rotate(-28deg);font-size:74px;font-weight:950;color:rgba(37,99,235,.045)!important;pointer-events:none}.invoice-watermark.strong{color:rgba(190,18,60,.16)!important;font-size:60px}.invoice-status.cancelled{background:#fee2e2;color:#b91c1c}.invoice-status.superseded{background:#f1f5f9;color:#475569}.invoice-hero{position:relative;margin-top:6mm;display:flex;align-items:flex-start;justify-content:space-between;gap:8mm;padding-bottom:7mm;border-bottom:1px solid #dbe4ee}.invoice-identity{display:flex;align-items:flex-start;gap:4mm;min-width:0}.invoice-logo{width:19mm;height:19mm;border-radius:6mm;background:linear-gradient(135deg,#172033,#1e3a5f);display:grid;place-items:center;color:#fff;overflow:hidden;flex:none}.invoice-logo img{width:100%;height:100%;object-fit:contain;background:#fff;padding:2mm}.invoice-logo span{font-size:22px;font-weight:950;color:#fff!important}.invoice-overline{margin:0 0 1mm;font-size:8px;font-weight:950;color:#2563eb!important}.invoice-identity h2{margin:0;font-size:19px;line-height:1.35;font-weight:950;color:#172033!important}.invoice-identity p:last-child{margin:1mm 0 0;font-size:9.5px;color:#64748b!important}.invoice-seal{width:34mm;height:34mm;border:1.4px dashed #2563eb;border-radius:50%;display:grid;place-items:center;text-align:center;color:#1d4ed8;background:#eff6ff}.seal-ring{width:13mm;height:13mm;border-radius:50%;display:grid;place-items:center;color:#2563eb}.invoice-seal strong{font-size:9px;color:#1d4ed8!important}.invoice-seal span{font-size:7.5px;font-weight:900;color:#0f172a!important}.invoice-title-band{margin-top:5mm;display:flex;align-items:center;justify-content:space-between;gap:6mm;padding:5mm;border-radius:5mm;background:linear-gradient(135deg,#f8fafc,#eef6ff);border:1px solid #dbeafe}.invoice-title-band p{margin:0;color:#64748b!important;font-size:10px;font-weight:900}.invoice-title-band h1{margin:1mm 0 0;font-size:23px;font-weight:950;color:#172033!important}.invoice-status-block{text-align:left}.invoice-status{display:inline-flex;align-items:center;justify-content:center;padding:2mm 4mm;border-radius:999px;font-size:9px;font-weight:950}.invoice-status.draft{background:#f1f5f9;color:#475569}.invoice-status.unpaid{background:#fee2e2;color:#b91c1c}.invoice-status.partial{background:#fef3c7;color:#92400e}.invoice-status.paid{background:#d1fae5;color:#047857}.invoice-status.deferred{background:#dbeafe;color:#1d4ed8}.invoice-status-block small{display:block;margin-top:2mm;color:#64748b!important;font-size:8.5px;font-weight:800}.invoice-contact-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3.5mm;margin-top:5mm}.invoice-info-card{border:1px solid #e2e8f0;border-radius:4mm;padding:3.5mm;background:#fff}.invoice-info-card h3{display:flex;align-items:center;gap:1.5mm;margin:0 0 2.5mm;font-size:10.5px;font-weight:950;color:#172033!important}.invoice-info-card h3 svg{color:#2563eb}.invoice-info-line{display:flex;justify-content:space-between;gap:3mm;padding:1.5mm 0;border-bottom:1px dashed #edf2f7;font-size:9px}.invoice-info-line:last-child{border-bottom:0}.invoice-info-line span{color:#64748b!important;font-weight:800}.invoice-info-line strong{color:#172033!important;font-weight:950;text-align:left;word-break:break-word}.invoice-table-section{margin-top:5mm}.section-heading{display:flex;align-items:center;gap:2mm;margin-bottom:2mm;color:#172033;font-size:11px;font-weight:950}.section-heading svg{color:#2563eb}.invoice-items-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;overflow:hidden;border:1px solid #dbe4ee;border-radius:3mm;font-size:8.7px}.invoice-items-table th{background:#172033;color:#fff!important;padding:2.2mm;border-left:1px solid rgba(255,255,255,.12);font-weight:950}.invoice-items-table td{padding:2.2mm;border-left:1px solid #e2e8f0;border-top:1px solid #e2e8f0;text-align:center;vertical-align:top;color:#172033!important;word-break:break-word}.invoice-items-table th:nth-child(2),.invoice-items-table td:nth-child(2){width:34%;text-align:right}.invoice-items-table tbody tr:nth-child(even) td{background:#f8fafc}.invoice-items-table .item-desc{font-weight:850}.invoice-items-table .strong{font-weight:950;color:#0f172a!important}.empty-table{text-align:center!important;color:#94a3b8!important;padding:8mm!important}.invoice-bottom-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:4mm;margin-top:5mm}.invoice-notes{padding:4mm;border-radius:4mm;border:1px solid #e2e8f0;background:#f8fafc}.invoice-notes h3{margin:0 0 1mm;font-size:10.5px;font-weight:950;color:#172033!important}.invoice-notes p{margin:0 0 3mm;font-size:9px;line-height:1.8;color:#475569!important}.amount-words{margin-top:2mm;padding:2.5mm;border-radius:3mm;background:#fff;border:1px dashed #bfdbfe;color:#172033!important;font-size:9px}.amount-words strong{color:#1d4ed8!important}.invoice-totals-card{border:1px solid #dbe4ee;border-radius:4mm;overflow:hidden;background:#fff}.invoice-total-line{display:flex;align-items:center;justify-content:space-between;gap:3mm;padding:2.3mm 3mm;border-bottom:1px solid #edf2f7;font-size:9.5px}.invoice-total-line:last-child{border-bottom:0}.invoice-total-line span{color:#64748b!important;font-weight:850}.invoice-total-line strong{color:#172033!important;font-weight:950}.invoice-total-line.accent{background:linear-gradient(135deg,#172033,#1e3a5f)}.invoice-total-line.accent span,.invoice-total-line.accent strong{color:#fff!important}.invoice-total-line.accent strong{font-size:13px}.invoice-signature-grid{display:grid;grid-template-columns:1fr 1fr 28mm;gap:4mm;margin-top:6mm;align-items:stretch}.signature-box{height:22mm;border:1px dashed #94a3b8;border-radius:3mm;background:#fff;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2mm}.signature-box span{font-size:9px;font-weight:900;color:#64748b!important}.qr-box{height:22mm;border:1px solid #dbe4ee;border-radius:3mm;display:grid;place-items:center;background:#f8fafc}.qr-box div{width:13mm;height:13mm;background:repeating-linear-gradient(45deg,#172033 0 2px,#fff 2px 4px)}.qr-box span{font-size:7px;font-weight:900;color:#64748b!important}.invoice-footer{position:absolute;left:13mm;right:13mm;bottom:9mm;display:flex;justify-content:space-between;align-items:center;gap:4mm;padding-top:3mm;border-top:1px solid #dbe4ee;font-size:8.2px;color:#64748b!important}.invoice-footer strong{color:#172033!important}.invoice-footer span{color:#64748b!important}@keyframes docRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@media(max-width:1180px){.doc-workspace{grid-template-columns:1fr}.doc-preview-panel{position:relative;top:0;height:76vh}.doc-type-grid,.doc-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.document-print-page{padding:10px}.doc-shell-header{position:relative;top:0;align-items:flex-start;flex-direction:column}.doc-header-actions{width:100%;justify-content:flex-start}.doc-grid.two,.doc-summary-strip,.doc-type-grid,.doc-actions-grid{grid-template-columns:1fr}.doc-item-row{grid-template-columns:1fr}.doc-remove-button{width:100%}.doc-preview-viewport{padding:12px;justify-content:flex-start}.doc-preview-panel{height:70vh}.doc-shell-header h1{font-size:20px}.doc-brand-icon{width:46px;height:46px}}@media print{.document-print-page{background:#fff!important;padding:0!important}.doc-shell-header,.doc-editor,.doc-preview-toolbar{display:none!important}.doc-workspace{display:block;margin:0;max-width:none}.doc-preview-panel{position:static;height:auto;border:0;border-radius:0;box-shadow:none;background:#fff;overflow:visible}.doc-preview-viewport{height:auto;overflow:visible;padding:0;display:block}.doc-sheet-scale{transform:none!important;height:auto!important}.electronic-invoice-sheet{width:210mm;min-height:297mm;box-shadow:none;margin:0;padding:13mm;page-break-after:always}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:0}}
+`;
+
+const printOverrides = `
+.invoice-header-meta{min-width:42mm;text-align:left;display:grid;gap:2mm;padding-top:2mm}.invoice-header-meta strong{font-size:12px;color:#172033!important}.invoice-header-meta span{font-size:8.5px;color:#64748b!important}.invoice-approval-area{margin-top:5mm;min-height:4mm}.invoice-seal-row{display:flex;justify-content:flex-start;gap:5mm}.dynamic-electronic-seal{width:27mm;height:27mm;border:1.2px solid #0f766e;border-radius:50%;background:#f0fdfa;color:#115e59;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2mm;line-height:1.15}.dynamic-electronic-seal svg{color:#0f766e}.dynamic-electronic-seal strong{font-size:8px;color:#115e59!important}.dynamic-electronic-seal span{font-size:7px;font-weight:950;color:#172033!important;max-width:22mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dynamic-electronic-seal small,.dynamic-electronic-seal em{font-size:5.8px;font-style:normal;color:#475569!important;direction:rtl}.seal-invalidated{margin:0;padding:2.5mm 3mm;background:#fff7ed;border:1px solid #fdba74;border-radius:2mm;color:#9a3412!important;font-size:8px;font-weight:900}.invoice-footer{bottom:7mm;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:4mm;font-size:7.4px}.invoice-footer strong{text-align:center}.invoice-footer>span:first-child{text-align:right}.invoice-barcode{justify-self:end;display:grid;gap:1mm;max-width:48mm;text-align:left}.barcode-bars{height:8mm;display:flex;align-items:stretch;gap:1px;background:#fff;padding:1px}.barcode-bars i{display:block;height:100%;background:#172033}.invoice-barcode span{font-size:5.4px;line-height:1.1;word-break:break-all;direction:ltr}@media print{.invoice-approval-area{break-inside:avoid}.invoice-footer{display:grid}}
 `;

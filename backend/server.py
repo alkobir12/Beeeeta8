@@ -829,6 +829,10 @@ async def get_vehicles():
         for r in rows:
             if r.get("status") is None:
                 r["status"] = "diagnosis"
+            # مركبات كاترينا قد لا تحمل سنة عند إنشائها. نموذج الاستجابة يتطلب
+            # عدداً صحيحاً، لذلك نطبع القيمة الناقصة بدلاً من إسقاط لوحة التحكم.
+            if r.get("year") is None:
+                r["year"] = 0
         return [Vehicle(**r) for r in rows]
 
     if DB_PROVIDER == "memory":
@@ -838,6 +842,8 @@ async def get_vehicles():
         for r in rows:
             if r.get("status") is None:
                 r["status"] = "diagnosis"
+            if r.get("year") is None:
+                r["year"] = 0
         return [Vehicle(**r) for r in rows]
 
     # استخدام Projection وحد للحفاظ على الأداء في الإنتاج

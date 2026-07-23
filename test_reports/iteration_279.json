@@ -1,0 +1,49 @@
+{
+  "summary": "Re-tested requested backend/frontend regressions on external preview URL. All targeted flows passed: dashboard no longer stuck, /api/vehicles returns 200 with integer year fields, admin self-approval works without developer_code and logs admin override audit, accountant self-approval is blocked, and /print?type=invoice renders required UX-A4 elements with single barcode and without legacy signatures/QR.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Pre-login bootstrap",
+        "issue": "Multiple 401 console resource errors appear before authentication; this did not block login or tested flows.",
+        "affected_selectors": [
+          "[data-testid='login-username-input']",
+          "[data-testid='dashboard-search-input']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter279_admin_override_and_vehicle_year.py",
+    "/app/test_reports/pytest/iter279_backend.xml",
+    "/root/.emergent/automation_output/20260723_094544/console_20260723_094544.log"
+  ],
+  "action_items": [
+    "Optional: investigate pre-login 401 console noise to reduce runtime log clutter."
+  ],
+  "critical_code_review_comments": [
+    "server.py vehicle list normalization appears effective for null year sources in tested dataset (all returned years were integers).",
+    "Action runtime admin override policy is functioning as implemented: admin self-approval succeeds and emits APPROVAL_GRANTED_ADMIN_OVERRIDE while non-admin proposer remains blocked by four-eyes.",
+    "DocumentPrint DOM matches requested cleanup: single final total block, no rendered legacy signature/QR sections, and one rendered document-single-barcode."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter279_admin_override_and_vehicle_year.py",
+    "/app/test_reports/iteration_279.json"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3 pytest + API checks in UI run)",
+    "frontend": "100% (all requested UI/integration checks passed)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md; used مدير/PIN 123123 and احمد/PIN 123123.",
+  "seed_data_creation": "Created TEST_SAFE_* and TEST_ACCOUNTANT_* runtime draft payload markers during approval tests. One backend-created committed vehicle was cleaned in pytest best-effort; UI-created test artifacts may remain identifiable by TEST_* markers.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "If re-running UI automation, wait explicitly for dashboard-search-input after login to avoid false stuck-loading assumptions. For seal logic, this run confirmed the minimum requirement (no fake dynamic seal without approval) on /print?type=invoice.",
+  "rca of the issue": "Previously reported dashboard freeze linked to /api/vehicles year=null mismatch was not reproducible in this run. Reproduction checks show endpoint stability (200 + list) and integer year typing across returned rows, indicating the normalization fix is effective under current preview data.",
+  "mocked_api": "NO MOCKED APIs used"
+}
