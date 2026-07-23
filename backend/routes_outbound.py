@@ -94,6 +94,11 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _fallback_seal_code(document_number: str, date_value: str) -> str:
+    raw = f"{document_number or 'DOC'}-{date_value or ''}".encode("utf-8")
+    return f"ES-{hashlib.sha256(raw).hexdigest()[:8].upper()}"
+
+
 def _seed_templates() -> List[Dict[str, Any]]:
     common = "\n— {{WORKSHOP_NAME}} · {{WORKSHOP_PHONE}}"
     seal = "\n🔐 رمز التحقق الإلكتروني: {{SEAL_CODE}}"
@@ -259,10 +264,11 @@ def _build_values(doc_type: str, payload: Dict[str, Any]) -> Dict[str, str]:
     date_str = str(settings.get("date") or payload.get("date") or _now_iso()[:10])
     status = _norm_status(settings.get("status") or payload.get("status"))
     vehicle_info = " ".join(str(vehicle.get(k) or "") for k in ("brand", "model", "year")).strip()
+    vehicle_info = vehicle_info or str(vehicle.get("plateNumber") or vehicle.get("plate") or "—")
 
     return {
         "WORKSHOP_NAME": str(workshop.get("name") or workshop.get("business_name") or "الورشة"),
-        "WORKSHOP_PHONE": str(workshop.get("phone") or workshop.get("whatsapp") or ""),
+        "WORKSHOP_PHONE": str(workshop.get("phone") or workshop.get("whatsapp") or "—"),
         "WORKSHOP_ADDRESS": str(workshop.get("address") or ""),
         "COMPANY_CR": str(workshop.get("commercial_register") or workshop.get("commercialRegister") or ""),
         "COMPANY_TAX": str(workshop.get("tax_number") or workshop.get("taxNumber") or ""),
@@ -280,7 +286,7 @@ def _build_values(doc_type: str, payload: Dict[str, Any]) -> Dict[str, str]:
         "PAID": _money(paid),
         "REMAINING": _money(remaining),
         "AMOUNT_WORDS": f"فقط {_money(total)} لا غير",
-        "SEAL_CODE": str(settings.get("seal_code") or ""),
+        "SEAL_CODE": str(settings.get("seal_code") or _fallback_seal_code(settings.get("document_number") or payload.get("document_number") or "", settings.get("date") or payload.get("date") or "")),
         "DOC_TYPE_LABEL": DOC_TYPE_LABELS.get(doc_type, "مستند"),
     }
 

@@ -191,7 +191,7 @@ const TemplatesManager = () => {
               <h3>{label}<span>{grouped[type]?.length || 0}</span></h3>
               <div className="template-cards">
                 {(grouped[type] || []).map((template) => (
-                  <article className={`template-card ${template.is_default ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
+                  <article className={`template-card ${template.is_default && (template.tenant_id !== 'system' || !tenantDefaultTypes.has(template.document_type || template.type)) ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
                     <div className="template-icon">{template.file_type === 'pdf' ? <FileText size={20} /> : <FileCode2 size={20} />}</div>
                     <div className="template-main">
                       <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && (template.tenant_id !== 'system' || !tenantDefaultTypes.has(template.document_type || template.type)) && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> {template.tenant_id === 'system' ? 'افتراضي نظامي' : 'افتراضي'}</span>}</div>

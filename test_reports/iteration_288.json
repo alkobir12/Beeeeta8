@@ -1,0 +1,67 @@
+{
+  "summary": "Completed final P0 backend+frontend retest for template defaulting, sanitized preview, output buttons, and WhatsApp flow gating. Backend contracts passed, and most UI acceptance points passed; one critical QuickPrint WhatsApp integration issue remains.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "QuickPrintDialog",
+        "issue": "WhatsApp flow still blocks with phone-required/error even after entering valid phone in quick-print-phone-input; wa.me/share-sheet not reached.",
+        "selector": "[data-testid='quick-print-phone-input'], [data-testid='quick-print-action-whatsapp'], [data-testid='quick-print-error']",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "QuickPrint WhatsApp with valid phone",
+        "issue": "Frontend passes phone to prepareShare, but resolve-message still runs with payload customer phone empty; captured response returned phone.valid=false and missing_variables=['PLATE_NO'], so no navigator.share/wa.me open.",
+        "affected_selectors": [
+          "[data-testid='quick-print-action-whatsapp']",
+          "[data-testid='quick-print-phone-input']",
+          "[data-testid='quick-print-template-option-*']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Templates preview modal",
+        "issues": [
+          "Uploaded malicious <img src='x'> becomes broken image request (/x → 500), causing noisy console errors though sanitization itself works"
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter288_p0_final_closure.py",
+    "/app/test_reports/pytest/iter288_p0_final_closure.xml",
+    "/root/.emergent/automation_output/20260723_191429/console_20260723_191429.log",
+    "/root/.emergent/automation_output/20260723_191636/console_20260723_191636.log"
+  ],
+  "action_items": [
+    "Fix QuickPrint WhatsApp integration to include phone/vehicle fallback in payload before resolveOutboundMessage call (or override resolve input with entered phone).",
+    "Ensure QuickPrint WhatsApp path reaches navigator.share or wa.me when phone is entered and template is valid.",
+    "Optional hardening: normalize broken relative image src values in sanitized preview to avoid /x 500 noise."
+  ],
+  "critical_code_review_comments": [
+    "QuickPrint uses phoneCandidate for local validation, but useWhatsAppShare.prepare resolves outbound message from payload customer phone; this contract mismatch causes false blocking despite valid input.",
+    "P0 requested output controls are correct now: QuickPrint/DocumentPrint expose only WhatsApp/PDF/Print with no secondary WhatsApp preview modal in this flow.",
+    "Large frontend modules remain (e.g., DocumentPrint.jsx and OperationCard.jsx >700 lines), increasing regression risk for P0-sensitive flows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter288_p0_final_closure.py",
+    "/app/test_reports/iteration_288.json"
+  ],
+  "success_rate": {
+    "backend": "100% (2/2 in iter288 suite)",
+    "frontend": "83% (5/6 requested acceptance points pass; QuickPrint WhatsApp valid-phone route fails)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123",
+  "seed_data_creation": "Created UI templates: ITER288_SAFE_UI and ITER288_BROKEN_UI for this retest.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Verified: [[CUSTOMER_NAME]] replacement works in sanitized template-preview-frame; quick-print-error deterministic Arabic missing-variable list works for broken template; set-default showed one active invoice card in tested state; DocumentPrint has exactly three output buttons and no duplicate output toolbar buttons. Remaining blocker is QuickPrint WhatsApp valid-phone routing not reaching wa.me/share.",
+  "rca of the issue": "RCA: In QuickPrint, entered phone is validated locally (phoneCandidate) but outbound resolve-message uses payload.customer.phone from prepareShare payload, which can remain empty. Backend then returns phone.valid=false and missing_variables (observed: PLATE_NO), so prepare fails and route never opens navigator.share/wa.me. Mitigation: merge entered phone and vehicle fallbacks into resolve payload before calling /api/outbound/resolve-message.",
+  "mocked_api": "NO MOCKED APIs used"
+}
