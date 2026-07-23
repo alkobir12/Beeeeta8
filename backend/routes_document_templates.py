@@ -22,6 +22,7 @@ _seed_lock = asyncio.Lock()
 _ALLOWED_TAGS = ["html", "head", "body", "meta", "title", "style", "main", "section", "article", "header", "footer", "div", "span", "p", "strong", "b", "em", "i", "small", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "ul", "ol", "li", "br", "hr", "img"]
 _ALLOWED_ATTRIBUTES = {"*": ["class", "style", "dir", "lang", "id", "data-testid"], "img": ["src", "alt", "width", "height"], "meta": ["charset", "name", "content"]}
 _SANITIZER = bleach.Cleaner(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, protocols=["http", "https", "data"], strip=True, strip_comments=True, css_sanitizer=CSSSanitizer())
+_KNOWN_TEMPLATE_VARIABLES = {"WORKSHOP_NAME", "WORKSHOP_ADDRESS", "WORKSHOP_PHONE", "WORKSHOP_EMAIL", "COMPANY_CR", "COMPANY_TAX", "TAX_NUMBER", "CUSTOMER_NAME", "CUSTOMER_PHONE", "VEHICLE_INFO", "PLATE_NO", "VEHICLE_PLATE", "STATUS_LABEL", "INVOICE_NO", "INVOICE_DATE", "DATE", "ITEMS_ROWS", "SUBTOTAL", "DISCOUNT", "TAX", "TOTAL", "PAID", "REMAINING", "NOTES", "AMOUNT_WORDS", "SEAL_CODE"}
 
 
 def set_db(database):
@@ -53,6 +54,12 @@ def _sanitize_html(content: str) -> tuple[str, list[str]]:
     if not re.search(r"<([a-z][a-z0-9]*)\b", cleaned, re.IGNORECASE):
         raise HTTPException(status_code=422, detail={"code": "invalid_html", "message": "الملف لا يحتوي HTML صالحاً للعرض."})
     return cleaned, notes
+
+
+def _unknown_template_variables(content: str) -> list[str]:
+    matches = re.findall(r"{{\s*([^{}]+?)\s*}}|\[\[\s*([^\]]+?)\s*\]\]|<%=?\s*([^%]+?)\s*%>|\{([A-Z][A-Z0-9_]*)\}", content or "")
+    values = {next((item.strip() for item in match if item.strip()), "") for match in matches}
+    return sorted(value for value in values if value and value not in _KNOWN_TEMPLATE_VARIABLES)
 
 
 def _legacy_rows() -> list:
@@ -268,6 +275,10 @@ async def set_default(template_id: str, payload: Dict[str, Any] = Body(default={
                 template["status"] = "valid"
             except HTTPException as exc:
                 raise HTTPException(status_code=409, detail={"code": "template_validation_failed", "message": "فشل التحقق من القالب قبل تعيينه افتراضياً.", "reason": exc.detail}) from exc
+        unknown_variables = _unknown_template_variables(await _content(template))
+        if unknown_variables:
+            await db.document_templates.update_one({"id": template_id}, {"$set": {"status": "needs_fix", "validation_error": "unknown_placeholders", "validation_variables": unknown_variables, "updated_at": _now()}})
+            raise HTTPException(status_code=409, detail={"code": "template_incomplete", "message": "لا يمكن تعيين القالب افتراضياً قبل معالجة المتغيرات غير المعروفة.", "missing_variables": unknown_variables})
         doc_type = template["document_type"]
         target_id = template_id
         if template.get("tenant_id") == "system" and tenant_id != "system":

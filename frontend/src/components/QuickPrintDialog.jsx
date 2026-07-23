@@ -3,7 +3,7 @@ import { API_BASE, api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
-import { assertTemplateComplete, renderDocumentTemplate } from '../utils/documentTemplate';
+import { assertTemplateComplete, findUnresolvedTemplateVariables, renderDocumentTemplate } from '../utils/documentTemplate';
 import { normalizePhoneLocal } from '../services/outboundShare';
 
 const DOC_TYPE_LABELS = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
@@ -240,7 +240,8 @@ const QuickPrintDialog = ({
         event, template_id: selectedTemplate?.id, document_type: currentDocType,
         reason: e?.message || 'template_generation_failed', missing_variables: e?.variables || [],
       }).catch(() => null);
-      const message = e?.code === 'template_incomplete' ? e.message : (e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : (e?.response?.data?.detail?.message || 'تعذر إنشاء المعاينة بالقالب المختار'));
+      const missing = e?.variables || findUnresolvedTemplateVariables(e?.response?.data?.detail?.content || '');
+      const message = e?.code === 'template_incomplete' ? e.message : (missing.length ? `القالب غير مكتمل. المتغيرات الناقصة: ${missing.join('، ')}` : (e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : (e?.response?.data?.detail?.message || 'تعذر إنشاء المعاينة بالقالب المختار')));
       setError(message);
       return '';
     } finally {

@@ -38,6 +38,7 @@ const TemplatesManager = () => {
   }, {}), [templates]);
 
   const activeCount = useMemo(() => templates.filter((tpl) => tpl.is_default).length, [templates]);
+  const tenantDefaultTypes = useMemo(() => new Set(templates.filter((tpl) => tpl.tenant_id !== 'system' && tpl.is_default).map((tpl) => tpl.document_type || tpl.type)), [templates]);
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -193,7 +194,7 @@ const TemplatesManager = () => {
                   <article className={`template-card ${template.is_default ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
                     <div className="template-icon">{template.file_type === 'pdf' ? <FileText size={20} /> : <FileCode2 size={20} />}</div>
                     <div className="template-main">
-                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> {template.tenant_id === 'system' ? 'افتراضي نظامي' : 'افتراضي'}</span>}</div>
+                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && (template.tenant_id !== 'system' || !tenantDefaultTypes.has(template.document_type || template.type)) && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> {template.tenant_id === 'system' ? 'افتراضي نظامي' : 'افتراضي'}</span>}</div>
                       <p data-testid={`template-description-${template.id}`}>{template.description || 'بدون وصف'}</p>
                       <small data-testid={`template-meta-${template.id}`}>{template.is_builtin ? 'نظامي' : 'مخصص'} · إصدار {template.version || 1} · {template.active ? 'نشط' : 'معطل'} · {template.status || 'غير مصنف'}</small>
                       <div className="template-actions">

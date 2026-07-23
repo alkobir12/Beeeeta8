@@ -1,0 +1,95 @@
+{
+  "summary": "Re-tested P0 iteration_286 scope on backend+frontend. Backend core contracts passed (template /use, tenant-default preference, set-default guard for unknown placeholders). Frontend confirms 3 output buttons only and no WhatsApp secondary preview modal, but QuickPrint broken-default flow still fails with generic error, and WhatsApp valid-phone path is blocked by unresolved outbound variables.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/document-templates/{id}/set-default + frontend renderer",
+        "issue": "Template with [[CUSTOMER_NAME]] is accepted as valid default, but frontend renderer does not replace [[...]] syntax, causing unresolved placeholders to leak into QuickPrint/DocumentPrint runtime.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/outbound/resolve-message",
+        "issue": "For valid phone scenario, response still returns missing_variables (observed: SEAL_CODE, WORKSHOP_PHONE), which blocks WhatsApp open route from UI even when number is complete."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "QuickPrintDialog",
+        "issue": "With incomplete default template, quick-print-error is generic (e.g., تعذر إنشاء المعاينة بالقالب المختار) and does not reliably list missing variables in Arabic as required.",
+        "selector": "[data-testid='quick-print-error']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "TemplatesManager invoice group",
+        "issue": "Invoice group renders two cards with active styling (tenant + system defaults) while showing one badge only; badge rule is correct, but active-card dual highlight remains visually confusing.",
+        "selector": "[data-testid='templates-group-invoice'] article.template-card.active",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "QuickPrint with broken default template",
+        "issue": "Preview iframe is not rendered; WhatsApp/PDF actions do not produce wa.me/PDF and user sees generic failure instead of actionable missing_variables list.",
+        "affected_selectors": [
+          "[data-testid='quick-print-preview']",
+          "[data-testid='quick-print-action-whatsapp']",
+          "[data-testid='quick-print-action-download-pdf']",
+          "[data-testid='quick-print-error']"
+        ]
+      },
+      {
+        "flow": "DocumentPrint WhatsApp with valid phone",
+        "issue": "No wa.me open occurred in test run because message resolution returns missing_variables; with no phone, guard message works correctly.",
+        "affected_selectors": [
+          "[data-testid='document-whatsapp-button']",
+          "[data-testid='document-alert-message']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Templates Manager - invoice list",
+        "issues": [
+          "Dual 'active' visual state for tenant/system defaults can still confuse managers despite single displayed default badge"
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter287_templates_p0_retest.py",
+    "/app/test_reports/pytest/iter287_templates_p0_retest.xml",
+    "/root/.emergent/automation_output/20260723_190049/console_20260723_190049.log",
+    "/root/.emergent/automation_output/20260723_190323/console_20260723_190323.log",
+    "/root/.emergent/automation_output/20260723_190611/console_20260723_190611.log"
+  ],
+  "action_items": [
+    "Unify placeholder policy end-to-end: either reject [[...]] at set-default validation OR support replacing [[VAR]] in renderDocumentTemplate (QuickPrint + DocumentPrint).",
+    "In QuickPrint, always show missing_variables list in quick-print-error (Arabic) when template completeness fails; do not fallback to generic message.",
+    "Fix outbound message template/data so required variables (SEAL_CODE, WORKSHOP_PHONE) are always provided before WhatsApp open path.",
+    "Keep only one clear effective-default visual state in templates-group-invoice (not only badge logic)."
+  ],
+  "critical_code_review_comments": [
+    "Validation/render mismatch is root cause: backend accepts placeholders that frontend renderer does not resolve, creating runtime failures after successful default assignment.",
+    "WhatsApp integration is blocked by outbound missing_variables contract even with valid phone; this is an integration/data contract issue, not selector automation noise.",
+    "No mocked APIs detected; failures are from real integrated flows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter287_templates_p0_retest.py",
+    "/app/test_reports/iteration_287.json"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5)",
+    "frontend": "70%"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123",
+  "seed_data_creation": "Created temporary templates during UI/API retest: ITER287_SAFE_UI, ITER287_PDF_UI, ITER287_BROKEN_UI, ITER287_BROKEN_API (kept archived/overridden as part of regression flow).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "At end of run, default invoice template for tenant default/ar-SA was restored to ID 3666c919-4cd3-4ee3-91ef-dff5cfd5bf41 via API. Reproduce blocker quickly by setting template 0ec0770a-4048-4c88-8832-91558b63dea1 as default then opening QuickPrint from operations card print action.",
+  "rca of the issue": "RCA: set-default validation allows [[CUSTOMER_NAME]] because variable name itself is known, but frontend rendering utilities replace only {{VAR}} and {VAR}. Result: template is marked valid/default yet remains unresolved at runtime, causing QuickPrint/DocumentPrint generation failures and generic UI errors. Secondary blocker: outbound message resolve still requires SEAL_CODE and WORKSHOP_PHONE; if these are absent in payload/workshop data, WhatsApp route (wa.me/share) is intentionally blocked even with valid phone.",
+  "mocked_api": "NO MOCKED APIs used"
+}
