@@ -18,7 +18,7 @@ from datetime import datetime
 import uuid
 
 # Get backend URL from frontend/.env (REACT_APP_BACKEND_URL)
-BACKEND_URL = "https://workshop-engine.preview.emergentagent.com/api"
+BACKEND_URL = "https://workshop-operator.preview.emergentagent.com/api"
 
 # Test results tracking
 test_results = {

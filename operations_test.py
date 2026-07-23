@@ -23,7 +23,7 @@ def get_backend_url():
                     return line.split('=', 1)[1].strip()
     except:
         pass
-    return "https://workshop-engine.preview.emergentagent.com"
+    return "https://workshop-operator.preview.emergentagent.com"
 
 API_URL = get_backend_url()
 print(f"🔗 Backend URL: {API_URL}")

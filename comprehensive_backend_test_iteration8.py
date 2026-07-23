@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend Testing for AutoPro Workshop Management System
-Testing Environment: https://workshop-engine.preview.emergentagent.com
+Testing Environment: https://workshop-operator.preview.emergentagent.com
 Iteration 8 - Full API Coverage Testing
 """
 
@@ -15,7 +15,7 @@ import uuid
 class ComprehensiveBackendTester:
     def __init__(self):
         # Use the actual backend URL from frontend/.env
-        self.base_url = "https://workshop-engine.preview.emergentagent.com"
+        self.base_url = "https://workshop-operator.preview.emergentagent.com"
         self.api_url = f"{self.base_url}/api"
         self.results = []
         self.session = requests.Session()
@@ -461,7 +461,7 @@ class ComprehensiveBackendTester:
         """Test 9: CORS preflight requests"""
         try:
             headers = {
-                'Origin': 'https://workshop-engine.preview.emergentagent.com',
+                'Origin': 'https://workshop-operator.preview.emergentagent.com',
                 'Access-Control-Request-Method': 'GET',
                 'Access-Control-Request-Headers': 'Content-Type'
             }
@@ -554,7 +554,7 @@ class ComprehensiveBackendTester:
     def run_all_tests(self):
         """Run all comprehensive backend tests"""
         print("🚀 Starting Comprehensive Backend Tests - Iteration 8")
-        print("🎯 Target: https://workshop-engine.preview.emergentagent.com")
+        print("🎯 Target: https://workshop-operator.preview.emergentagent.com")
         print("=" * 80)
         
         # Core Infrastructure Tests

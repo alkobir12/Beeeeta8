@@ -17,7 +17,7 @@ import pytest
 
 BASE_URL = os.environ.get(
     "REACT_APP_BACKEND_URL",
-    "https://workshop-engine.preview.emergentagent.com",
+    "https://workshop-operator.preview.emergentagent.com",
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 

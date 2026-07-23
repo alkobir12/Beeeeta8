@@ -4,7 +4,7 @@
 import requests, json, time
 from datetime import datetime
 
-BASE = "https://workshop-engine.preview.emergentagent.com/api"
+BASE = "https://workshop-operator.preview.emergentagent.com/api"
 WID  = "finmodule-sync"
 
 PASS = "✅"

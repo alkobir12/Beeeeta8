@@ -15,7 +15,7 @@ def test_vehicle_financial_summary():
     # Test 1: Get vehicles list
     print("\n1. Testing vehicles API...")
     try:
-        vehicles_response = requests.get("https://workshop-engine.preview.emergentagent.com/api/vehicles")
+        vehicles_response = requests.get("https://workshop-operator.preview.emergentagent.com/api/vehicles")
         if vehicles_response.status_code == 200:
             vehicles = vehicles_response.json()
             print(f"✅ Found {len(vehicles)} vehicles")
@@ -29,7 +29,7 @@ def test_vehicle_financial_summary():
                 
                 # Test 2: Test financial summary API
                 print(f"\n2. Testing financial summary API for vehicle {vehicle_id}...")
-                financial_response = requests.get(f"https://workshop-engine.preview.emergentagent.com/api/vehicles/{vehicle_id}/financial-summary")
+                financial_response = requests.get(f"https://workshop-operator.preview.emergentagent.com/api/vehicles/{vehicle_id}/financial-summary")
                 
                 if financial_response.status_code == 200:
                     financial_data = financial_response.json()
