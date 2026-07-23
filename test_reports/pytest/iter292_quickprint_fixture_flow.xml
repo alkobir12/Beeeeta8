@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="3.487" timestamp="2026-07-23T20:03:34.319131+00:00" hostname="agent-env-6b93bbe2-fbde-46d0-8626-01d7b328c720"><testcase classname="backend.tests.test_iter292_quickprint_fixture_flow" name="test_fixture_vehicle_get_returns_seeded_vehicle" time="2.976"><failure message="AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">api_session = &lt;requests.sessions.Session object at 0xfa302d0fb550&gt;
+
+    def test_fixture_vehicle_get_returns_seeded_vehicle(api_session: requests.Session):
+        """Vehicle module: GET fixture vehicle id returns seeded identity fields."""
+        response = api_session.get(f"{API}/vehicles/{FIXTURE_VEHICLE_ID}", timeout=30)
+&gt;       assert response.status_code == 200, response.text[:220]
+E       AssertionError: Internal Server Error
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500]&gt;.status_code
+
+backend/tests/test_iter292_quickprint_fixture_flow.py:57: AssertionError</failure></testcase><testcase classname="backend.tests.test_iter292_quickprint_fixture_flow" name="test_fixture_vehicle_visits_include_fixture_visit" time="0.356"><failure message="AssertionError: {&quot;detail&quot;:&quot;{'message': 'invalid input syntax for type uuid: \&quot;fixture-quickprint-vehicle-001\&quot;', 'code': '22P02', 'hint': None, 'details': None}&quot;}&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">api_session = &lt;requests.sessions.Session object at 0xfa302d0fb550&gt;
+
+    def test_fixture_vehicle_visits_include_fixture_visit(api_session: requests.Session):
+        """Visit module: fixture vehicle visits endpoint includes fixture visit id and linkage."""
+        response = api_session.get(f"{API}/vehicles/{FIXTURE_VEHICLE_ID}/visits", timeout=30)
+&gt;       assert response.status_code == 200, response.text[:220]
+E       AssertionError: {"detail":"{'message': 'invalid input syntax for type uuid: \"fixture-quickprint-vehicle-001\"', 'code': '22P02', 'hint': None, 'details': None}"}
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500]&gt;.status_code
+
+backend/tests/test_iter292_quickprint_fixture_flow.py:67: AssertionError</failure></testcase><testcase classname="backend.tests.test_iter292_quickprint_fixture_flow" name="test_fixture_template_use_returns_same_template_id" time="0.066" /></testsuite></testsuites>

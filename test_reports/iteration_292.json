@@ -1,0 +1,89 @@
+{
+  "summary": "Ran requested P0 QuickPrint fixture round (backend + frontend). Fixture seeding script runs, template /use works, but fixture vehicle retrieval and vehicle-entry UI flow are blocked in this runtime.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/vehicles/fixture-quickprint-vehicle-001",
+        "issue": "Returns 500 (Internal Server Error) instead of vehicle JSON after running backend/seed_quickprint_fixture.py.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/vehicles/fixture-quickprint-vehicle-001/visits",
+        "issue": "Returns 500 with Postgres error code 22P02: invalid input syntax for type uuid: 'fixture-quickprint-vehicle-001'.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "OPTIONS /api/document-templates",
+        "issue": "Credentialed CORS preflight still responds with Access-Control-Allow-Origin='*' instead of explicit origin."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "VehicleDetails entrypoint",
+        "issue": "After login, navigating to /vehicles/fixture-quickprint-vehicle-001 lands on dashboard (/), so vehicle print trigger is absent.",
+        "selector": "[data-testid='vehicle-print-menu-button']",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "vehicle -> QuickPrint -> template sheet -> preview -> PDF/WhatsApp/Print on 390px",
+        "issue": "Blocked because vehicle details route is not reachable for fixture vehicle in current runtime; could not execute end-to-end selector path.",
+        "affected_selectors": [
+          "[data-testid='vehicle-print-menu-button']",
+          "[data-testid='vehicle-print-invoice']",
+          "[data-testid='quick-print-dialog']",
+          "[data-testid='quick-print-change-template']",
+          "[data-testid='quick-print-template-sheet']",
+          "[data-testid='quick-print-preview-modal']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Dashboard mobile fallback (390x844)",
+        "issues": [
+          "Primary task context is lost when route falls back to dashboard, preventing execution of requested QuickPrint acceptance path."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter291_quickprint_mobile_final.py",
+    "/app/backend/tests/test_iter292_quickprint_fixture_flow.py",
+    "/app/test_reports/pytest/iter292_auth_template_baseline.xml",
+    "/app/test_reports/pytest/iter292_quickprint_fixture_flow.xml",
+    "/root/.emergent/automation_output/20260723_200504/console_20260723_200504.log"
+  ],
+  "action_items": [
+    "Align fixture IDs with active DB provider: runtime is DB_PROVIDER=supabase (UUID-typed vehicle_id), but current fixture uses non-UUID ids and seeds Mongo only.",
+    "For Supabase mode, either seed fixture rows into Supabase with valid UUIDs or add provider-aware fixture generation; then map those IDs into frontend test path.",
+    "Ensure GET /api/vehicles/{id} handles invalid ID format gracefully (404/422), not 500.",
+    "After backend vehicle retrieval is fixed, rerun 390px flow to validate Bottom Sheet selection, full-screen preview scroll/action bar, and selected template id parity across /use + PDF + WhatsApp + Print."
+  ],
+  "critical_code_review_comments": [
+    "Root integration mismatch: backend/seed_quickprint_fixture.py writes only to Mongo (MONGO_URL/DB_NAME) while runtime DB_PROVIDER is supabase; this prevents fixture visibility in active APIs.",
+    "Supabase vehicle-visits query uses .eq('vehicle_id', <non-uuid>) against uuid column, producing 22P02 and bubbling as 500.",
+    "QuickPrintDialog has preview modal markup, but there is no reachable trigger path in this run because vehicle route entry fails first.",
+    "No MOCKED APIs were used in this run."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter292_quickprint_fixture_flow.py",
+    "/app/test_reports/iteration_292.json"
+  ],
+  "success_rate": {
+    "backend": "50%",
+    "frontend": "20%"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md and used مدير / 123123",
+  "seed_data_creation": "Executed python /app/backend/seed_quickprint_fixture.py (idempotent Mongo fixture script).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Fixture template endpoint works (/api/document-templates/fixture-quickprint-template-001/use = 200), but fixture vehicle GET and visits fail with 500 in supabase runtime. UI navigation to /vehicles/fixture-quickprint-vehicle-001 redirects to /, so vehicle-print-menu-button is absent.",
+  "rca of the issue": "Reproduction: (1) Run python backend/seed_quickprint_fixture.py (success). (2) Login as مدير/123123. (3) Call GET /api/vehicles/fixture-quickprint-vehicle-001 -> 500. (4) Call GET /api/vehicles/fixture-quickprint-vehicle-001/visits -> 500 with 22P02 invalid uuid. (5) Open /vehicles/fixture-quickprint-vehicle-001 on 390px -> redirected to /. RCA: fixture uses non-UUID IDs and seeds Mongo collections, but runtime is DB_PROVIDER=supabase with UUID-typed vehicle references; vehicle endpoints/query path reject non-UUID values and UI cannot enter vehicle details. Mitigation: provider-aware fixture seeding to active datastore with UUID IDs (or provider switch), and defensive validation for invalid id format to return 4xx instead of 500.",
+  "mocked_api": "NO MOCKED APIs used"
+}

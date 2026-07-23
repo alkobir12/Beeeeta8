@@ -133,6 +133,8 @@ async def _content(template: Dict[str, Any]) -> str:
     if template.get("is_builtin") or template.get("source") == "system_default_clone":
         content = _builtin_template_content(template["document_type"])
         return _sanitize_html(content)[0]
+    if template.get("inline_content"):
+        return _sanitize_html(template["inline_content"])[0]
     filename = template.get("filename")
     path = TEMPLATES_DIR / str(filename or "")
     if not filename or not path.exists():
