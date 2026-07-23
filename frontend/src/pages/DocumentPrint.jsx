@@ -465,7 +465,21 @@ export default function DocumentPrint() {
     }
   };
 
-  const printCurrent = () => { if (ensureTemplateComplete()) window.print(); };
+  const printCurrent = () => {
+    if (!ensureTemplateComplete() || !renderedTemplate) return;
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;width:0;height:0;border:0;right:-9999px;bottom:-9999px;';
+    frame.srcdoc = renderedTemplate;
+    document.body.appendChild(frame);
+    frame.onload = () => {
+      const cleanup = () => frame.remove();
+      frame.contentWindow?.addEventListener('afterprint', cleanup, { once: true });
+      frame.contentWindow?.focus();
+      frame.contentWindow?.print();
+      window.setTimeout(cleanup, 60000);
+    };
+  };
 
   const sendWhatsApp = async () => {
     setAlertMessage('');

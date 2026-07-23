@@ -1,0 +1,60 @@
+{
+  "summary": "Retested iteration_293 fixes for primary invoice template and DocumentPrint. Frontend print/PDF paths are now aligned with iframe/template-only behavior, but backend /use still strips ITEMS_ROWS placeholder entirely, leaving tbody empty and preventing row injection.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/document-templates/primary-mobile-a4-invoice-v1/use",
+        "issue": "ITEMS_ROWS placeholder is missing in returned HTML (neither {{ITEMS_ROWS}} nor <!--{{ITEMS_ROWS}}--> exists), resulting in <tbody></tbody> and breaking row rendering contract.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "documentTemplate renderer -> resolved template sheet",
+        "issue": "Renderer cannot inject rows when backend /use content has no ITEMS_ROWS placeholder; resolved sheet shows tbody row count 0 despite filled items.",
+        "affected_selectors": [
+          "[data-testid='document-resolved-template-sheet']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter294_template_tbody_print_contract.py",
+    "/app/backend/tests/test_iter293_primary_invoice_template_contract.py",
+    "/app/test_reports/pytest/iter294_template_tbody_print_contract.xml",
+    "/app/test_reports/pytest/iter294_primary_invoice_template_contract.xml",
+    "/root/.emergent/automation_output/20260723_221233/console_20260723_221233.log",
+    "/root/.emergent/automation_output/20260723_221359/console_20260723_221359.log"
+  ],
+  "action_items": [
+    "Backend: preserve ITEMS_ROWS token in /use output within <tbody> for primary-mobile-a4-invoice-v1. If sanitizer is used, do not strip comment placeholders needed by renderer.",
+    "Keep either {{ITEMS_ROWS}} or <!--{{ITEMS_ROWS}}--> in stored/returned template HTML; comment form is acceptable only if renderer replacement is guaranteed.",
+    "After backend fix, retest rendered template tbody rows in DocumentPrint and PDF/print outputs.",
+    "Auth playbook checks (bcrypt prefix, httpOnly cookies, credentials-CORS explicit origin, brute-force lockout, seed_admin update path) were NOT fully executed in this task scope and need dedicated auth regression run."
+  ],
+  "critical_code_review_comments": [
+    "RCA: backend sanitizer is configured with strip_comments=True in routes_document_templates.py, which removes <!--{{ITEMS_ROWS}}--> and yields empty tbody in /use response.",
+    "printCurrent behavior is now correct: no page-level window.print(), iframe is appended and used for printing then cleaned up.",
+    "PDF path remains aligned to previewRef target (downloadCurrentPdf uses previewRef.current).",
+    "NO MOCKED APIs used."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter294_template_tbody_print_contract.py",
+    "/app/test_reports/iteration_294.json"
+  ],
+  "success_rate": {
+    "backend": "66.7% (2/3)",
+    "frontend": "85% (print/PDF/template render flow validated except backend-driven tbody row injection)"
+  },
+  "test_credentials": "Read from /app/memory/test_credentials.md (مدير / 123123)",
+  "seed_data_creation": "No seed data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Primary blocker remains backend /use placeholder loss. UI confirms print button click appends iframe and avoids page window.print. Template registry still returns exactly one template id primary-mobile-a4-invoice-v1.",
+  "rca of the issue": "Repro: POST /api/document-templates/primary-mobile-a4-invoice-v1/use, inspect table body section -> <tbody></tbody> with no ITEMS_ROWS token. Root cause is consistent with comment stripping in sanitizer (`strip_comments=True`) while template relies on comment placeholder (`<!--{{ITEMS_ROWS}}-->`). Mitigation: preserve this placeholder in sanitize/store/resolve path or switch to non-comment token that survives sanitization and is replaced by renderer."
+}
