@@ -1,63 +1,73 @@
-<analysis>**original_problem_statement**: Transform the existing conversational bot into a secure, persisted Enterprise Operator. Specifically, replace  with an Electronically Sealed Invoice (فاتورة الورشة — ختم إلكتروني) template. PRODUCT REQUIREMENTS: Delete the old blue template, link template selection to all print buttons via a unified template manager, and implement a massive architectural enhancement for the Workshop Print Engine including a contextual PDF وواتساب action, outbound message templates, and strict audit logging without rebuilding the existing print engine.
+<analysis>Here is the handover summary for the next agent:
+
+**original_problem_statement**: Transform the existing conversational bot into a secure, persisted Enterprise Operator. Specifically, replace  with an Electronically Sealed Invoice (فاتورة الورشة — ختم إلكتروني) template. PRODUCT REQUIREMENTS: Implement a unified PDF وواتساب action, outbound message templates, strict audit logging, and SHA-256 caching. *Latest Requirement:* Convert the newly provided HTML template into a unified React component to be used across all print/preview/PDF actions, implement dynamic electronic seals, and remove all UI redundancies (duplicate totals, seals, multiple barcodes).
 
 **User's preferred language**: Arabic (العربية)
-**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic ONLY. NEVER suggest English solutions or prompts.
+**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond in the user's preferred language ONLY. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic ONLY. NEVER suggest English solutions or prompts.
 
 **what currently exists?** 
-The application has a stabilized Quick Print menu (), a Dash Pro electronic invoice in , and a refactored . The backend handles basic document generation. The user has provided an extensive set of strict rules (ROAST MODE) to enhance this existing engine with WhatsApp sharing capabilities, fixed outbound message templates, and PDF fingerprint caching, explicitly forbidding the creation of a duplicate print/template engine. The agent has just read the PRD and sent the proposed architectural Discovery Summary map to the user for approval.
+The backend architecture for generating PDFs, tenant-isolated SHA-256 fingerprint caching, WhatsApp sharing (), and outbound audit logging has been successfully implemented and tested. However, the user rejected the final UI visual output. The user has provided a base HTML template () which needs to be converted into a single, unified React component that handles dynamic Electronic Seals (Customer & Workshop approvals) and eliminates redundant UI elements.
 
-**Last working item**: 
-    - Last item agent was working: Formulating and sending the Architectural Discovery Summary and execution plan via the  tool, based on the user's ROAST MODE requirements.
-    - Status: USER VERIFICATION PENDING
+**Last working item**:
+    - Last item agent was working: Analyzing the provided  file to begin converting it into a unified React component and implement Electronic Seals logic.
+    - Status: IN PROGRESS
     - Agent Testing Done: N
-    - Which testing method agent to use? both (Frontend testing agent for new Print/WhatsApp UI flows + backend testing for audit logs and caching, once implementation starts)
+    - Which testing method agent to use? both (Frontend testing agent for UI visual checks and E2E print flows; backend for any state updates regarding document approval/seals).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: P0 - Provide Architecture Discovery Summary & Confirm Plan
-     - Attempted fixes: Agent reviewed  and previous context, and submitted the plan to the user using the  tool.
-     - Next debug checklist: Await user response. Based on approval or requested changes, proceed strictly with enhancing the existing architecture.
-     - Why fix this issue and what will be achieved with the fix? Complies with the user's strict instruction to output a Discovery Summary map containing current routes, endpoints, storage models, and gaps BEFORE implementing any code.
-     - Status: USER VERIFICATION PENDING
+  Issue 1: P0 - Unify Invoice Template Component
+     - Attempted fixes: Agent read the provided  but did not start implementation.
+     - Next debug checklist: Convert the HTML in  into a reusable React component. Ensure this single component is used identically for Preview, Print, PDF generation, Image generation, and WhatsApp sharing. 
+     - Why fix this issue and what will be achieved with the fix? The user explicitly forbade having different designs/components for different output paths.
+     - Status: IN PROGRESS
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? NA
-     - Blocked on other issue: None.
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
 
-  Issue 2: P0 - Implement PDF وواتساب (PDF & WhatsApp) Unified Action
-     - Attempted fixes: Not started yet. Waiting for plan approval.
-     - Next debug checklist: Add the contextual button to desktop and mobile action bars (e.g., in , , ). Build the UI flow that resolves context, generates PDF & Image, resolves fixed message templates, and shows a Send Preview UI before launching the WhatsApp URL.
-     - Why fix this issue and what will be achieved with the fix? Core feature request for securely sharing official documents with customers.
+  Issue 2: P0 - Implement Dynamic Electronic Seals
+     - Attempted fixes: Not started.
+     - Next debug checklist: 
+        1. Customer Seal: Show only after . Small circular (80-90px) containing تمت الموافقة + Name, Date, Time, Approval ID.
+        2. Workshop Seal: Show only after authorized user approval. Small circular (80-90px) containing معتمد + Name, Date, Time, Approval ID.
+        3. Any modification to the document after approval MUST invalidate both seals and require re-approval.
+     - Why fix this issue and what will be achieved with the fix? Replaces the old signature boxes with secure electronic sealing.
      - Status: NOT STARTED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix? Both
-     - Blocked on other issue: Issue 1 (Discovery Approval).
+     - Blocked on other issue: Issue 1
+
+  Issue 3: P0 - Remove UI Redundancies & Fix Barcode
+     - Attempted fixes: Not started.
+     - Next debug checklist: Strip out duplicate final totals (keep only one in the calculation section), old signature boxes, duplicate top/bottom seals, QR codes, long fingerprint codes exposed to the user, and duplicate print buttons. Replace existing barcodes with EXACTLY ONE barcode at the bottom containing: .
+     - Why fix this issue and what will be achieved with the fix? Cleans up the document output for enterprise standards.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: Issue 1
 
 **In progress Task List**:
-  Task 1: P1 - Outbound Message Templates & Audit Logging
-     - Where to resume: Backend schema/routes (upon plan approval).
-     - What will be achieved with this? Adding structures (like , , ) to support fixed template sending and strict auditing without altering the immutable approved documents.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix? Backend
-     - Blocked on something: Issue 1 (Discovery Approval).
-
-  Task 2: P1 - PDF & Preview Image Fingerprinting / Caching
-     - Where to resume:  / .
-     - What will be achieved with this? Prevents regenerating identical documents. Reuses the exact same PDF/Image if inputs haven't changed.
-     - Status: NOT STARTED
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on something: Task 1
+  Task 1: P0 - Visual overhaul of Document Print UI
+     - Where to resume:  / new component creation based on .
+     - What will be achieved with this? Final acceptance from user for the invoice design.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**
   Task 1: P1 - Convert  (مركز التحكم القديم) page into a full Katrina-driven conversational experience.
   Task 2: P2 - Improve invoice/receipt logic so collecting a payment via Katrina automatically links to and closes specific vehicle plates/invoices.
 
 **Completed work in this session**
-- Read  to refresh architecture and requirements.
-- Formulated the Discovery Summary and submitted it for user review via .
+- SHA-256 fingerprint generation in backend for tenant-isolated document caching (DONE).
+- Unified PDF وواتساب action with Web Share API on mobile and  fallback on desktop (DONE).
+- Added رسائل واتساب (WhatsApp Messages) tab in  matching existing variables (DONE).
+- Backend audit logging using , ,  (DONE).
+- Extracted business logic from  into hooks () (DONE).
 
 **Earlier issues found/mentioned but not fixed**
    Issue 1: Preview layer wildcard CORS
-   - Debug checklist: Confirmed it originates from the external ingress/preview layer, not the internal FastAPI server.
+   - Debug checklist: Confirmed it originates from the external ingress/preview layer.
    - Why to solve this issue and what will be achieved with this? Removes browser console warnings during hot-reloads.
    - Should Test frontend/backend/both after fix: Backend
    - Is recurring issue? Y
@@ -65,99 +75,99 @@ The application has a stabilized Quick Print menu (), a Dash Pro electronic invo
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Unauthorized massive refactoring breaking the app.
   - Recurrence count: 5+
-  - Status: RESOLVED. **WARNING:** The user explicitly triggered ROAST MODE to prevent the agent from building duplicate engines or modifying the core architecture. DO NOT rebuild the print engine. DO NOT create new routing for printing. REUSE existing features.
+  - Status: RESOLVED (User enforces ROAST MODE. Do not build new engines, only enhance existing ones. Reuse the requested HTML template).
 
 **Code Architecture**
 /app
 ├── backend
-│   ├── routes_templates.py (Template APIs)
-│   ├── routes_templates_extended.py
-│   ├── unified_document_service.py (Document logic)
+│   ├── routes_outbound.py (New outbound share APIs)
+│   ├── routes_templates.py 
+│   ├── unified_document_service.py 
 │   ├── auth_guard.py
-│   └── server.py
+│   └── tests/test_outbound_share_iter278.py
 ├── frontend
 │   └── src
 │       ├── pages
-│       │   ├── DocumentPrint.jsx (New Electronic Invoice Template)
-│       │   ├── TemplatesManager.jsx (New Template Dashboard)
-│       │   ├── VehicleDetails.jsx
-│       │   └── Operations.jsx
+│       │   ├── DocumentPrint.jsx 
+│       │   ├── TemplatesManager.jsx 
 │       ├── components
-│       │   └── QuickPrintDialog.jsx (Print & Template Selector Modal)
+│       │   ├── QuickPrintDialog.jsx
+│       │   ├── WhatsAppSharePreview.jsx
+│       │   └── OutboundMessagesTab.jsx
+│       ├── hooks
+│       │   └── useWhatsAppShare.js
+│       ├── services
+│       │   └── outboundShare.js
 │       └── utils
-│           ├── pdfGenerator.js (html2canvas/jsPDF implementation)
-│           ├── constants.js
-│           └── permissions.js
+│           └── pdfGenerator.js
 
 **Key Technical Concepts**
 - React frontend + FastAPI backend + MongoDB.
 - Client-side PDF generation ( / ).
-- Template resolution and immutable document logic.
+- Tenant isolation and Server-side SHA-256 document fingerprinting.
+- Web Share API for Mobile WhatsApp integration.
 
 **key DB schema**
-  - Potential new collections required (To be confirmed via plan approval): , , .
+  - 
+  - 
+  - 
 
 **changes in tech stack**
   - None.
 
-**All files of reference**
-  -  (Reviewed in this session to inform the discovery summary)
-  -  
-  -  
-  -  
-  -  
+**All files of reference** 
+  -  (CRITICAL: Source HTML for the new unified invoice component)
+  - 
+  - 
   - 
 
 **Areas that need refactoring**: 
-- Implement caching/fingerprinting logic in  and document services.
-- Action bars in  and  need the new  action.
+-  must be heavily refactored to consume the new unified component derived from .
 
 **key api endpoints**
 - 
-- 
+-  (or equivalent implemented in this session)
 
 **Critical Info for New Agent**:
-- **LANGUAGE**: Respond ONLY in Arabic. The user communicates entirely in Arabic.
-- **CRITICAL DIRECTIVE (ROAST MODE)**: The user provided a massive prompt in the past. **Do not create a new print engine.** You must enhance the existing one. You are tasked with adding a unified  button that generates a PDF, a preview image, resolves a fixed text message with variables, and shows a preview modal before opening a WhatsApp share link. Strict audit logging () is required. 
-- **CURRENT STATE**: You are waiting on the user to respond to the  tool outputting the Architectural Discovery Summary. Process their feedback carefully before writing code.
+- **LANGUAGE**: Respond ONLY in Arabic.
+- **DESIGN UNIFICATION**: The user strictly prohibited creating separate designs for the preview, print, and PDF. You MUST create a single React component from the provided HTML file () and use it everywhere.
+- **SEAL LOGIC**: Ensure you check the document's state (e.g., ) before rendering the electronic seals. 
 
 **documents and test reports created in this job**
-  - N/A (Only read operations and plan proposal occurred in this immediate session).
+  - 
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- 1. *User*: Provided handoff summary outlining ROAST MODE constraints and requirement for a Discovery Summary.
- 2. *User*: Please use ask_human tool and confirm your plan now.
- 3. *User*: Tool result returning the contents of .
- 4. *User*: (PENDING HUMAN MESSAGE) - System indicates Question has been sent to the user. Waiting for response via the  tool.
- 
- *Note: The very next message you receive will be the user's approval or modification of your proposed Discovery Summary and plan.*
+ - *User*: Approved previous architecture plan with strict corrections for caching, WhatsApp Web Share, audit logging, and component decoupling.
+ - *User (Latest)*: Rejected the agent's task completion. Ordered the agent to adopt a new HTML template (), unify the React Component across all paths, implement dynamic Electronic Seals, and remove all visual redundancies (duplicate totals, signatures, QR, barcodes).
 
 **Project Health Check:**
-- Broken: None.
-- Mocked: None.
+- Broken: None
+- Mocked: None
 
 **3rd Party Integrations**
 - Emergent LLM Key (Used for Claude Sonnet) — uses Emergent LLM Key.
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Only planning occurred)
+  - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None this session.
-  - Known regressions: None
+  - Test files created: 
+  - Known regressions: Visual UI rejected by user; requires rebuild using the provided HTML template.
 
 **Credentials to test flow:**
 - Manager (Admin): Username , PIN 
 - Accountant: Username , PIN 
 
 **What agent forgot to execute**
-- Nothing. The agent successfully oriented itself, read the PRD, and requested user verification for the Discovery Summary plan via  as explicitly instructed.
+- The agent successfully implemented the backend and sharing logic but finished the task without applying the required visual invoice overhaul and electronic seals. The user caught this and provided an HTML template to guide the visual fix.
 
 **Debugging checklist for current issue**
-    Issue: Provide Architectural Discovery Summary & Plan Implementation (Pending User Approval).
+    Issue: Unify Invoice Template & Implement Electronic Seals
 
-    Frontend files to check (Once Coding Begins): 
-    - Assess  to map where the new Send Preview UI and  button will go.
-    - Assess  for where to hook in the Preview Image generation (e.g., using  alone to get a base64 image alongside the PDF).
+    Frontend files to check: 
+    - : Read this to build the new React component.
+    - : Replace existing output with the new unified component.
+    - : Ensure the new component renders correctly via .
   
-    Backend files to check (Once Coding Begins):
-    - Assess  and MongoDB schema for where to store  and .</analysis>
+    Backend files to check:
+    - : Verify how document state (e.g., approvals) is passed to the frontend to trigger the display of the Electronic Seals.</analysis>
