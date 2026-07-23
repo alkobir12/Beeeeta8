@@ -4,7 +4,7 @@ import { downloadPDF } from '../utils/pdfGenerator';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
 import WhatsAppSharePreview from './WhatsAppSharePreview';
-import { renderDocumentTemplate } from '../utils/documentTemplate';
+import { assertTemplateComplete, renderDocumentTemplate } from '../utils/documentTemplate';
 
 const DOC_TYPE_LABELS = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
 const money = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
@@ -229,10 +229,16 @@ const QuickPrintDialog = ({
       if (!nextHtml) {
         throw new Error('empty');
       }
+      assertTemplateComplete(nextHtml);
       setHtml(nextHtml);
       return nextHtml;
     } catch (e) {
-      const message = e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : (e?.response?.data?.detail?.message || 'تعذر إنشاء المعاينة بالقالب المختار');
+      const event = e?.code === 'template_incomplete' ? 'template_incomplete' : (e?.response ? 'template_load_failed' : 'template_render_failed');
+      api.post('/document-templates/events', {
+        event, template_id: selectedTemplate?.id, document_type: currentDocType,
+        reason: e?.message || 'template_generation_failed', missing_variables: e?.variables || [],
+      }).catch(() => null);
+      const message = e?.code === 'template_incomplete' ? e.message : (e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : (e?.response?.data?.detail?.message || 'تعذر إنشاء المعاينة بالقالب المختار'));
       setError(message);
       return '';
     } finally {
@@ -293,6 +299,8 @@ const QuickPrintDialog = ({
         backgroundColor: '#ffffff',
         scale: 1.6,
       });
+    } catch (e) {
+      setError(e?.message || 'تعذر إنشاء PDF بالقالب المختار');
     } finally {
       printable.wrapper.remove();
     }

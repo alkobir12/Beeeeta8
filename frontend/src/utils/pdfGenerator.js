@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { assertTemplateComplete } from './documentTemplate';
 
 const waitForStableLayout = async (element) => {
   if (document?.fonts?.ready) {
@@ -98,6 +99,7 @@ export const downloadPDF = async (
 ) => {
   if (!element) return;
   try {
+    assertTemplateComplete(element.innerHTML || '');
     const canvas = await elementToCanvas(element, options);
     const pdf = canvasToPdf(canvas, options.format || 'a4');
     const safeName = String(fileName || 'document.pdf').toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`;
@@ -115,6 +117,7 @@ export const downloadPDF = async (
  */
 export const renderPdfAssets = async (element, options = {}) => {
   if (!element) throw new Error('missing-element');
+  assertTemplateComplete(element.innerHTML || '');
   const canvas = await elementToCanvas(element, options);
   const pdf = canvasToPdf(canvas, options.format || 'a4');
   const pdfBlob = pdf.output('blob');

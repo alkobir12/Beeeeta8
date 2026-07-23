@@ -26,7 +26,7 @@ import { downloadPDF } from '../utils/pdfGenerator';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
 import WhatsAppSharePreview from '../components/WhatsAppSharePreview';
-import { renderDocumentTemplate, splitTemplateHtml } from '../utils/documentTemplate';
+import { findUnresolvedTemplateVariables, renderDocumentTemplate, splitTemplateHtml } from '../utils/documentTemplate';
 
 const SAR = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -119,6 +119,7 @@ export default function DocumentPrint() {
   const [templateMeta, setTemplateMeta] = useState(null);
   const [templateReason, setTemplateReason] = useState('');
   const [templateLoading, setTemplateLoading] = useState(false);
+  const templateIssueKeyRef = useRef('');
   const [docType, setDocType] = useState(searchParams.get('type') || 'invoice');
   const [formData, setFormData] = useState({
     workshop: {
@@ -175,6 +176,24 @@ export default function DocumentPrint() {
     settings: { ...formData.settings, seal_code: sealCode, totals: { paid: totals.paid } },
   }), [docType, formData, sealCode, totals.paid]);
   const renderedTemplate = useMemo(() => templateContent ? renderDocumentTemplate(templateContent, templatePayload, formData.workshop) : '', [formData.workshop, templateContent, templatePayload]);
+  const templateMissingVariables = useMemo(() => findUnresolvedTemplateVariables(renderedTemplate), [renderedTemplate]);
+  const templateIsComplete = Boolean(renderedTemplate) && templateMissingVariables.length === 0;
+
+  const reportTemplateIssue = useCallback((event, reason, missingVariables = []) => {
+    api.post('/document-templates/events', {
+      event, template_id: templateMeta?.id, document_type: docType, reason, missing_variables: missingVariables,
+    }).catch(() => null);
+  }, [docType, templateMeta?.id]);
+
+  const ensureTemplateComplete = useCallback(() => {
+    if (templateIsComplete) return true;
+    const message = templateMissingVariables.length
+      ? `القالب غير مكتمل. المتغيرات الناقصة: ${templateMissingVariables.join('، ')}`
+      : 'تعذر تحميل القالب المختار. لن يتم إنشاء مستند بديل تلقائياً.';
+    setAlertMessage(message);
+    reportTemplateIssue(templateMissingVariables.length ? 'template_incomplete' : 'template_render_failed', message, templateMissingVariables);
+    return false;
+  }, [reportTemplateIssue, templateIsComplete, templateMissingVariables]);
 
   const patchForm = useCallback((patch) => {
     setSealInvalidated(true);
@@ -403,6 +422,14 @@ export default function DocumentPrint() {
   }, [docType, selectedTemplateId]);
 
   useEffect(() => {
+    if (templateIsComplete) return;
+    const key = `${templateMeta?.id || 'none'}:${templateMissingVariables.join('|')}:${templateContent ? 'content' : 'empty'}`;
+    if (templateIssueKeyRef.current === key) return;
+    templateIssueKeyRef.current = key;
+    if (templateContent || templateMissingVariables.length) ensureTemplateComplete();
+  }, [ensureTemplateComplete, templateContent, templateIsComplete, templateMeta?.id, templateMissingVariables]);
+
+  useEffect(() => {
     let active = true;
     setTemplateLoading(true);
     api.post('/document-templates/resolve', { document_type: docType, template_id: selectedTemplateId || undefined })
@@ -418,16 +445,18 @@ export default function DocumentPrint() {
         setTemplateContent('');
         setTemplateMeta(null);
         setTemplateReason('');
-        setAlertMessage(error?.response?.data?.detail?.message || 'تعذر تحميل القالب المختار. لن نستخدم قالباً بديلاً تلقائياً.');
+        const message = error?.response?.data?.detail?.message || 'تعذر تحميل القالب المختار. لن نستخدم قالباً بديلاً تلقائياً.';
+        setAlertMessage(message);
+        reportTemplateIssue('template_load_failed', message);
       })
       .finally(() => { if (active) setTemplateLoading(false); });
     return () => { active = false; };
-  }, [docType, selectedTemplateId]);
+  }, [docType, reportTemplateIssue, selectedTemplateId]);
 
   const numberToWords = (value) => value <= 0 ? 'فقط صفر ريال لا غير' : `فقط ${SAR(value)} لا غير`;
 
   const downloadCurrentPdf = async () => {
-    if (!previewRef.current) return;
+    if (!ensureTemplateComplete() || !previewRef.current) return;
     setPdfBusy(true);
     try {
       await downloadPDF(previewRef.current, `${docType}_${formData.settings.document_number || 'document'}.pdf`, { scale: 2, backgroundColor: '#ffffff' });
@@ -436,10 +465,11 @@ export default function DocumentPrint() {
     }
   };
 
-  const printCurrent = () => window.print();
+  const printCurrent = () => { if (ensureTemplateComplete()) window.print(); };
 
   const sendWhatsApp = async () => {
     setAlertMessage('');
+    if (!ensureTemplateComplete()) return;
     if (!showPreview) {
       setShowPreview(true);
       await new Promise((resolve) => setTimeout(resolve, 400));
@@ -601,7 +631,7 @@ export default function DocumentPrint() {
             </div>
             <div className="doc-preview-viewport" data-testid="document-preview-viewport">
               <div className="doc-sheet-scale" style={{ transform: `scale(${zoom})`, height: `${1124 * zoom}px` }}>
-                {renderedTemplate ? <ResolvedTemplateSheet ref={previewRef} html={renderedTemplate} /> : <div className="rounded-xl bg-white p-8 text-center text-sm font-bold text-rose-600" data-testid="document-template-error">تعذر عرض القالب المختار.</div>}
+                {templateIsComplete ? <ResolvedTemplateSheet ref={previewRef} html={renderedTemplate} /> : <div className="rounded-xl bg-white p-8 text-center text-sm font-bold text-rose-600" data-testid="document-template-error">{templateMissingVariables.length ? `القالب غير مكتمل: ${templateMissingVariables.join('، ')}` : 'تعذر عرض القالب المختار.'}</div>}
               </div>
             </div>
           </section>

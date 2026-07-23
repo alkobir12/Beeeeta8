@@ -4,6 +4,32 @@ const escapeHtml = (value) => String(value ?? '')
 
 const money = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 
+const unique = (values) => [...new Set(values.map((value) => String(value).trim()).filter(Boolean))];
+
+export const findUnresolvedTemplateVariables = (html = '') => {
+  const source = String(html || '');
+  const matches = [
+    ...source.matchAll(/{{\s*([^{}]+?)\s*}}/g),
+    ...source.matchAll(/\[\[\s*([^\]]+?)\s*\]\]/g),
+    ...source.matchAll(/<%=?\s*([\s\S]*?)\s*%>/g),
+    ...source.matchAll(/\{([A-Z][A-Z0-9_]*)\}/g),
+  ].map((match) => match[1]);
+  return unique(matches);
+};
+
+export const createTemplateCompletenessError = (variables = []) => {
+  const error = new Error(`القالب غير مكتمل. المتغيرات الناقصة: ${variables.join('، ')}`);
+  error.code = 'template_incomplete';
+  error.variables = variables;
+  return error;
+};
+
+export const assertTemplateComplete = (html = '') => {
+  const variables = findUnresolvedTemplateVariables(html);
+  if (variables.length) throw createTemplateCompletenessError(variables);
+  return true;
+};
+
 export const renderDocumentTemplate = (templateHtml, payload = {}, workshop = {}) => {
   const settings = payload.settings || {};
   const customer = payload.customer || payload.client || {};
@@ -31,7 +57,7 @@ export const renderDocumentTemplate = (templateHtml, payload = {}, workshop = {}
     html = html.replaceAll(`{{${key}}}`, String(value));
     html = html.replaceAll(`{${key}}`, String(value));
   });
-  return html.replace(/{{?[^{}]+}}?/g, '');
+  return html;
 };
 
 export const splitTemplateHtml = (html = '') => {

@@ -1,0 +1,56 @@
+{
+  "summary": "تم تنفيذ اختبار P0.1 (Backend + Frontend + Unit) لحارس اكتمال القالب قبل المعاينة/PDF. تحققنا من تسجيل events المطلوبة، ومنع DocumentPrint للمعاينة/PDF/الطباعة/واتساب عند وجود placeholders غير مستبدلة، ومن رفض downloadPDF/renderPdfAssets عبر اختبارات الوحدة. تم اكتشاف خلل مهم: المتغير {CUSTOMER_NAME} لا يظهر ضمن المفقودات لأنه يُستبدل fallback صامت ('عميل نقدي').",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "DocumentPrint + template guard",
+        "issue": "عند قالب ناقص يحتوي {CUSTOMER_NAME} و[[TOTAL]] و<%= INVOICE_NO %>، رسالة الخطأ وأحداث template_incomplete تُظهر TOTAL وINVOICE_NO فقط. CUSTOMER_NAME يُستهلك عبر fallback صامت داخل renderDocumentTemplate بدلاً من اعتباره متغيراً ناقصاً.",
+        "affected_selectors": [
+          "[data-testid='document-template-error']",
+          "[data-testid='document-alert-message']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter284_template_guard_events.py",
+    "/app/backend/tests/test_iter284_cleanup_uploaded_templates.py",
+    "/app/frontend/src/utils/templateGuard.iter284.test.js",
+    "/app/test_reports/pytest/iter284_template_guard_events.xml",
+    "/root/.emergent/automation_output/20260723_173852/console_20260723_173852.log",
+    "/root/.emergent/automation_output/20260723_173621/console_20260723_173621.log"
+  ],
+  "action_items": [
+    "إيقاف fallback الصامت للمتغيرات الإلزامية في renderDocumentTemplate (خصوصاً CUSTOMER_NAME) بحيث تبقى placeholder غير مستبدلة وتدخل ضمن missing_variables.",
+    "توحيد سياسة الإلزام بين المتغيرات: إما اعتبار CUSTOMER_NAME إلزامياً بدون fallback، أو تمييزه صراحة كاختياري خارج حارس الاكتمال.",
+    "إعادة Retest بعد الإصلاح على DocumentPrint وQuickPrint للتأكد أن missing_variables تتضمن CUSTOMER_NAME عند غيابه فعلياً."
+  ],
+  "critical_code_review_comments": [
+    "findUnresolvedTemplateVariables/assertTemplateComplete يعملان بشكل صحيح على النص الخام (يدعم {...}, [[...]], <%= ... %>, {{...}}).",
+    "المشكلة الجذرية في مسار الدمج: renderDocumentTemplate يحقن fallback قيم افتراضية لبعض الحقول (مثل CUSTOMER_NAME='عميل نقدي') مما يخفي نقص البيانات عن الحارس ويخالف متطلب 'لا fallback صامت'.",
+    "DocumentPrint يطبق الحارس فعلياً ويمنع المعاينة/PDF/الطباعة/واتساب ويكتب template_incomplete عند اكتشاف placeholders متبقية."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter284_template_guard_events.py",
+    "/app/backend/tests/test_iter284_cleanup_uploaded_templates.py",
+    "/app/frontend/src/utils/templateGuard.iter284.test.js",
+    "/app/test_reports/iteration_284.json"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 tests passed across iter284 backend files)",
+    "frontend": "80% (الحارس يعمل، مع خلل متبقي في تغطية CUSTOMER_NAME)"
+  },
+  "test_credentials": "تمت القراءة من /app/memory/test_credentials.md واستخدام: مدير / 123123.",
+  "seed_data_creation": "تم رفع قوالب اختبار ITER284 مؤقتاً ثم أرشفتها (ACTIVE_ITER284_UI_TEMPLATES=[]).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "نتائج مؤكدة: POST /api/document-templates/events يسجل template_incomplete/load_failed/render_failed مع الحقول المطلوبة، وdownloadPDF/renderPdfAssets يرفضان placeholders غير المستبدلة. الخلل المفتوح الوحيد: CUSTOMER_NAME لا يظهر ضمن missing_variables بسبب fallback صامت قبل الحارس.",
+  "rca of the issue": "RCA: في documentTemplate.renderDocumentTemplate يتم بناء values مع CUSTOMER_NAME = customer.name || ... || 'عميل نقدي'. عند غياب بيانات العميل يُستبدل {CUSTOMER_NAME} بهذه القيمة، فلا يبقى placeholder للنمط {UPPERCASE_TOKEN} كي يلتقطه findUnresolvedTemplateVariables. النتيجة: template_incomplete لا يتضمن CUSTOMER_NAME رغم أنه متغير كان يجب الإبلاغ عنه ضمن متطلب P0.1.",
+  "mocked_api": "NO MOCKED APIs used"
+}

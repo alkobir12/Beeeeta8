@@ -169,6 +169,22 @@ async def resolve(payload: Dict[str, Any] = Body(...)):
     return await resolve_template(payload)
 
 
+@router.post("/events")
+async def record_template_event(payload: Dict[str, Any] = Body(...)):
+    await _ensure_registry()
+    event = str(payload.get("event") or "").strip()
+    if event not in {"template_incomplete", "template_load_failed", "template_render_failed"}:
+        raise HTTPException(status_code=422, detail={"code": "unsupported_template_event"})
+    row = {
+        "id": str(uuid.uuid4()), "event": event, "template_id": str(payload.get("template_id") or ""),
+        "tenant_id": str(payload.get("tenant_id") or "default"), "document_type": str(payload.get("document_type") or ""),
+        "locale": str(payload.get("locale") or "ar-SA"), "reason": str(payload.get("reason") or ""),
+        "missing_variables": [str(item) for item in (payload.get("missing_variables") or [])][:50], "created_at": _now(),
+    }
+    await db.document_template_resolution_audit.insert_one(row)
+    return {"success": True, "event_id": row["id"]}
+
+
 @router.post("/upload")
 async def upload_template(
     file: UploadFile = File(...), name: Optional[str] = Form(None),
