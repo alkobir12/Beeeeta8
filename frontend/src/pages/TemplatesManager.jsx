@@ -28,16 +28,16 @@ const TemplatesManager = () => {
   const [activeTab, setActiveTab] = useState('print');
 
   const grouped = useMemo(() => Object.keys(docTypes).reduce((acc, key) => {
-    acc[key] = templates.filter((tpl) => (tpl.type || 'invoice') === key);
+    acc[key] = templates.filter((tpl) => (tpl.document_type || tpl.type || 'invoice') === key);
     return acc;
   }, {}), [templates]);
 
-  const activeCount = useMemo(() => templates.filter((tpl) => tpl.is_default || tpl.isActive).length, [templates]);
+  const activeCount = useMemo(() => templates.filter((tpl) => tpl.is_default).length, [templates]);
 
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/templates`);
+      const response = await axios.get(`${API_URL}/document-templates`);
       setTemplates(Array.isArray(response.data?.templates) ? response.data.templates : []);
     } catch (error) {
       toast({ title: 'تعذر تحميل النماذج', description: 'تأكد من الاتصال وحاول مرة أخرى', variant: 'destructive' });
@@ -61,10 +61,9 @@ const TemplatesManager = () => {
       formData.append('file', file);
       formData.append('name', templateName || file.name.replace(/\.(html|htm|pdf)$/i, ''));
       formData.append('description', description || 'نموذج مرفوع من إدارة النماذج');
-      formData.append('type', selectedType);
-      formData.append('make_default', ext === 'html' || ext === 'htm' ? 'true' : 'false');
-      const response = await axios.post(`${API_URL}/templates/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast({ title: 'تم حفظ النموذج', description: ext === 'pdf' ? 'تمت إضافته للتحميل فقط' : 'تمت إضافته تلقائياً للنماذج الافتراضية لهذا النوع' });
+      formData.append('document_type', selectedType);
+      const response = await axios.post(`${API_URL}/document-templates/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast({ title: 'تم حفظ النموذج', description: ext === 'pdf' ? 'صُنّف للتحميل فقط' : 'تمت إضافته ويمكن تعيينه افتراضياً' });
       setTemplateName('');
       setDescription('');
       if (fileRef.current) fileRef.current.value = '';
@@ -79,7 +78,7 @@ const TemplatesManager = () => {
 
   const makeDefault = async (template) => {
     try {
-      await axios.post(`${API_URL}/templates/${template.id}/make-default`);
+      await axios.post(`${API_URL}/document-templates/${template.id}/set-default`, {});
       toast({ title: 'تم التعيين', description: `صار «${template.name}» النموذج الافتراضي` });
       await loadTemplates();
     } catch (error) {
@@ -94,8 +93,8 @@ const TemplatesManager = () => {
     }
     if (!window.confirm(`حذف النموذج «${template.name}»؟`)) return;
     try {
-      await axios.delete(`${API_URL}/templates/${template.id}`);
-      toast({ title: 'تم الحذف', description: 'أزيل النموذج من القائمة' });
+      await axios.delete(`${API_URL}/document-templates/${template.id}`);
+      toast({ title: 'تمت الأرشفة', description: 'حُفظ القالب خارج خيارات الطباعة' });
       await loadTemplates();
     } catch (error) {
       toast({ title: 'فشل الحذف', description: 'حاول مرة أخرى', variant: 'destructive' });
@@ -104,7 +103,7 @@ const TemplatesManager = () => {
 
   const downloadTemplate = async (template) => {
     try {
-      const response = await axios.get(`${API_URL}/templates/${template.id}/download`, { responseType: 'blob' });
+      const response = await axios.get(`${API_URL}/document-templates/${template.id}/download`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -171,13 +170,13 @@ const TemplatesManager = () => {
                   <article className={`template-card ${template.is_default || template.isActive ? 'active' : ''}`} key={template.id} data-testid={`template-card-${template.id}`}>
                     <div className="template-icon">{template.file_type === 'pdf' ? <FileText size={20} /> : <FileCode2 size={20} />}</div>
                     <div className="template-main">
-                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{(template.is_default || template.isActive) && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> افتراضي</span>}</div>
+                      <div className="template-title-row"><h4 data-testid={`template-name-${template.id}`}>{template.name}</h4>{template.is_default && <span data-testid={`template-default-badge-${template.id}`}><BadgeCheck size={14} /> افتراضي</span>}</div>
                       <p data-testid={`template-description-${template.id}`}>{template.description || 'بدون وصف'}</p>
-                      <small data-testid={`template-meta-${template.id}`}>{template.file_type?.toUpperCase()} · {formatSize(template.file_size)} · {template.is_builtin ? 'رسمي' : 'مرفوع'}</small>
+                      <small data-testid={`template-meta-${template.id}`}>{template.file_type?.toUpperCase()} · v{template.version || 1} · {template.status || 'غير مصنف'} · {template.is_builtin ? 'رسمي' : 'مرفوع'}</small>
                       <div className="template-actions">
                         <button type="button" onClick={() => setPreview(template)} data-testid={`template-preview-${template.id}`}><Eye size={15} /> معاينة</button>
                         <button type="button" onClick={() => downloadTemplate(template)} data-testid={`template-download-${template.id}`}><Download size={15} /> تحميل</button>
-                        {template.file_type === 'html' && <button type="button" onClick={() => makeDefault(template)} data-testid={`template-make-default-${template.id}`}><Star size={15} /> افتراضي</button>}
+                        {template.file_type === 'html' && template.status === 'valid' && <button type="button" onClick={() => makeDefault(template)} data-testid={`template-make-default-${template.id}`}><Star size={15} /> افتراضي</button>}
                         <button type="button" className="danger" onClick={() => deleteTemplate(template)} data-testid={`template-delete-${template.id}`}><Trash2 size={15} /> حذف</button>
                       </div>
                     </div>

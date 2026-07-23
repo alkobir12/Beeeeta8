@@ -1,0 +1,68 @@
+{
+  "summary": "تم اختبار P0 لقوالب المستندات (Backend + Frontend) على الرابط العام. باكند السجل الموحد/resolve/set-default/409 الصريح ناجح بالكامل، مع ملاحظة تعثر تكاملي في QuickPrint (المعاينة لا تُنجز أحيانًا ولا يظهر سبب الاختيار)، وملاحظة أمنية CORS على auth/login.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "يرجع Access-Control-Allow-Origin = '*' في اختبار origin مع السماح بالاعتماديات؛ يخالف النمط المتوقع origin صريح مع credentials."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "QuickPrintDialog من ملف المركبة",
+        "issue": "بعد فتح نافذة الطباعة من رأس الملف: تظهر خيارات القالب لكن المعاينة تبقى في حالة تحميل ولا يظهر quick-print-template-reason ضمن زمن الاختبار، ولم نرصد طلب /api/document-templates/{id}/use أثناء هذه الحالة.",
+        "affected_selectors": [
+          "[data-testid='quick-print-dialog']",
+          "[data-testid='quick-print-template-selector']",
+          "[data-testid='quick-print-template-reason']",
+          "[data-testid='quick-print-preview']"
+        ]
+      },
+      {
+        "flow": "DocumentPrint /print?type=invoice",
+        "issue": "تم التحقق من استخدام /api/document-templates و /resolve وعدم استدعاء /api/documents/generate في هذا المسار أثناء الاختبار، لكن نص سبب الاختيار يظهر أولاً كـ 'جارٍ تحميل القالب...' وقد يتأخر قبل الاستقرار.",
+        "affected_selectors": [
+          "[data-testid='document-template-selection-reason']",
+          "[data-testid='document-resolved-template-sheet']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_templates_p0_unified_registry_iter281.py",
+    "/app/test_reports/pytest/iter281_templates_p0_backend.xml",
+    "/root/.emergent/automation_output/20260723_161251/console_20260723_161251.log",
+    "/root/.emergent/automation_output/20260723_161329/console_20260723_161329.log",
+    "/root/.emergent/automation_output/20260723_161416/console_20260723_161416.log"
+  ],
+  "action_items": [
+    "معالجة مسار QuickPrint بحيث تُستكمل generateHtml وتظهر المعاينة وسبب الاختيار دائماً، والتأكد من تنفيذ /document-templates/{id}/use عند اختيار القالب.",
+    "مراجعة CORS في auth/login لإرجاع origin صريح مع allow-credentials بدلاً من wildcard في سيناريوهات الاعتماديات.",
+    "إعادة اختبار end-to-end سريع بعد الإصلاح: Vehicle header print → QuickPrint preview/pdf/whatsapp مع تتبع network للتأكد من /use وعدم وجود fallback صامت."
+  ],
+  "critical_code_review_comments": [
+    "routes_document_templates.py يحقق شروط P0 الخلفية بشكل جيد: قيد default الجزئي + resolve بسبب اختيار + 409 عند explicit غير صالح بدون fallback صامت.",
+    "في QuickPrintDialog، التوليد يعتمد selectedTemplate.id وpayloadBuilder؛ في السيناريو المرصود تبقى النافذة بحالة loading دون error ظاهر، ما يشير لاحتمال تعليق/سباق في دورة generateHtml/useEffect أو بناء payload للزيارة.",
+    "سياسة CORS الحالية (وفق الاختبار) تسمح برد wildcard في auth/login رغم وجود allow_credentials، وهذه نقطة أمنية/توافق يجب تصحيحها."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_templates_p0_unified_registry_iter281.py",
+    "/app/test_reports/iteration_281.json"
+  ],
+  "success_rate": {
+    "backend": "90%",
+    "frontend": "75%"
+  },
+  "test_credentials": "تمت القراءة من /app/memory/test_credentials.md واستخدام مدير / PIN 123123.",
+  "seed_data_creation": "لم يتم إنشاء بيانات دائمة جديدة؛ اختبار set-default استعمل قوالب موجودة في بيئة المعاينة.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "اختبارات backend الخاصة بـP0 موجودة في test_templates_p0_unified_registry_iter281.py ونجحت 4/4. في الواجهة: DocumentPrint استقر وأظهر selection_reason=explicit_document_template في إعادة التشخيص، بينما QuickPrint من Vehicle header أظهر خيارات القالب لكن بقي loading دون preview/reason خلال نافذة الملاحظة؛ تتبع الطلبات لم يُظهر /use في هذه الحالة.",
+  "rca of the issue": "RCA مبدئي: العطل ليس من resolver الخلفي (مُثبت باختبارات backend)، بل في مسار QuickPrint الأمامي عند فتحه من VehicleDetails حيث قد يحدث تعارض توقيت بين تحميل القوالب، اختيار القالب، وبناء payload للزيارة؛ النتيجة بقاء واجهة المعاينة في loading وعدم إرسال /use في الجلسة المرصودة. كما أن auth/login كشف استجابة CORS wildcard مع credentials في اختبار origin الصريح.",
+  "mocked_api": "NO MOCKED APIs used"
+}

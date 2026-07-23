@@ -24,7 +24,7 @@ export const useWhatsAppShare = () => {
   }, []);
 
   const prepare = useCallback(async ({
-    docType, payload = {}, workshop = {}, templateId, templateVersion,
+    docType, payload = {}, workshop = {}, templateId, templateVersion, templateSelectionReason,
     getElement, phone, fileBaseName, context = '',
   }) => {
     setShare({ stage: 'preparing' });
@@ -40,7 +40,7 @@ export const useWhatsAppShare = () => {
             || computeSealCode(payload.settings?.document_number || payload.document_number),
         },
       };
-      const material = buildShareMaterial({ docType, payload: enrichedPayload, workshop, templateId, templateVersion });
+      const material = buildShareMaterial({ docType, payload: enrichedPayload, workshop, templateId, templateVersion, templateSelectionReason });
 
       const resolved = await resolveOutboundMessage({
         doc_type: docType,

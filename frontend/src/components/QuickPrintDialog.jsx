@@ -4,6 +4,7 @@ import { downloadPDF } from '../utils/pdfGenerator';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
 import WhatsAppSharePreview from './WhatsAppSharePreview';
+import { renderDocumentTemplate } from '../utils/documentTemplate';
 
 const DOC_TYPE_LABELS = { invoice: 'فاتورة', diagnosis: 'تقرير تشخيص', quote: 'عرض سعر', receipt: 'سند زيارة' };
 const money = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
@@ -58,6 +59,7 @@ const QuickPrintDialog = ({
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateSelectionReason, setTemplateSelectionReason] = useState('');
   const iframeRef = useRef(null);
   const payloadBuilderRef = useRef(payloadBuilder);
   const generationStartedRef = useRef(false);
@@ -85,16 +87,16 @@ const QuickPrintDialog = ({
     return 'invoice';
   }, [title]);
 
-  const filteredTemplates = useMemo(() => templates.filter((tpl) => (tpl.type || 'invoice') === currentDocType && tpl.file_type === 'html'), [currentDocType, templates]);
+  const filteredTemplates = useMemo(() => templates.filter((tpl) => (tpl.document_type || tpl.type || 'invoice') === currentDocType && tpl.file_type === 'html' && tpl.status === 'valid' && tpl.active), [currentDocType, templates]);
   const selectedTemplate = useMemo(() => filteredTemplates.find((tpl) => tpl.id === selectedTemplateId) || filteredTemplates[0] || null, [filteredTemplates, selectedTemplateId]);
 
   const loadTemplates = useCallback(async () => {
     setTemplateLoading(true);
     try {
-      const response = await api.get('/templates');
+      const response = await api.get('/document-templates');
       const rows = Array.isArray(response.data?.templates) ? response.data.templates : [];
       setTemplates(rows);
-      const sameType = rows.filter((tpl) => (tpl.type || 'invoice') === currentDocType && tpl.file_type === 'html');
+      const sameType = rows.filter((tpl) => (tpl.document_type || tpl.type || 'invoice') === currentDocType && tpl.file_type === 'html' && tpl.status === 'valid' && tpl.active);
       const preferred = sameType.find((tpl) => tpl.is_default || tpl.isActive) || sameType[0];
       setSelectedTemplateId(preferred?.id || '');
     } catch (e) {
@@ -217,20 +219,10 @@ const QuickPrintDialog = ({
       const workshop = { ...(await loadWorkshop()), ...(basePayload.workshop || {}) };
       lastPayloadRef.current = { payload: basePayload, workshop };
       let rawHtml = '';
-      if (selectedTemplate?.id) {
-        const templateResponse = await runWithTimeout(api.post(`/templates/${selectedTemplate.id}/use`, {}, { timeout: 15000 }), 15000);
-        rawHtml = renderTemplateHtml(templateResponse.data?.content || '', basePayload, workshop);
-      } else {
-        const response = await runWithTimeout(
-          api.post('/documents/generate', { ...basePayload, workshop }, { timeout: 15000 }),
-          15000
-        );
-        const data = response.data;
-        if (!data?.success) {
-          throw new Error(data?.error || 'failed');
-        }
-        rawHtml = data?.html || data?.data?.html || '';
-      }
+      if (!selectedTemplate?.id) throw new Error('template_unavailable');
+      const templateResponse = await runWithTimeout(api.post(`/document-templates/${selectedTemplate.id}/use`, { document_type: currentDocType }, { timeout: 15000 }), 15000);
+      setTemplateSelectionReason(templateResponse.data?.selection_reason || '');
+      rawHtml = renderDocumentTemplate(templateResponse.data?.content || '', basePayload, workshop);
       const nextHtml = wrapPrintableHtml(rawHtml, basePayload?.settings?.status || basePayload?.status || '');
       if (!nextHtml) {
         throw new Error('empty');
@@ -238,13 +230,13 @@ const QuickPrintDialog = ({
       setHtml(nextHtml);
       return nextHtml;
     } catch (e) {
-      const message = e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : 'تعذر إنشاء المعاينة';
+      const message = e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : (e?.response?.data?.detail?.message || 'تعذر إنشاء المعاينة بالقالب المختار');
       setError(message);
       return '';
     } finally {
       setLoading(false);
     }
-  }, [loadWorkshop, runWithTimeout, selectedTemplate?.id, wrapPrintableHtml]);
+  }, [currentDocType, loadWorkshop, runWithTimeout, selectedTemplate?.id, wrapPrintableHtml]);
 
   useEffect(() => {
     if (!open) return;
@@ -326,7 +318,8 @@ const QuickPrintDialog = ({
       payload: meta.payload || {},
       workshop: meta.workshop || {},
       templateId: selectedTemplate?.id || 'unified-generator',
-      templateVersion: selectedTemplate?.created_at || selectedTemplate?.updated_at || 'v1',
+      templateVersion: selectedTemplate?.version || 'v1',
+      templateSelectionReason,
       phone,
       fileBaseName: `${title.replace(/\s+/g, '_')}`,
       context: 'quick-print-dialog',
@@ -361,7 +354,7 @@ const QuickPrintDialog = ({
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-sm font-bold text-white" data-testid="quick-print-template-selector-title">اختر نموذج الطباعة</div>
-              <div className="text-xs text-slate-400" data-testid="quick-print-template-selector-subtitle">{DOC_TYPE_LABELS[currentDocType]} · يظهر هذا الخيار عند كل زر طباعة</div>
+              <div className="text-xs text-slate-400" data-testid="quick-print-template-selector-subtitle">{DOC_TYPE_LABELS[currentDocType]} · نفس القالب يستخدم للمعاينة وPDF وواتساب</div>
             </div>
             <button
               type="button"
@@ -383,11 +376,12 @@ const QuickPrintDialog = ({
                 data-testid={`quick-print-template-option-${tpl.id}`}
               >
                 <div className="text-sm font-bold text-white">{tpl.name}</div>
-                <div className="mt-1 text-xs text-slate-400">{tpl.is_builtin ? 'افتراضي جديد' : 'مرفوع'} {tpl.is_default || tpl.isActive ? '· مستخدم حالياً' : ''}</div>
+                <div className="mt-1 text-xs text-slate-400">{tpl.is_builtin ? 'نظامي' : 'مرفوع'} · v{tpl.version} {tpl.is_default ? '· افتراضي' : ''}</div>
               </button>
             ))}
           </div>
-          {!templateLoading && filteredTemplates.length === 0 && <div className="text-sm text-amber-200" data-testid="quick-print-no-templates">لا يوجد نموذج HTML لهذا النوع، سيتم استخدام مولد المستندات.</div>}
+          {!templateLoading && filteredTemplates.length === 0 && <div className="text-sm text-amber-200" data-testid="quick-print-no-templates">لا يوجد قالب صالح لهذا النوع. لن يتم إنشاء مستند بديل تلقائياً.</div>}
+          {templateSelectionReason && <div className="mt-2 text-xs text-emerald-300" data-testid="quick-print-template-reason">سبب الاختيار: {templateSelectionReason}</div>}
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">

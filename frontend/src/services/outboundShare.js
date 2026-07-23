@@ -36,7 +36,7 @@ const normalizeLineItems = (items = []) => (Array.isArray(items) ? items : [])
     vat_rate: Number(item.vatRate || item.tax_rate || item.vat || 0),
   }));
 
-export const buildShareMaterial = ({ docType, payload = {}, workshop = {}, templateId, templateVersion, tenantId = 'default' }) => {
+export const buildShareMaterial = ({ docType, payload = {}, workshop = {}, templateId, templateVersion, templateSelectionReason, tenantId = 'default' }) => {
   const settings = payload.settings || {};
   const lineItems = normalizeLineItems(payload.items);
   let subtotal = 0; let discount = 0; let tax = 0; let total = 0;
@@ -57,6 +57,7 @@ export const buildShareMaterial = ({ docType, payload = {}, workshop = {}, templ
     locale: 'ar',
     template_id: templateId || 'unified-generator',
     template_version: templateVersion || 'v1',
+    template_selection_reason: templateSelectionReason || 'internal_fallback',
     workshop_snapshot: pick(workshop, ['name', 'phone', 'address', 'email', 'tax_number', 'commercial_register']),
     customer_snapshot: pick(payload.customer || payload.client || {}, ['id', 'name', 'phone', 'email', 'address']),
     vehicle_snapshot: pick(payload.vehicle || {}, ['id', 'brand', 'model', 'year', 'plateNumber', 'plate', 'vin']),

@@ -76,7 +76,7 @@ FORBIDDEN_EVENTS = {"sent", "delivered", "read", "seen", "message_sent", "whatsa
 
 _MATERIAL_KEYS = [
     "tenant_id", "branch_id", "document_id", "document_number", "document_version",
-    "doc_type", "status", "locale", "template_id", "template_version",
+    "doc_type", "status", "locale", "template_id", "template_version", "template_selection_reason",
     "workshop_snapshot", "customer_snapshot", "vehicle_snapshot",
     "line_items", "totals", "taxes",
 ]

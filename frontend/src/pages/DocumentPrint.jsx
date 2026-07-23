@@ -26,6 +26,7 @@ import { downloadPDF } from '../utils/pdfGenerator';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
 import WhatsAppSharePreview from '../components/WhatsAppSharePreview';
+import { renderDocumentTemplate, splitTemplateHtml } from '../utils/documentTemplate';
 
 const SAR = (value) => `${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -100,6 +101,7 @@ export default function DocumentPrint() {
   const invoiceId = searchParams.get('invoiceId');
   const autoPrint = searchParams.get('autoPrint') === '1';
   const autoWhatsApp = searchParams.get('autoWhatsApp') === '1';
+  const initialTemplateId = searchParams.get('templateId') || '';
   const previewRef = useRef(null);
   const autoActionRef = useRef(false);
   const { share, prepare: prepareShare, reset: resetShare, logEvent: logShareEvent } = useWhatsAppShare();
@@ -111,6 +113,12 @@ export default function DocumentPrint() {
   const [saveState, setSaveState] = useState('جاهز');
   const [alertMessage, setAlertMessage] = useState('');
   const [sealInvalidated, setSealInvalidated] = useState(false);
+  const [templateOptions, setTemplateOptions] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplateId);
+  const [templateContent, setTemplateContent] = useState('');
+  const [templateMeta, setTemplateMeta] = useState(null);
+  const [templateReason, setTemplateReason] = useState('');
+  const [templateLoading, setTemplateLoading] = useState(false);
   const [docType, setDocType] = useState(searchParams.get('type') || 'invoice');
   const [formData, setFormData] = useState({
     workshop: {
@@ -157,6 +165,16 @@ export default function DocumentPrint() {
   }, [formData.items, formData.payment?.paid]);
 
   const sealCode = useMemo(() => buildSealCode(formData.settings.document_number, formData.settings.date), [formData.settings.date, formData.settings.document_number]);
+  const templatePayload = useMemo(() => ({
+    doc_type: docType,
+    document_number: formData.settings.document_number,
+    customer: formData.customer,
+    vehicle: formData.vehicle,
+    items: formData.items,
+    payment: formData.payment,
+    settings: { ...formData.settings, seal_code: sealCode, totals: { paid: totals.paid } },
+  }), [docType, formData, sealCode, totals.paid]);
+  const renderedTemplate = useMemo(() => templateContent ? renderDocumentTemplate(templateContent, templatePayload, formData.workshop) : '', [formData.workshop, templateContent, templatePayload]);
 
   const patchForm = useCallback((patch) => {
     setSealInvalidated(true);
@@ -370,6 +388,42 @@ export default function DocumentPrint() {
 
   useEffect(() => { refreshData(); }, [refreshData]);
 
+  useEffect(() => {
+    let active = true;
+    api.get('/document-templates').then(({ data }) => {
+      if (!active) return;
+      const rows = Array.isArray(data?.templates) ? data.templates : [];
+      const valid = rows.filter((item) => item.document_type === docType && item.file_type === 'html' && item.status === 'valid' && item.active);
+      setTemplateOptions(valid);
+      if (!selectedTemplateId) setSelectedTemplateId(valid.find((item) => item.is_default && item.tenant_id === 'default')?.id || valid.find((item) => item.is_default)?.id || '');
+    }).catch(() => {
+      if (active) setAlertMessage('تعذر تحميل قائمة القوالب.');
+    });
+    return () => { active = false; };
+  }, [docType, selectedTemplateId]);
+
+  useEffect(() => {
+    let active = true;
+    setTemplateLoading(true);
+    api.post('/document-templates/resolve', { document_type: docType, template_id: selectedTemplateId || undefined })
+      .then(({ data }) => {
+        if (!active) return;
+        setTemplateContent(data?.content || '');
+        setTemplateMeta(data?.template || null);
+        setTemplateReason(data?.selection_reason || '');
+        if (data?.template?.id && !selectedTemplateId) setSelectedTemplateId(data.template.id);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setTemplateContent('');
+        setTemplateMeta(null);
+        setTemplateReason('');
+        setAlertMessage(error?.response?.data?.detail?.message || 'تعذر تحميل القالب المختار. لن نستخدم قالباً بديلاً تلقائياً.');
+      })
+      .finally(() => { if (active) setTemplateLoading(false); });
+    return () => { active = false; };
+  }, [docType, selectedTemplateId]);
+
   const numberToWords = (value) => value <= 0 ? 'فقط صفر ريال لا غير' : `فقط ${SAR(value)} لا غير`;
 
   const downloadCurrentPdf = async () => {
@@ -390,21 +444,13 @@ export default function DocumentPrint() {
       setShowPreview(true);
       await new Promise((resolve) => setTimeout(resolve, 400));
     }
-    const payload = {
-      doc_type: docType,
-      document_number: formData.settings.document_number,
-      customer: formData.customer,
-      vehicle: formData.vehicle,
-      items: formData.items,
-      payment: formData.payment,
-      settings: { ...formData.settings, seal_code: sealCode, totals: { paid: totals.paid } },
-    };
     await prepareShare({
       docType,
-      payload,
+      payload: templatePayload,
       workshop: formData.workshop,
-      templateId: 'dash-pro-electronic-sheet',
-      templateVersion: 'v1',
+      templateId: templateMeta?.id,
+      templateVersion: templateMeta?.version,
+      templateSelectionReason: templateReason,
       phone: formData.customer.phone,
       fileBaseName: `${docType}_${formData.settings.document_number || 'document'}`,
       context: 'document-print-page',
@@ -468,6 +514,16 @@ export default function DocumentPrint() {
                 </button>
               ))}
             </div>
+          </Panel>
+
+          <Panel title="قالب المستند" icon={<FileText size={18} />} testId="document-template-section">
+            <label className="doc-field" data-testid="document-template-select-field">
+              <span>القالب المستخدم في المعاينة وPDF وواتساب</span>
+              <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)} data-testid="document-template-select" disabled={templateLoading}>
+                {templateOptions.map((template) => <option key={template.id} value={template.id}>{template.name} · v{template.version}{template.is_default ? ' · افتراضي' : ''}</option>)}
+              </select>
+            </label>
+            <p className="mt-3 text-xs font-bold text-slate-500" data-testid="document-template-selection-reason">{templateLoading ? 'جارٍ تحميل القالب...' : `سبب الاختيار: ${templateReason || 'غير متاح'}`}</p>
           </Panel>
 
           <Panel title="بيانات المستند" icon={<CalendarDays size={18} />} testId="document-settings-section">
@@ -545,15 +601,7 @@ export default function DocumentPrint() {
             </div>
             <div className="doc-preview-viewport" data-testid="document-preview-viewport">
               <div className="doc-sheet-scale" style={{ transform: `scale(${zoom})`, height: `${1124 * zoom}px` }}>
-                <InvoiceSheet
-                  ref={previewRef}
-                  docType={docType}
-                  formData={formData}
-                  totals={totals}
-                  sealCode={sealCode}
-                  numberToWords={numberToWords}
-                  sealInvalidated={sealInvalidated}
-                />
+                {renderedTemplate ? <ResolvedTemplateSheet ref={previewRef} html={renderedTemplate} /> : <div className="rounded-xl bg-white p-8 text-center text-sm font-bold text-rose-600" data-testid="document-template-error">تعذر عرض القالب المختار.</div>}
               </div>
             </div>
           </section>
@@ -702,6 +750,13 @@ const InvoiceSheet = React.forwardRef(({ docType, formData, totals, sealCode, nu
 });
 
 InvoiceSheet.displayName = 'InvoiceSheet';
+
+const ResolvedTemplateSheet = React.forwardRef(({ html }, ref) => {
+  const parsed = useMemo(() => splitTemplateHtml(html), [html]);
+  return <article className="resolved-template-sheet" ref={ref} data-testid="document-resolved-template-sheet"><style>{parsed.styles}</style><div dangerouslySetInnerHTML={{ __html: parsed.body }} /></article>;
+});
+
+ResolvedTemplateSheet.displayName = 'ResolvedTemplateSheet';
 
 function Panel({ title, icon, children, testId }) {
   return <section className="doc-panel" data-testid={testId}><h2 data-testid={`${testId}-title`}>{icon}{title}</h2>{children}</section>;

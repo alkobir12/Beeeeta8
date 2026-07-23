@@ -78,6 +78,7 @@ from routes_fault_knowledge import router as fault_knowledge_router
 
 # Import Templates Routes
 from routes_templates import router as templates_router
+from routes_document_templates import router as document_templates_router, set_db as set_db_document_templates
 from routes_outbound import router as outbound_router, set_db as set_db_outbound
 
 # Import Chart of Accounts Routes
@@ -334,6 +335,7 @@ set_db_gemini_chat(db)
 set_db_payroll(db)
 set_db_extended(db)
 set_db_templates_extended(db)
+set_db_document_templates(db)
 set_db_outbound(db)
 set_db_workshop_config(db)
 set_db_approvals(db)
@@ -634,6 +636,7 @@ app.include_router(import_router)
 app.include_router(gemini_chat_router)
 app.include_router(fault_knowledge_router)
 app.include_router(templates_router)
+app.include_router(document_templates_router)
 app.include_router(accounts_chart_router)
 app.include_router(analytics_advanced_router)
 app.include_router(ai_recommendations_router)
