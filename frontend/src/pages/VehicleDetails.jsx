@@ -1137,6 +1137,12 @@ const VisitCard = ({
             totalAmount,
           },
         }));
+        window.dispatchEvent(new CustomEvent('vehicles:updated', {
+          detail: { source: 'visit_items_save', vehicleId: visit.vehicleId || visit.vehicle_id },
+        }));
+        window.dispatchEvent(new CustomEvent('archive:updated', {
+          detail: { source: 'visit_items_save', vehicleId: visit.vehicleId || visit.vehicle_id },
+        }));
       } catch (evtErr) { console.warn('finance:updated dispatch failed', evtErr); }
 
       onAuditEvent?.({
@@ -1296,6 +1302,12 @@ const VisitCard = ({
         window.dispatchEvent(new CustomEvent('finance:updated', {
           detail: { source: 'visit_payment', visitId: visit.id, amount: totalConfirmed, discount: safeDiscount }
         }));
+        window.dispatchEvent(new CustomEvent('vehicles:updated', {
+          detail: { source: 'visit_payment', vehicleId: visit.vehicleId || visit.vehicle_id },
+        }));
+        window.dispatchEvent(new CustomEvent('archive:updated', {
+          detail: { source: 'visit_payment', vehicleId: visit.vehicleId || visit.vehicle_id },
+        }));
       } catch (evtErr) {
         console.warn('finance:updated dispatch failed', evtErr);
       }
@@ -1305,6 +1317,9 @@ const VisitCard = ({
         try {
           await axios.post(`${API_URL}/smart-accounting/vehicle/${visit.vehicleId || visit.vehicle_id}/archive`);
           toast({ title: '📦 تم الأرشفة', description: 'انتقل ملف المركبة للأرشيف' });
+          window.dispatchEvent(new CustomEvent('archive:updated', {
+            detail: { source: 'visit_payment_archive', vehicleId: visit.vehicleId || visit.vehicle_id },
+          }));
         } catch (archiveErr) {
           console.warn('archive_after_payment_failed', archiveErr);
         }

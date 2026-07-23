@@ -117,6 +117,19 @@ async def execute_text(
     if action.action == "unknown":
         action = _regex_fallback_action(text)
 
+    if action.action in {"create_invoice", "collect_payment", "create_expense", "create_purchase"}:
+        payment_method = _normalize_payment_method((action.payload or {}).get("payment_method"))
+        if not payment_method:
+            return {
+                "status": "needs_clarification",
+                "reason": "missing_fields",
+                "entity": "financial",
+                "candidates": [],
+                "ask": "💳 حدّد طريقة الدفع أولاً: **نقدي** أم **آجل** أم **تحويل**؟",
+                "action": action.model_dump(),
+            }
+        action.payload["payment_method"] = payment_method
+
     # 🛡️ Governance: no guessing — a creation without its essential identity
     # field goes back to the user instead of committing junk rows ("بدون اسم").
     if action.action in ("create_customer", "create_supplier"):
@@ -222,10 +235,10 @@ def _regex_supplier_payment_action(text: str) -> Optional[Action]:
             amount = None
     sup = re.search(r"(?:ال)?مورد\s+(.+?)(?:\s+(?:حوال[هة]|تحويل|نقد|كاش|cash|bank|transfer|today|اليوم)|\s+\d|$)", raw, re.IGNORECASE)
     supplier = str(sup.group(1)).strip(" .،") if sup else ""
-    pm = "cash"
-    if re.search(r"(?:حوال[هة]|تحويل|bank|transfer)", raw, re.IGNORECASE):
-        pm = "bank"
-    payload: Dict[str, Any] = {"description": "دفعة مورد", "supplier": supplier, "payment_method": pm}
+    pm = _pay_method(raw)
+    payload: Dict[str, Any] = {"description": "دفعة مورد", "supplier": supplier}
+    if pm:
+        payload["payment_method"] = pm
     if amount:
         payload["amount"] = amount
     if re.search(r"(?:اليوم|today)", raw, re.IGNORECASE):
@@ -243,14 +256,25 @@ def _first_amount(raw: str) -> Optional[float]:
         return None
 
 
-def _pay_method(raw: str) -> str:
+def _normalize_payment_method(value: object) -> Optional[str]:
+    method = str(value or "").strip().lower()
+    if method in {"cash", "نقد", "نقدي", "كاش", "فوري"}:
+        return "cash"
+    if method in {"credit", "آجل", "اجل", "ذمة", "ذمم", "deferred"}:
+        return "credit"
+    if method in {"transfer", "bank", "bank_transfer", "تحويل", "حوالة", "حواله", "بنك", "card", "شبكة", "شبكه", "مدى", "mada", "pos"}:
+        return "transfer"
+    return None
+
+
+def _pay_method(raw: str) -> Optional[str]:
     if re.search(r"(?:حوال[هة]|تحويل|bank|transfer)", raw, re.IGNORECASE):
-        return "bank"
+        return "transfer"
     if re.search(r"(?:شبك[هة]|بطاق[هة]|مدى|mada|card|pos)", raw, re.IGNORECASE):
-        return "card"
+        return "transfer"
     if re.search(r"(?:آجل|اجل|ذم[هة]|credit)", raw, re.IGNORECASE):
         return "credit"
-    return "cash"
+    return None
 
 
 def _regex_customer_payment_action(text: str) -> Optional[Action]:
@@ -264,7 +288,10 @@ def _regex_customer_payment_action(text: str) -> Optional[Action]:
         return None
     target = re.search(r"(?:من|للعميل|عميل|لمركب[ةه]|للسيار[ةه]|مركب[ةه])\s+(.+?)(?:\s+(?:نقد|كاش|حوال[هة]|تحويل|شبك[هة]|بطاق[هة]|اليوم|today)|\s+\d|$)", raw, re.IGNORECASE)
     name = str(target.group(1)).strip(" .،") if target else ""
-    payload: Dict[str, Any] = {"amount": amount, "payment_method": _pay_method(raw)}
+    payload: Dict[str, Any] = {"amount": amount}
+    payment_method = _pay_method(raw)
+    if payment_method:
+        payload["payment_method"] = payment_method
     if name:
         payload["customer"] = name
     if re.search(r"(?:اليوم|today)", raw, re.IGNORECASE):
@@ -286,9 +313,11 @@ def _regex_service_sale_action(text: str) -> Optional[Action]:
     payload: Dict[str, Any] = {
         "service": service,
         "total": amount,
-        "payment_method": _pay_method(raw),
         "items": [{"name": service, "price": amount, "quantity": 1}],
     }
+    payment_method = _pay_method(raw)
+    if payment_method:
+        payload["payment_method"] = payment_method
     cm = re.search(r"(?:للعميل|عميل|من|على)\s+(.+?)(?:\s+(?:نقد|كاش|حوال[هة]|تحويل|آجل|اجل|مبلغ|بسعر|سعر)|\s+\d|$)", raw, re.IGNORECASE)
     if cm:
         payload["customer"] = str(cm.group(1)).strip(" .،")

@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, RefreshCw, Check, X, Bot, ScanLine, ExternalLink, Clock } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Check, X, Bot, ScanLine, Clock } from 'lucide-react';
 import { ACTION_LABELS, PayloadDetails } from '../KatrinaApprovalsTab';
 
 /**
@@ -59,7 +58,6 @@ function MiniKPI({ title, value, tone, testid }) {
 }
 
 export const ControlCenterTab = ({ onCountChange }) => {
-  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [approvals, setApprovals] = useState([]);
   const [findings, setFindings] = useState([]);
@@ -154,14 +152,6 @@ export const ControlCenterTab = ({ onCountChange }) => {
             title="تحديث"
           >
             <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
-          </button>
-          <button
-            data-testid="control-center-open-full"
-            onClick={() => navigate('/financial-control')}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors"
-            title="فتح الصفحة الكاملة"
-          >
-            <ExternalLink size={14} />
           </button>
         </div>
       </div>

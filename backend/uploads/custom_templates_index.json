@@ -10,9 +10,25 @@
     "file_size": 22249,
     "created_at": "2026-07-22T10:01:07.590846+00:00",
     "active": true,
-    "isActive": true,
-    "is_default": true,
+    "isActive": false,
+    "is_default": false,
     "is_builtin": false,
     "source": "uploaded_html"
+  },
+  {
+    "id": "c8406ad7-5925-450b-91cb-90bf895bc315",
+    "name": "نموذج ",
+    "description": "نموذج مرفوع من إدارة النماذج",
+    "type": "invoice",
+    "file_type": "pdf",
+    "filename": "c8406ad7-5925-450b-91cb-90bf895bc315.pdf",
+    "original_filename": "نموذج .pdf",
+    "file_size": 1331070,
+    "created_at": "2026-07-23T10:45:14.445539+00:00",
+    "active": true,
+    "isActive": false,
+    "is_default": false,
+    "is_builtin": false,
+    "source": "uploaded_file"
   }
 ]

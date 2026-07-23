@@ -23,6 +23,26 @@ const VehicleArchive = () => {
 
   useEffect(() => {
     fetchVehicles();
+    loadArchiveAudit();
+    const refresh = () => {
+      fetchVehicles();
+      loadArchiveAudit();
+    };
+    window.addEventListener('finance:updated', refresh);
+    window.addEventListener('vehicleUpdated', refresh);
+    window.addEventListener('vehicles:updated', refresh);
+    window.addEventListener('operations:updated', refresh);
+    window.addEventListener('archive:updated', refresh);
+    return () => {
+      window.removeEventListener('finance:updated', refresh);
+      window.removeEventListener('vehicleUpdated', refresh);
+      window.removeEventListener('vehicles:updated', refresh);
+      window.removeEventListener('operations:updated', refresh);
+      window.removeEventListener('archive:updated', refresh);
+    };
+  }, []);
+
+  const loadArchiveAudit = () => {
     try {
       const raw = localStorage.getItem(ARCHIVE_AUDIT_KEY);
       const rows = raw ? JSON.parse(raw) : [];
@@ -30,7 +50,7 @@ const VehicleArchive = () => {
     } catch {
       setArchiveAuditRows([]);
     }
-  }, []);
+  };
 
   const fetchVehicles = async () => {
     try {
@@ -59,6 +79,8 @@ const VehicleArchive = () => {
       await vehicleAPI.delete(vehicleId);
       toast({ title: "تم الحذف", description: "تم حذف المركبة من الأرشيف" });
       fetchVehicles();
+      window.dispatchEvent(new CustomEvent('archive:updated', { detail: { action: 'delete', vehicleId } }));
+      window.dispatchEvent(new CustomEvent('vehicles:updated', { detail: { source: 'archive', action: 'delete', vehicleId } }));
     } catch (error) { toast({ title: "خطأ", variant: "destructive" }); }
   };
 

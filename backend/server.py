@@ -882,6 +882,8 @@ async def get_vehicle(vehicle_id: str):
             raise HTTPException(status_code=404, detail="Vehicle not found")
         patched = await _attach_customer_file_numbers_to_vehicles([v])
         v = patched[0] if patched else v
+        v["status"] = v.get("status") or "diagnosis"
+        v["year"] = v.get("year") if v.get("year") is not None else 0
         return Vehicle(**v)
 
     if DB_PROVIDER == "memory":
@@ -890,6 +892,8 @@ async def get_vehicle(vehicle_id: str):
             if r.get("id") == vehicle_id:
                 patched = await _attach_customer_file_numbers_to_vehicles([r])
                 r = patched[0] if patched else r
+                r["status"] = r.get("status") or "diagnosis"
+                r["year"] = r.get("year") if r.get("year") is not None else 0
                 return Vehicle(**r)
         raise HTTPException(status_code=404, detail="Vehicle not found")
 
@@ -898,6 +902,8 @@ async def get_vehicle(vehicle_id: str):
         raise HTTPException(status_code=404, detail="Vehicle not found")
     patched = await _attach_customer_file_numbers_to_vehicles([vehicle])
     vehicle = patched[0] if patched else vehicle
+    vehicle["status"] = vehicle.get("status") or "diagnosis"
+    vehicle["year"] = vehicle.get("year") if vehicle.get("year") is not None else 0
     return Vehicle(**vehicle)
 
 
