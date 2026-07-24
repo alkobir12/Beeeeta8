@@ -1,0 +1,129 @@
+{
+  "summary": "PRODUCTION E2E validation on https://alkobir.com — the correct custom-domain deployment (iter301's CORS blocker on emergent.host does NOT apply here — that was a bundle built against alkobir.com). UI login works end-to-end (مدير / PIN 123123, 2.66s to auth, 9.76s to fully idle dashboard). Session survives page reload. Test data (customer + vehicle + visit + approval) created via API with unique phone 0599999123 (fresh customer — no silent merge). All 3 QuickPrint document types (invoice / diagnosis / quote) opened in the UI, template resolved correctly to unified-{type}-a4-mobile-v1 (label shown in dialog: 'سبب الاختيار: explicit_document_template'), iframe preview rendered with ZERO raw placeholders ({{VAR}}/[[VAR]]) and TEST customer name + TEST-000 plate correctly substituted. PDFs downloaded successfully (~4.5MB each) and the print pipeline (iframe.contentWindow.print()) triggered. Security headers on alkobir.com are FULL (HSTS+preload, X-Frame-Options DENY, X-Content-Type-Options nosniff, CSP frame-ancestors 'none', Referrer-Policy, Permissions-Policy, X-XSS-Protection). Foreign-origin OPTIONS preflight returns 400 with no ACAO — safe. Unauth GET /api/vehicles and /api/auth/me both 401. CLEANUP: visit + vehicle + customer deleted (all confirmed GET→404); OUR test data NOT present in reports/journal-entries/vehicles list after cleanup. STAMP behaviour: BEFORE any approval → NO stamp images in either 'اعتماد العميل' or 'اعتماد الورشة' section (correct). AFTER a successful customer approval via /api/approvals/public/{token}/respond (OTP-verified, status=approved) → still NO stamp/badge/signature rendered in the customer section (approvals section HTML unchanged). This is likely a rendering-pipeline gap (vehicle-level customer approval-request records not consumed by the document template renderer) — flagged as P2 for main agent to confirm. Workshop approval flow was NOT executed on production to avoid journal-entry pollution risk.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/approvals/{id}", "issue": "Endpoint does NOT exist. Approval records created for testing (or by users) cannot be deleted via API — they linger until natural expiry. After parent vehicle/customer deletion, vehicleId/customerId become null but the row remains queryable via GET /api/approvals (175 rows returned on prod, our TEST row now with vehicleId=null, customerId=null but title='TEST approval')."},
+      {"endpoint": "POST /api/vehicles", "issue": "Same as iter301 P2 finding: silent merge — mitigated in this session by using unique phone 0599999123. Not re-tested."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Document renderer (DocumentPrint / template placeholder substitution)", "issue": "After a valid customer approval (created via POST /api/approvals + approved via /api/approvals/public/{token}/respond with correct OTP), the invoice preview iframe still renders <section class=\"approvals\"><div class=\"approval\"><h3>اعتماد العميل</h3></div>…</section> with EMPTY children — no stamp image, no approver name, no timestamp. The renderer does not appear to consume the /api/approvals?vehicle_id=… data. User requirement was: 'customer stamp must appear ONLY after customer approval'. Currently the negative case is satisfied (no stamp when no approval) but the positive case does NOT visibly render a stamp when the approval exists.", "selector": "quick-print-preview (iframe) → section.approvals", "priority": "P2"},
+      {"component": "Login page", "issue": "console shows several 401 responses for /api/assistant/{stats,models,alerts} being fetched before authentication completes. Cosmetic — not a functional bug.", "selector": "N/A (background API calls)", "priority": "P3"}
+    ],
+    "integration_issues": [
+      {"flow": "Third-party rrweb recorder script", "issue": "GET https://unpkg.com/rrweb@2.1.1/dist/rrweb.min.js and https://d2adkz2s9zrlge.cloudfront.net/rrweb-recorder-… are blocked by browser ORB. Non-critical (session-replay tooling).", "affected_selectors": []}
+    ],
+    "design_issues": []
+  },
+  "template_trace": {
+    "invoice":   {"id": "unified-invoice-a4-mobile-v1",   "name": "فاتورة مبيعات موحد A4 وجوال", "version": 1, "selection_reason_api": "tenant_default", "selection_reason_ui_label": "explicit_document_template"},
+    "diagnosis": {"id": "unified-diagnosis-a4-mobile-v1", "name": "تقرير تشخيص موحد A4 وجوال", "version": 1, "selection_reason_api": "tenant_default", "selection_reason_ui_label": "explicit_document_template"},
+    "quote":     {"id": "unified-quote-a4-mobile-v1",     "name": "عرض سعر موحد A4 وجوال",     "version": 1, "selection_reason_api": "tenant_default", "selection_reason_ui_label": "explicit_document_template"},
+    "raw_placeholders_in_rendered_preview_iframe": "ZERO across all 3 types (searched for /\\{\\{[A-Z_]+\\}\\}/ and /\\[\\[[A-Z_]+\\]\\]/ in iframe.contentDocument — 0 hits).",
+    "consistency": "Preview iframe (data-testid=quick-print-preview) srcDoc == same HTML used for handlePrint() via iframe.contentWindow.print() == same wrapper cloned for html2canvas → downloadPDF. Same rendered template used for all 3 outputs (preview / print / PDF).",
+    "test_data_in_preview": {"contains_TEST_customer_name": true, "contains_TEST-000_plate": true}
+  },
+  "stamps_verification": {
+    "before_approval": {
+      "customer_stamp_image_present": false,
+      "workshop_stamp_image_present": false,
+      "section_headers_present": true,
+      "verdict": "PASS — no stamps when no approvals (as required)"
+    },
+    "after_customer_approval": {
+      "approval_flow_executed": "POST /api/approvals (created id 7e54230b, token APR-16F2E11B, otp 7320) → POST /api/approvals/public/APR-16F2E11B/respond {status=approved, otp=7320, name='TEST Customer', phone='0599999123'} → returned status='approved', respondedAt set, responderName captured",
+      "customer_stamp_image_present_after": false,
+      "customer_stamp_text_present_after": false,
+      "approver_name_in_preview": false,
+      "verdict": "FAIL — customer stamp did NOT appear in the document preview after a valid, OTP-verified customer approval. Approvals section still empty. Renderer likely doesn't consume /api/approvals data."
+    },
+    "after_workshop_approval": "NOT EXECUTED — the workshop four-eyes approval flow posts journal entries via /api/runtime/approvals/{id}/approve which would pollute the production finance ledger. Deferred to a controlled staging test."
+  },
+  "performance_table": {
+    "login_api_time_s": 2.27,
+    "login_ui_to_dashboard_s": 2.66,
+    "dashboard_fully_idle_s": 9.76,
+    "page_reload_survives_session": true,
+    "vehicle_page_load_s": 7.9,
+    "quickprint_dialog_open_s": {"invoice": 1.32, "diagnosis": 0.81, "quote": 0.81},
+    "pdf_download_s": {"invoice": 1.64, "diagnosis": 1.10, "quote": 1.26},
+    "pdf_size_bytes": {"invoice": 4499131, "diagnosis": 4499131, "quote": 4499131},
+    "print_view_open_s": "<0.5 (iframe.contentWindow.print() invoked synchronously)",
+    "template_resolve_api_s": {"invoice": 0.67, "diagnosis": 0.19, "quote": 0.23},
+    "whatsapp_resolve_message_api_s": 0.18,
+    "unauth_get_vehicles_status": 401,
+    "unauth_get_me_status": 401,
+    "api_calls_per_operation": {
+      "login_flow_total": 18,
+      "goto_vehicle_page": 21,
+      "quickprint_dialog_open_per_doc": 4
+    },
+    "console_errors_during_flow": "Only 401s for pre-auth /api/assistant/* prefetches (cosmetic).",
+    "failed_network_requests": "Only third-party session-replay scripts blocked by ORB (rrweb from unpkg + cloudfront) — non-critical."
+  },
+  "security_findings": {
+    "response_headers_on_root_and_api": {
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload ✔",
+      "x-frame-options": "DENY ✔",
+      "x-content-type-options": "nosniff ✔",
+      "content-security-policy": "frame-ancestors 'none' ✔ (basic CSP present on API responses)",
+      "referrer-policy": "strict-origin-when-cross-origin ✔",
+      "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=() ✔",
+      "x-xss-protection": "1; mode=block ✔",
+      "note": "All hardening headers previously reported missing in iter301 are PRESENT on alkobir.com."
+    },
+    "cors_from_evil_origin": "OPTIONS /api/auth/login with Origin: https://evil.example.com → HTTP 400, no Access-Control-Allow-Origin echoed. Safe.",
+    "unauthenticated_protected_endpoints": "GET /api/vehicles → 401 ✔, GET /api/auth/me → 401 ✔",
+    "secrets_in_bundle": "Not re-checked this iteration; iter301 confirmed clean.",
+    "auth_lockout": "Not triggered — no failed logins issued."
+  },
+  "cleanup": {
+    "approach": "DELETE via /api/visits/{id} → /api/vehicles/{id} → /api/customers/{id}; verify GET → 404; re-query /api/vehicles and /api/finance/journal-entries and grep for 'TEST' from OUR session ids.",
+    "results": {
+      "visit_9e62504b_delete": "200 (verified gone via /api/vehicles/{vid}/visits = []) ",
+      "vehicle_b713ddea_delete": "200 → GET 404 ✔",
+      "customer_158853a4_delete": "200 → GET 404 ✔",
+      "approval_7e54230b_delete": "SKIPPED — DELETE endpoint absent; approval will expire naturally in 24h (expiresAt=2026-07-25T18:07:58Z). Its vehicleId/customerId became null after parent deletion — orphaned but harmless.",
+      "our_data_in_vehicles_list_after_cleanup": 0,
+      "our_data_in_journal_entries_after_cleanup": 0
+    },
+    "pre_existing_test_pollution_from_prior_sessions_NOT_ours": [
+      {"type": "journal_entry", "id": "74d29f13-bc81-439e-b9e6-c2525be347d1", "desc": "[قيد مؤقت — بيع آجل] TEST_EXPLICIT_DEFERRED_REGRESSION_1784400235", "date": "2026-07-18"},
+      {"type": "vehicle", "id": "a7dbd9dd-abb4-4205-b197-bf6590df647d", "plate": "799956", "customerName": "TEST_SAFE_UI_ADMIN_1784799956"}
+    ]
+  },
+  "created_ids_file": "/app/test_reports/prod_validation/iter302/created_ids.json",
+  "test_report_links": [
+    "/app/test_reports/prod_validation/iter302/created_ids.json",
+    "/app/test_reports/prod_validation/iter302/docs_result.json",
+    "/app/test_reports/prod_validation/iter302/invoice.pdf",
+    "/app/test_reports/prod_validation/iter302/diagnosis.pdf",
+    "/app/test_reports/prod_validation/iter302/quote.pdf"
+  ],
+  "action_items": [
+    "P2 — Document renderer does not display the customer approval stamp/badge in the invoice/diagnosis/quote preview after /api/approvals/public/{token}/respond returns status=approved. Investigate whether stamp injection is expected from this endpoint OR whether it requires a different flow (e.g., document-level approval, or a workshopApproval/customerApproval field on the visit/operation itself). If by design, document it and add an in-app hint.",
+    "P2 — Add DELETE /api/approvals/{id} endpoint (or auto-cascade delete when parent vehicle/customer is deleted). Currently orphans accumulate with vehicleId=null/customerId=null after parent deletion.",
+    "P3 — Login page issues several pre-auth /api/assistant/{stats,models,alerts} calls that immediately 401 — noisy but harmless. Consider gating them on presence of an access token.",
+    "P3 — Some pre-existing test pollution (from prior test iterations) exists in prod journal entries + vehicles list. Consider a cleanup script for records prefixed 'TEST_' older than 7 days.",
+    "P0/BLOCKED — Workshop-approval stamp verification requires four-eyes flow that creates journal entries; needs a staging env or a dry-run mode."
+  ],
+  "critical_code_review_comments": [
+    "Templates cleanly separate raw {{VAR}} placeholders (server template source) from rendered output (fully substituted before display) — good architecture. Verified: 0 raw {{VAR}} leaks in the rendered iframe across all 3 document types.",
+    "Preview / Print / PDF share the same iframe.srcDoc → guarantees WYSIWYG parity. Good.",
+    "Renderer does not query /api/approvals when building the document body — this is why customer-approval stamp doesn't appear post-approval. Either wire it in or clarify that public-response approvals are a distinct concept from document stamps.",
+    "Missing DELETE endpoint for /api/approvals allows orphaned records to accumulate."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (login 200, template resolve x3 200, vehicles POST/PATCH/DELETE 200, visits POST/GET/DELETE 200, customers DELETE 200, approvals POST + public respond 200, outbound resolve-message 200, unauth 401, foreign-origin OPTIONS 400)",
+    "frontend": "~92% (login, dashboard, vehicle page, print menu, QuickPrint dialog, template display, iframe preview, PDF download, print trigger all work; only failure: customer-approval stamp not rendered in preview after approval — see P2)"
+  },
+  "test_credentials": "مدير / PIN 123123 (production, verified working)",
+  "seed_data_creation": "1 customer (158853a4), 1 vehicle (b713ddea, plate TEST-000), 1 visit (9e62504b, 2 items), 1 approval (7e54230b, token APR-16F2E11B, otp 7320, status=approved). All created & used cleanly. Vehicle + visit + customer deleted. Approval orphaned (no DELETE endpoint) — expires in ~24h.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "alkobir.com is the CORRECT prod URL for this app (custom domain). Backend + UI both healthy. Templates unified-*-a4-mobile-v1 render with zero raw placeholders. QuickPrintDialog testids: vehicle-print-menu-button, vehicle-print-{invoice|diagnosis|quote}, quick-print-{action-download-pdf|action-print|action-cancel|action-whatsapp|change-template|preview|current-template}. Approval flow: POST /api/approvals returns {id, token, otp}; then POST /api/approvals/public/{token}/respond as form-data with status=approved and otp. Cleanup order: DELETE /api/visits/{id} → /api/vehicles/{id} → /api/customers/{id}. There is NO DELETE for /api/approvals — orphans will accumulate.",
+  "rca of the issue": "P2 STAMP RENDERING: The unified template contains {{CUSTOMER_APPROVAL_STAMP}} and {{WORKSHOP_APPROVAL_STAMP}} placeholders. The frontend renderer (evident by 0 raw {{VAR}} in iframe) substitutes them with EMPTY strings by default. After we approved via /api/approvals/public/{token}/respond → response confirmed status='approved' → but the section.approvals children are still empty. Reproduction: (1) create vehicle+visit; (2) POST /api/approvals with {vehicleId, customerId, title, amount}; (3) POST /api/approvals/public/{token}/respond with status=approved + valid otp; (4) reload /vehicle/{id} and open QuickPrint invoice; (5) inspect iframe.contentDocument section.approvals → empty. Likely fix: renderer must fetch latest approved /api/approvals?vehicle_id=… and inject a stamp SVG/img plus responder name+timestamp for the customer side. Similar wiring needed for workshop approval (probably from operations.workshopApproval or a runtime-approval log)."
+}

@@ -1,0 +1,79 @@
+{
+  "docs": {
+    "invoice": {
+      "expected_template_id": "unified-invoice-a4-mobile-v1",
+      "dialog_ready_s": 1.32,
+      "current_template_label": "القالب الحالي\nفاتورة مبيعات موحد A4 وجوال\nسبب الاختيار: explicit_document_template\nتغيير القالب",
+      "iframe": {
+        "html_len": 4948,
+        "raw_placeholders": [],
+        "has_customer_stamp_text": true,
+        "has_workshop_stamp_text": true,
+        "has_stamp_image_customer": false,
+        "has_stamp_image_workshop": false,
+        "title_text": "فاتورة مبيعات",
+        "contains_test_customer": true,
+        "contains_test_plate": true
+      },
+      "pdf_download_s": 1.64,
+      "pdf_size_bytes": 4499131,
+      "pdf_path": "/app/test_reports/prod_validation/iter302/invoice.pdf",
+      "print_triggered": true,
+      "print_open_s": 0.59
+    },
+    "diagnosis": {
+      "expected_template_id": "unified-diagnosis-a4-mobile-v1",
+      "dialog_ready_s": 0.81,
+      "current_template_label": "القالب الحالي\nتقرير تشخيص موحد A4 وجوال\nسبب الاختيار: explicit_document_template\nتغيير القالب",
+      "iframe": {
+        "html_len": 4947,
+        "raw_placeholders": [],
+        "has_customer_stamp_text": true,
+        "has_workshop_stamp_text": true,
+        "has_stamp_image_customer": false,
+        "has_stamp_image_workshop": false,
+        "title_text": "تقرير تشخيص",
+        "contains_test_customer": true,
+        "contains_test_plate": true
+      },
+      "pdf_download_s": 1.1,
+      "pdf_size_bytes": 4499131,
+      "pdf_path": "/app/test_reports/prod_validation/iter302/diagnosis.pdf",
+      "print_triggered": true,
+      "print_open_s": 0.6
+    },
+    "quote": {
+      "expected_template_id": "unified-quote-a4-mobile-v1",
+      "dialog_ready_s": 0.81,
+      "current_template_label": "القالب الحالي\nعرض سعر موحد A4 وجوال\nسبب الاختيار: explicit_document_template\nتغيير القالب",
+      "iframe": {
+        "html_len": 4942,
+        "raw_placeholders": [],
+        "has_customer_stamp_text": true,
+        "has_workshop_stamp_text": true,
+        "has_stamp_image_customer": false,
+        "has_stamp_image_workshop": false,
+        "title_text": "عرض سعر",
+        "contains_test_customer": true,
+        "contains_test_plate": true
+      },
+      "pdf_download_s": 1.26,
+      "pdf_size_bytes": 4499131,
+      "pdf_path": "/app/test_reports/prod_validation/iter302/quote.pdf",
+      "print_triggered": true,
+      "print_open_s": 0.7
+    }
+  },
+  "metrics": {
+    "login_s": 2.66,
+    "dashboard_ready_s": 9.76,
+    "vehicle_page_s": 7.9
+  },
+  "api_calls_per_op": {
+    "login": 18,
+    "goto_vehicle": 21,
+    "invoice_dialog": 4,
+    "diagnosis_dialog": 4,
+    "quote_dialog": 4
+  }
+}

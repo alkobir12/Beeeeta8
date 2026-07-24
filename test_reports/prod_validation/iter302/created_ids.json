@@ -1,0 +1,44 @@
+{
+  "test_session_utc": "2026-07-24T18:00-18:10Z",
+  "target": "https://alkobir.com",
+  "credentials": "مدير / PIN 123123",
+  "created": {
+    "customer_id": "158853a4-eb73-4fd9-9651-9a2140b55ffa",
+    "customer_name": "TEST - DO NOT USE",
+    "customer_phone": "0599999123 (unique — new customer freshly created, no silent merge)",
+    "vehicle_id": "b713ddea-e747-424f-92aa-52ed7e7ad048",
+    "vehicle_plate": "TEST-000",
+    "vehicle_brand_model": "TEST-DO-NOT-USE / TEST-DO-NOT-USE / 2020",
+    "visit_id": "9e62504b-c9b5-4180-9aa9-24de0084d172",
+    "visit_notes": "TEST (2 items)",
+    "approval_id": "7e54230b-08a9-40c2-9bee-9f25b4ad1a6c",
+    "approval_token": "APR-16F2E11B",
+    "approval_status_final": "approved (customer responded via public /respond with OTP 7320)"
+  },
+  "deleted": {
+    "visit_9e62504b": "DELETE 200 → GET 404 ✔",
+    "vehicle_b713ddea": "DELETE 200 → GET 404 ✔",
+    "customer_158853a4": "DELETE 200 → GET 404 ✔",
+    "approval_7e54230b": "NOT DELETED — no DELETE endpoint exists on /api/approvals/{id}. After parent vehicle/customer deletion, its vehicleId and customerId became null. Will expire naturally in 1 day."
+  },
+  "pdfs_saved": {
+    "invoice": "/app/test_reports/prod_validation/iter302/invoice.pdf (4499131 bytes ≈ 4.5MB)",
+    "diagnosis": "/app/test_reports/prod_validation/iter302/diagnosis.pdf (4499131 bytes ≈ 4.5MB)",
+    "quote": "/app/test_reports/prod_validation/iter302/quote.pdf (4499131 bytes ≈ 4.5MB)"
+  },
+  "screenshots": [
+    "01_login.png", "02_dashboard.png", "03_after_reload.png",
+    "04_vehicle_page.png", "05_print_menu_open.png",
+    "dlg_invoice.png", "dlg_diagnosis.png", "dlg_quote.png",
+    "after_customer_approval_invoice.png"
+  ],
+  "no_pollution_of_reports": {
+    "our_test_data_in_journal_entries": 0,
+    "our_test_data_in_vehicles_list_after_cleanup": 0,
+    "other_pre_existing_test_pollution_from_prior_sessions": {
+      "note": "NOT ours — pre-existed our session:",
+      "journal_entry_TEST_EXPLICIT_DEFERRED_REGRESSION_1784400235": "id 74d29f13-... dated 2026-07-18",
+      "vehicle_TEST_SAFE_UI_ADMIN_1784799956": "id a7dbd9dd-..."
+    }
+  }
+}
