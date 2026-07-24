@@ -88,9 +88,35 @@ async def _approvals_broadcast(event: Dict[str, Any]):
 
 
 # --------------------- Approval Logs ---------------------
+def _map_supabase_approval_row(r: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": r.get("id"),
+        "token": r.get("token"),
+        "vehicleId": r.get("vehicle_id"),
+        "customerId": r.get("customer_id"),
+        "title": r.get("title"),
+        "amount": r.get("amount"),
+        "status": r.get("status"),
+        "serviceItems": r.get("service_items") or [],
+        "serviceItemsText": r.get("service_items_text"),
+        "createdAt": r.get("created_at"),
+        "respondedAt": r.get("responded_at"),
+        "responderName": r.get("responder_name"),
+        "responderPhone": r.get("responder_phone"),
+    }
+
+
 @router.get("/customers/{customer_id}/approval-logs")
 async def get_customer_approval_logs(customer_id: str):
     try:
+        if os.environ.get("DB_PROVIDER", "mongo").lower() == "supabase":
+            supa = SupabaseService()
+            res = (
+                supa.client.table("approval_requests").select("*")
+                .eq("customer_id", customer_id)
+                .order("created_at", desc=True).limit(1000).execute()
+            )
+            return [_map_supabase_approval_row(r) for r in (res.data or [])]
         docs = (
             await db.customer_approval_logs.find({"customerId": customer_id})
             .sort("createdAt", -1)
@@ -111,6 +137,14 @@ async def get_customer_approval_logs(customer_id: str):
 @router.get("/vehicles/{vehicle_id}/approval-logs")
 async def get_vehicle_approval_logs(vehicle_id: str):
     try:
+        if os.environ.get("DB_PROVIDER", "mongo").lower() == "supabase":
+            supa = SupabaseService()
+            res = (
+                supa.client.table("approval_requests").select("*")
+                .eq("vehicle_id", vehicle_id)
+                .order("created_at", desc=True).limit(1000).execute()
+            )
+            return [_map_supabase_approval_row(r) for r in (res.data or [])]
         docs = (
             await db.customer_approval_logs.find({"vehicleId": vehicle_id})
             .sort("createdAt", -1)

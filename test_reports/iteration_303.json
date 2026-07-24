@@ -1,0 +1,37 @@
+{
+  "summary": "P2 customer-approval-stamp bug fix VERIFIED end-to-end on preview (stamp-approval-flow.preview.emergentagent.com, DB_PROVIDER=supabase). Backend: 3/3 pytest passes — (1) POST /api/approvals + public/{token}/respond with OTP now surfaces the approved row in GET /api/vehicles/{id}/approval-logs (Supabase branch of routes_approvals.py maps approval_requests → camelCase with responderName + respondedAt); (2) GET /api/customers/{id}/approval-logs parity endpoint returns the same shape (verified via list containment for created token); (3) template resolution regression — /api/document-templates/resolve returns unified-invoice-a4-mobile-v1, unified-diagnosis-a4-mobile-v1, unified-quote-a4-mobile-v1 as tenant defaults (defaults NOT polluted). Frontend UI on /print?vehicleId=…&docType=invoice: POSITIVE case (vehicle c02cc9c7-6ff5-4fc7-9414-b15787fa9000, سلطان الشاص, plate 6923 ب ح ن) — after creating + OTP-approving APR-0456AC2E, the invoice preview iframe renders a GREEN circular stamp with 'تمت الموافقة' + responder name in the 'اعتماد العميل' section while 'اعتماد الورشة' stays EMPTY (screenshot iter303_print_positive.png). NEGATIVE case (vehicle a7dbd9dd, no approvals) — both approval sections are EMPTY, no 'تمت الموافقة' text, no raw {{CUSTOMER_APPROVAL_STAMP}} placeholder leaked into the preview iframe (screenshot iter303_print_negative.png). CLEANUP: all iter303 tokens deleted from Supabase approval_requests table (final SELECT returns []).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_details": {
+    "bug_fix_reference": "/app/backend/routes_approvals.py — _map_supabase_approval_row (line 91), get_customer_approval_logs (109), get_vehicle_approval_logs (137) — provider-aware via DB_PROVIDER=supabase",
+    "positive_ui_flow": "login (مدير/PIN 123123) → /print?vehicleId=c02cc9c7-…&docType=invoice → preview iframe: 'اعتماد العميل' section shows GREEN stamp 'تمت الموافقة' + 'عميل اختبار iter303 UI' + timestamp; 'اعتماد الورشة' section EMPTY",
+    "negative_ui_flow": "vehicle a7dbd9dd-…-df647d has zero approval-logs → preview iframe: both approval sections empty; frame_approved_stamp=False, frame_placeholder_raw=False",
+    "template_resolution": {
+      "invoice":   "unified-invoice-a4-mobile-v1 (tenant_default) ✅",
+      "diagnosis": "unified-diagnosis-a4-mobile-v1 (tenant_default) ✅",
+      "quote":     "unified-quote-a4-mobile-v1 (tenant_default) ✅"
+    },
+    "created_and_deleted_tokens": ["APR-6479C64A (backend test 1st run)", "APR-0456AC2E (UI positive case)", "APR-1796C529 (backend test 2nd run)"],
+    "supabase_cleanup_final_state": "SELECT token FROM approval_requests WHERE title ILIKE '%iter303%' → []"
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_approval_stamp_iter303.py",
+    "/app/test_reports/pytest/iter303.xml",
+    "/app/test_reports/iter303_print_positive.png",
+    "/app/test_reports/iter303_print_negative.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes_approvals.py — the Mongo branch of get_vehicle_approval_logs / get_customer_approval_logs still reads from `customer_approval_logs` collection, which is DIFFERENT from the `approval_requests` collection where Mongo POST /approvals actually writes (see line 225: `db.approval_requests.insert_one(doc)`). In pure Mongo mode this endpoint would also return [] unless code elsewhere mirrors approval_requests into customer_approval_logs. Not a regression for the current fix (preview is Supabase), but worth confirming before promoting to production if any Mongo tenant exists.",
+    "Mongo cleanup gap: there is no DELETE /api/approvals/{id} endpoint (also flagged iter301/302); testers must reach into the Supabase (or Mongo) client directly, which is fragile in CI. Consider adding an admin-only DELETE for test hygiene.",
+    "OTP is returned in the POST /api/approvals response body — convenient for tests but potentially unsafe in production if the endpoint is ever exposed to a lower-trust role. Confirm that only workshop-admin can call POST /api/approvals."
+  ],
+  "updated_files": ["/app/backend/tests/test_approval_stamp_iter303.py"],
+  "success_rate": {"backend": "100% (3/3)", "frontend": "100% (positive + negative visually confirmed)"},
+  "test_credentials": "مدير / PIN 123123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None persisted — all created approval_requests rows deleted via SupabaseService before finish.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Fix is validated on preview only. When main agent deploys to production (alkobir.com) the same 3 pytest checks + the two /print visual checks should be repeated. Do NOT run seed_quickprint_fixture.py or test_iter292 — they flip Mongo document-templates defaults and break the template-resolution regression. Vehicle c02cc9c7-6ff5-4fc7-9414-b15787fa9000 is a reliable happy-path vehicle (full customer + plate data). For a fresh negative-case vehicle, filter GET /api/vehicles for approval-logs length==0 (see the small selector in this iteration's log).",
+  "rca of the issue": "GET /api/vehicles/{id}/approval-logs (and the customer variant) previously only queried Mongo collection `customer_approval_logs`. In Supabase mode POST /api/approvals/public/{token}/respond writes to Supabase table `approval_requests` and never touches `customer_approval_logs`, so DocumentPrint.loadApprovalLogs() (frontend) always saw []. Fix in routes_approvals.py adds a provider gate: when DB_PROVIDER=supabase both endpoints query approval_requests filtered by vehicle_id/customer_id and map snake_case columns → camelCase (id, token, vehicleId, customerId, status, respondedAt, responderName, responderPhone) via _map_supabase_approval_row so the existing frontend normalizeApproval / approvalStamp builder recognises status='approved' and renders the green ختم. Verified positive + negative cases both work."
+}
