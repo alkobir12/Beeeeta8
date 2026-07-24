@@ -1,0 +1,17 @@
+{
+  "test_session_utc": "2026-07-24T17:54Z",
+  "target": "https://car-repair-sys.emergent.host",
+  "created": {
+    "vehicle_id": "f39d4890-0f3f-4e97-9a10-1728628e2210",
+    "visit_id": "5e27e9fb-297f-4693-aca6-6df1e828d434",
+    "customer_id_reused_not_created": "0077b4b4-a6b1-4ae3-9257-75da8aa23380"
+  },
+  "deleted": {
+    "visit_id": "5e27e9fb-297f-4693-aca6-6df1e828d434",
+    "vehicle_id": "f39d4890-0f3f-4e97-9a10-1728628e2210"
+  },
+  "deletion_verified": {
+    "vehicle_get_status": 404
+  },
+  "notes": "Customer was NOT freshly created — get_or_create_customer reused an existing empty-name customer by phone match (0500000000). No orphan test customer to clean up. No documents/invoices persisted (only preview endpoints were exercised via API; UI-driven PDF generation was blocked — see report). No journal entries created."
+}

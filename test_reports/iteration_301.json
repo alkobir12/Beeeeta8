@@ -1,0 +1,89 @@
+{
+  "summary": "PRODUCTION validation on https://car-repair-sys.emergent.host. Backend is fully functional via direct API (login, vehicles CRUD, visits, template resolve for invoice/diagnosis/quote all return unified-*-a4-mobile-v1 with selection_reason=tenant_default, outbound resolve-message, logout, unauth 401). HOWEVER a P0 blocker was discovered: the deployed frontend bundle (/static/js/main.8b85fd39.js) is hard-coded to call https://alkobir.com/api/* instead of the production host, so ALL browser calls (login, refresh, everything) fail with CORS ('No Access-Control-Allow-Origin' from alkobir.com for origin https://car-repair-sys.emergent.host). UI login is completely broken end-to-end. As a result, UI-based document generation, stamp before/after approval, PDF download, print view, and full E2E metrics could NOT be captured. Test data was created and fully cleaned up via API. No documents/journal entries were persisted.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/refresh", "issue": "Body-based refresh ({refresh_token:...}) returns 401 'No refresh token' — only cookie-based refresh supported. Not necessarily a bug (matches iter299 design) but should be documented."},
+      {"endpoint": "POST /api/vehicles", "issue": "get_or_create_customer reuses an existing customer by phone even when customerName differs (created with name 'TEST - DO NOT USE', phone '0500000000' → reused existing empty-name customer id 0077b4b4...). Silent identity merge — potentially data quality risk."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Deployed frontend bundle (main.8b85fd39.js)", "issue": "P0 — BACKEND_URL is baked in as https://alkobir.com; browser calls to https://alkobir.com/api/auth/login and /api/auth/refresh are blocked by CORS from origin https://car-repair-sys.emergent.host. UI login fails 100% of the time. Users cannot access the app via the production URL.", "selector": "N/A (config/build)", "priority": "P0"}
+    ],
+    "integration_issues": [
+      {"flow": "Full E2E on production URL", "issue": "Blocked by the above — could not execute UI login → vehicle page → QuickPrint → PDF/print/stamps flow.", "affected_selectors": ["vehicle-print-menu-button", "quick-print-action-download-pdf", "quick-print-action-print", "quick-print-action-whatsapp"]}
+    ],
+    "design_issues": []
+  },
+  "security_findings": {
+    "cors_from_evil_origin_on_prod_api": "Response returns 401 (auth) but no CORS headers echoed for arbitrary Origin — acceptable (route requires auth; preflight not tested exhaustively).",
+    "missing_security_headers_on_root_and_api": [
+      "Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Content-Security-Policy", "Referrer-Policy"
+    ],
+    "note": "Only Cloudflare edge headers observed (server: cloudflare). None of the standard hardening headers are set by the app/edge. P2 hardening.",
+    "unauthenticated_protected_endpoints": "GET /api/vehicles and GET /api/auth/me correctly return 401 without token.",
+    "secrets_in_bundle": "Grep for sk-/SECRET_KEY/JWT_SECRET/SUPABASE_KEY/BYPASS_TOKEN found no real secrets (only CSS class name substrings like sk-image, sk-linear). Clean.",
+    "wrong_backend_domain_in_bundle": "https://alkobir.com is embedded in main.8b85fd39.js as the API base — this is the root cause of the P0 UI login failure. Frontend must be rebuilt with REACT_APP_BACKEND_URL=https://car-repair-sys.emergent.host and redeployed, OR alkobir.com backend must add https://car-repair-sys.emergent.host to its CORS allow-list AND the two backends must share the same MongoDB/Supabase state (unlikely — this looks like a stale/misconfigured build)."
+  },
+  "performance_metrics_api_only": {
+    "login_api_time_s": 2.22,
+    "auth_me_time_s": 0.19,
+    "vehicles_list_time_s": 1.34,
+    "template_resolve_invoice_s": 0.48,
+    "template_resolve_diagnosis_s": 0.26,
+    "template_resolve_quote_s": 0.14,
+    "create_vehicle_s": 1.74,
+    "create_visit_s": 1.11,
+    "outbound_resolve_message_s": 0.27,
+    "delete_vehicle_s_lt": 1.0,
+    "root_page_load_s": 0.81,
+    "pdf_generation_time": "NOT MEASURED — UI blocked",
+    "print_view_open_time": "NOT MEASURED — UI blocked",
+    "pdf_size_bytes": "N/A — UI blocked",
+    "network_requests_per_op": "N/A — UI blocked",
+    "console_errors_login_page": "CORS-blocked fetch to https://alkobir.com/api/auth/{login,refresh}; 401 on /api/assistant/{models,alerts,stats} on car-repair-sys.emergent.host (before login — expected)."
+  },
+  "template_trace": {
+    "invoice": {"id": "unified-invoice-a4-mobile-v1", "name": "فاتورة مبيعات موحد A4 وجوال", "version": 1, "selection_reason": "tenant_default"},
+    "diagnosis": {"id": "unified-diagnosis-a4-mobile-v1", "name": "تقرير تشخيص موحد A4 وجوال", "version": 1, "selection_reason": "tenant_default"},
+    "quote": {"id": "unified-quote-a4-mobile-v1", "name": "عرض سعر موحد A4 وجوال", "version": 1, "selection_reason": "tenant_default"},
+    "raw_placeholders_in_TEMPLATE_source": "YES — raw {{VAR}} markers exist in the template.inline_content and content (as expected — server-side placeholders). Frontend/renderer must substitute them. Because UI PDF flow was blocked, we could not confirm the rendered PDF/preview has ZERO {{VAR}}. Retest needed after P0 fix."
+  },
+  "stamps_verification": "NOT PERFORMED — UI blocked (P0). Backend template shows {{CUSTOMER_APPROVAL_STAMP}} and {{WORKSHOP_APPROVAL_STAMP}} placeholders (correct design); actual stamp presence/absence before-vs-after approval requires the UI PDF pipeline which is unreachable.",
+  "cleanup": {
+    "vehicle_deleted": "f39d4890-0f3f-4e97-9a10-1728628e2210 → 200; GET returns 404 ✔",
+    "visit_deleted": "5e27e9fb-297f-4693-aca6-6df1e828d434 → 200",
+    "customer": "Not created fresh (reused existing 0077b4b4-a6b1-4ae3-9257-75da8aa23380 by phone match). Left untouched intentionally — pre-existed our session.",
+    "documents_journal_entries": "None persisted (only preview/template-resolve endpoints exercised)."
+  },
+  "created_ids_file": "/app/test_reports/prod_validation/created_ids.json",
+  "test_report_links": [
+    "/app/test_reports/prod_validation/created_ids.json",
+    "/app/test_reports/prod_validation/01_login.png",
+    "/app/test_reports/prod_validation/02_dashboard.png (never captured — login blocked)",
+    "/app/backend/tests/test_iter300_deploy_regression.py"
+  ],
+  "action_items": [
+    "P0 — Rebuild & redeploy frontend with REACT_APP_BACKEND_URL=https://car-repair-sys.emergent.host (current bundle main.8b85fd39.js contains https://alkobir.com as API base, causing CORS-blocked login/refresh from browser). Verify: after rebuild, main.<hash>.js grep for 'alkobir.com' must return zero hits.",
+    "P1 — Add security response headers on prod (HSTS, X-Frame-Options DENY, X-Content-Type-Options nosniff, CSP, Referrer-Policy). Currently none set on root or /api.",
+    "P2 — Review get_or_create_customer: silently merges customers by phone, ignoring the provided name. Consider warning/return the reused id explicitly or match on (name, phone).",
+    "P2 — Consider supporting POST /api/auth/refresh with body {refresh_token} for automation/tests (currently cookie-only). If intentional, document it."
+  ],
+  "critical_code_review_comments": [
+    "The production frontend bundle contains a HARD-CODED wrong backend origin (https://alkobir.com). This means REACT_APP_BACKEND_URL was mis-set at build time for the emergent.host deployment. No code change alone can fix this without a rebuild+redeploy.",
+    "Backend /api/vehicles POST catches all exceptions and returns generic 500 with str(e) — consider structured error responses (already returns 200 for our test — not currently a problem).",
+    "Server.py has 800+ lines of route code; consider splitting further (already partly done via routes_*.py)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (all API calls in this session returned expected status codes: login 200, me 200, vehicles list 200, template resolve x3 200, create vehicle 200, create visit 200, outbound resolve 200, delete visit 200, delete vehicle 200, unauth 401, logout 200)",
+    "frontend": "0% (login blocked by hard-coded wrong backend URL / CORS)"
+  },
+  "test_credentials": "مدير / 123123 (verified working against /api/auth/login on prod host).",
+  "seed_data_creation": "Created and deleted: vehicle f39d4890-0f3f-4e97-9a10-1728628e2210, visit 5e27e9fb-297f-4693-aca6-6df1e828d434. No orphan test data left.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "After the frontend is rebuilt with the correct REACT_APP_BACKEND_URL, retest the FULL UI E2E: login timing, dashboard load, /vehicle/{id} → QuickPrint → invoice/diagnosis/quote → verify NO raw {{VAR}} in preview/print/PDF, PDF download & size, stamps ABSENT before approval / PRESENT after both customer+workshop approvals, WhatsApp resolve-message from UI, and full network-count metrics. Backend is confirmed healthy on prod — do not repeat backend regression unless config changed. Cleanup pattern: DELETE /api/visits/{id} then DELETE /api/vehicles/{id}; verify with GET → 404.",
+  "rca of the issue": "ROOT CAUSE (P0): The production frontend was built with REACT_APP_BACKEND_URL pointing to https://alkobir.com (visible via `curl https://car-repair-sys.emergent.host/static/js/main.8b85fd39.js | grep -oE 'https://[a-z.-]+' | sort -u`). Browser requests are therefore sent cross-origin to alkobir.com, which does not include https://car-repair-sys.emergent.host in its Access-Control-Allow-Origin header, so every fetch (login, refresh, everything) is blocked at the CORS preflight stage. Main agent's curl checks succeeded because curl bypasses CORS AND targeted the correct host directly. Reproduction: open https://car-repair-sys.emergent.host/login in a browser → DevTools Network tab → attempt login → observe 'Failed to fetch' with CORS error against https://alkobir.com/api/auth/login. Mitigation: rebuild frontend with REACT_APP_BACKEND_URL=https://car-repair-sys.emergent.host (or the intended internal origin) and redeploy; confirm the new bundle contains no reference to alkobir.com."
+}
