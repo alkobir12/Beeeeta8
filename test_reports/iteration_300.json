@@ -1,0 +1,37 @@
+{
+  "summary": "Iter 300 — deployment-readiness backend regression: 9/9 passed. Env-var move for EMERGENT_SESSION_DATA_URL in auth_jwt.py did NOT break anything. Login (PIN), Google SSO endpoint (returns 4xx not 500 for invalid session), refresh token flows (cookie/bearer/stale-cookie+valid-bearer), vehicles reachable via Supabase, and document-template resolve for invoice → unified-invoice-a4-mobile-v1 all verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter300_deploy_regression.py",
+    "/app/backend/tests/test_iter299_auth_refresh_regression.py",
+    "/app/test_reports/pytest/iter300_deploy_regression.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth_jwt.py line 458: _EMERGENT_SESSION_DATA_URL correctly reads from env with sane default; module imports cleanly and /api/auth/google/session returns 4xx (not 500) for invalid session_id — env-var move is safe.",
+    "backend/.env now includes EMERGENT_SESSION_DATA_URL — no other keys touched, MONGO_URL/DB_NAME/RATE_LIMIT_BYPASS_TOKEN intact.",
+    "Document-template resolve for document_type=invoice returns unified-invoice-a4-mobile-v1 as default — tenant default restoration confirmed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter300_deploy_regression.py",
+    "/app/test_reports/iteration_300.json"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9: 4 new deploy-regression + 5 iter299 auth refresh regression)",
+    "frontend": "not tested (backend-only request)"
+  },
+  "test_credentials": "Used مدير / 123123 (quick PIN) from /app/memory/test_credentials.md; RATE_LIMIT_BYPASS from /app/backend/.env.",
+  "seed_data_creation": "None. Read-only regression.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Deployment-readiness fixes verified. New reusable regression suite at /app/backend/tests/test_iter300_deploy_regression.py covers: admin login, Google SSO endpoint smoke (import/env-var health), vehicles reachability, invoice template default resolution. Safe to re-run after future .env or config changes.",
+  "rca of the issue": "N/A — no bugs found. Deployment fixes (env-var move + .gitignore) are non-breaking."
+}
