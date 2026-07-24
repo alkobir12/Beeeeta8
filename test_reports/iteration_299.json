@@ -1,0 +1,42 @@
+{
+  "summary": "Iter 299 — Auth refresh 401-loop fix VERIFIED end-to-end (backend + UI). Mobile QuickPrint E2E fully validated: BottomSheet template picker → full-screen preview modal → exactly 3 output buttons (WhatsApp/PDF/Print) via data-testid, no raw placeholders in rendered iframe, conditional stamps absent when visit has no approval. All backend contract & auth suites pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter299_auth_refresh_regression.py",
+    "/app/backend/tests/test_iter298_unified_templates_contract.py",
+    "/app/test_reports/pytest/iter299_auth_refresh.xml",
+    "/app/test_reports/pytest/iter299_unified_templates.xml"
+  ],
+  "action_items": [
+    "(Optional) The seed script /app/backend/seed_quickprint_fixture.py fails on re-run with DuplicateKeyError on document_templates unique index (one_active_default_per_tenant_type_locale). Make it idempotent by clearing existing default before upsert, OR the review note stating it seeds Supabase UUIDs is stale — the script only writes to MongoDB. Not blocking since real Supabase vehicles were used for E2E.",
+    "(Nice-to-have) resolve-message returns missing_variables=[INVOICE_NO, PLATE_NO] for visits that lack an issued invoice_no / plate; consider suppressing the empty label line 'لوحة ' in the WhatsApp text when PLATE_NO is missing."
+  ],
+  "critical_code_review_comments": [
+    "auth_jwt.refresh (lines 302-369) now correctly aggregates cookie+bearer candidates and calls auth_store.pick_active_jti — verified with stale-cookie+valid-bearer regression test (returns 200, no 'refresh token revoked').",
+    "QuickPrintDialog exposes clean data-testids: quick-print-action-whatsapp / -download-pdf / -print / -cancel / -change-template — great for automated testing.",
+    "Full-screen preview correctly loads DocumentPrint iframe with rendered HTML — 0 raw {VAR}, {{VAR}}, or [[VAR]] tokens detected in either main body or iframe body.",
+    "Customer/workshop approval stamps correctly gated: not rendered for the tested visit which has no approvals (no 'ختم العميل' / 'ختم الورشة' strings in the iframe HTML)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter299_auth_refresh_regression.py",
+    "/app/test_reports/iteration_299.json"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 auth_refresh + 8/8 unified_templates_contract)",
+    "frontend": "100% (login no-loop, session survives reload, BottomSheet+preview+3 buttons all confirmed)"
+  },
+  "test_credentials": "Used مدير / 123123 (quick PIN) from /app/memory/test_credentials.md; RATE_LIMIT_BYPASS from /app/backend/.env.",
+  "seed_data_creation": "Did not create seed data. Used existing Supabase vehicle id c02cc9c7-6ff5-4fc7-9414-b15787fa9000 (188 vehicles present via /api/vehicles).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth refresh fix is stable. QuickPrint mobile flow acceptance verified. If future tests need a vehicle: query /api/vehicles?limit=3 with admin bearer + x-ratelimit-bypass header. Preview modal has data-testids: quick-print-action-{whatsapp,download-pdf,print}. To reach the modal: /vehicle/{uuid} → click [data-testid='vehicle-print-menu-button'] → click 'فاتورة مبيعات' | 'عرض سعر' | 'تقرير تشخيص'.",
+  "rca of the issue": "Previous iter298 root cause: /api/auth/refresh preferred the httpOnly cookie candidate blindly, so after a bearer-driven rotation the still-valid new bearer got shadowed by the stale cookie, triggering reuse detection → 401 + family revoke → UI logout loop. Fix (verified this iteration) in auth_jwt.py: collect BOTH cookie and Authorization Bearer, decode all valid candidates, and if >1 valid, use auth_store.pick_active_jti() to select the still-active jti. Regression test test_iter299_auth_refresh_regression.py::test_refresh_stale_cookie_plus_valid_bearer proves the previously-failing case now returns 200."
+}

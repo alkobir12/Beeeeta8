@@ -18,7 +18,7 @@ async def test_operations_page():
             # Step 1: Login
             print("Step 1: Login with 'مدير'")
             
-            await page.goto('https://workshop-operator.preview.emergentagent.com/login')
+            await page.goto('https://stamp-approval-flow.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             
             await page.fill('[data-testid="login-username-input"]', 'مدير')
@@ -33,7 +33,7 @@ async def test_operations_page():
             
             # Step 2: Navigate to /operations
             print("\nStep 2: Navigate to /operations page")
-            await page.goto('https://workshop-operator.preview.emergentagent.com/operations')
+            await page.goto('https://stamp-approval-flow.preview.emergentagent.com/operations')
             await page.wait_for_timeout(3000)
             print("✅ Navigated to operations page")
             

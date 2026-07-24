@@ -26,7 +26,7 @@ API = f"{BASE_URL}/api"
 MANAGER_USERNAME = "مدير"
 MANAGER_PIN = "123123"
 RATE_BYPASS = (os.environ.get("RATE_LIMIT_BYPASS_TOKEN") or "").strip().strip('"')
-PREVIEW_ORIGIN = "https://workshop-operator.preview.emergentagent.com"
+PREVIEW_ORIGIN = "https://stamp-approval-flow.preview.emergentagent.com"
 
 
 @pytest.fixture(scope="module")

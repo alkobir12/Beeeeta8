@@ -304,16 +304,32 @@ async def refresh(request: Request, response: Response):
     """تجديد access token مع تدوير refresh خادمي + كشف إعادة الاستخدام."""
     from core import rbac, auth_store
     ip, ua = _client_meta(request)
-    token = request.cookies.get("refresh_token")
-    if not token:
-        auth = request.headers.get("Authorization") or ""
-        if auth.startswith("Bearer "):
-            token = auth[7:].strip()
-    if not token:
+    # collect candidates: cookie + bearer (stale cookie must NOT poison a valid bearer)
+    candidates = []
+    cookie_tok = request.cookies.get("refresh_token")
+    if cookie_tok:
+        candidates.append(cookie_tok)
+    auth = request.headers.get("Authorization") or ""
+    if auth.startswith("Bearer "):
+        bt = auth[7:].strip()
+        if bt and bt not in candidates:
+            candidates.append(bt)
+    if not candidates:
         raise HTTPException(status_code=401, detail="No refresh token")
-    payload = decode_refresh_token(token)
-    if not payload:
+    decoded = [(t, p) for t in candidates if (p := decode_refresh_token(t))]
+    if not decoded:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    token, payload = decoded[0]
+    if len(decoded) > 1:
+        try:
+            active_jti = await auth_store.pick_active_jti([p.get("jti") for _, p in decoded])
+            if active_jti:
+                for t, p in decoded:
+                    if p.get("jti") == active_jti:
+                        token, payload = t, p
+                        break
+        except Exception:
+            pass
 
     username = payload.get("sub")
     old_jti = payload.get("jti")

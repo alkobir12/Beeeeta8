@@ -7,7 +7,7 @@ Final test with valid business account
 import requests
 import json
 
-API_URL = "https://workshop-operator.preview.emergentagent.com"
+API_URL = "https://stamp-approval-flow.preview.emergentagent.com"
 
 def test_with_valid_business_account():
     """اختبار مع business account صحيح"""

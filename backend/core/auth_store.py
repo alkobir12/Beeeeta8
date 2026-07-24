@@ -136,6 +136,26 @@ async def rotate_refresh(*, old_jti: str, new_jti: str, expires_at: datetime) ->
             "device_id": doc.get("device_id")}
 
 
+async def pick_active_jti(jtis: list) -> Optional[str]:
+    """Return the first jti from the list that is still active (not used/revoked/expired)."""
+    await _ensure_indexes()
+    col = _db().auth_refresh_tokens
+    docs = await col.find({"jti": {"$in": jtis}, "used": False, "revoked": False},
+                          {"_id": 0, "jti": 1, "expires_at": 1}).to_list(length=10)
+    active = set()
+    for d in docs:
+        exp = d.get("expires_at")
+        exp_dt = datetime.fromisoformat(exp) if isinstance(exp, str) else exp
+        if exp_dt and exp_dt.tzinfo is None:
+            exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+        if not exp_dt or exp_dt >= _now():
+            active.add(d["jti"])
+    for j in jtis:
+        if j in active:
+            return j
+    return None
+
+
 async def revoke_family(family_id: str, *, reason: str = "logout") -> int:
     await _ensure_indexes()
     res = await _db().auth_refresh_tokens.update_many(
