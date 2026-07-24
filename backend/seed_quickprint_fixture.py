@@ -23,8 +23,9 @@ async def seed():
     await db.customers.update_one({"id": CUSTOMER_ID}, {"$set": {"id": CUSTOMER_ID, "tenant_id": TENANT, "name": "عميل اختبار QuickPrint", "phone": "0500000000", "email": "fixture@example.com", "updated_at": now}}, upsert=True)
     await db.vehicles.update_one({"id": VEHICLE_ID}, {"$set": {"id": VEHICLE_ID, "tenant_id": TENANT, "customerId": CUSTOMER_ID, "customerName": "عميل اختبار QuickPrint", "customerPhone": "0500000000", "plateNumber": "P0 2026", "brand": "Toyota", "model": "Camry", "year": 2024, "status": "in_progress", "updated_at": now}}, upsert=True)
     await db.vehicle_visits.update_one({"id": VISIT_ID}, {"$set": {"id": VISIT_ID, "tenant_id": TENANT, "vehicleId": VEHICLE_ID, "visitNumber": 1, "status": "in_progress", "entryDate": now, "notes": "تغيير زيت", "items": [{"name": "تغيير زيت", "quantity": 1, "price": 100, "total": 100}], "tax": 15, "total": 115, "updated_at": now}}, upsert=True)
-    await db.document_templates.update_one({"id": TEMPLATE_ID}, {"$set": {"id": TEMPLATE_ID, "tenant_id": TENANT, "document_type": "invoice", "locale": "ar-SA", "name": "قالب QuickPrint P0", "version": 1, "status": "valid", "active": True, "is_default": True, "file_type": "html", "is_builtin": False, "source": "p0_fixture", "inline_content": HTML, "updated_at": now}}, upsert=True)
-    await db.document_templates.update_many({"tenant_id": TENANT, "document_type": "invoice", "locale": "ar-SA", "id": {"$ne": TEMPLATE_ID}}, {"$set": {"is_default": False}})
+    existing_default = await db.document_templates.find_one({"tenant_id": TENANT, "document_type": "invoice", "locale": "ar-SA", "is_default": True, "id": {"$ne": TEMPLATE_ID}})
+    make_default = existing_default is None
+    await db.document_templates.update_one({"id": TEMPLATE_ID}, {"$set": {"id": TEMPLATE_ID, "tenant_id": TENANT, "document_type": "invoice", "locale": "ar-SA", "name": "قالب QuickPrint P0", "version": 1, "status": "valid", "active": True, "is_default": make_default, "file_type": "html", "is_builtin": False, "source": "p0_fixture", "inline_content": HTML, "updated_at": now}}, upsert=True)
     print({"vehicle_id": VEHICLE_ID, "visit_id": VISIT_ID, "template_id": TEMPLATE_ID})
     client.close()
 
