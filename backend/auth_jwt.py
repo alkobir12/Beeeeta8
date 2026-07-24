@@ -455,8 +455,10 @@ async def auth_me(current_user: dict = Depends(get_current_user)):
 
 
 # ---------------- P1.5: Emergent-managed Google SSO ----------------
-# REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-_EMERGENT_SESSION_DATA_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+_EMERGENT_SESSION_DATA_URL = os.environ.get(
+    "EMERGENT_SESSION_DATA_URL",
+    "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+)
 
 
 class GoogleSessionPayload(BaseModel):
