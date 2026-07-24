@@ -1,0 +1,62 @@
+{
+  "summary": "نفذت اختبار backend+frontend لمتطلبات القوالب الموحدة الثلاثة. اختبارات العقد الخلفية نجحت بالكامل (8/8) مع تحقق العنوان/الضريبة الاختيارية/باركود واحد/الختمين الشرطيين/صفوف tbody وعدم وجود placeholders خامة بعد render. الواجهة تعاني تعليق تحميل مستمر بعد الدخول مما منع التحقق التفاعلي النهائي من شاشة الطباعة.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "App shell after login (/ and /print)",
+        "issue": "واجهة التطبيق تبقى في loading spinner ولا تعرض محتوى الصفحة المستهدف للاختبار.",
+        "selector": ".animate-spin",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Post-login session refresh / data bootstrapping",
+        "issue": "سجلات المتصفح تُظهر 401 على /api/auth/refresh و401 على assistant endpoints مع طلبات ملغاة، ما يعيق تدفق الواجهة.",
+        "affected_selectors": [
+          ".animate-spin"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter298_unified_templates_contract.py",
+    "/app/test_reports/pytest/iter298_unified_templates_contract.xml",
+    "/app/test_reports/pytest/iter298_auth_playbook_checks.xml",
+    "/root/.emergent/automation_output/20260724_091408/console_20260724_091408.log",
+    "/root/.emergent/automation_output/20260724_091427/console_20260724_091427.log"
+  ],
+  "action_items": [
+    "إصلاح سبب فشل refresh/session بعد login في الواجهة (401 على /api/auth/refresh) لأنه يمنع الوصول لشاشة الطباعة.",
+    "بعد إصلاح التعليق، أعد اختبار UI end-to-end لنفس شروط القوالب (الضريبة الاختيارية، باركود واحد، الأختام الشرطية داخل المربعات).",
+    "(Code review) حدّث قائمة _KNOWN_TEMPLATE_VARIABLES في backend/routes_document_templates.py لتشمل متغيرات القالب الموحد الحالية مثل DOCUMENT_TITLE/TAX_ROW/BARCODE_VALUE/CUSTOMER_APPROVAL_STAMP/WORKSHOP_APPROVAL_STAMP لتجنب رفض set-default مستقبلًا."
+  ],
+  "critical_code_review_comments": [
+    "تحقق backend contract: document_templates يحتوي فقط 3 قوالب مطلوبة وكل نوع له default واحد.",
+    "تحقق renderer: DOCUMENT_TITLE صحيح للأنواع الثلاثة، WORKSHOP_NAME وCOMPANY_CR يظهران في الرأس وصندوق بيانات المستند.",
+    "تحقق renderer: بدون tax لا يظهر صف الضريبة ومع tax يظهر صف واحد فقط؛ الإجمالي الكلي يظهر مرة واحدة.",
+    "تحقق renderer+template: باركود واحد فقط في HTML النهائي ولا يوجد QR.",
+    "تحقق renderer: الأختام الشرطية لا تظهر دون approvals وتظهر داخل مربعي اعتماد العميل/الورشة عند الاعتماد بحجم صغير (92px).",
+    "تحقق renderer: لا placeholders خامة بعد الدمج ولا بيانات demo ثابتة، وصفوف البنود داخل tbody.",
+    "لا توجد APIs MOCKED."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter298_unified_templates_contract.py",
+    "/app/test_reports/iteration_298.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 في الاختبار المستهدف + 8/8 auth playbook checks)",
+    "frontend": "40% (التحميل الأساسي وتسجيل الدخول تمّا، لكن شاشة المحتوى بقيت عالقة)"
+  },
+  "test_credentials": "تمت القراءة من /app/memory/test_credentials.md واستخدام: مدير / 123123",
+  "seed_data_creation": "لم يتم إنشاء بيانات seed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "ابدأ من إصلاح 401 على /api/auth/refresh بعد login. بعد ثبات الواجهة، أعد تشغيل اختبار test_iter298_unified_templates_contract.py ثم نفّذ UI /print للتحقق البصري النهائي من نفس متطلبات القالب الموحد.",
+  "rca of the issue": "RCA الواجهة: بعد تسجيل الدخول عبر PIN، التطبيق يدخل حالة تحميل مستمرة، وسجل المتصفح يظهر 401 متكرر على /api/auth/refresh وassistant endpoints، مع إلغاء طلبات بيانات لاحقة. الأثر: عدم إمكانية التحقق التفاعلي النهائي من شاشة الطباعة رغم أن عقد الخلفية والـ renderer يمر بالكامل."
+}
