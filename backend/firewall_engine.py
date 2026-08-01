@@ -524,7 +524,7 @@ class FirewallEngine:
         visit_ids = {str(v.get("id")) for v in self._visits()}
         for entry in self._journals():
             src = str(entry.get("source") or "").lower()
-            if src not in {"operation", "operation_payment", "operation_payment_income", "operation_cogs"}:
+            if src not in {"operation", "operation_payment", "operation_cogs"}:
                 continue
             ref = str(entry.get("reference_id") or "")
             if not ref:

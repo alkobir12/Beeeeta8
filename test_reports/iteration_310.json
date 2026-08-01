@@ -1,0 +1,48 @@
+{
+  "summary": "Validated requested Iter-309 regressions across backend+frontend. Target confirm-payment guard test passed; reconciliation-audit confirms live/archive split and read-only mutation unchanged. Financial baseline totals remain blocked by Preview data reset (journal_entries=0, operations=45).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/finance/reconciliation-audit?workshop_id=finmodule-sync",
+        "issue": "Environment data blocker: mutation is unchanged/read-only and live=15/archive=176 is correct, but journal_entries=0 and operations=45 prevent validating baseline financial totals (15730/4650/16810) on same dataset.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter309_live_scope_finance_regression.py",
+    "/app/test_reports/pytest/iter310_confirm_payment_target.xml",
+    "/app/test_reports/pytest/iter310_scope_guards.xml",
+    "/app/test_reports/iter310_reconciliation_audit.json"
+  ],
+  "action_items": [
+    "Restore Preview baseline accounting data (journal_entries/operations) before re-validating financial expected totals 15730/4650/16810.",
+    "After data restore, rerun reconciliation-audit and full four-path accounting regression on same baseline."
+  ],
+  "critical_code_review_comments": [
+    "confirm-payment route block uses source='operation_payment' and no longer references operation_payment_income.",
+    "Runtime backend scan found no operation_payment_income usage outside legacy tests.",
+    "Frontend target pages do not perform direct POST/PUT/DELETE to /finance/journal-entries; JournalEntries create/update/delete are explicitly blocked by UI alerts.",
+    "AssistantProvider guards alerts/stats/models with hasAuthToken() before requests."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_310.json",
+    "/app/test_reports/iter310_login_response.json",
+    "/app/test_reports/iter310_reconciliation_audit.json"
+  ],
+  "success_rate": {
+    "backend": "90%",
+    "frontend": "85%"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation performed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Target pytest guards passed (confirm-payment + no direct journal write patterns). Reconciliation-audit currently reports: read_only=true, production_pages_unchanged=true, mutation_guard.unchanged=true, vehicle_scope_counts live=15 archive=176 total=191, but journal_entry_total=0 and operation_total=45 due Preview data reset/blocker.",
+  "rca of the issue": "Reproduction: login as admin (مدير/123123) -> GET /api/finance/reconciliation-audit?workshop_id=finmodule-sync. Result consistently shows before/after counts unchanged and live/archive logic correct, but dataset lacks journal_entries and has reduced operations. RCA indicates external Preview dataset reset/reseed, not runtime code regression in tested paths. Mitigation: restore baseline Preview snapshot, then rerun financial-baseline assertions."
+}

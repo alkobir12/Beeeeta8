@@ -2968,7 +2968,7 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             prev = (
                 supa.client.table("journal_entries")
                 .select("total")
-                .in_("source", ["operation_payment", "operation_payment_income", "supplier_balance_payment"])
+                .in_("source", ["operation_payment", "supplier_balance_payment"])
                 .eq("reference_id", op_id)
                 .execute()
                 .data
@@ -3056,7 +3056,6 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
                 .select("id,source")
                 .eq("reference_id", op_id)
                 .neq("source", "operation_payment")
-                .neq("source", "operation_payment_income")
                 .limit(1)
                 .execute()
                 .data
@@ -3581,7 +3580,7 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
                         supa_for_meta.client.table("journal_entries")
                         .select("total,source")
                         .eq("reference_id", existing_id)
-                        .in_("source", ["operation_payment", "operation_payment_income", "supplier_balance_payment"])
+                        .in_("source", ["operation_payment", "supplier_balance_payment"])
                         .execute()
                         .data
                         or []
@@ -4829,7 +4828,7 @@ async def vehicle_financial_summary(vehicle_id: str):
                         supa.client.table("journal_entries")
                         .select("total,source,reference_id")
                         .in_("reference_id", operation_ids)
-                        .in_("source", ["operation_payment", "operation_payment_income", "supplier_balance_payment"])
+                        .in_("source", ["operation_payment", "supplier_balance_payment"])
                         .execute()
                         .data
                         or []
@@ -4914,7 +4913,7 @@ async def get_vehicle_visits(vehicle_id: str):
                             supa.client.table("journal_entries")
                             .select("reference_id,total,source")
                             .in_("reference_id", list(op_to_visit.keys()))
-                            .in_("source", ["operation_payment", "operation_payment_income", "supplier_balance_payment"])
+                            .in_("source", ["operation_payment", "supplier_balance_payment"])
                             .execute()
                             .data
                             or []

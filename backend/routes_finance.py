@@ -870,7 +870,7 @@ async def get_income_statement(
             raise HTTPException(status_code=400, detail="معرف الورشة مطلوب")
 
         end_date = _normalize_date_string(end_date) or datetime.now().strftime("%Y-%m-%d")
-        start_date = _normalize_date_string(start_date) or (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        start_date = _normalize_date_string(start_date)
 
         accounts = _fetch_accounts()
         id_to_code, code_to_name, code_to_type = _build_account_maps(accounts)
@@ -888,7 +888,7 @@ async def get_income_statement(
             for entry in entries
             if str(entry.get("reference_id") or "").strip()
             and str(entry.get("source") or "").strip().lower()
-            not in {"operation_payment", "operation_payment_income"}
+            not in {"operation_payment"}
         }
 
         revenue_accounts: Dict[str, Dict[str, Any]] = {}
@@ -902,13 +902,6 @@ async def get_income_statement(
             # في الحسابات (balance=0) — أما قائمة الدخل فتعرض حركة فعلية فقط.
             if entry_source == "period_close":
                 continue
-            if (
-                entry_source == "operation_payment_income"
-                and entry_reference
-                and entry_reference in references_with_base_entries
-            ):
-                continue
-
             for line in entry.get("lines", []) or []:
                 normalized = _normalize_line(line, id_to_code, code_to_name)
                 if not normalized:
@@ -2037,7 +2030,7 @@ async def get_account_tree_details(
             include_rakan=False,
         )
 
-        operation_link_sources = {"operation", "operation_rakan_parts", "operation_payment", "operation_payment_income", "supplier_balance_payment"}
+        operation_link_sources = {"operation", "operation_rakan_parts", "operation_payment", "supplier_balance_payment"}
         operation_refs = [
             str(e.get("reference_id") or "").strip()
             for e in entries
@@ -2682,7 +2675,7 @@ async def get_journal_entries(
             include_rakan=include_rakan,
         )
 
-        operation_link_sources = {"operation", "operation_rakan_parts", "operation_payment", "operation_payment_income", "supplier_balance_payment"}
+        operation_link_sources = {"operation", "operation_rakan_parts", "operation_payment", "supplier_balance_payment"}
         operation_refs = [
             str(e.get("reference_id") or "").strip()
             for e in entries

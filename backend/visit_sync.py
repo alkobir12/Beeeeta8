@@ -40,7 +40,7 @@ def _sync_visit_journal(supa_service, visit_id: str, op_data: dict, cash_paid: f
         .eq("reference_id", visit_id).execute().data or []
     )
     accrual_rows = [e for e in existing if str(e.get("source") or "") == "operation"]
-    payment_rows = [e for e in existing if str(e.get("source") or "") in {"operation_payment", "operation_payment_income", "visit_receipt_voucher"}]
+    payment_rows = [e for e in existing if str(e.get("source") or "") in {"operation_payment", "visit_receipt_voucher"}]
 
     _AR_CODES = {"005", "1103", "113"}
 

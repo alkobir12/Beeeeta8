@@ -650,7 +650,7 @@ class SupabaseService:
                     self.client.table("journal_entries")
                     .select("reference_id,total,source")
                     .in_("reference_id", operation_ids)
-                    .in_("source", ["operation_payment", "operation_payment_income", "supplier_balance_payment"])
+                    .in_("source", ["operation_payment", "supplier_balance_payment"])
                     .execute()
                     .data
                     or []
@@ -813,7 +813,7 @@ class SupabaseService:
                 self.client.table("journal_entries")
                 .select("total,source")
                 .eq("reference_id", op_id)
-                .in_("source", ["operation_payment", "operation_payment_income", "supplier_balance_payment"])
+                .in_("source", ["operation_payment", "supplier_balance_payment"])
                 .execute()
                 .data
                 or []

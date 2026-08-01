@@ -121,7 +121,7 @@ EXPENSE_CODES = {*(str(i).zfill(3) for i in range(29, 49)), "167", "5000", "5100
 CASH_CODES = {"003", "1101"}
 BANK_TRANSFER_CODES = {"004", "1102"}
 POS_CODES = {"006", "1104"}
-PAYMENT_SOURCES = {"operation_payment", "operation_payment_income", "visit_receipt_voucher", "supplier_balance_payment", "payment", "operation_discount", "visit_discount"}
+PAYMENT_SOURCES = {"operation_payment", "visit_receipt_voucher", "supplier_balance_payment", "payment", "operation_discount", "visit_discount"}
 
 
 def journal_impact(rows: Iterable[Dict[str, Any]]) -> Dict[str, float]:

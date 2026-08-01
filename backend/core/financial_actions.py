@@ -94,7 +94,7 @@ def mark_temp_deferred_settled(reference_id: Optional[str], fully: Optional[bool
         if fully is None:
             base_total = sum(float(r.get("total") or 0) for r in temp_rows)
             paid = sum(float(r.get("total") or 0) for r in rows
-                       if str(r.get("source") or "") in ("payment", "operation_payment", "operation_payment_income"))
+                       if str(r.get("source") or "") in ("payment", "operation_payment"))
             fully = base_total > 0 and (paid + 0.01) >= base_total
         tag = SETTLED_TAG if fully else PARTIAL_TAG
         for r in temp_rows:

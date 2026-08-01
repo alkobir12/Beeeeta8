@@ -287,7 +287,7 @@ async def confirm_operation_via_supplier_balance(op_id: str, payload: Dict[str, 
         prev = (
             supabase.table("journal_entries")
             .select("total")
-            .in_("source", ["operation_payment", "operation_payment_income", "supplier_balance_payment"])
+            .in_("source", ["operation_payment", "supplier_balance_payment"])
             .eq("reference_id", op_id)
             .execute()
             .data

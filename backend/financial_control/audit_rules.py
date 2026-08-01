@@ -83,7 +83,7 @@ class AuditRulesEngine:
         groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         for j in journals:
             src = str(j.get("source") or "").lower()
-            if src not in {"operation_payment", "operation_payment_income"}:
+            if src not in {"operation_payment"}:
                 continue
             ref = str(j.get("reference_id") or "")
             if not ref:

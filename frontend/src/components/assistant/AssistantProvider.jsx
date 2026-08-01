@@ -21,6 +21,10 @@ const API_URL = (
 const WORKSHOP_ID = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
 const STORAGE_KEY = 'assistant.session_id';
 
+const hasAuthToken = () => {
+  try { return Boolean(localStorage.getItem('auth_token')); } catch { return false; }
+};
+
 const AssistantContext = createContext(null);
 
 // 🔗 ترابط حي — يبثّ أحداث التحديث لكل الصفحات بعد أي كتابة/مسودة/إلغاء من البوت.
@@ -137,6 +141,7 @@ export const AssistantProvider = ({ children }) => {
 
   // ----- fetch alerts (debounced) -----
   const refreshAlerts = useCallback(async (force = false) => {
+    if (!hasAuthToken()) return;
     const now = Date.now();
     if (!force && now - lastFetchRef.current < 8000) return; // dedupe within 8s
     lastFetchRef.current = now;
@@ -147,6 +152,7 @@ export const AssistantProvider = ({ children }) => {
   }, []);
 
   const refreshStats = useCallback(async () => {
+    if (!hasAuthToken()) return;
     try {
       const res = await axios.get(`${API_URL}/assistant/stats`);
       if (res.data?.success) setStats(res.data.data);
@@ -564,6 +570,7 @@ function friendlyChatError(e) {
 
   // 🆕 Fetch available models on mount + retry once after 2s in case of race
   const fetchModels = useCallback(async () => {
+    if (!hasAuthToken()) return;
     try {
       const res = await axios.get(`${API_URL}/assistant/models`);
       if (res.data?.success) {

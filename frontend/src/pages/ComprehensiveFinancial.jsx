@@ -1324,8 +1324,9 @@ export default function ComprehensiveFinancial() {
                 <div className="text-xs text-cyan-100 space-y-1 text-left" data-testid="financial-sales-operations-summary">
                   <p>إجمالي البيع: <span className="font-semibold">{formatCurrency(salesSummary.operations_total || salesSummary.total_credit || 0)}</span></p>
                   <p>المحصل نقدًا: <span className="font-semibold">{formatCurrency(salesSummary.operations_cash_total || 0)}</span></p>
-                  <p>المحصل بنك/بطاقة: <span className="font-semibold">{formatCurrency(salesSummary.operations_bank_total || 0)}</span></p>
-                  <p>آجل غير مسدد: <span className="font-semibold">{formatCurrency(salesSummary.operations_credit_total || 0)}</span></p>
+                  <p>المحصل نقاط بيع: <span className="font-semibold">{formatCurrency(salesSummary.operations_pos_total || 0)}</span></p>
+                  <p>المحصل تحويل بنكي: <span className="font-semibold">{formatCurrency(salesSummary.operations_bank_transfer_total ?? salesSummary.operations_bank_total ?? 0)}</span></p>
+                  <p>آجل (ذمة): <span className="font-semibold">{formatCurrency(salesSummary.operations_credit_total || 0)}</span></p>
                 </div>
               </div>
 
