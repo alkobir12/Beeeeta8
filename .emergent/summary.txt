@@ -1,173 +1,132 @@
-<analysis>Here is the handover summary for the next agent:
-
-**original_problem_statement**: Transform the existing conversational bot into a secure, persisted Enterprise Operator. Specifically, replace  with an Electronically Sealed Invoice (فاتورة الورشة — ختم إلكتروني) template. PRODUCT REQUIREMENTS: Implement a unified PDF وواتساب action, outbound message templates, strict audit logging, and SHA-256 caching. *Latest Requirement:* Convert the newly provided HTML template into a unified React component to be used across all print/preview/PDF actions, implement dynamic electronic seals, and remove all UI redundancies (duplicate totals, seals, multiple barcodes).
+<analysis>**original_problem_statement**: Overhaul financial operator (Katrina), document templates (strict sanitization, no raw placeholders, unified A4/mobile), and mobile QuickPrint UI. PRODUCT REQUIREMENTS: Single active default template per tenant/type/locale, dynamic electronic approval stamps, Supabase UUID compliance, and zero silent fallbacks on template failures. A critical newly added requirement is 100% synchronization of financial numbers across AR Ledger, Operations, Debt Follow-up, and Vehicle Profile pages using a Single Source of Truth (SSOT).
 
 **User's preferred language**: Arabic (العربية)
 **INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond in the user's preferred language ONLY. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic ONLY. NEVER suggest English solutions or prompts.
 
 **what currently exists?** 
-The backend architecture for generating PDFs, tenant-isolated SHA-256 fingerprint caching, WhatsApp sharing (), and outbound audit logging has been successfully implemented and tested. However, the user rejected the final UI visual output. The user has provided a base HTML template () which needs to be converted into a single, unified React component that handles dynamic Electronic Seals (Customer & Workshop approvals) and eliminates redundant UI elements.
+The system is successfully deployed to production. Unified document templates (Invoice, Quotes, Diagnoses) and the redesigned mobile QuickPrint are fully functional and tested end-to-end. The auth refresh 401 loop is resolved. A massive financial synchronization overhaul was completed:  is now the strict Single Source of Truth (SSOT) for all Accounts Receivable (AR) calculations. Missing journal entries for legacy credit sales were retroactively generated. Operations now accurately reflect partial payments, and deleting visits/operations strictly cascades to delete related journal entries. 
 
 **Last working item**:
-    - Last item agent was working: Analyzing the provided  file to begin converting it into a unified React component and implement Electronic Seals logic.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? both (Frontend testing agent for UI visual checks and E2E print flows; backend for any state updates regarding document approval/seals).
+    - Last item agent was working: Fixing the  logic in  to correctly reflect partial payments (e.g., showing 80 paid / 120 remaining instead of incorrectly marking the whole operation as paid because the last payment was cash) and ensuring cascade deletion of journal entries when a visit is deleted. 
+    - Status: RESOLVED
+    - Agent Testing Done: Y (pytest + UI consistency verified, AR gap = 0.0)
+    - Which testing method agent to use? NA
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: P0 - Unify Invoice Template Component
-     - Attempted fixes: Agent read the provided  but did not start implementation.
-     - Next debug checklist: Convert the HTML in  into a reusable React component. Ensure this single component is used identically for Preview, Print, PDF generation, Image generation, and WhatsApp sharing. 
-     - Why fix this issue and what will be achieved with the fix? The user explicitly forbade having different designs/components for different output paths.
-     - Status: IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Frontend
-     - Blocked on other issue: None
-
-  Issue 2: P0 - Implement Dynamic Electronic Seals
-     - Attempted fixes: Not started.
-     - Next debug checklist: 
-        1. Customer Seal: Show only after . Small circular (80-90px) containing تمت الموافقة + Name, Date, Time, Approval ID.
-        2. Workshop Seal: Show only after authorized user approval. Small circular (80-90px) containing معتمد + Name, Date, Time, Approval ID.
-        3. Any modification to the document after approval MUST invalidate both seals and require re-approval.
-     - Why fix this issue and what will be achieved with the fix? Replaces the old signature boxes with secure electronic sealing.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on other issue: Issue 1
-
-  Issue 3: P0 - Remove UI Redundancies & Fix Barcode
-     - Attempted fixes: Not started.
-     - Next debug checklist: Strip out duplicate final totals (keep only one in the calculation section), old signature boxes, duplicate top/bottom seals, QR codes, long fingerprint codes exposed to the user, and duplicate print buttons. Replace existing barcodes with EXACTLY ONE barcode at the bottom containing: .
-     - Why fix this issue and what will be achieved with the fix? Cleans up the document output for enterprise standards.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Frontend
-     - Blocked on other issue: Issue 1
+  None. (All P0 blockers, Auth loops, and Financial Sync discrepancies were resolved).
 
 **In progress Task List**:
-  Task 1: P0 - Visual overhaul of Document Print UI
-     - Where to resume:  / new component creation based on .
-     - What will be achieved with this? Final acceptance from user for the invoice design.
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix? Frontend
-     - Blocked on something: None
+  None.
 
 **Upcoming and Future Tasks**
-  Task 1: P1 - Convert  (مركز التحكم القديم) page into a full Katrina-driven conversational experience.
-  Task 2: P2 - Improve invoice/receipt logic so collecting a payment via Katrina automatically links to and closes specific vehicle plates/invoices.
+  Task 1: P0 - UX/UI Redesign Project (Start the comprehensive UX/UI redesign according to the user's new plan).
+  Task 2: P1 - Public Verification Page for Documents: Each document must have a QR Code, Verification ID, Document Hash, Template Version, Timestamp, Digital Signature Status, Approval Status, and Company Info. Scanning the QR should open a public verification page showing the document's validity/status without exposing sensitive financial data.
+  Task 3: P2 - Google OAuth Testing: Run a dedicated testing round for Google OAuth on production (deferred from the last round).
+  Task 4: P2 - Add a visible audit log inside the document UI indicating which template name and version was used for accountability.
+  Task 5: P2 - AR Aging Report: Implement an aging report (30/60/90 days) with automatic WhatsApp reminders for overdue clients.
 
 **Completed work in this session**
-- SHA-256 fingerprint generation in backend for tenant-isolated document caching (DONE).
-- Unified PDF وواتساب action with Web Share API on mobile and  fallback on desktop (DONE).
-- Added رسائل واتساب (WhatsApp Messages) tab in  matching existing variables (DONE).
-- Backend audit logging using , ,  (DONE).
-- Extracted business logic from  into hooks () (DONE).
+- Fixed Auth Refresh 401 Loop (, ) (DONE)
+- Deployment Readiness (Configured CORS , cleaned  secrets, migrated session variable) (DONE)
+- Production Validation for Templates and Electronic Stamps (DONE)
+- Fixed Financial AR Ledger sync: Unified calculation logic across Vehicle, Operations, Debts, and Ledger (DONE)
+- Retroactively generated missing journal entries for 163 visits (DONE)
+- Merged duplicate customer profiles () (DONE)
+- Fixed Operation snapshot logic for partial payments in  (DONE)
+- Implemented cascade delete for journal entries when visits/operations are deleted (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: Preview layer wildcard CORS
-   - Debug checklist: Confirmed it originates from the external ingress/preview layer.
-   - Why to solve this issue and what will be achieved with this? Removes browser console warnings during hot-reloads.
+   Issue 1: XSS risks with multipart HTML uploads
+   - Debug checklist: Ensure Role-Based Access Control (RBAC) and strict tenant isolation are enforced on template uploads, as highlighted by the Security Audit.
+   - Why to solve this issue and what will be achieved with this? Prevents low-level staff from uploading malicious HTML that executes during PDF generation.
    - Should Test frontend/backend/both after fix: Backend
-   - Is recurring issue? Y
+   - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Unauthorized massive refactoring breaking the app.
-  - Recurrence count: 5+
-  - Status: RESOLVED (User enforces ROAST MODE. Do not build new engines, only enhance existing ones. Reuse the requested HTML template).
+  - Issue recurrence in previous fork: None in this session.
+  - Recurrence count: 0
+  - Status: NA
 
 **Code Architecture**
 /app
 ├── backend
-│   ├── routes_outbound.py (New outbound share APIs)
-│   ├── routes_templates.py 
-│   ├── unified_document_service.py 
-│   ├── auth_guard.py
-│   └── tests/test_outbound_share_iter278.py
+│   ├── core
+│   │   ├── ar_ledger.py (SSOT for accounts receivable)
+│   │   └── auth_store.py
+│   ├── server.py (Operations snapshot and journal entries logic)
+│   ├── visit_sync.py (Visit to operation syncing)
+│   ├── routes_finance.py
+│   ├── routes_auth.py
+│   └── supabase_service.py
 ├── frontend
-│   └── src
-│       ├── pages
-│       │   ├── DocumentPrint.jsx 
-│       │   ├── TemplatesManager.jsx 
-│       ├── components
-│       │   ├── QuickPrintDialog.jsx
-│       │   ├── WhatsAppSharePreview.jsx
-│       │   └── OutboundMessagesTab.jsx
-│       ├── hooks
-│       │   └── useWhatsAppShare.js
-│       ├── services
-│       │   └── outboundShare.js
-│       └── utils
-│           └── pdfGenerator.js
+│   └── src ...
 
 **Key Technical Concepts**
-- React frontend + FastAPI backend + MongoDB.
-- Client-side PDF generation ( / ).
-- Tenant isolation and Server-side SHA-256 document fingerprinting.
-- Web Share API for Mobile WhatsApp integration.
+- React frontend + FastAPI backend + Supabase DB.
+-  table is the absolute Single Source of Truth (SSOT) for all financial ledger and Accounts Receivable calculations.
+- JWT Auth with rotating refresh tokens (short-lived access + 7-day refresh).
 
 **key DB schema**
-  - 
-  - 
-  - 
+  - : Central source of truth for financials.
+  - : Contains snapshot/cache of financial state for display, synchronized via .
+  - : Linked to operations and journal entries.
+  - : Relies on computed balances derived strictly from the ledger.
 
 **changes in tech stack**
   - None.
 
 **All files of reference** 
-  -  (CRITICAL: Source HTML for the new unified invoice component)
-  - 
-  - 
-  - 
+  -  (Financial sync, partial payment snapshot logic)
+  -  (Visit to operation synchronization)
+  -  (Auth loop fixes)
+  -  (Ledger calculation rules)
+  -  (Validation plan for production)
 
 **Areas that need refactoring**: 
--  must be heavily refactored to consume the new unified component derived from .
+- Logic in  handling financial snapshots and caching is very heavy and could be extracted into dedicated domain services.
 
 **key api endpoints**
 - 
--  (or equivalent implemented in this session)
+- 
+- 
+-  (Now cascades to operations and journal entries)
 
-**Critical Info for New Agent**:
+**Critical Info for New Agent**
 - **LANGUAGE**: Respond ONLY in Arabic.
-- **DESIGN UNIFICATION**: The user strictly prohibited creating separate designs for the preview, print, and PDF. You MUST create a single React component from the provided HTML file () and use it everywhere.
-- **SEAL LOGIC**: Ensure you check the document's state (e.g., ) before rendering the electronic seals. 
+- **ENVIRONMENTS**: The app is now deployed to production. If the user reports an issue, clarify if they are testing on Preview or Production. Code changes can only happen in Preview.
+- **FINANCIAL RULE**: Never calculate Accounts Receivable (AR) strictly from  or . The  table is the strict SSOT. Any new financial feature MUST interact with journal entries.
+- **NEXT STEP**: The user explicitly requested to begin the **UX/UI Redesign Project** after this synchronization fix. Acknowledge the completion of the sync and propose the UX/UI plan.
 
 **documents and test reports created in this job**
   - 
   - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - *User*: Approved previous architecture plan with strict corrections for caching, WhatsApp Web Share, audit logging, and component decoupling.
- - *User (Latest)*: Rejected the agent's task completion. Ordered the agent to adopt a new HTML template (), unify the React Component across all paths, implement dynamic Electronic Seals, and remove all visual redundancies (duplicate totals, signatures, QR, barcodes).
+ - *User*: اكمل (Continue)
+ - *Agent*: (Modified  and  to fix partial payment UI display).
+ - *Agent*: (Tested operation view, confirmed 200 total / 80 paid / 120 balance shows correctly).
+ - *Agent*: (Tested visit deletion, verified cascading journal deletion).
+ - *Agent*: (Ran testing_agent to confirm final fix).
+ - *User*: Credits Recharged. Please Continue.
+ - *Agent*: (Read  verifying 5/5 backend tests passed and UI consistency is fixed).
+ - *Agent*: Finished the task declaring 100% financial number synchronization across all pages.
 
 **Project Health Check:**
-- Broken: None
-- Mocked: None
+- Broken: None.
+- Mocked: None.
 
 **3rd Party Integrations**
-- Emergent LLM Key (Used for Claude Sonnet) — uses Emergent LLM Key.
+- Emergent LLM Key (Used for Katrina intent parsing) — uses Emergent LLM Key.
 
 **Testing status**
   - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
-  - Known regressions: Visual UI rejected by user; requires rebuild using the provided HTML template.
+  - Test files created: None
+  - Known regressions: None
 
 **Credentials to test flow:**
 - Manager (Admin): Username , PIN 
-- Accountant: Username , PIN 
 
 **What agent forgot to execute**
-- The agent successfully implemented the backend and sharing logic but finished the task without applying the required visual invoice overhaul and electronic seals. The user caught this and provided an HTML template to guide the visual fix.
-
-**Debugging checklist for current issue**
-    Issue: Unify Invoice Template & Implement Electronic Seals
-
-    Frontend files to check: 
-    - : Read this to build the new React component.
-    - : Replace existing output with the new unified component.
-    - : Ensure the new component renders correctly via .
-  
-    Backend files to check:
-    - : Verify how document state (e.g., approvals) is passed to the frontend to trigger the display of the Electronic Seals.</analysis>
+- The agent fully completed the financial alignment. Nothing was missed. The next agent needs to shift focus to the Public Verification Page (QR) and the UX/UI Redesign.</analysis>

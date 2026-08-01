@@ -89,3 +89,6 @@ credentials.json
 .credentials
 memory/test_credentials.md
 frontend/node_modules/.cache/default-development/61.pack
+.env
+.env.*
+*.env
