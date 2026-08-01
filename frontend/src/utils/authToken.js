@@ -169,6 +169,7 @@ export function installAuthInterceptors(axios) {
   axios.interceptors.request.use(
     (cfg) => {
       const t = getStoredToken();
+      cfg.__hadAuthToken = Boolean(t);
       if (t) {
         cfg.headers = cfg.headers || {};
         if (!cfg.headers.Authorization) cfg.headers.Authorization = `Bearer ${t}`;
@@ -183,7 +184,8 @@ export function installAuthInterceptors(axios) {
     async (err) => {
       const cfg = err?.config || {};
       const status = err?.response?.status;
-      if (status === 401 && !cfg.__isRetry && !_isAuthPath(cfg.url)) {
+      const hadAuthContext = Boolean(cfg.__hadAuthToken || getStoredRefresh());
+      if (status === 401 && !cfg.__isRetry && !_isAuthPath(cfg.url) && hadAuthContext) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           cfg.__isRetry = true;
@@ -202,11 +204,12 @@ export function installAuthInterceptors(axios) {
     const origFetch = window.fetch.bind(window);
     const patched = async function (input, init = {}) {
       const t = getStoredToken();
+      const hadAuthContext = Boolean(t || getStoredRefresh());
       const headers = new Headers(init.headers || (typeof input !== 'string' && input?.headers) || {});
       if (t && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${t}`);
       const url = typeof input === 'string' ? input : (input && input.url) || '';
       let resp = await origFetch(input, { ...init, headers });
-      if (resp.status === 401 && !init.__isRetry && !_isAuthPath(url)) {
+      if (resp.status === 401 && !init.__isRetry && !_isAuthPath(url) && hadAuthContext) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           headers.set('Authorization', `Bearer ${newToken}`);

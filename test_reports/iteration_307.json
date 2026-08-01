@@ -1,0 +1,56 @@
+{
+  "summary": "Retest completed for UI login persistence and print actions on target vehicle. UI login via مدير/123123 now succeeds without any manual bootstrap (redirected to / and auth_token/session persisted). Sales invoice and diagnosis QuickPrint both exclude supplier item (القرعاوي), show workshop total 600.00 (not 779.00), and invoice preview includes the third-card label 'ملخص المستند'. PDF download and WhatsApp open actions both worked from QuickPrint.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "OPTIONS /api/auth/login",
+        "issue": "Preflight response from preview edge returned access-control-allow-origin='*' and no access-control-allow-credentials header. Functional login still works in browser, but this diverges from strict credentialed CORS expectation."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Pre-login background requests on /login",
+        "issue": "Console still shows multiple 401 responses before authentication. Did not block login or printing in this run.",
+        "affected_selectors": [
+          "[data-testid='login-username-input']",
+          "[data-testid='login-pin-input']",
+          "[data-testid='login-submit-button']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter307_auth_and_quickprint_contract.py",
+    "/app/backend/tests/test_iter306_vehicle_print_supplier_filter.py",
+    "/app/test_reports/pytest/iter307_backend.xml"
+  ],
+  "action_items": [
+    "Investigate preview-edge CORS preflight behavior for /api/auth/login (credentials header missing).",
+    "Optional: reduce pre-login 401 console noise on login page to keep diagnostics cleaner."
+  ],
+  "critical_code_review_comments": [
+    "frontend/src/pages/VehicleDetails.jsx remains very large (4645 lines), increasing regression risk in visit/print/auth-adjacent flows.",
+    "Supplier filtering contract is implemented consistently in frontend print payload builders and backend/notes data checks.",
+    "Login persistence regression from Iter-306 appears fixed: auth token/session survive normal UI login without manual localStorage injection."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter307_auth_and_quickprint_contract.py",
+    "/app/test_reports/iteration_307.json"
+  ],
+  "success_rate": {
+    "backend": "91% (10/11 tests passed; 1 CORS preflight contract test failed)",
+    "frontend": "100% for requested retest scenarios"
+  },
+  "test_credentials": "مدير / PIN 123123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "No seed data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All requested user-facing flows now pass via pure UI login (no bootstrap). Reproduce from /login with fresh browser state, then open /vehicle/61fe0b56-aa66-490d-a5e7-6f3b8195ed56 and validate QuickPrint invoice/diagnosis filtering and totals. If doing auth hardening checks, verify CORS at app/backend layer vs preview edge normalization.",
+  "rca of the issue": "Iter-306 blocker (UI login not persisting session) was not reproducible now. Evidence: after click on login-submit-button, URL moved to '/', localStorage auth_token=True and session=True, then protected vehicle route loaded and print actions succeeded. Remaining backend test failure is isolated to CORS preflight header contract at preview edge (OPTIONS returned wildcard origin and no allow-credentials), while actual login POST/session behavior remained functional.",
+  "mocked_api": "NO MOCKED APIs used."
+}
