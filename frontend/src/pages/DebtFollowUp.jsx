@@ -33,8 +33,10 @@ export default function DebtFollowUp() {
   const workshopId = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
   const { toast } = useToast();
 
+  const initialArRows = readCurrentArCache();
   const [loading, setLoading] = useState(true);
-  const [entries, setEntries] = useState(() => readCurrentArCache());
+  const [arHydrating, setArHydrating] = useState(initialArRows.length === 0);
+  const [entries, setEntries] = useState(initialArRows);
   const [selectedIds, setSelectedIds] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [drafts, setDrafts] = useState([]);
@@ -89,6 +91,7 @@ export default function DebtFollowUp() {
         }))
         : [];
       const customers = customersSource.map((row) => ({ ...row, entityType: 'customer' }));
+      if (customers.length) setArHydrating(false);
       const suppliers = [];
       const merged = [...customers, ...suppliers]
         .map((row) => ({
@@ -171,6 +174,7 @@ export default function DebtFollowUp() {
           setEntries((current) => (current.length ? current : cached));
           setLoading(false);
         }
+        setArHydrating(false);
         return;
       }
       const hydratedRows = rows.map((row, index) => ({
@@ -188,6 +192,7 @@ export default function DebtFollowUp() {
         const hydratedTotal = hydratedRows.reduce((sum, row) => sum + Number(row.ajelBalance || row.overdueBalance || 0), 0);
         return hydratedTotal >= currentTotal ? hydratedRows : current;
       });
+      setArHydrating(false);
       setLoading(false);
     } catch {
       const cached = readCurrentArCache();
@@ -195,6 +200,7 @@ export default function DebtFollowUp() {
         setEntries((current) => (current.length ? current : cached));
         setLoading(false);
       }
+      setArHydrating(false);
     }
   };
 
@@ -549,7 +555,7 @@ export default function DebtFollowUp() {
           </div>
         </div>
 
-        {loading ? (
+        {(loading || (arHydrating && entries.length === 0)) ? (
           <div className="py-10 text-center text-slate-400" data-testid="debt-followup-loading">جار تحميل الذمم...</div>
         ) : entries.length === 0 ? (
           <div className="py-10 text-center text-slate-400" data-testid="debt-followup-empty">لا توجد ذمم آجلة حالياً.</div>

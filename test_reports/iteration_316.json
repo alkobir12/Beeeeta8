@@ -1,0 +1,36 @@
+{
+  "summary": "Final Iter-314 follow-up verification passed on preview: backend regression 8/8 green, /debts-followup hydration no longer flashes empty/0 on clean localStorage flow, and post-snapshot reload stability remained correct.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/pytest/iter316_backend.xml"
+  ],
+  "action_items": [
+    "No blocker found in this retest scope.",
+    "Optional hardening: remove hardcoded workshop fallback values and rely on strict env fail-fast only."
+  ],
+  "critical_code_review_comments": [
+    "DebtFollowUp still uses `process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync'` fallback in multiple places; this weakens strict env-only configuration discipline."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_316.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8)",
+    "frontend": "100% (requested hydration + reload stability checks passed)"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation performed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Validated with manager PIN login (مدير/123123) from clean localStorage. On /debts-followup: no early empty/0 flash outside loading, then settled to 12570 and 12 customers, then stayed stable across 2 reload cycles.",
+  "rca of the issue": "Previous intermittent empty/0 regression did not reproduce in this run. Current behavior indicates cache/hydration guard is functioning for the tested clean-login and reload sequence.",
+  "mocked_api": "NO MOCKED APIs used."
+}
