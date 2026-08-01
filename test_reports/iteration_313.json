@@ -1,0 +1,57 @@
+{
+  "summary": "Executed backend+frontend regression on preview URL. Backend contracts passed 8/8 with expected AR totals. DebtFollowUp behavior is inconsistent: first UI run rendered zero/empty, second run rendered expected 12570 and 12 customers from the same environment.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DebtFollowUp",
+        "issue": "Intermittent rendering: one run showed empty/0 state, another run showed correct totals (12570, 12 rows) without code changes.",
+        "selector": "[data-testid='debt-summary-card-customers'], [data-testid='debt-followup-empty'], tr[data-testid^='debt-row-']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Login -> /debts-followup",
+        "issue": "API probes from browser context returned 200 and correct payloads (/finance/ar/customers total_ar=12570, /customers positive total=12570, count=12), but first UI run still rendered empty/0.",
+        "affected_selectors": [
+          "[data-testid='debt-followup-page']",
+          "[data-testid='debt-summary-card-customers']",
+          "[data-testid='debt-followup-empty']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/pytest/iter313_backend.xml"
+  ],
+  "action_items": [
+    "Stabilize DebtFollowUp hydration to avoid false empty state when requests are slow/aborted during route transitions.",
+    "Add guarded state merge/logging around fetchData + hydrateCurrentAr race to ensure AR rows persist when /finance/ar/customers succeeds.",
+    "Keep AR rows as authoritative source and prevent fallback flows from overwriting non-empty AR entries with empty payloads."
+  ],
+  "critical_code_review_comments": [
+    "DebtFollowUp now uses direct /api/finance/ar/customers call first and sets entries before customers/suppliers/chart-of-accounts fallbacks (non-blocking pattern present).",
+    "VehicleDetails resolveItemBillingType keeps itemType=part as workshop; supplier only when billingType/itemType explicitly supplier.",
+    "Vehicle file supplier labels are aligned: 'حركة الموردين' and 'أرشيف موردين' shown in VehicleFinancialSummary/VehicleDetails source views.",
+    "routes_finance.py ar_customers endpoint returns build_current_visit_ar_snapshot result directly (read-side); no write/mutation path executed in tested AR flows."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_313.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8)",
+    "frontend": "70% (login+page load stable; DebtFollowUp data render flaky)"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation/restore/migration executed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Use same preview URL and credentials. Re-run /debts-followup at least twice after login; one run may show empty/0 while another shows expected 12570 and 12 rows. Backend remains stable: iter313 pytest 8/8 passed.",
+  "rca of the issue": "Likely frontend race/intermittency in DebtFollowUp between fetchData(), hydrateCurrentAr(), and concurrent background requests under aborted network calls during route lifecycle. Backend responses are correct and reproducible; inconsistency appears in UI state hydration timing/overwrite.",
+  "mocked_api": "NO MOCKED APIs used."
+}

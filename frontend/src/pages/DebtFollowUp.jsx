@@ -29,21 +29,45 @@ export default function DebtFollowUp() {
     try {
       setLoading(true);
       const withTimeout = (promise, fallback) => Promise.race([
-        promise,
-        new Promise((resolve) => setTimeout(() => resolve(fallback), 10000)),
+        promise.catch(() => fallback),
+        new Promise((resolve) => setTimeout(() => resolve(fallback), 4000)),
       ]);
-      const [customersRes, suppliersRes] = await Promise.all([
-        withTimeout(customerAPI.getAll({ workshop_id: workshopId }), { data: [] }),
-        withTimeout(supplierAPI.getAll({ workshop_id: workshopId }), { data: [] }),
-      ]);
+      const fetchCurrentArCustomers = async () => {
+        const token = localStorage.getItem('auth_token') || '';
+        const base = window.location.origin;
+        const asOf = new Date().toISOString().slice(0, 10);
+        const response = await fetch(`${base}/api/finance/ar/customers?workshop_id=${encodeURIComponent(workshopId)}&as_of=${asOf}&include_today=true`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!response.ok) throw new Error(`AR request failed: ${response.status}`);
+        return { data: await response.json() };
+      };
+      const arCustomersRes = await withTimeout(fetchCurrentArCustomers(), { data: { data: { customers: [] } } });
 
       // 📒 L14-D6: طبقات SSOT للذمم (best-effort — لا يعطّل الصفحة)
       api.get('/finance/ar-ledger', { params: { workshop_id: workshopId } })
         .then((r) => setArLedger(r?.data?.data || null))
         .catch(() => setArLedger(null));
 
-      const customers = (customersRes.data || []).map((row) => ({ ...row, entityType: 'customer' }));
-      const suppliers = (suppliersRes.data || []).map((row) => ({ ...row, entityType: 'supplier' }));
+      const normalizeRows = (payload, preferredKey) => {
+        if (Array.isArray(payload)) return payload;
+        if (Array.isArray(payload?.[preferredKey])) return payload[preferredKey];
+        if (Array.isArray(payload?.data)) return payload.data;
+        if (Array.isArray(payload?.items)) return payload.items;
+        return [];
+      };
+      const arCustomerRows = normalizeRows(arCustomersRes?.data?.data, 'customers');
+      const customersSource = arCustomerRows.length
+        ? arCustomerRows.map((row, index) => ({
+          id: row.id || `ar-customer-${index}`,
+          name: row.customer || row.name || row.customerName || row.customer_name || 'عميل',
+          ajelBalance: Number(row.balance || 0),
+          overdueBalance: Number(row.balance || 0),
+          source: 'vehicle_visit_current_ar',
+        }))
+        : [];
+      const customers = customersSource.map((row) => ({ ...row, entityType: 'customer' }));
+      const suppliers = [];
       const merged = [...customers, ...suppliers]
         .map((row) => ({
           ...row,
@@ -53,6 +77,16 @@ export default function DebtFollowUp() {
         .filter((row) => row.ajelBalance > 0 || row.overdueBalance > 0);
 
       setEntries(merged);
+      Promise.all([
+        withTimeout(customerAPI.getAll({ workshop_id: workshopId }), { data: [] }),
+        withTimeout(supplierAPI.getAll({ workshop_id: workshopId }), { data: [] }),
+      ]).then(([customersRes, suppliersRes]) => {
+        const fallbackCustomers = arCustomerRows.length ? [] : normalizeRows(customersRes?.data, 'customers').map((row) => ({ ...row, entityType: 'customer' }));
+        const supplierRows = normalizeRows(suppliersRes?.data, 'suppliers').map((row) => ({ ...row, entityType: 'supplier' }));
+        if (fallbackCustomers.length || supplierRows.length) {
+          setEntries((current) => [...current, ...fallbackCustomers, ...supplierRows]);
+        }
+      }).catch(() => {});
       api.get('/finance/chart-of-accounts', { params: { workshop_id: workshopId }, timeout: 8000 })
         .then((accountsRes) => {
           const accountRows = Array.isArray(accountsRes?.data?.data)
@@ -89,12 +123,43 @@ export default function DebtFollowUp() {
     }
   };
 
+  const hydrateCurrentAr = async () => {
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const asOf = new Date().toISOString().slice(0, 10);
+      const response = await fetch(`${window.location.origin}/api/finance/ar/customers?workshop_id=${encodeURIComponent(workshopId)}&as_of=${asOf}&include_today=true`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) return;
+      const payload = await response.json();
+      const rows = Array.isArray(payload?.data?.customers) ? payload.data.customers : [];
+      if (!rows.length) return;
+      setEntries(rows.map((row, index) => ({
+        id: row.id || `ar-customer-${index}`,
+        name: row.customer || row.name || 'عميل',
+        ajelBalance: Number(row.balance || 0),
+        overdueBalance: Number(row.balance || 0),
+        movements: [{ date: asOf, amount: Number(row.balance || 0), source: 'vehicle_visit_current_ar' }],
+        entityType: 'customer',
+        source: 'vehicle_visit_current_ar',
+      })));
+      setLoading(false);
+    } catch {
+      // الصفحة تبقى على المسار الأساسي إن فشل fallback.
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    hydrateCurrentAr();
+    const fallbackTimer = setTimeout(() => hydrateCurrentAr(), 1500);
     // 🔄 إعادة التحديث عند أي عملية مالية في صفحة أخرى
     const onFinUpdated = () => fetchData();
     window.addEventListener('finance:updated', onFinUpdated);
-    return () => window.removeEventListener('finance:updated', onFinUpdated);
+    return () => {
+      clearTimeout(fallbackTimer);
+      window.removeEventListener('finance:updated', onFinUpdated);
+    };
   }, []);
 
   const fmt = (v) => Number(v || 0).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
