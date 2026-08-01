@@ -23,7 +23,7 @@ async def test_operations_with_console():
             print("=== OPERATIONS PAGE WITH CONSOLE MONITORING ===")
             
             # Login
-            await page.goto('https://stamp-approval-flow.preview.emergentagent.com/login')
+            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             await page.fill('[data-testid="login-username-input"]', 'مدير')
             await page.click('[data-testid="login-submit-button"]')
@@ -32,7 +32,7 @@ async def test_operations_with_console():
             print("✅ Logged in")
             
             # Navigate to operations
-            await page.goto('https://stamp-approval-flow.preview.emergentagent.com/operations')
+            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/operations')
             await page.wait_for_timeout(5000)
             print("✅ Navigated to operations")
             

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="3" time="2.239" timestamp="2026-08-01T14:51:36.864040+00:00" hostname="agent-env-1670a499-11bb-4654-8ed3-3a534866f3b0"><testcase classname="backend.tests.test_iter292_quickprint_fixture_flow" name="test_fixture_vehicle_get_returns_seeded_vehicle" time="1.717"><failure message="AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">backend/tests/test_iter292_quickprint_fixture_flow.py:57: in test_fixture_vehicle_get_returns_seeded_vehicle
+    assert response.status_code == 200, response.text[:220]
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_iter292_quickprint_fixture_flow" name="test_fixture_vehicle_visits_include_fixture_visit" time="0.378"><failure message="AssertionError: {&quot;detail&quot;:&quot;{'message': 'invalid input syntax for type uuid: \&quot;fixture-quickprint-vehicle-001\&quot;', 'code': '22P02', 'hint': None, 'details': None}&quot;}&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">backend/tests/test_iter292_quickprint_fixture_flow.py:67: in test_fixture_vehicle_visits_include_fixture_visit
+    assert response.status_code == 200, response.text[:220]
+E   AssertionError: {"detail":"{'message': 'invalid input syntax for type uuid: \"fixture-quickprint-vehicle-001\"', 'code': '22P02', 'hint': None, 'details': None}"}
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_iter292_quickprint_fixture_flow" name="test_fixture_template_use_returns_same_template_id" time="0.053" /></testsuite></testsuites>

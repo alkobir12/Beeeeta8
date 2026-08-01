@@ -1,0 +1,60 @@
+{
+  "summary": "Iter-306 completed targeted backend+frontend regression for vehicle print flow on /vehicle/61fe0b56-aa66-490d-a5e7-6f3b8195ed56. Backend checks passed: visit archive keeps supplier(179) + workshop(600) items while customer-printable projection is workshop-only (600). Frontend QuickPrint flow passed for invoice+diagnosis preview filtering, invoice total 600.00, template third card shows 'ملخص المستند', PDF download succeeded, and WhatsApp opened wa.me URL. Blocking issue found: UI login via manager/PIN form did not persist auth token in browser session during automation, while direct POST /api/auth/login succeeds with valid tokens.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Login page",
+        "issue": "Submitting login form with مدير / 123123 did not persist auth_token/session in localStorage during browser automation; app stayed on /login.",
+        "selector": "[data-testid='login-username-input'], [data-testid='login-pin-input'], [data-testid='login-submit-button']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Vehicle print regression flow continuation",
+        "issue": "To continue print validation, session had to be initialized via direct /api/auth/login call from browser context and localStorage session bootstrap. After that, invoice/diagnosis QuickPrint flow worked correctly.",
+        "affected_selectors": [
+          "[data-testid='vehicle-print-menu-button']",
+          "[data-testid='vehicle-print-invoice']",
+          "[data-testid='vehicle-print-diagnosis']",
+          "[data-testid='quick-print-preview']",
+          "[data-testid='quick-print-action-download-pdf']",
+          "[data-testid='quick-print-action-whatsapp']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter306_vehicle_print_supplier_filter.py",
+    "/app/test_reports/pytest/iter306_vehicle_print.xml"
+  ],
+  "action_items": [
+    "Fix login UI flow so successful manager PIN login persists auth_token/session and navigates away from /login without fallback bootstrapping.",
+    "Re-test full print flow after login fix without manual token/session injection.",
+    "Optional maintainability: split frontend/src/pages/VehicleDetails.jsx (4645 lines) into focused modules/components."
+  ],
+  "critical_code_review_comments": [
+    "frontend/src/pages/VehicleDetails.jsx is 4645 lines (>700 guideline) and should be modularized to reduce regression risk in print/payment/auth-adjacent logic.",
+    "Print filtering logic is implemented consistently in VehicleDetails and DocumentPrint via supplier-item exclusion predicates (raw itemType/billingType checks).",
+    "Template migration normalization is active in backend routes_document_templates.py and matched UI assertions (third card now 'ملخص المستند')."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter306_vehicle_print_supplier_filter.py",
+    "/app/test_reports/iteration_306.json"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 passed)",
+    "frontend": "85% (print/PDF/WhatsApp/diagnosis assertions passed; UI login persistence failed)"
+  },
+  "seed_data_creation": "No seed data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend regression is green for target vehicle filtering contract. Frontend QuickPrint assertions pass once authenticated session exists. Primary blocker is login form flow not persisting token/session in this automation run. Console still shows known 401 pre-login noise.",
+  "rca of the issue": "RCA (login): API auth itself is healthy (direct fetch POST /api/auth/login returned 200 with access_token+refresh_token). Failure appears in browser login flow path where token/session were not persisted after clicking submit (stayed on /login). Likely frontend session bootstrap/navigation path issue in Login.jsx -> finishLogin()/establishSession chain or unhandled async failure before localStorage/session write is completed in this runtime context. Mitigation for this run: manual authenticated-session bootstrap used only to continue print validation.",
+  "mocked_api": "NO MOCKED APIs used."
+}

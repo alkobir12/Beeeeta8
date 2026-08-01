@@ -10,7 +10,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://stamp-approval-flow.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ar-ledger-ssot.preview.emergentagent.com')
 WORKSHOP_ID = "finmodule-sync"
 
 

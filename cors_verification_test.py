@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 
 # Configuration from frontend/.env
-BACKEND_URL = "https://stamp-approval-flow.preview.emergentagent.com/api"
+BACKEND_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 # CORS Origins to test

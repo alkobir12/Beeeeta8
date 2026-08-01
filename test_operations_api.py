@@ -37,7 +37,7 @@ async def check_operations_api():
             print("=== CHECKING OPERATIONS API CALLS ===")
             
             # Login
-            await page.goto('https://stamp-approval-flow.preview.emergentagent.com/login')
+            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             await page.fill('[data-testid="login-username-input"]', 'مدير')
             await page.click('[data-testid="login-submit-button"]')
@@ -49,7 +49,7 @@ async def check_operations_api():
             print(f"Responses so far: {len(all_responses)}")
             
             # Navigate to operations and wait longer
-            await page.goto('https://stamp-approval-flow.preview.emergentagent.com/operations')
+            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/operations')
             print("✅ Navigated to operations page")
             
             # Wait for potential API calls

@@ -2340,6 +2340,16 @@ const VehicleDetails = () => {
     return [];
   };
 
+  const isSupplierArchiveItem = (item = {}) => {
+    const rawType = String(item?.itemType || item?.type || '').trim().toLowerCase();
+    const billingType = String(item?.billingType || item?.billing_type || '').trim().toLowerCase();
+    return rawType === 'supplier' || billingType === 'supplier';
+  };
+
+  const customerPrintableItems = (items = []) => (
+    Array.isArray(items) ? items.filter((item) => !isSupplierArchiveItem(item)) : []
+  );
+
   const normalizePrintItem = (item, fallbackName = 'بند') => {
     const quantity = Number(item?.quantity || item?.qty || 1);
     const price = Number(item?.price || item?.unitPrice || item?.unit_price || item?.amount || 0);
@@ -2347,6 +2357,8 @@ const VehicleDetails = () => {
     return {
       name: itemName,
       description: itemName,
+      itemType: item?.itemType || item?.type || 'service',
+      billingType: item?.billingType || item?.billing_type || 'workshop',
       quantity,
       qty: quantity,
       price,
@@ -2363,8 +2375,10 @@ const VehicleDetails = () => {
       return visitId && opVisit && String(opVisit) === String(visitId);
     });
     return related.flatMap((op) => {
-      const opItems = Array.isArray(op?.items) ? op.items : [];
+      const rawOpItems = Array.isArray(op?.items) ? op.items : [];
+      const opItems = customerPrintableItems(rawOpItems);
       if (opItems.length) return opItems.map((item) => normalizePrintItem(item, op?.description || 'عملية'));
+      if (rawOpItems.length) return [];
       return [normalizePrintItem({
         name: op?.description || op?.notes || op?.type || 'عملية',
         quantity: 1,
@@ -2381,11 +2395,12 @@ const VehicleDetails = () => {
       receipt: 'سند قبض',
     };
     const visitItems = extractVisitItems(visit);
-    const items = visitItems.length ? visitItems.map((item) => normalizePrintItem(item)) : buildVisitItemsFromOperations(visit);
+    const workshopOnlyItems = customerPrintableItems(visitItems);
+    const items = visitItems.length ? workshopOnlyItems.map((item) => normalizePrintItem(item)) : buildVisitItemsFromOperations(visit);
     const printableItems = items.length ? items : [normalizePrintItem({
       name: docType === 'diagnosis' ? (visit?.diagnosis || visit?.issue || 'تقرير تشخيص') : 'زيارة ورشة',
       quantity: 1,
-      price: visit?.total_workshop || visit?.workshop_total || visit?.total || 0,
+      price: visit?.total_workshop ?? visit?.workshop_total ?? visit?.total ?? 0,
     })];
     return {
       doc_type: docType,

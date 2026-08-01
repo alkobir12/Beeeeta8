@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://stamp-approval-flow.preview.emergentagent.com/api"
+BACKEND_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
 
 # Test credentials
 TEST_USERNAME = "مدير"

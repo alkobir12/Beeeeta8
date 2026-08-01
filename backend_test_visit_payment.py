@@ -19,7 +19,7 @@ import json
 from typing import Dict, Any, List, Optional
 
 # Backend URL
-BASE_URL = "https://stamp-approval-flow.preview.emergentagent.com/api"
+BASE_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 TARGET_VISIT_ID = "ef0a3030-d377-4a96-ba7f-acf302cf3ad4"
 
@@ -366,7 +366,7 @@ def main():
     print("\n" + "=" * 80)
     print("  اختبار backend read-only للتحقق من تكامل الدفع في تفاصيل المركبة")
     print("  Backend Read-Only Test for Vehicle Details Payment Integration")
-    print("  URL: https://stamp-approval-flow.preview.emergentagent.com")
+    print("  URL: https://ar-ledger-ssot.preview.emergentagent.com")
     print("  Target Visit: ef0a3030-d377-4a96-ba7f-acf302cf3ad4")
     print("=" * 80)
     

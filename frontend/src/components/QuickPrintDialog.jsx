@@ -412,7 +412,7 @@ const QuickPrintDialog = ({
 
         {templateSheetOpen && <div className="fixed inset-0 z-[70] bg-black/60" data-testid="quick-print-template-sheet"><div className="absolute inset-x-0 bottom-0 max-h-[75dvh] overflow-y-auto rounded-t-3xl bg-slate-950 p-5"><div className="mb-4 flex items-center justify-between"><strong className="text-white">تغيير القالب</strong><button onClick={() => setTemplateSheetOpen(false)} className="text-slate-300">إغلاق</button></div>{templateLoading && <div className="text-slate-300">جارٍ التحميل…</div>}{filteredTemplates.map((tpl) => <button key={tpl.id} onClick={() => { setSelectedTemplateId(tpl.id); setTemplateSheetOpen(false); }} className="mb-2 block w-full rounded-xl border border-white/10 p-4 text-right text-white" data-testid={`quick-print-template-option-${tpl.id}`}><b>{tpl.name}</b><small className="mt-1 block text-slate-400">إصدار {tpl.version} · {tpl.is_builtin ? 'نظامي' : 'مخصص'} {tpl.is_default ? '· افتراضي' : ''}</small></button>)}</div></div>}
         {previewOpen && <div className="document-preview-modal fixed inset-0 z-[80] flex h-[100dvh] w-screen flex-col overflow-hidden bg-slate-950" data-testid="quick-print-preview-modal"><header className="flex shrink-0 items-center justify-between border-b border-white/10 p-4 text-white"><strong>معاينة المستند</strong><button onClick={() => setPreviewOpen(false)} className="rounded-lg border border-white/20 px-3 py-2" data-testid="quick-print-preview-close">إغلاق</button></header><div className="document-preview-body min-h-0 flex-1 overflow-y-auto p-3" data-testid="quick-print-preview-body">{loading && <div className="text-slate-300">جارٍ تجهيز المعاينة…</div>}{error && <div className="text-rose-300">{error}</div>}{html && <iframe ref={iframeRef} title="print-preview" className="h-[1120px] w-full rounded-xl bg-white" srcDoc={html} data-testid="quick-print-preview" />}</div><div className="document-preview-actions sticky bottom-0 grid shrink-0 grid-cols-3 gap-2 border-t border-white/10 bg-slate-950 p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><button onClick={handleWhatsApp} className="rounded-lg bg-emerald-500 p-3 font-bold text-white">واتساب</button><button onClick={handleDownloadPdf} className="rounded-lg bg-white/10 p-3 font-bold text-white">PDF</button><button onClick={handlePrint} className="rounded-lg bg-blue-500 p-3 font-bold text-white">طباعة</button></div></div>}
-        <div className="hidden mt-5 rounded-2xl border border-white/10 bg-black/40 p-3">
+        <div className="mt-5 rounded-2xl border border-white/10 bg-black/40 p-3" data-testid="quick-print-preview-panel">
           {loading && <div className="text-sm text-slate-300" data-testid="quick-print-loading">جارٍ تجهيز المعاينة...</div>}
           {error && (
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-rose-300" data-testid="quick-print-error">
@@ -431,7 +431,7 @@ const QuickPrintDialog = ({
             <iframe
               ref={iframeRef}
               title="print-preview"
-              className="h-[420px] w-full rounded-xl bg-white"
+              className="h-[520px] max-h-[62vh] w-full rounded-xl bg-white"
               data-testid="quick-print-preview"
               srcDoc={html}
             />

@@ -65,6 +65,16 @@ const normalizeItem = (item = {}) => {
   };
 };
 
+const isSupplierArchiveItem = (item = {}) => {
+  const rawType = String(item.itemType || item.type || '').trim().toLowerCase();
+  const billingType = String(item.billingType || item.billing_type || '').trim().toLowerCase();
+  return rawType === 'supplier' || billingType === 'supplier';
+};
+
+const customerPrintableItems = (items = []) => (
+  Array.isArray(items) ? items.filter((item) => !isSupplierArchiveItem(item)) : []
+);
+
 const getRows = (data, keys = []) => {
   if (Array.isArray(data)) return data;
   for (const key of keys) if (Array.isArray(data?.[key])) return data[key];
@@ -293,10 +303,11 @@ export default function DocumentPrint() {
       const ops = getRows(opsResponse.data, ['operations', 'data']);
       if (ops.length) {
         const op = ops[0];
-        const items = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+        const rawItems = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+        const items = customerPrintableItems(rawItems);
         setFormData((prev) => ({
           ...prev,
-          items: items.length ? items.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'زيارة ورشة', price: op.total || op.amount || 0 })],
+          items: rawItems.length ? items.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'زيارة ورشة', price: op.total || op.amount || 0 })],
           customer: {
             ...prev.customer,
             name: op.customerName || op.customer_name || op.partnerName || prev.customer.name,
@@ -321,9 +332,10 @@ export default function DocumentPrint() {
       if (String(visit.notes || '').trim().startsWith('{')) {
         try { parsed = JSON.parse(visit.notes).items || []; } catch (e) { parsed = []; }
       }
+      const printableParsed = customerPrintableItems(parsed);
       setFormData((prev) => ({
         ...prev,
-        items: parsed.length ? parsed.map(normalizeItem) : [normalizeItem({ description: docType === 'diagnosis' ? 'تقرير تشخيص' : 'زيارة ورشة', price: visit.total_workshop || visit.total || 0 })],
+        items: parsed.length ? printableParsed.map(normalizeItem) : [normalizeItem({ description: docType === 'diagnosis' ? 'تقرير تشخيص' : 'زيارة ورشة', price: visit.total_workshop ?? visit.total ?? 0 })],
         settings: {
           ...prev.settings,
           document_number: visit.invoiceNumber || visit.id || prev.settings.document_number,
@@ -341,10 +353,11 @@ export default function DocumentPrint() {
     try {
       const { data: op } = await api.get(`/operations/${id}`);
       if (!op) return;
-      const opItems = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+      const rawOpItems = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+      const opItems = customerPrintableItems(rawOpItems);
       setFormData((prev) => ({
         ...prev,
-        items: opItems.length ? opItems.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'عملية ورشة', price: op.total || op.amount || 0 })],
+        items: rawOpItems.length ? opItems.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'عملية ورشة', price: op.total || op.amount || 0 })],
         customer: {
           ...prev.customer,
           name: op.customerName || op.customer_name || op.partnerName || prev.customer.name,
@@ -368,10 +381,11 @@ export default function DocumentPrint() {
     try {
       const { data } = await api.get(`/invoices/${id}`);
       if (!data) return;
-      const items = typeof data.items === 'string' ? JSON.parse(data.items || '[]') : (data.items || []);
+      const rawItems = typeof data.items === 'string' ? JSON.parse(data.items || '[]') : (data.items || []);
+      const items = customerPrintableItems(rawItems);
       setFormData((prev) => ({
         ...prev,
-        items: items.length ? items.map(normalizeItem) : prev.items,
+        items: rawItems.length ? items.map(normalizeItem) : prev.items,
         customer: { ...prev.customer, name: data.partner_name || data.partnerName || prev.customer.name },
         settings: {
           ...prev.settings,

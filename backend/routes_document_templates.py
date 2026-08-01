@@ -22,7 +22,40 @@ _seed_lock = asyncio.Lock()
 _ALLOWED_TAGS = ["html", "head", "body", "meta", "title", "style", "main", "section", "article", "header", "footer", "div", "span", "p", "strong", "b", "em", "i", "small", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "ul", "ol", "li", "br", "hr", "img"]
 _ALLOWED_ATTRIBUTES = {"*": ["class", "style", "dir", "lang", "id", "data-testid"], "img": ["src", "alt", "width", "height"], "meta": ["charset", "name", "content"]}
 _SANITIZER = bleach.Cleaner(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, protocols=["http", "https", "data"], strip=True, strip_comments=False, css_sanitizer=CSSSanitizer())
-_KNOWN_TEMPLATE_VARIABLES = {"WORKSHOP_NAME", "WORKSHOP_ADDRESS", "WORKSHOP_PHONE", "WORKSHOP_EMAIL", "COMPANY_CR", "COMPANY_TAX", "TAX_NUMBER", "CUSTOMER_NAME", "CUSTOMER_PHONE", "VEHICLE_INFO", "PLATE_NO", "VEHICLE_PLATE", "STATUS_LABEL", "INVOICE_NO", "INVOICE_DATE", "DATE", "ITEMS_ROWS", "SUBTOTAL", "DISCOUNT", "TAX", "TOTAL", "PAID", "REMAINING", "NOTES", "AMOUNT_WORDS", "SEAL_CODE"}
+_KNOWN_TEMPLATE_VARIABLES = {"WORKSHOP_NAME", "WORKSHOP_ADDRESS", "WORKSHOP_PHONE", "WORKSHOP_EMAIL", "COMPANY_CR", "COMPANY_TAX", "TAX_NUMBER", "CUSTOMER_NAME", "CUSTOMER_PHONE", "VEHICLE_INFO", "PLATE_NO", "VEHICLE_PLATE", "STATUS_LABEL", "INVOICE_NO", "INVOICE_DATE", "DATE", "ITEMS_ROWS", "SUBTOTAL", "DISCOUNT", "TAX", "TOTAL", "PAID", "REMAINING", "NOTES", "AMOUNT_WORDS", "SEAL_CODE", "DOCUMENT_TITLE", "TAX_ROW", "BARCODE_VALUE", "CUSTOMER_APPROVAL_STAMP", "WORKSHOP_APPROVAL_STAMP"}
+
+
+def _normalize_approved_workflow_content(content: str) -> str:
+    normalized = str(content or "")
+    normalized = normalized.replace(
+        '<div class="box"><h3>بيانات المستند</h3><p>الورشة: {{WORKSHOP_NAME}}</p><p>السجل: {{COMPANY_CR}}</p><p>الحالة: {{STATUS_LABEL}}</p></div>',
+        '<div class="box"><h3>ملخص المستند</h3><p>الحالة: {{STATUS_LABEL}}</p><p>المتبقي: {{REMAINING}}</p></div>',
+    )
+    normalized = normalized.replace(
+        '<th>سعر الوحدة</th><th>الإجمالي</th>',
+        '<th>سعر الوحدة</th><th>الخصم</th><th>الإجمالي</th>',
+    )
+    return normalized
+
+
+async def _migrate_approved_workflow_templates() -> None:
+    if db is None:
+        return
+    cursor = db.document_templates.find(
+        {"id": {"$regex": r"^unified-(invoice|diagnosis|quote)-a4-mobile-v1$"}, "source": "approved_workflow_design"},
+        {"_id": 0, "id": 1, "inline_content": 1},
+    )
+    async for template in cursor:
+        content = str(template.get("inline_content") or "")
+        normalized = _normalize_approved_workflow_content(content)
+        if normalized != content:
+            await db.document_templates.update_one(
+                {"id": template["id"]},
+                {
+                    "$set": {"inline_content": normalized, "status": "valid", "updated_at": _now()},
+                    "$unset": {"validation_error": "", "validation_variables": ""},
+                },
+            )
 
 
 def set_db(database):
@@ -82,6 +115,7 @@ async def _ensure_registry() -> None:
             name="one_active_default_per_tenant_type_locale",
         )
         if await collection.count_documents({}) > 0:
+            await _migrate_approved_workflow_templates()
             return
 
         now = _now()
@@ -127,6 +161,7 @@ async def _ensure_registry() -> None:
             })
         if seeded:
             await collection.insert_many(seeded, ordered=True)
+        await _migrate_approved_workflow_templates()
 
 
 async def _content(template: Dict[str, Any]) -> str:

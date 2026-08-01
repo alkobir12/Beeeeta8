@@ -24,7 +24,7 @@ from datetime import datetime
 import time
 
 # Configuration
-BASE_URL = "https://stamp-approval-flow.preview.emergentagent.com/api"
+BASE_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 class AREndpointsTest:

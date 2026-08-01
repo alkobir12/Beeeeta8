@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 
 # Get backend URL from frontend/.env
-BACKEND_URL = "https://stamp-approval-flow.preview.emergentagent.com/api"
+BACKEND_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
 
 # Test results tracking
 test_results = {

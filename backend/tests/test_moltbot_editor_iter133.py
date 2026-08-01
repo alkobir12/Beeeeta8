@@ -13,7 +13,7 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://stamp-approval-flow.preview.emergentagent.com"
+    BASE_URL = "https://ar-ledger-ssot.preview.emergentagent.com"
 
 TEST_USER_ID = "manager"
 TEST_PATH_OPERATIONS = "/operations"

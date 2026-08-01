@@ -20,7 +20,7 @@ import traceback
 class SyncVisitsBackendTester:
     def __init__(self):
         # Use the preview domain from frontend/.env
-        self.base_url = "https://stamp-approval-flow.preview.emergentagent.com"
+        self.base_url = "https://ar-ledger-ssot.preview.emergentagent.com"
         self.api_url = f"{self.base_url}/api"
         self.results = []
         self.session = requests.Session()
