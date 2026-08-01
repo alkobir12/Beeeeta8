@@ -1,0 +1,57 @@
+{
+  "summary": "Retested Iter-313 fix on preview. Backend contracts remained green (8/8 before and after UI run), but DebtFollowUp is still intermittent under reload cycles: first cycle showed expected 12570/12, next two cycles rendered empty/0.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DebtFollowUp",
+        "issue": "Intermittent regression persists on reload cycles: page sometimes settles to empty state with 0.00 total and 0 customers after loading completes.",
+        "selector": "[data-testid='debt-summary-card-customers'], [data-testid='debt-followup-empty'], tr[data-testid^='debt-row-']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Login -> /debts-followup (3 cycles with reload)",
+        "issue": "Cycle #1 rendered correctly (12570, 12 rows). Cycles #2 and #3 rendered empty/0 despite backend API contracts being valid in same run.",
+        "affected_selectors": [
+          "[data-testid='debt-followup-page']",
+          "[data-testid='debt-summary-card-customers']",
+          "[data-testid='debt-followup-empty']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/pytest/iter314_backend.xml",
+    "/app/test_reports/pytest/iter314_backend_post_ui.xml"
+  ],
+  "action_items": [
+    "Harden DebtFollowUp against aborted/reload fetches so AR state cannot settle to empty when previous valid snapshot exists.",
+    "Add guarded retry/backoff for /api/finance/ar/customers on AbortError and only allow empty-state commit after at least one successful AR fetch attempt window.",
+    "Instrument fetchData/hydrateCurrentAr with diagnostic logs (request id + source + final setEntries decision) to verify merge precedence during reload churn."
+  ],
+  "critical_code_review_comments": [
+    "DebtFollowUp still allows empty commit path when merged rows are empty and current entries are empty; this is vulnerable when AR/customer/supplier requests are aborted during reload transitions.",
+    "Component has multiple hardcoded workshop fallback usages (`process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync'`), violating fail-fast env discipline and risking hidden environment drift.",
+    "Backend read-only safety remains correct: reconciliation audit mutation_guard unchanged and no journal entries auto-created during report/read APIs."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_314.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8 pre-UI + 8/8 post-UI)",
+    "frontend": "33% (1/3 stability cycles passed)"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation/migration actions executed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Use manager PIN login (مدير/123123), then run /debts-followup for 3 cycles with reload and wait >=7s each cycle (to include 5s hydrate timer). In this run: cycle1 correct (12570/12), cycles2-3 empty/0. Backend APIs and iter311 pytest contracts remained stable and unchanged before/after UI test.",
+  "rca of the issue": "RCA points to frontend hydration race under route reload churn. During failing cycles, multiple DebtFollowUp network calls showed `net::ERR_ABORTED` in browser logs (including /api/finance/ar/customers, /api/customers, /api/suppliers, /api/finance/ar-ledger). With aborted requests and no resilient preserved snapshot commit path for that scenario, the page can settle into empty/0 despite backend data correctness (verified by API probe: total_ar=12570, customers=12, vehicles=15, /api/customers positive sum=12570).",
+  "mocked_api": "NO MOCKED APIs used."
+}

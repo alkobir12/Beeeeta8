@@ -76,7 +76,10 @@ export default function DebtFollowUp() {
         }))
         .filter((row) => row.ajelBalance > 0 || row.overdueBalance > 0);
 
-      setEntries(merged);
+      setEntries((current) => {
+        if (merged.length > 0) return merged;
+        return current.length > 0 ? current : [];
+      });
       Promise.all([
         withTimeout(customerAPI.getAll({ workshop_id: workshopId }), { data: [] }),
         withTimeout(supplierAPI.getAll({ workshop_id: workshopId }), { data: [] }),
@@ -84,7 +87,11 @@ export default function DebtFollowUp() {
         const fallbackCustomers = arCustomerRows.length ? [] : normalizeRows(customersRes?.data, 'customers').map((row) => ({ ...row, entityType: 'customer' }));
         const supplierRows = normalizeRows(suppliersRes?.data, 'suppliers').map((row) => ({ ...row, entityType: 'supplier' }));
         if (fallbackCustomers.length || supplierRows.length) {
-          setEntries((current) => [...current, ...fallbackCustomers, ...supplierRows]);
+          setEntries((current) => {
+            const hasCurrentAr = current.some((row) => row.source === 'vehicle_visit_current_ar');
+            if (hasCurrentAr && !supplierRows.length) return current;
+            return [...current, ...fallbackCustomers, ...supplierRows];
+          });
         }
       }).catch(() => {});
       api.get('/finance/chart-of-accounts', { params: { workshop_id: workshopId }, timeout: 8000 })
@@ -134,7 +141,7 @@ export default function DebtFollowUp() {
       const payload = await response.json();
       const rows = Array.isArray(payload?.data?.customers) ? payload.data.customers : [];
       if (!rows.length) return;
-      setEntries(rows.map((row, index) => ({
+      const hydratedRows = rows.map((row, index) => ({
         id: row.id || `ar-customer-${index}`,
         name: row.customer || row.name || 'عميل',
         ajelBalance: Number(row.balance || 0),
@@ -142,7 +149,12 @@ export default function DebtFollowUp() {
         movements: [{ date: asOf, amount: Number(row.balance || 0), source: 'vehicle_visit_current_ar' }],
         entityType: 'customer',
         source: 'vehicle_visit_current_ar',
-      })));
+      }));
+      setEntries((current) => {
+        const currentTotal = current.reduce((sum, row) => sum + Number(row.ajelBalance || row.overdueBalance || 0), 0);
+        const hydratedTotal = hydratedRows.reduce((sum, row) => sum + Number(row.ajelBalance || row.overdueBalance || 0), 0);
+        return hydratedTotal >= currentTotal ? hydratedRows : current;
+      });
       setLoading(false);
     } catch {
       // الصفحة تبقى على المسار الأساسي إن فشل fallback.
@@ -153,11 +165,13 @@ export default function DebtFollowUp() {
     fetchData();
     hydrateCurrentAr();
     const fallbackTimer = setTimeout(() => hydrateCurrentAr(), 1500);
+    const settleTimer = setTimeout(() => hydrateCurrentAr(), 5000);
     // 🔄 إعادة التحديث عند أي عملية مالية في صفحة أخرى
     const onFinUpdated = () => fetchData();
     window.addEventListener('finance:updated', onFinUpdated);
     return () => {
       clearTimeout(fallbackTimer);
+      clearTimeout(settleTimer);
       window.removeEventListener('finance:updated', onFinUpdated);
     };
   }, []);
