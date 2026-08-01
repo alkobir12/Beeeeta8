@@ -1,0 +1,56 @@
+{
+  "summary": "Executed full requested regression on preview URL. Backend contracts passed 8/8 with expected AR totals (12570, 12 customers, 15 vehicles) and read-only safeguards. Frontend DebtFollowUp no longer hangs on loading, but still renders zero/empty despite APIs returning positive AR balances.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DebtFollowUp",
+        "issue": "Page exits loading but shows empty state and customer AR card 0.00 / count 0 instead of expected 12570 / 12.",
+        "selector": "[data-testid='debt-followup-empty'], [data-testid='debt-summary-card-customers']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Login -> /debts-followup data hydration",
+        "issue": "In-browser API probes returned 200 for /api/customers and /api/suppliers; recomputation from same payload gives 12 positive customers and total 12570, but UI state remains empty.",
+        "affected_selectors": [
+          "[data-testid='debt-followup-page']",
+          "[data-testid='debt-summary-card-customers']",
+          "[data-testid='debt-followup-empty']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/pytest/iter312_backend.xml"
+  ],
+  "action_items": [
+    "Fix DebtFollowUp data hydration path so successful customers/suppliers responses populate entries and metrics.",
+    "Review fetchData timeout/fallback behavior to prevent false-empty rendering when APIs are slow but successful.",
+    "Add lightweight runtime logging or guarded parsing around merged mapping/filter stage in DebtFollowUp for visibility of silent empty-state failures."
+  ],
+  "critical_code_review_comments": [
+    "VehicleDetails resolveItemBillingType now preserves part as workshop; supplier is applied only when itemType/billingType is supplier.",
+    "VehicleFinancialSummary supplier label is updated to 'حركة الموردين' with archival context subtitle.",
+    "Backend AR contracts remain aligned with policy: workshop items only, supplier items excluded, confirmed journal payments only, and no auto journal creation during read flows."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_312.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8)",
+    "frontend": "50% (route/login load pass; debts follow-up data render failed)"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation/restore/migration actions executed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend expected values validated on preview: /api/finance/ar/customers total_ar=12570 vehicles=15 customers=12; /api/customers positive balances sum=12570 with 12 positive customers; /api/finance/ar/ledger ending_balance=12570 rows=12; income sales_summary operations_total=12570, operations_credit_total=12570, cash/pos/bank_transfer=0. Frontend DebtFollowUp now exits loading but still shows zero/empty despite APIs returning valid data.",
+  "rca of the issue": "Reproduced via Playwright after login (مدير/123123): /debts-followup renders empty with customer card 0.00/count 0. Network probe shows 200 responses for /api/customers and /api/suppliers, and in-page recomputation from fetched payload yields 12 positive customers totaling 12570. This indicates a frontend hydration/state integration bug (likely timeout fallback or silent processing path) rather than backend data correctness.",
+  "mocked_api": "NO MOCKED APIs used."
+}

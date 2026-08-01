@@ -854,6 +854,12 @@ const VisitCard = ({
     return { syncedPayments, createdIds: [] };
   };
 
+  const resolveItemBillingType = (item = {}) => (
+    item.billingType === 'supplier' || item.billing_type === 'supplier' || item.itemType === 'supplier'
+      ? 'supplier'
+      : 'workshop'
+  );
+
   useEffect(() => {
     let parsedItems = [];
     let parsedPayments = [];
@@ -1029,10 +1035,7 @@ const VisitCard = ({
       createdJournalIds = createdIds;
       const itemsForSave = items.map((item) => ({
         ...item,
-        billingType:
-          item.itemType === 'supplier' || item.itemType === 'part'
-            ? 'supplier'
-            : 'workshop',
+        billingType: resolveItemBillingType(item),
       }));
       const payload = {
         status,
@@ -1198,7 +1201,7 @@ const VisitCard = ({
       // حفظ في DB
       const itemsForSave = items.map((item) => ({
         ...item,
-        billingType: item.itemType === 'supplier' || item.itemType === 'part' ? 'supplier' : 'workshop',
+        billingType: resolveItemBillingType(item),
       }));
       await axios.put(`${API_URL}/visits/${visit.id}`, {
         status,
@@ -1290,10 +1293,7 @@ const VisitCard = ({
       await persistCatalogEntries();
       const itemsForSave = items.map((item) => ({
         ...item,
-        billingType:
-          item.itemType === 'supplier' || item.itemType === 'part'
-            ? 'supplier'
-            : 'workshop',
+        billingType: resolveItemBillingType(item),
       }));
       const payload = {
         status: 'completed',

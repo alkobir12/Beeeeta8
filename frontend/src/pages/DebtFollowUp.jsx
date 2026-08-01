@@ -28,41 +28,19 @@ export default function DebtFollowUp() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const withTimeout = (promise, fallback) => Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(() => resolve(fallback), 10000)),
+      ]);
       const [customersRes, suppliersRes] = await Promise.all([
-        customerAPI.getAll({ workshop_id: workshopId }),
-        supplierAPI.getAll({ workshop_id: workshopId }),
+        withTimeout(customerAPI.getAll({ workshop_id: workshopId }), { data: [] }),
+        withTimeout(supplierAPI.getAll({ workshop_id: workshopId }), { data: [] }),
       ]);
 
-      const accountsRes = await api.get('/finance/chart-of-accounts', { params: { workshop_id: workshopId } });
       // 📒 L14-D6: طبقات SSOT للذمم (best-effort — لا يعطّل الصفحة)
       api.get('/finance/ar-ledger', { params: { workshop_id: workshopId } })
         .then((r) => setArLedger(r?.data?.data || null))
         .catch(() => setArLedger(null));
-      const accountRows = Array.isArray(accountsRes?.data?.data)
-        ? accountsRes.data.data
-        : Array.isArray(accountsRes?.data)
-          ? accountsRes.data
-          : [];
-      const payableAccounts = accountRows.filter((acc) => ['asset', 'liability', 'expense'].includes(String(acc?.type || '').toLowerCase()));
-      setSettlementAccounts(payableAccounts);
-
-      const normalizeName = (acc) => String(acc?.name || acc?.account_name || '').toLowerCase();
-      const toBalance = (acc) => Number(acc?.balance ?? acc?.current_balance ?? 0);
-
-      const cashAccounts = accountRows.filter((acc) => {
-        const name = normalizeName(acc);
-        return name.includes('نقد') || name.includes('صندوق') || name.includes('cash');
-      });
-
-      const bankAccounts = accountRows.filter((acc) => {
-        const name = normalizeName(acc);
-        return name.includes('بنك') || name.includes('bank');
-      });
-
-      setLiquidityBalances({
-        cash: cashAccounts.reduce((sum, acc) => sum + toBalance(acc), 0),
-        bank: bankAccounts.reduce((sum, acc) => sum + toBalance(acc), 0),
-      });
 
       const customers = (customersRes.data || []).map((row) => ({ ...row, entityType: 'customer' }));
       const suppliers = (suppliersRes.data || []).map((row) => ({ ...row, entityType: 'supplier' }));
@@ -75,6 +53,35 @@ export default function DebtFollowUp() {
         .filter((row) => row.ajelBalance > 0 || row.overdueBalance > 0);
 
       setEntries(merged);
+      api.get('/finance/chart-of-accounts', { params: { workshop_id: workshopId }, timeout: 8000 })
+        .then((accountsRes) => {
+          const accountRows = Array.isArray(accountsRes?.data?.data)
+            ? accountsRes.data.data
+            : Array.isArray(accountsRes?.data)
+              ? accountsRes.data
+              : [];
+          const payableAccounts = accountRows.filter((acc) => ['asset', 'liability', 'expense'].includes(String(acc?.type || '').toLowerCase()));
+          setSettlementAccounts(payableAccounts);
+
+          const normalizeName = (acc) => String(acc?.name || acc?.account_name || '').toLowerCase();
+          const toBalance = (acc) => Number(acc?.balance ?? acc?.current_balance ?? 0);
+          const cashAccounts = accountRows.filter((acc) => {
+            const name = normalizeName(acc);
+            return name.includes('نقد') || name.includes('صندوق') || name.includes('cash');
+          });
+          const bankAccounts = accountRows.filter((acc) => {
+            const name = normalizeName(acc);
+            return name.includes('بنك') || name.includes('bank');
+          });
+          setLiquidityBalances({
+            cash: cashAccounts.reduce((sum, acc) => sum + toBalance(acc), 0),
+            bank: bankAccounts.reduce((sum, acc) => sum + toBalance(acc), 0),
+          });
+        })
+        .catch(() => {
+          setSettlementAccounts([]);
+          setLiquidityBalances({ cash: 0, bank: 0 });
+        });
     } catch (error) {
       toast({ title: 'خطأ', description: 'تعذر تحميل متابعة الذمم', variant: 'destructive' });
     } finally {
