@@ -2411,6 +2411,49 @@ async def get_ar_ledger(workshop_id: str = Query("finmodule-sync")):
     return {"success": True, "data": await ar_ledger.summary(workshop_id)}
 
 
+@router.post("/ar-repair")
+async def ar_repair(dry_run: bool = Query(False)):
+    """🛠️ إصلاح ترابط الذمم: إعادة مزامنة كل الزيارات ذات البنود → عمليات + قيود (بيع آجل/تحصيل).
+    Idempotent — يعيد تقريراً بما أُنشئ/حُدِّث."""
+    from supabase_service import SupabaseService
+    from visit_sync import _sync_visit_to_operation
+
+    supa = SupabaseService()
+    visits = supabase.table("vehicle_visits").select("*").limit(3000).execute().data or []
+    before = supabase.table("journal_entries").select("id").limit(5000).execute().data or []
+    processed, skipped, errors = [], 0, []
+    for v in visits:
+        vid = str(v.get("id") or "")
+        notes = v.get("notes")
+        has_items = False
+        try:
+            payload = json.loads(notes) if isinstance(notes, str) and notes.strip().startswith("{") else (notes if isinstance(notes, dict) else {})
+            has_items = bool((payload or {}).get("items"))
+        except Exception:
+            has_items = False
+        if not has_items:
+            skipped += 1
+            continue
+        if dry_run:
+            processed.append(vid)
+            continue
+        try:
+            await _sync_visit_to_operation(vid, {"vehicleId": v.get("vehicle_id"), "notes": notes}, supa_service=supa)
+            processed.append(vid)
+        except Exception as e:
+            errors.append({"visit_id": vid, "error": str(e)[:200]})
+    after = supabase.table("journal_entries").select("id").limit(5000).execute().data or []
+    return {
+        "success": True,
+        "dry_run": dry_run,
+        "visits_processed": len(processed),
+        "visits_skipped_no_items": skipped,
+        "journal_entries_before": len(before),
+        "journal_entries_after": len(after),
+        "errors": errors,
+    }
+
+
 @router.get("/journal-entries")
 async def get_journal_entries(
     workshop_id: str = Query(...),

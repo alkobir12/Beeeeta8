@@ -5283,6 +5283,10 @@ async def delete_visit(visit_id: str):
 
             # Delete related operations first
             try:
+                supa.client.table("journal_entries").delete().eq("reference_id", visit_id).execute()
+            except Exception as je:
+                print(f"Cascade journal delete skipped/failed: {je}")
+            try:
                 supa.client.table("operations").delete().eq("visit_id", visit_id).execute()
             except Exception:
                 pass

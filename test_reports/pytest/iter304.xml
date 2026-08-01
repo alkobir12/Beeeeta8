@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="5" time="79.959" timestamp="2026-08-01T13:12:17.666211+00:00" hostname="agent-env-2c2c028c-1a6c-4158-b8d8-6c1320daa3ec"><testcase classname="backend.tests.test_iter304_credit_sales_journal_e2e" name="test_acceptance_ledger_consistency" time="9.436" /><testcase classname="backend.tests.test_iter304_credit_sales_journal_e2e" name="test_02_create_credit_visit" time="24.915"><failure message="AssertionError: customer ajel 0.0 != 200&#10;assert 200.0 &lt; 0.5&#10; +  where 200.0 = abs((0.0 - 200))">backend/tests/test_iter304_credit_sales_journal_e2e.py:192: in test_02_create_credit_visit
+    assert abs(bal - 200) &lt; 0.5, f"customer ajel {bal} != 200"
+E   AssertionError: customer ajel 0.0 != 200
+E   assert 200.0 &lt; 0.5
+E    +  where 200.0 = abs((0.0 - 200))</failure></testcase><testcase classname="backend.tests.test_iter304_credit_sales_journal_e2e" name="test_03_payment_flow" time="13.109"><failure message="AssertionError: remaining 0.0 != 120&#10;assert 120.0 &lt; 1.0&#10; +  where 120.0 = abs((0.0 - 120))">backend/tests/test_iter304_credit_sales_journal_e2e.py:251: in test_03_payment_flow
+    assert abs(rem - 120) &lt; 1.0, f"remaining {rem} != 120"
+E   AssertionError: remaining 0.0 != 120
+E   assert 120.0 &lt; 1.0
+E    +  where 120.0 = abs((0.0 - 120))</failure></testcase><testcase classname="backend.tests.test_iter304_credit_sales_journal_e2e" name="test_04_idempotency" time="12.973" /><testcase classname="backend.tests.test_iter304_credit_sales_journal_e2e" name="test_05_delete_cascade" time="19.409" /></testsuite></testsuites>

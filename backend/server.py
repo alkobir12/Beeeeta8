@@ -1759,6 +1759,27 @@ async def _build_partner_financial_map_uncached(
     payment_map = await _fetch_operation_payment_map(workshop_id)
     vehicle_customer_lookup = await _fetch_vehicle_customer_lookup(workshop_id) if p_type == "customer" else {}
 
+    # 🔗 canonical per-visit paid map (single source with operations page)
+    prefetched_visit_rows: List[Dict[str, Any]] = []
+    visit_paid_map: Dict[str, float] = {}
+    if p_type == "customer":
+        prefetched_visit_rows = await _fetch_vehicle_visits_for_financials(workshop_id)
+        for _visit in prefetched_visit_rows:
+            _vid = str(_visit.get("id") or "").strip()
+            if not _vid:
+                continue
+            _payload = _parse_json_like(_visit.get("notes"))
+            _pays = _payload.get("payments") if isinstance(_payload.get("payments"), list) else []
+            _net = 0.0
+            for _p in _pays:
+                _amt = _safe_float(_p.get("amount"))
+                if _amt <= 0:
+                    continue
+                _kind = str(_p.get("kind") or _p.get("type") or "payment").strip().lower()
+                _net += -_amt if _kind in {"refund", "return"} else _amt
+            visit_paid_map[_vid] = round(max(_net, 0.0), 2)
+    op_visit_ids: set = set()
+
     for op in operations:
         op_partner_type = str(_op_field(op, "partner_type", "partnerType") or "").strip().lower()
         if op_partner_type and op_partner_type != p_type:
@@ -1766,14 +1787,17 @@ async def _build_partner_financial_map_uncached(
 
         partner_id = str(_op_field(op, "partner_id", "partnerId") or "").strip()
         partner_name_norm = _normalize_partner_name(_op_field(op, "partner_name", "partnerName"))
-        target_id = partner_id if partner_id in by_id else by_name.get(partner_name_norm)
         vehicle_id = str(_op_field(op, "vehicle_id", "vehicleId") or "").strip()
         visit_id = str(_op_field(op, "visit_id", "visitId") or "").strip()
 
+        # 🎯 attribution priority: partner_id → vehicle→customer link → normalized name
+        target_id = partner_id if partner_id in by_id else None
         if not target_id and p_type == "customer" and vehicle_id:
             mapped_customer = vehicle_customer_lookup.get(vehicle_id)
             if mapped_customer and mapped_customer in by_id:
                 target_id = mapped_customer
+        if not target_id:
+            target_id = by_name.get(partner_name_norm)
 
         if not target_id:
             continue
@@ -1789,6 +1813,9 @@ async def _build_partner_financial_map_uncached(
         payment_status = str(_op_field(op, "payment_status", "paymentStatus") or "").strip().lower()
         paid_rows = payment_map.get(op_id, [])
         paid_amount = round(sum(_safe_float(row.get("total")) for row in paid_rows), 2)
+        # canonical paid = max(journalized, visit-notes payments) — same as operations page
+        if visit_id and visit_id in visit_paid_map:
+            paid_amount = round(max(paid_amount, visit_paid_map[visit_id]), 2)
 
         movement_date = str(_op_field(op, "op_date", "date") or _op_field(op, "created_at", "createdAt") or "")
         movement_note = str(op.get("notes") or "")
@@ -1803,6 +1830,8 @@ async def _build_partner_financial_map_uncached(
         movement_logged = False
 
         if p_type == "customer" and op_type in {"sale", "service"} and is_credit_origin:
+            if visit_id and not visit_id.startswith("op-"):
+                op_visit_ids.add(visit_id)
             summary["debitBalance"] += total_amount
             remaining = max(0.0, total_amount - paid_amount)
             summary["overdueBalance"] += remaining
@@ -1999,12 +2028,16 @@ async def _build_partner_financial_map_uncached(
             )
 
     if p_type == "customer" and vehicle_customer_lookup:
-        visit_rows = await _fetch_vehicle_visits_for_financials(workshop_id)
+        visit_rows = prefetched_visit_rows
         seen_visit_payments = set()
 
         for visit in visit_rows:
             vehicle_id = str(visit.get("vehicle_id") or visit.get("vehicleId") or "").strip()
             if not vehicle_id:
+                continue
+
+            # ⛔ payments of visits already reflected in an operation's remaining are skipped
+            if str(visit.get("id") or "").strip() in op_visit_ids:
                 continue
 
             customer_id = vehicle_customer_lookup.get(vehicle_id)

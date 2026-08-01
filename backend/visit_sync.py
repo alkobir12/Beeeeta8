@@ -1,6 +1,128 @@
 from datetime import datetime, timezone
+import json as _json
 import uuid
 import re
+
+
+def _sync_visit_journal(supa_service, visit_id: str, op_data: dict, cash_paid: float, total_discount: float, payment_method: str):
+    """قيد تلقائي للبيع الآجل + قيود تحصيل — idempotent لكل زيارة (reference_id = visit_id)."""
+    from routes_extended import (
+        _build_operation_journal_entry,
+        _safe_insert_journal_entry,
+        _sem_code,
+        ACCOUNT_NAME_MAP,
+    )
+    import os as _os
+
+    workshop_id = _os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync")
+    total = float(op_data.get("total") or 0)
+    if total <= 0:
+        return
+
+    op_view = {
+        "id": visit_id,
+        "type": op_data.get("type") or "service",
+        "vehicleId": op_data.get("vehicle_id"),
+        "scope": "vehicle",
+        "items": op_data.get("items") or [],
+        "total": total,
+        "paymentMethod": op_data.get("payment_method"),
+        "paymentStatus": op_data.get("payment_status"),
+        "partnerName": op_data.get("partner_name"),
+        "notes": op_data.get("notes"),
+        "date": op_data.get("op_date"),
+        "source": op_data.get("source"),
+    }
+
+    client = supa_service.client
+    existing = (
+        client.table("journal_entries").select("id,total,source,lines")
+        .eq("reference_id", visit_id).execute().data or []
+    )
+    accrual_rows = [e for e in existing if str(e.get("source") or "") == "operation"]
+    payment_rows = [e for e in existing if str(e.get("source") or "") in {"operation_payment", "operation_payment_income", "visit_receipt_voucher"}]
+
+    _AR_CODES = {"005", "1103", "113"}
+
+    def _ar_debit_of(rows):
+        total_ar = 0.0
+        for e in rows:
+            lines = e.get("lines")
+            if isinstance(lines, str):
+                try:
+                    lines = _json.loads(lines)
+                except Exception:
+                    lines = []
+            for ln in lines or []:
+                code = str(ln.get("code") or ln.get("account") or "")
+                if code in _AR_CODES:
+                    total_ar += float(ln.get("debit") or 0)
+        return round(total_ar, 2)
+
+    def _post_accrual():
+        entry = _build_operation_journal_entry(op_view, workshop_id)
+        if isinstance(entry, list):
+            for e in entry:
+                _safe_insert_journal_entry(supa_service, e)
+        elif entry:
+            _safe_insert_journal_entry(supa_service, entry)
+
+    if not accrual_rows:
+        _post_accrual()
+        existing = (
+            client.table("journal_entries").select("id,total,source,lines")
+            .eq("reference_id", visit_id).execute().data or []
+        )
+        accrual_rows = [e for e in existing if str(e.get("source") or "") == "operation"]
+    else:
+        prev_total = round(sum(float(e.get("total") or 0) for e in accrual_rows), 2)
+        if abs(prev_total - round(total, 2)) > 0.009:
+            for e in accrual_rows:
+                try:
+                    client.table("journal_entries").delete().eq("id", e.get("id")).execute()
+                except Exception:
+                    pass
+            _post_accrual()
+            existing = (
+                client.table("journal_entries").select("id,total,source,lines")
+                .eq("reference_id", visit_id).execute().data or []
+            )
+            accrual_rows = [e for e in existing if str(e.get("source") or "") == "operation"]
+
+    # ⛔ قيد التحصيل فقط إن كان قيد البيع مديناً بالذمم (بيع آجل) — وبسقف مدين الذمم
+    ar_debit = _ar_debit_of(accrual_rows)
+    if ar_debit <= 0.009:
+        return
+
+    target_reduction = round(max(float(cash_paid or 0), 0.0) + max(float(total_discount or 0), 0.0), 2)
+    already_journaled = round(sum(float(e.get("total") or 0) for e in payment_rows), 2)
+    delta = round(min(target_reduction, ar_debit) - already_journaled, 2)
+    if delta > 0.009:
+        m = str(payment_method or "").strip().lower()
+        if float(cash_paid or 0) <= 0 and float(total_discount or 0) > 0:
+            debit_code = _sem_code("sales_discount", "035")
+        elif m in ("transfer", "bank"):
+            debit_code = _sem_code("bank", "004")
+        elif m in ("pos", "card", "mada", "visa", "mastercard"):
+            debit_code = _sem_code("pos", "006")
+        else:
+            debit_code = _sem_code("cash", "003")
+        ar_code = _sem_code("ar", "005")
+        entry = {
+            "id": str(uuid.uuid4()),
+            "date": datetime.now(timezone.utc).isoformat(),
+            "description": f"تحصيل دفعة زيارة — {op_data.get('partner_name') or 'عميل'}",
+            "lines": [
+                {"account": debit_code, "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code), "debit": delta, "credit": 0},
+                {"account": ar_code, "account_name": ACCOUNT_NAME_MAP.get(ar_code, "ذمم مدينة"), "debit": 0, "credit": delta},
+            ],
+            "total": delta,
+            "source": "operation_payment",
+            "reference_id": visit_id,
+            "transaction_type": "payment",
+            "workshop_id": workshop_id,
+        }
+        _safe_insert_journal_entry(supa_service, entry)
 
 async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service=None):
     """
@@ -165,6 +287,11 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
                         raise
                     payload.pop(missing_column, None)
                     print(f"⚠️ Sync retry without missing column: {missing_column}")
+            # 🏦 مسار كتابة موحد: كل زيارة ببنود تُنشئ/تحدّث قيودها (بيع آجل + تحصيلات)
+            try:
+                _sync_visit_journal(supa_service, visit_id, op_data, total_paid, total_discount, payment_method)
+            except Exception as je_error:
+                print(f"⚠️ Visit journal sync failed for {visit_id}: {je_error}")
         
         # MongoDB support (Legacy)
         else:

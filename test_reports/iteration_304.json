@@ -1,0 +1,58 @@
+{
+  "summary": "Iter-304: Verified credit-sales journal integration + AR ledger consistency E2E. Core acceptance PASSED (ledger_ar_total=51735 == stored_balances_total, gap=0, pending=0, sum(customers.ajelBalance)==ledger). Newly created credit visits DO post an accrual JE (Dr 005/Cr revenue) tagged '[قيد مؤقت — بيع آجل]' and update ledger_ar_total + stored_balances_total by the exact amount (gap remains 0). Payment via PUT visit notes.payments correctly posts a Cr 005 collection JE. Idempotency confirmed (re-PUT does NOT duplicate JEs). DELETE cascade confirmed (visit → operation → JEs all removed; ledger restored). Frontend UI could not be fully validated due to auth flow issues in playwright, but backend ledger is fully SSOT-consistent.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/operations",
+        "issue": "Supabase operations table missing columns (payment_status, total_paid, remaining_balance, workshop_total, scope, source, business_unit, ...) — sync retries strip them. Result: operation row shows paymentStatus='unconfirmed' immediately after creation (still credit-sale in reality) and after partial payment shows paymentStatus='paid' totalPaid=200 balance=0 while the actual JE credits only 80 to AR. Operation record is DISPLAY-INCONSISTENT with the JE SSOT. This is an accepted limitation per agent-to-agent note but the operation JSON returned to UI misrepresents the remaining balance. Ledger/AR totals remain correct."
+      },
+      {
+        "endpoint": "GET /api/customers",
+        "issue": "New customer's ajelBalance took >2s to reflect the 200 SAR credit visit — the customers listing eventually shows the correct balance (confirmed via ar-ledger stored_balances_total going 51735->51935->51735), but a same-request GET immediately after visit POST returned 0. Consider ensuring the customers endpoint reads the same real-time computation as ar-ledger, or add a wait, or return an idempotency cursor."
+      },
+      {
+        "endpoint": "DELETE /api/visits/{id} (cascade)",
+        "issue": "Log shows 'column operations.vehicleId does not exist' warning during cascade (still succeeds via alternate path). Cosmetic — use snake_case column name."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Frontend authenticated API calls (post playwright login)",
+        "issue": "After UI login via input+PIN+button, subsequent pages (debts-followup, operations) show all zeros and console logs numerous 401s. Debts-followup showed 0.00 for ذمم العملاء while backend has 51735 SAR. Likely playwright login flow didn't persist the token to the frontend auth storage. Requires human verification or a more reliable UI login helper (data-testid on username/PIN/submit).",
+        "affected_selectors": ["input[placeholder*='احمد']", "input[type='password']", "button:text('دخول')"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter304_credit_sales_journal_e2e.py",
+    "/app/test_reports/pytest/iter304.xml"
+  ],
+  "action_items": [
+    "Add columns to Supabase 'operations' table OR compute totalPaid/balance/paymentStatus from JE SSOT so the /api/operations JSON matches the JE. Right now UI would show a fully-paid operation while JE shows only 80/200 collected.",
+    "Ensure GET /api/customers ajelBalance is derived from the same SSOT (journal_entries) as ar-ledger to avoid race conditions between visit creation and customer-list refresh.",
+    "Add data-testid on username, PIN inputs and login button for reliable automated UI tests (currently must probe by placeholder or type)."
+  ],
+  "critical_code_review_comments": [
+    "visit_sync.py _sync_visit_journal correctly enforces AR-debit cap on collection (delta = min(cash+discount, ar_debit) - already_journaled) — good idempotent design.",
+    "core/ar_ledger.py computes reconciliation_gap = stored_balances_total - ledger_ar_total but stored_balances_total is derived from customers.ajelBalance which is legacy/manual — long-term this should be dropped and ledger_ar_total should be the sole SSOT displayed to users.",
+    "The 'قيد مؤقت — بيع آجل' tag is included in ledger_ar_total (good — it's an actual JE), but there is a separate 'temporary_deferred_total' field returned — dashboards must not sum both or risk double-counting."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter304_credit_sales_journal_e2e.py (new)"
+  ],
+  "success_rate": {
+    "backend": "80% (4/5 assertions in E2E flow — 2 sub-assertions failed on op-display inconsistency and customer-refresh timing; ledger SSOT itself is 100% consistent)",
+    "frontend": "not fully tested (auth flow issue in playwright)"
+  },
+  "test_credentials": "مدير / PIN 123123 (Bearer via /api/auth/login), x-ratelimit-bypass header set",
+  "seed_data_creation": "Created ephemeral TEST customer + vehicle + visit + payment during E2E; verified cleanup via DELETE cascade and manual cleanup of leftovers from earlier iterations. Final state: ledger_ar_total=51735, stored_balances_total=51735, gap=0.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The core credit-sale → JE → collection → delete-cascade pipeline WORKS at the SSOT level. Focus retest on: (a) making GET /api/operations reflect real-time paid/remaining from JE (currently misleading when supabase columns are absent); (b) making customers.ajelBalance a computed field from ledger; (c) UI login: add data-testid to login form to enable end-to-end UI verification. Journal-entries endpoint is /api/finance/journal-entries (NOT /api/journal-entries). ar-ledger response is wrapped in {success,data}. Visits create is POST /api/vehicles/{vehicle_id}/visits; PUT /api/visits/{id}; DELETE /api/visits/{id}.",
+  "rca_of_the_issue": "test_02 & test_03 sub-assertion failures RCA: The Supabase 'operations' table schema is missing several optional columns (payment_status, total_paid, remaining_balance, workshop_total, scope, source, business_unit, ...). visit_sync retries stripping these columns until upsert succeeds, meaning the row persists with default values for those fields. Consequently /api/operations returns paymentStatus/totalPaid/balance derived from defaults+notes-inference which after a partial payment infers 'paid' + totalPaid=total, contradicting the JE which correctly records only the actual collected 80 SAR. Mitigation: either add the missing columns to Supabase, or in server-side response synthesize totalPaid/balance/paymentStatus from journal_entries (source in {operation,operation_payment} where reference_id=visit_id)."
+}
