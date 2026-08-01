@@ -1,0 +1,78 @@
+{
+  "summary": "تم تنفيذ اختبار شامل Backend + Frontend على رابط المعاينة العام. عقود الـ API المطلوبة (live=15/archive=176، التقارير المالية الحية، AR=4650، trial/balance) نجحت، مع فشل حرج واحد متعلق بمسار confirm-payment. في الواجهة، ظهرت مشاكل تكامل/جلسة أدت لعرض أصفار أو تحميل مستمر في بعض الصفحات، مع بقاء صياغة بنك/بطاقة مجمعة في ملخص الدخل.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/operations/{op_id}/confirm-payment",
+        "issue": "داخل دالة confirm-payment ما يزال يوجد مرجع صريح لـ operation_payment_income ضمن منطق الاستعلام/الاستبعاد. هذا يخالف شرط الإيقاف الكامل للاعتماد على هذا المصدر legacy داخل مسار التأكيد.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ComprehensiveFinancial (Income tab)",
+        "issue": "ملخص عمليات البيع في الواجهة ما زال يعرض النص 'المحصل بنك/بطاقة' مع بيانات صفرية أثناء الاختبار، بدل الفصل المطلوب (نقدي/نقاط بيع/تحويل بنكي/آجل).",
+        "selector": "[data-testid='financial-sales-operations-summary']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "VehicleDetails route",
+        "issue": "فتح مسار ملف مركبة مباشر لم يُظهر بطاقات الزيارات ضمن المهلة (تعذر التحقق من استمرارية التدفق عبر UI لهذا المسار في هذه الجولة).",
+        "selector": "[data-testid^='visit-card-']",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "UnifiedBotWidget on /operations",
+        "issue": "لم يظهر زر data-testid المتوقع للبوت في جلسة الاختبار الآلي (رغم ظهور زر عائم بصرياً)، مما يمنع تحقق تدفق كاترينا عبر selector contract الحالي.",
+        "selector": "[data-testid='unified-bot-button']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "واجهة الأرشيف + العمليات + المالية",
+        "issue": "تكرر ظهور نتائج صفرية/تحميل مستمر في UI أثناء جولة Playwright رغم أن نفس الـ endpoints تُرجع بيانات صحيحة عبر اختبارات backend المباشرة. توجد مؤشرات 401/Failed fetch في السجلات أثناء التنقل، ما يشير لعدم استقرار ربط الجلسة/التوكن في بعض مسارات الواجهة.",
+        "affected_selectors": [
+          "[data-testid='vehicle-archive-search-input']",
+          "[data-testid='operations-active-tab-count']",
+          "[data-testid='financial-sales-operations-summary']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter309_live_scope_finance_regression.py",
+    "/app/test_reports/pytest/iter309_backend.xml"
+  ],
+  "action_items": [
+    "إزالة أي اعتماد متبقٍ على operation_payment_income داخل مسار confirm-payment بشكل كامل (وليس فقط منع الإنشاء).",
+    "إصلاح عدم استقرار جلسة/توكن الواجهة بحيث لا تعود صفحات الأرشيف/العمليات/المالية بقيم صفرية أو loading رغم صحة APIs.",
+    "تحديث عرض Income summary في الواجهة ليُظهر الفصل المطلوب بوضوح: نقدي، نقاط بيع، تحويل بنكي، آجل (ذمة) دون أي تسمية مجمعة بنك/بطاقة.",
+    "مراجعة contract ظهور UnifiedBotWidget data-testid في الصفحات المحمية لضمان قابلية الاختبار الآلي لتدفق كاترينا.",
+    "إعادة اختبار تدفق ملف المركبة (زيارة/دفعات) بعد إصلاح استقرار الجلسة من داخل UI بالكامل."
+  ],
+  "critical_code_review_comments": [
+    "frontend/package.json ما يزال يحتوي proxy على localhost:8000 رغم معمارية البيئة الحالية (backend على 8001). هذا يرفع احتمالية سلوك proxy غير متوقع عند أي fallback لمسارات نسبية.",
+    "routes_extended.py (confirm-payment) ما يزال يحتوي references لـ operation_payment_income داخل نفس بلوك المسار.",
+    "VehicleDetails.jsx ملف ضخم جداً (يتجاوز 4000 سطر) ويزيد مخاطر الانحدار وصعوبة اختبار التدفقات الحساسة (زيارة/سداد/أرشفة)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter309_live_scope_finance_regression.py",
+    "/app/test_reports/iteration_309.json"
+  ],
+  "success_rate": {
+    "backend": "87.5% (7/8 passed)",
+    "frontend": "57% (4/7 UI checks passed; 3 failed)"
+  },
+  "test_credentials": "مدير / PIN 123123 (من /app/memory/test_credentials.md)",
+  "seed_data_creation": "لم يتم إنشاء seed data جديدة.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "اختبارات API المباشرة على preview URL تؤكد الأرقام المطلوبة (15/176، 15730/1400/14330، AR=4650، trial 19130 متوازن). فشل backend الوحيد: بقاء operation_payment_income داخل confirm-payment code block. في UI، لوحظت عدم استقرارية توثيق/تحميل (أصفار أو loading) رغم صحة APIs. ابدأ الجولة القادمة بتحقق session/auth_token بعد login في المتصفح ثم أعد اختبار /archive و /operations و /accounting/comprehensive.",
+  "rca of the issue": "RCA-1 (Backend): confirm-payment ما زال يذكر operation_payment_income داخل استعلامات previous/base entries. رغم أن الإنشاء الحالي يستخدم source=operation_payment، الشرط النصي المطلوب (التوقف الكامل عن استخدام operation_payment_income في هذا المسار) غير متحقق. RCA-2 (Frontend): هناك فجوة بين نتائج API الصحيحة في اختبارات requests وبين القيم الصفرية/التحميل في UI. السجلات أظهرت طلبات 401/Failed fetch أثناء التنقل؛ الاحتمال الأقوى هو عدم ثبات تطبيق التوكن/الجلسة على بعض طلبات fetch في سيناريوهات معينة (أو سباق زمني بعد login redirect).",
+  "mocked_api": "NO MOCKED APIs used."
+}

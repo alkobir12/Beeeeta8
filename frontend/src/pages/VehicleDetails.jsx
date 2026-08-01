@@ -822,113 +822,36 @@ const VisitCard = ({
   const { toast } = useToast();
   const activeWorkshopId = process.env.REACT_APP_WORKSHOP_ID || vehicle?.workshopId || vehicle?.workshop_id || 'finmodule-sync';
   const paymentMethodLabelMap = {
-    bank: 'بنك/تحويل',
+    bank: 'تحويل بنكي',
+    bank_transfer: 'تحويل بنكي',
     cash: 'نقد',
     pos: 'نقاط بيع',
     supplier_balance: 'رصيد مورد',
   };
 
   const deleteJournalEntries = async (entryIds = []) => {
-    const ids = (entryIds || []).filter(Boolean);
-    for (const entryId of ids) {
-      await axios.delete(`${API_URL}/finance/journal-entries/${entryId}`, {
-        params: { workshop_id: activeWorkshopId },
-      });
-    }
+    return { skipped: true, count: (entryIds || []).filter(Boolean).length };
   };
 
   const syncPaymentJournalEntries = async (paymentRows = []) => {
-    const paymentAccounts = {
-      cash: { code: '003', name: 'النقد' },
-      bank: { code: '004', name: 'البنك' },
-      pos: { code: '006', name: 'نقاط بيع' },
-    };
-    const DISCOUNT_ACCOUNT = { code: '024', name: 'خصم مسموح به للعملاء' };
-    const createdIds = [];
     const syncedPayments = [];
 
     for (const row of paymentRows) {
       const method = String(row?.paymentMethod || row?.method || 'cash').trim().toLowerCase();
       const amount = Number(row?.amount || 0);
-      const rowKind = String(row?.kind || '').trim().toLowerCase();
-      const isDiscount = rowKind === 'discount';
       const normalizedRow = {
         ...row,
         method,
         paymentMethod: method,
       };
 
-      if (!(amount > 0) || method === 'supplier_balance' || row?.journalEntryId) {
-        syncedPayments.push(normalizedRow);
-        continue;
-      }
-
-      const paymentDate = String(row?.date || new Date().toISOString()).slice(0, 10);
-      const customerName = String(vehicle?.customerName || 'عميل').trim() || 'عميل';
-      const vehicleRef = String(vehicle?.plateNumber || vehicle?.plate_number || '').trim();
-
-      let description;
-      let lines;
-      let txType;
-      let source;
-
-      if (isDiscount) {
-        // قيد الخصم: مدين خصم مسموح به / دائن العملاء
-        description = ['خصم ممنوح للعميل', customerName, vehicleRef].filter(Boolean).join(' — ');
-        txType = 'discount';
-        source = 'visit_discount';
-        lines = [
-          { account: DISCOUNT_ACCOUNT.code, account_name: DISCOUNT_ACCOUNT.name, debit: amount, credit: 0 },
-          { account: '005', account_name: 'العملاء', debit: 0, credit: amount },
-        ];
-      } else {
-        // قيد الدفع العادي
-        const paymentAccount = paymentAccounts[method] || paymentAccounts.cash;
-        const isAdvance = rowKind === 'advance';
-        description = [
-          isAdvance ? 'سند قبض — دفعة مقدمة' : 'سند قبض — تحت الحساب',
-          customerName,
-          vehicleRef,
-        ].filter(Boolean).join(' — ');
-        txType = 'payment';
-        source = 'visit_receipt_voucher';
-        lines = [
-          { account: paymentAccount.code, account_name: paymentAccount.name, debit: amount, credit: 0 },
-          { account: '005', account_name: 'العملاء', debit: 0, credit: amount },
-        ];
-      }
-
-      // 🔒 مفتاح Idempotency فريد لكل دفعة — يحمي من التكرار/النقر المزدوج
-      const idemKey = generateIdempotencyKey(
-        isDiscount ? 'visit-discount' : 'visit-payment',
-        `${visit.id}-${row?.id || amount}`
-      );
-      const response = await axios.post(`${API_URL}/finance/journal-entries`, {
-        date: paymentDate,
-        description: `${description} [PARTY:${customerName}] [PARTY_TYPE:customer]${vehicleRef ? ` [VEHICLE_REF:${vehicleRef}]` : ''} [VISIT:${visit.id}]`,
-        transaction_type: txType,
-        source,
-        reference_id: visit.id,
-        total: amount,
-        lines,
-      }, {
-        params: { workshop_id: activeWorkshopId },
-        headers: { 'Idempotency-Key': idemKey },
-      });
-
-      const journalEntryId = response?.data?.id || response?.data?.data?.[0]?.id || '';
-      if (journalEntryId) {
-        createdIds.push(journalEntryId);
-      }
-
       syncedPayments.push({
         ...normalizedRow,
-        receiptLabel: description,
-        journalEntryId,
+        backendSyncPending: amount > 0 && method !== 'supplier_balance',
       });
     }
 
-    return { syncedPayments, createdIds };
+    return { syncedPayments, createdIds: [] };
   };
 
   useEffect(() => {
@@ -2012,7 +1935,7 @@ const VisitCard = ({
                   data-testid={`visit-payment-method-select-${visit.id}`}
                 >
                   <option value="cash">نقد</option>
-                  <option value="bank">بنك/تحويل</option>
+                  <option value="bank">تحويل بنكي</option>
                   <option value="pos">نقاط بيع</option>
                 </select>
                 <input

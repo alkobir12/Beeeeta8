@@ -1829,6 +1829,22 @@ async def list_operations(
                 limit=limit,
                 offset=offset,
             )
+            if not vehicle_id:
+                try:
+                    live_vehicle_rows = supa.client.table("vehicles").select("id,status").execute().data or []
+                    live_vehicle_ids = {
+                        str(row.get("id") or "").strip()
+                        for row in live_vehicle_rows
+                        if str(row.get("id") or "").strip()
+                        and str(row.get("status") or "").strip().lower() != "delivered"
+                    }
+                    ops = [
+                        op for op in ops
+                        if not str(op.get("vehicle_id") or op.get("vehicleId") or "").strip()
+                        or str(op.get("vehicle_id") or op.get("vehicleId") or "").strip() in live_vehicle_ids
+                    ]
+                except Exception as scope_error:
+                    print(f"operations live scope filter skipped: {scope_error}")
             _perf_cache.set_cached("ops_list", ops, cache_key)
             return ops
 
@@ -3088,7 +3104,9 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             else:
                 raise HTTPException(status_code=400, detail="unsupported operation type")
         else:
-            # Cash-basis fallback (after cleanup or missing base entries)
+            # Missing-base fallback: never recognize revenue/expense during settlement.
+            # Settlement only moves cash/bank/POS against AR/AP; missing base must be
+            # reconciled separately instead of duplicating revenue.
             if op_type in ("sale", "service"):
                 lines = [
                     {
@@ -3098,18 +3116,18 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
                         "credit": 0,
                     },
                     {
-                        "account": op_account_code,
-                        "account_name": op_account_name,
+                        "account": "005",
+                        "account_name": ACCOUNT_NAME_MAP.get("005", "العملاء"),
                         "debit": 0,
                         "credit": pay_amount,
                     },
                 ]
-                desc = f"تحصيل نقدي (اعتراف إيراد) - {op_row.get('partner_name') or ''}"
+                desc = f"تحصيل آجل بدون قيد أساس مراجع - {op_row.get('partner_name') or ''}"
             elif op_type in ("purchase", "expense"):
                 lines = [
                     {
-                        "account": op_account_code,
-                        "account_name": op_account_name,
+                        "account": "2101",
+                        "account_name": ACCOUNT_NAME_MAP.get("2101", "الموردون"),
                         "debit": pay_amount,
                         "credit": 0,
                     },
@@ -3120,7 +3138,7 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
                         "credit": pay_amount,
                     },
                 ]
-                desc = f"سداد نقدي (اعتراف مصروف) - {op_row.get('partner_name') or ''}"
+                desc = f"سداد آجل بدون قيد أساس مراجع - {op_row.get('partner_name') or ''}"
             else:
                 raise HTTPException(status_code=400, detail="unsupported operation type")
 
@@ -3128,7 +3146,7 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
         receipt_info = _save_operation_payment_receipt(op_id, (payload or {}).get("receipt") or {})
         if receipt_info and receipt_info.get("url"):
             desc = f"{desc} | إيصال: {receipt_info.get('filename')}"
-        entry_source = "operation_payment" if has_base_operation_entry else "operation_payment_income"
+        entry_source = "operation_payment"
         entry = {
             "id": str(uuid.uuid4()),
             "workshop_id": workshop_id,

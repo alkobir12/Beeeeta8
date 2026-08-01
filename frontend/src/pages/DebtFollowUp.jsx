@@ -268,7 +268,8 @@ export default function DebtFollowUp() {
       for (const line of lines) {
         const lineAmt = line.amount && line.amount > 0 ? line.amount : finalAmount;
         const methodLabel = {
-          bank: 'بنك/تحويل',
+          bank: 'تحويل بنكي',
+          bank_transfer: 'تحويل بنكي',
           cash: 'نقد',
           pos: 'نقاط بيع',
           supplier_balance: 'رصيد مورد',

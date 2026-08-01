@@ -8,6 +8,7 @@ import { hasPermission } from '../utils/permissions';
 
 const VehicleArchive = () => {
   const ARCHIVE_AUDIT_KEY = 'vehicle-archive-edit-audit-v1';
+  const isResolvedArchiveVehicle = (vehicle = {}) => String(vehicle.status || '').trim().toLowerCase() === 'delivered';
   const { toast } = useToast();
   const navigate = useNavigate();
   const session = useMemo(() => {
@@ -65,7 +66,8 @@ const VehicleArchive = () => {
           await new Promise((resolve) => setTimeout(resolve, 450));
         }
       }
-      setVehicles(Array.isArray(response?.data) ? response.data : []);
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      setVehicles(rows.filter(isResolvedArchiveVehicle));
     } catch (error) {
       console.error(error);
       toast({ title: 'تعذر تحميل الملفات', description: 'حاول فتح الأرشيف مرة أخرى.', variant: 'destructive' });

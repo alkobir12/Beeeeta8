@@ -488,7 +488,8 @@ export default function ComprehensiveFinancial() {
     const raw = String(value || '').trim().toLowerCase();
     if (!raw) return '';
     if (['credit', 'اجل', 'آجل', 'unpaid', 'pending', 'partial'].includes(raw)) return 'credit';
-    if (['bank', 'transfer', 'bank_transfer', 'card', 'pos', 'mada', 'visa', 'mastercard', 'بطاقة', 'بطاقه', 'تحويل', 'بنك', 'شبكة'].includes(raw)) return 'bank';
+    if (['card', 'pos', 'mada', 'visa', 'mastercard', 'بطاقة', 'بطاقه', 'شبكة', 'نقاط بيع', 'نقاط_بيع'].includes(raw)) return 'pos';
+    if (['bank', 'transfer', 'bank_transfer', 'تحويل', 'تحويل بنكي', 'تحويل_بنكي', 'بنك'].includes(raw)) return 'bank_transfer';
     if (['cash', 'نقد', 'نقدي', 'كاش'].includes(raw)) return 'cash';
     return raw;
   };
@@ -512,19 +513,10 @@ export default function ComprehensiveFinancial() {
     total_receivable_component: 0,
     operations_cash_total: 0,
     operations_bank_total: 0,
+    operations_bank_transfer_total: 0,
+    operations_pos_total: 0,
     operations_credit_total: 0,
   };
-
-  const cashRevenueTotal = Number(
-    salesSummary.operations_cash_total
-    ?? salesSummary.total_cash_component
-    ?? 0
-  );
-  const bankRevenueTotal = Number(
-    salesSummary.operations_bank_total
-    ?? salesSummary.total_bank_component
-    ?? 0
-  );
 
   const profitMargin = incomeTotals.revenue > 0 ? (incomeTotals.net_income / incomeTotals.revenue) * 100 : 0;
   const isBalanceEquationHealthy = Math.abs((bsTotals.assets || 0) - ((bsTotals.liabilities || 0) + (bsTotals.equity || 0))) < 0.01;
@@ -649,7 +641,8 @@ export default function ComprehensiveFinancial() {
 
   const salesPaymentBreakdown = useMemo(() => ({
     cash: Number(salesSummary.operations_cash_total ?? salesSummary.total_cash_component ?? 0),
-    bank: Number(salesSummary.operations_bank_total ?? salesSummary.total_bank_component ?? 0),
+    bank_transfer: Number(salesSummary.operations_bank_transfer_total ?? salesSummary.operations_bank_total ?? salesSummary.total_bank_component ?? 0),
+    pos: Number(salesSummary.operations_pos_total ?? 0),
     credit: Number(salesSummary.operations_credit_total ?? 0),
     unknown: 0,
   }), [salesSummary]);
@@ -682,8 +675,9 @@ export default function ComprehensiveFinancial() {
         { label: 'صافي الدخل', value: formatCurrency(incomeTotals.net_income || 0), highlight: true },
         { section: '💳 تفصيل المبيعات حسب طريقة الدفع' },
         { label: 'نقدي', value: formatCurrency(salesPaymentBreakdown.cash) },
-        { label: 'بنك / بطاقة', value: formatCurrency(salesPaymentBreakdown.bank) },
-        { label: 'آجل', value: formatCurrency(salesPaymentBreakdown.credit) },
+        { label: 'نقاط بيع', value: formatCurrency(salesPaymentBreakdown.pos) },
+        { label: 'تحويل بنكي', value: formatCurrency(salesPaymentBreakdown.bank_transfer) },
+        { label: 'آجل (ذمة)', value: formatCurrency(salesPaymentBreakdown.credit) },
         { section: '🏦 الأرصدة الحالية' },
         { label: 'رصيد النقد', value: formatCurrency(normalizedCashAccountBalance) },
         { label: 'رصيد البنك', value: formatCurrency(normalizedBankAccountBalance) },

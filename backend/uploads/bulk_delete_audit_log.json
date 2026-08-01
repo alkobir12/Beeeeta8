@@ -38,5 +38,45 @@
       "provider": "supabase"
     },
     "created_at": "2026-07-17T17:52:07.600601+00:00"
+  },
+  {
+    "id": "df475f48-6f66-432e-bf25-ad6e202db520",
+    "action": "cleanup_keep_debts_only",
+    "source_endpoint": "/api/cleanup/keep-debts-only",
+    "workshop_id": "",
+    "user": {
+      "id": "مدير",
+      "role": "admin"
+    },
+    "items": {
+      "operations_kept": 45,
+      "operations_deleted": 119,
+      "journal_entries_deleted": 182
+    },
+    "meta": {
+      "confirm": "KEEP_DEBTS_ONLY",
+      "provider": "supabase"
+    },
+    "created_at": "2026-08-01T20:01:31.767087+00:00"
+  },
+  {
+    "id": "50654dd7-c7a2-48ed-a3e2-012d23fa1ff8",
+    "action": "cleanup_keep_debts_only",
+    "source_endpoint": "/api/cleanup/keep-debts-only",
+    "workshop_id": "",
+    "user": {
+      "id": "مدير",
+      "role": "admin"
+    },
+    "items": {
+      "operations_kept": 45,
+      "operations_deleted": 0,
+      "journal_entries_deleted": 0
+    },
+    "meta": {
+      "confirm": "KEEP_DEBTS_ONLY",
+      "provider": "supabase"
+    },
+    "created_at": "2026-08-01T20:02:07.981989+00:00"
   }
 ]

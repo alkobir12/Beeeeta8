@@ -918,62 +918,7 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         }
       }
 
-      const cleanPartyName = String(partyName || '').trim();
-      const cleanVehicleRef = String(vehicleRef || '').trim();
-      const itemSummary = items.map((item) => `${item.name}×${item.qty}`).join('، ');
-      const descriptionParts = [
-        activeTemplate?.title || 'قيد ذكي',
-        itemSummary,
-        note,
-      ].filter(Boolean);
-
-      const description = [
-        descriptionParts.join(' — '),
-        cleanPartyName ? `[PARTY:${cleanPartyName}] [PARTY_TYPE:${activeTemplate?.partyRole || 'open'}]` : '',
-        cleanVehicleRef ? `[VEHICLE_REF:${cleanVehicleRef}]` : '',
-      ].filter(Boolean).join(' ').trim();
-
-      const total = roundAmount(effectiveAmount);
-      const payload = {
-        date: new Date().toISOString().slice(0, 10),
-        description,
-        transaction_type: activeTemplate?.transactionType || 'manual',
-        source: activeTemplate?.key === 'instant_sale' ? 'pos_instant_sale' : 'pos_template',
-        total,
-        reference_id: vehicleId || partyId || undefined,
-        lines: [
-          {
-            account: effectiveEntry.debitAccount?.code,
-            account_name: effectiveEntry.debitAccount?.name,
-            debit: total,
-            credit: 0,
-          },
-          {
-            account: effectiveEntry.creditAccount?.code,
-            account_name: effectiveEntry.creditAccount?.name,
-            debit: 0,
-            credit: total,
-          },
-        ],
-      };
-
-      const response = await axios.post(`${apiBase}/finance/journal-entries`, payload, {
-        params: { workshop_id: workshopId },
-      });
-
-      if (response?.data?.success || response?.data?.id) {
-        resetFormAfterSave();
-        setSavedToast({ ok: true, total });
-        if (typeof onSaved === 'function') onSaved(response.data);
-        // 🔄 إشعار باقي الصفحات بالتحديث
-        try {
-          window.dispatchEvent(new CustomEvent('finance:updated', {
-            detail: { source: 'pos_journal', total }
-          }));
-        } catch (evtErr) { console.warn('finance:updated dispatch failed', evtErr); }
-      } else {
-        setSavedToast({ ok: false, error: 'استجابة غير متوقعة من الخادم' });
-      }
+      setSavedToast({ ok: false, error: 'تم إيقاف الحفظ المباشر في دفتر القيود من POS. استخدم عملية مرتبطة أو تحصيل مرتبط بعملية قائمة.' });
     } catch (error) {
       setSavedToast({
         ok: false,

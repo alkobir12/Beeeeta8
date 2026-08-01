@@ -213,7 +213,7 @@ export default function JournalEntries() {
   useEffect(() => {
     if (!canUsePosJournal && viewMode === 'pos') {
       setViewMode('full');
-      try { localStorage.setItem('journal.viewMode', 'full'); } catch (e) {}
+      try { localStorage.setItem('journal.viewMode', 'full'); } catch (e) { void e; }
     }
   }, [canUsePosJournal, viewMode]);
 
@@ -249,14 +249,12 @@ export default function JournalEntries() {
     };
     window.addEventListener('finance:updated', onFinUpdated);
     return () => window.removeEventListener('finance:updated', onFinUpdated);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (coaAccounts.length > 0) {
       fetchJournalEntries();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coaAccounts.length]);
 
   const isAbortLikeError = (error, signal) => {
@@ -398,26 +396,9 @@ export default function JournalEntries() {
   const handleCreateEntry = async (formData) => {
     setSaving(true);
     try {
-      const response = await fetch(`${API_URL}/finance/journal-entries?workshop_id=${WORKSHOP_ID}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: formData.date,
-          description: formData.description,
-          transaction_type: formData.transaction_type,
-          lines: formData.lines,
-          total: formData.lines.reduce((sum, l) => sum + (l.debit || 0), 0)
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        await fetchJournalEntries();
-        setShowEntryForm(false);
-        setEditingEntry(null);
-      } else {
-        alert(data.message || 'حدث خطأ في إنشاء القيد');
-      }
+      alert('تم إيقاف الكتابة المباشرة في دفتر القيود من الواجهة. استخدم المسارات التشغيلية المرتبطة.');
+      setShowEntryForm(false);
+      setEditingEntry(null);
     } catch (error) {
       console.error('Error creating entry:', error);
       alert('حدث خطأ في إنشاء القيد');
@@ -429,25 +410,9 @@ export default function JournalEntries() {
   const handleUpdateEntry = async (formData) => {
     setSaving(true);
     try {
-      const response = await fetch(`${API_URL}/finance/journal-entries/${editingEntry.id}?workshop_id=${WORKSHOP_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: formData.date,
-          description: formData.description,
-          transaction_type: formData.transaction_type,
-          lines: formData.lines,
-          total: formData.lines.reduce((sum, l) => sum + (l.debit || 0), 0)
-        })
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchJournalEntries();
-        setShowEntryForm(false);
-        setEditingEntry(null);
-      } else {
-        alert(data.message || 'حدث خطأ في تحديث القيد');
-      }
+      alert('تم إيقاف تعديل القيود مباشرة من الواجهة. أي تعديل مالي يجب أن يمر من المسار التشغيلي الأصلي.');
+      setShowEntryForm(false);
+      setEditingEntry(null);
     } catch (error) {
       console.error('Error updating entry:', error);
       alert('حدث خطأ في تحديث القيد');
@@ -458,16 +423,8 @@ export default function JournalEntries() {
 
   const handleDeleteEntry = async (entryId) => {
     try {
-      const response = await fetch(`${API_URL}/finance/journal-entries/${entryId}?workshop_id=${WORKSHOP_ID}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchJournalEntries();
-        setDeleteConfirm(null);
-      } else {
-        alert(data.message || 'حدث خطأ في حذف القيد');
-      }
+      alert('تم إيقاف حذف القيود من الواجهة. التصحيحات المستقبلية ستكون بقيود عكسية من Backend.');
+      setDeleteConfirm(null);
     } catch (error) {
       console.error('Error deleting entry:', error);
       alert('حدث خطأ في حذف القيد');
@@ -531,34 +488,9 @@ export default function JournalEntries() {
     }
 
     setPartyEditorSaving(true);
-    const cleanDescription = String(partyEditorEntry.description || '')
-      .replace(/\[PARTY:[^\]]+\]/g, '')
-      .replace(/\[PARTY_TYPE:[^\]]+\]/g, '')
-      .trim();
-    const nextDescription = `${cleanDescription} [PARTY:${trimmed}] [PARTY_TYPE:${partyEditorType}]`.trim();
-
     try {
-      const response = await fetch(`${API_URL}/finance/journal-entries/${partyEditorEntry.id}?workshop_id=${WORKSHOP_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: partyEditorEntry.entry_date,
-          description: nextDescription,
-          transaction_type: partyEditorEntry.transaction_type || 'manual',
-          lines: partyEditorEntry.lines?.map((l) => ({
-            account: l.account_code || l.account,
-            account_name: l.account_name,
-            debit: l.debit || 0,
-            credit: l.credit || 0,
-          })) || [],
-          total: partyEditorEntry.total_debit || 0,
-        }),
-      });
-
-      const data = await response.json();
-      if (!data?.success) throw new Error(data?.message || 'تعذر التحديث');
+      alert('تم إيقاف تعديل القيود مباشرة من الواجهة. التصحيح يتم عبر المسار التشغيلي الأصلي.');
       setPartyEditorEntry(null);
-      await fetchJournalEntries();
     } catch (error) {
       console.error('Error updating party label:', error);
       alert('تعذر تحديث طرف العملية');
@@ -781,7 +713,7 @@ export default function JournalEntries() {
         {canUsePosJournal ? (
         <button
           type="button"
-          onClick={() => { setViewMode('pos'); try { localStorage.setItem('journal.viewMode','pos'); } catch (e) {} }}
+          onClick={() => { setViewMode('pos'); try { localStorage.setItem('journal.viewMode','pos'); } catch (e) { void e; } }}
           data-testid="journal-mode-pos-button"
           className={`px-4 py-2 rounded-xl text-sm border transition ${
             viewMode === 'pos'
@@ -794,7 +726,7 @@ export default function JournalEntries() {
         ) : null}
         <button
           type="button"
-          onClick={() => { setViewMode('full'); try { localStorage.setItem('journal.viewMode','full'); } catch (e) {} }}
+          onClick={() => { setViewMode('full'); try { localStorage.setItem('journal.viewMode','full'); } catch (e) { void e; } }}
           data-testid="journal-mode-full-button"
           className={`px-4 py-2 rounded-xl text-sm border transition ${
             viewMode === 'full'

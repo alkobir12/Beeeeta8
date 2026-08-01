@@ -6,6 +6,7 @@ from bulk_delete_audit import list_bulk_delete_events, record_bulk_delete_event
 import firewall_state
 
 from datetime import datetime, timedelta, timezone
+from collections import defaultdict
 from typing import Optional, Dict, Any, List
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import uuid
@@ -99,20 +100,186 @@ def _normalize_payment_method(value: Any) -> str:
     if not raw:
         return ""
 
-    bank_like = {
-        "bank", "transfer", "bank_transfer", "card", "pos", "mada", "visa", "mastercard",
-        "بطاقة", "بطاقه", "شبكة", "تحويل", "تحويل_بنكي", "تحويل بنكي", "بنك",
-    }
+    bank_like = {"bank", "transfer", "bank_transfer", "تحويل", "تحويل_بنكي", "تحويل بنكي", "بنك"}
+    pos_like = {"card", "pos", "mada", "visa", "mastercard", "بطاقة", "بطاقه", "شبكة", "نقاط بيع", "نقاط_بيع", "point_of_sale"}
     cash_like = {"cash", "نقد", "نقدي", "كاش"}
     credit_like = {"credit", "اجل", "آجل", "unpaid", "pending", "partial"}
 
     if raw in credit_like:
         return "credit"
+    if raw in pos_like:
+        return "pos"
     if raw in bank_like:
-        return "bank"
+        return "bank_transfer"
     if raw in cash_like:
         return "cash"
     return raw
+
+
+def _current_live_vehicle_ids(workshop_id: Optional[str] = None) -> set:
+    """Resolved live scope used by current pages: exactly vehicles not delivered.
+
+    The two raw `archived` vehicles remain live for now because the owner confirmed
+    the current active set is 15; this is a read-side filter only and does not
+    mutate any vehicle status.
+    """
+    ids = set()
+    if not supabase:
+        return ids
+    try:
+        rows = []
+        if workshop_id:
+            try:
+                rows = supabase.table("vehicles").select("id,status").eq("workshop_id", workshop_id).execute().data or []
+            except Exception:
+                rows = []
+        if not rows:
+            rows = supabase.table("vehicles").select("id,status").execute().data or []
+        for row in rows:
+            vehicle_id = str(row.get("id") or "").strip()
+            status = str(row.get("status") or "").strip().lower()
+            if vehicle_id and status != "delivered":
+                ids.add(vehicle_id)
+    except Exception as exc:
+        print(f"live vehicle scope lookup failed: {exc}")
+    return ids
+
+
+def _operation_vehicle_map(workshop_id: Optional[str] = None) -> Dict[str, str]:
+    mapping: Dict[str, str] = {}
+    if not supabase:
+        return mapping
+    try:
+        rows = []
+        if workshop_id:
+            try:
+                rows = supabase.table("operations").select("id,vehicle_id").eq("workshop_id", workshop_id).execute().data or []
+            except Exception:
+                rows = []
+        if not rows:
+            rows = supabase.table("operations").select("id,vehicle_id").execute().data or []
+        for row in rows:
+            op_id = str(row.get("id") or "").strip()
+            vehicle_id = str(row.get("vehicle_id") or "").strip()
+            if op_id:
+                mapping[op_id] = vehicle_id
+    except Exception as exc:
+        print(f"operation vehicle scope map failed: {exc}")
+    return mapping
+
+
+def _visit_vehicle_map(workshop_id: Optional[str] = None) -> Dict[str, str]:
+    mapping: Dict[str, str] = {}
+    if not supabase:
+        return mapping
+    try:
+        rows = []
+        if workshop_id:
+            try:
+                rows = supabase.table("vehicle_visits").select("id,vehicle_id").eq("workshop_id", workshop_id).execute().data or []
+            except Exception:
+                rows = []
+        if not rows:
+            rows = supabase.table("vehicle_visits").select("id,vehicle_id").execute().data or []
+        for row in rows:
+            visit_id = str(row.get("id") or "").strip()
+            vehicle_id = str(row.get("vehicle_id") or "").strip()
+            if visit_id:
+                mapping[visit_id] = vehicle_id
+    except Exception as exc:
+        print(f"visit vehicle scope map failed: {exc}")
+    return mapping
+
+
+def _entry_vehicle_id(entry: Dict[str, Any], operation_map: Dict[str, str], visit_map: Dict[str, str], live_vehicle_ids: set) -> str:
+    ref = str(entry.get("reference_id") or "").strip()
+    vehicle_id = operation_map.get(ref) or visit_map.get(ref) or ""
+    if not vehicle_id:
+        desc = str(entry.get("description") or "")
+        match = re.search(r"\[VISIT:([^\]]+)\]", desc, re.I)
+        if match:
+            vehicle_id = visit_map.get(match.group(1).strip(), "")
+    if not vehicle_id and ref in live_vehicle_ids:
+        vehicle_id = ref
+    return vehicle_id
+
+
+def _filter_live_journal_entries(entries: List[Dict[str, Any]], workshop_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    live_vehicle_ids = _current_live_vehicle_ids(workshop_id)
+    operation_map = _operation_vehicle_map(workshop_id)
+    visit_map = _visit_vehicle_map(workshop_id)
+    filtered: List[Dict[str, Any]] = []
+    for entry in entries or []:
+        source = str(entry.get("source") or "").strip().lower()
+        if source == "opening_balance_correction" or str(entry.get("reference_id") or "").startswith("opening-"):
+            continue
+        vehicle_id = _entry_vehicle_id(entry, operation_map, visit_map, live_vehicle_ids)
+        if vehicle_id:
+            if vehicle_id in live_vehicle_ids:
+                filtered.append(entry)
+            continue
+        # Standalone/manual POS remains eligible only when it is actually posted.
+        filtered.append(entry)
+    return filtered
+
+
+def _filter_live_operations(rows: List[Dict[str, Any]], workshop_id: Optional[str] = None, *, keep_standalone: bool = True) -> List[Dict[str, Any]]:
+    live_vehicle_ids = _current_live_vehicle_ids(workshop_id)
+    filtered: List[Dict[str, Any]] = []
+    for row in rows or []:
+        vehicle_id = str(row.get("vehicle_id") or row.get("vehicleId") or "").strip()
+        if vehicle_id:
+            if vehicle_id in live_vehicle_ids:
+                filtered.append(row)
+        elif keep_standalone:
+            filtered.append(row)
+    return filtered
+
+
+def _live_ar_balances_by_customer(workshop_id: str, end_date: Optional[str] = None) -> Dict[str, Any]:
+    entries = _fetch_journal_entries(workshop_id, end_date=end_date, limit=10000, include_rakan=False)
+    entries = _filter_live_journal_entries(entries, workshop_id)
+    operations = {str(row.get("id") or "").strip(): row for row in (supabase.table("operations").select("id,partner_name,vehicle_id,visit_id,total").execute().data or []) if row.get("id")}
+    visits = {str(row.get("id") or "").strip(): row for row in (supabase.table("vehicle_visits").select("id,vehicle_id").execute().data or []) if row.get("id")}
+    vehicles = {str(row.get("id") or "").strip(): row for row in (supabase.table("vehicles").select("id,customer_name,plate_number,status").execute().data or []) if row.get("id")}
+    op_vehicle = {op_id: str(row.get("vehicle_id") or "").strip() for op_id, row in operations.items()}
+    visit_vehicle = {visit_id: str(row.get("vehicle_id") or "").strip() for visit_id, row in visits.items()}
+    balances: Dict[str, float] = defaultdict(float)
+    rows: List[Dict[str, Any]] = []
+    for entry in entries:
+        amount = 0.0
+        for line in entry.get("lines") or []:
+            if str(line.get("account") or line.get("code") or "").strip() in {"005", "1103", "113"}:
+                amount += _safe_float(line.get("debit")) - _safe_float(line.get("credit"))
+        if abs(amount) < 0.005:
+            continue
+        ref = str(entry.get("reference_id") or "").strip()
+        vehicle_id = op_vehicle.get(ref) or visit_vehicle.get(ref) or ""
+        if not vehicle_id:
+            desc = str(entry.get("description") or "")
+            match = re.search(r"\[VISIT:([^\]]+)\]", desc, re.I)
+            if match:
+                vehicle_id = visit_vehicle.get(match.group(1).strip(), "")
+        vehicle = vehicles.get(vehicle_id, {})
+        customer = (operations.get(ref, {}).get("partner_name") or vehicle.get("customer_name") or "غير محدد").strip() or "غير محدد"
+        balances[customer] += amount
+        rows.append({
+            "journal_entry_id": entry.get("id"),
+            "date": entry.get("date"),
+            "reference_id": ref,
+            "vehicle_id": vehicle_id,
+            "customer": customer,
+            "amount": round(amount, 2),
+            "source": entry.get("source"),
+            "description": entry.get("description"),
+        })
+    customers = [
+        {"customer": name, "balance": round(balance, 2)}
+        for name, balance in sorted(balances.items())
+        if abs(balance) >= 0.01
+    ]
+    total_ar = round(sum(row["balance"] for row in customers), 2)
+    return {"total_ar": total_ar, "customers": customers, "ledger_rows": rows}
 
 
 def _extract_request_actor(request: Optional[Request]) -> Dict[str, str]:
@@ -566,6 +733,7 @@ def _compute_trial_balance_map(
         limit=10000,
         include_rakan=include_rakan,
     )
+    entries = _filter_live_journal_entries(entries, workshop_id)
     accounts_balances = {}
     for entry in entries:
         for line in entry.get("lines", []) or []:
@@ -713,6 +881,7 @@ async def get_income_statement(
             limit=10000,
             include_rakan=False,
         )
+        entries = _filter_live_journal_entries(entries, effective_workshop_id)
 
         references_with_base_entries = {
             str(entry.get("reference_id") or "").strip()
@@ -778,6 +947,7 @@ async def get_income_statement(
 
         operations_cash_total = 0.0
         operations_bank_total = 0.0
+        operations_pos_total = 0.0
         operations_credit_total = 0.0
         operations_sales_total = 0.0
         operations_sales_count = 0
@@ -789,6 +959,7 @@ async def get_income_statement(
                 start_date=start_date,
                 end_date=end_date,
             )
+            operations = _filter_live_operations(operations, effective_workshop_id, keep_standalone=True)
             for op in operations:
                 op_type = _normalize_operation_type_for_reconciliation(op.get("type"))
                 if op_type != "sale":
@@ -809,8 +980,10 @@ async def get_income_statement(
 
                 if is_credit:
                     operations_credit_total += amount
-                elif op_method == "bank":
+                elif op_method == "bank_transfer":
                     operations_bank_total += amount
+                elif op_method == "pos":
+                    operations_pos_total += amount
                 else:
                     operations_cash_total += amount
         except Exception as operations_error:
@@ -832,6 +1005,8 @@ async def get_income_statement(
                     "operations_count": int(operations_sales_count),
                     "operations_cash_total": round(operations_cash_total, 2),
                     "operations_bank_total": round(operations_bank_total, 2),
+                    "operations_bank_transfer_total": round(operations_bank_total, 2),
+                    "operations_pos_total": round(operations_pos_total, 2),
                     "operations_credit_total": round(operations_credit_total, 2),
                 },
                 "details": {
@@ -854,6 +1029,8 @@ async def get_income_statement(
                     "operations_count": 0,
                     "operations_cash_total": 0,
                     "operations_bank_total": 0,
+                    "operations_bank_transfer_total": 0,
+                    "operations_pos_total": 0,
                     "operations_credit_total": 0,
                 },
                 "details": {"revenue_by_account": {}, "expenses_by_account": {}},
@@ -1136,7 +1313,7 @@ def _fetch_operations_for_reconciliation(
     import time
     global _OPERATIONS_CACHE
     now_ts = time.time()
-    cache_key = f"{workshop_id}|{start_date or ''}|{end_date or ''}"
+    cache_key = f"live-scope-v2|{workshop_id}|{start_date or ''}|{end_date or ''}"
     cached = _OPERATIONS_CACHE.get(cache_key)
     if cached and (now_ts - cached[0]) < _OPERATIONS_CACHE_TTL:
         return cached[1]
@@ -1168,6 +1345,8 @@ def _fetch_operations_for_reconciliation(
 
     try:
         rows = _run(scoped=True)
+        if workshop_id and not rows:
+            rows = _run(scoped=False)
     except Exception:
         rows = _run(scoped=False)
 
@@ -3427,12 +3606,35 @@ async def ar_ledger(
         start_date = _parse_date_str(start_date)
         end_date = _parse_date_str(end_date)
 
+        ledger_ar = _live_ar_balances_by_customer(workshop_id, end_date=end_date)
+        ledger_rows = []
+        balance = 0.0
+        for row in sorted(ledger_ar["ledger_rows"], key=lambda item: str(item.get("date") or "")):
+            amount = float(row.get("amount") or 0)
+            if start_date:
+                # ledger_rows are current snapshot rows; date filtering remains handled by _fetch_journal_entries end_date.
+                pass
+            balance += amount
+            ledger_rows.append({
+                "date": row.get("date"),
+                "customer": row.get("customer"),
+                "type": "sale" if amount > 0 else "payment",
+                "reference_id": row.get("reference_id"),
+                "debit": round(amount, 2) if amount > 0 else 0.0,
+                "credit": round(abs(amount), 2) if amount < 0 else 0.0,
+                "description": row.get("description"),
+                "journal_entry_id": row.get("journal_entry_id"),
+                "source": row.get("source"),
+                "running_balance": round(balance, 2),
+            })
+        return {"success": True, "data": {"account": {"code": "1103", "name": "ذمم مدينة عملاء"}, "rows": ledger_rows, "ending_balance": round(balance, 2)}}
+
         # نحتاج العمليات حتى end_date لربط التحصيلات حتى لو كانت الفاتورة قبل start_date
-        ops_all = _fetch_credit_sales_ops(workshop_id, end_date=end_date)
+        ops_all = _filter_live_operations(_fetch_credit_sales_ops(workshop_id, end_date=end_date), workshop_id, keep_standalone=False)
         op_by_id = {str(o.get("id")): o for o in (ops_all or []) if o.get("id")}
 
         # صفوف الفواتير ضمن الفترة المطلوبة
-        ops_in_period = _fetch_credit_sales_ops(workshop_id, start_date=start_date, end_date=end_date)
+        ops_in_period = _filter_live_operations(_fetch_credit_sales_ops(workshop_id, start_date=start_date, end_date=end_date), workshop_id, keep_standalone=False)
         pays = _fetch_payment_entries(workshop_id, start_date=start_date, end_date=end_date)
 
         rows = []
@@ -3527,8 +3729,11 @@ async def ar_customers(
         # Example: op_date=2026-01-29T14:xxZ should be included for as_of=2026-01-29
         as_of_eod = f"{as_of}T23:59:59Z" if include_today else as_of
 
+        ledger_ar = _live_ar_balances_by_customer(workshop_id, end_date=as_of_eod)
+        return {"success": True, "data": {"as_of": as_of, "total_ar": ledger_ar["total_ar"], "customers": ledger_ar["customers"]}}
+
         # all credit ops up to as_of (EOD)
-        ops = _fetch_credit_sales_ops(workshop_id, end_date=as_of_eod)
+        ops = _filter_live_operations(_fetch_credit_sales_ops(workshop_id, end_date=as_of_eod), workshop_id, keep_standalone=False)
         pays = _fetch_payment_entries(workshop_id, end_date=as_of_eod)
 
         sales_by_op = {}
@@ -3768,7 +3973,7 @@ async def ar_customer_statement(
         start_date = _parse_date_str(start_date)
         end_date = _parse_date_str(end_date)
 
-        ops = _fetch_credit_sales_ops(workshop_id, start_date=start_date, end_date=end_date)
+        ops = _filter_live_operations(_fetch_credit_sales_ops(workshop_id, start_date=start_date, end_date=end_date), workshop_id, keep_standalone=False)
         pays = _fetch_payment_entries(workshop_id, start_date=start_date, end_date=end_date)
 
         # map operation totals for this customer
@@ -3854,7 +4059,7 @@ async def ar_aging(
         as_of = _parse_date_str(as_of) or datetime.now().date().isoformat()
         as_of_dt = _to_date(as_of) or datetime.now()
 
-        ops = _fetch_credit_sales_ops(workshop_id, end_date=as_of)
+        ops = _filter_live_operations(_fetch_credit_sales_ops(workshop_id, end_date=as_of), workshop_id, keep_standalone=False)
         pays = _fetch_payment_entries(workshop_id, end_date=as_of)
 
         paid_by_op = {}

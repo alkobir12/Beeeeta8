@@ -684,18 +684,6 @@ export default function UnifiedBotWidget() {
     if (!amt || amt <= 0) { setQuickResult({ ok: false, msg: 'أدخل مبلغاً صحيحاً' }); return; }
     setQuickLoading(true); setQuickResult(null);
     try {
-      const pm = PAYMENT_ACCOUNT[quickPM] || '004';
-      // قيد يومية فوري
-      await axios.post(`${API}/api/finance/journal-entries?workshop_id=${WID}`, {
-        workshop_id: WID, date: new Date().toISOString().split('T')[0],
-        description: quickDesc || 'عملية فورية',
-        lines: [
-          { account: pm, account_name: ACCOUNTS[pm] || pm, debit: amt, credit: 0 },
-          { account: '027', account_name: 'خدمات ميكانيكية', debit: 0, credit: amt },
-        ],
-        total: amt, source: 'quick_op',
-      });
-      // عملية أيضاً
       await axios.post(`${API}/api/operations`, {
         workshopId: WID, workshop_id: WID,
         type: 'sale', paymentMethod: quickPM, paymentStatus: 'paid',
@@ -704,7 +692,7 @@ export default function UnifiedBotWidget() {
         total: amt, subtotal: amt,
         items: [{ name: quickDesc || 'خدمة', itemType: 'service', qty: 1, price: amt, total: amt }],
       });
-      setQuickResult({ ok: true, msg: `✅ ${amt.toLocaleString('ar-SA')} ر.س — سُجّلت قيداً وعملية` });
+      setQuickResult({ ok: true, msg: `✅ ${amt.toLocaleString('ar-SA')} ر.س — سُجّلت كعملية عبر المسار الموحّد` });
       setQuickAmount(''); setQuickDesc('');
     } catch (err) {
       setQuickResult({ ok: false, msg: err?.response?.data?.detail || 'فشل الإنشاء' });
@@ -733,17 +721,13 @@ export default function UnifiedBotWidget() {
         return;
       }
 
-      // إنشاء القيد المحاسبي
-      await axios.post(`${API}/api/finance/journal-entries?workshop_id=${WID}`, {
-        workshop_id: WID,
-        date,
-        description: `[BOT_CREATE:${currentTemplate?.id || 'manual'}] ${description || currentTemplate?.desc || 'قيد يدوي'}`,
-        lines: previewLines.map(l => ({ account: l.account, account_name: l.name, debit: l.debit, credit: l.credit })),
-        total: amt,
-        source: 'smart_bot',
-      });
+      if (!currentTemplate) {
+        setCreateResult({ ok: false, msg: 'تم إيقاف إنشاء القيود المباشرة من الواجهة. اختر قالب عملية مرتبط.' });
+        setLoading(false);
+        return;
+      }
 
-      // إنشاء عملية أيضاً مع ربط متوافق مع الصفحات
+      // إنشاء عملية فقط؛ الـBackend مسؤول عن ترحيل القيد مرة واحدة.
       if (currentTemplate) {
         const botOriginalType = currentTemplate.id === 'salary' ? 'salary' : currentTemplate.id;
         await axios.post(`${API}/api/operations`, {
@@ -1160,7 +1144,7 @@ export default function UnifiedBotWidget() {
                 )}
               </button>
               <div className="text-[10px] text-slate-600 text-center">
-                يُنشئ: Dr {ACCOUNTS[PAYMENT_ACCOUNT[quickPM]]||'البنك'} / Cr إيرادات + عملية مباشرة
+                يُنشئ عملية فقط؛ ترحيل القيد يتم من الـBackend مرة واحدة.
               </div>
             </div>
           ) : (

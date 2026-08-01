@@ -1521,6 +1521,41 @@ async def _fetch_operations_for_partner_financials_uncached(
     return await db.operations.find(query, projection).to_list(5000)
 
 
+async def _resolved_live_vehicle_ids_for_current_scope(workshop_id: Optional[str]) -> set:
+    ids = set()
+    if DB_PROVIDER != "supabase" or not (supabase_service.client and not supabase_service.mock_mode):
+        return ids
+    try:
+        rows = []
+        if workshop_id:
+            try:
+                rows = supabase_service.client.table("vehicles").select("id,status").eq("workshop_id", workshop_id).execute().data or []
+            except Exception:
+                rows = []
+        if not rows:
+            rows = supabase_service.client.table("vehicles").select("id,status").execute().data or []
+        for row in rows:
+            vehicle_id = str(row.get("id") or "").strip()
+            status = str(row.get("status") or "").strip().lower()
+            if vehicle_id and status != "delivered":
+                ids.add(vehicle_id)
+    except Exception as exc:
+        print(f"partner live vehicle scope lookup failed: {exc}")
+    return ids
+
+
+async def _filter_partner_operations_to_current_scope(rows: List[Dict[str, Any]], workshop_id: Optional[str]) -> List[Dict[str, Any]]:
+    live_ids = await _resolved_live_vehicle_ids_for_current_scope(workshop_id)
+    if not live_ids:
+        return rows
+    filtered = []
+    for row in rows or []:
+        vehicle_id = str(_op_field(row, "vehicle_id", "vehicleId") or "").strip()
+        if not vehicle_id or vehicle_id in live_ids:
+            filtered.append(row)
+    return filtered
+
+
 async def _fetch_operation_payment_map(
     workshop_id: Optional[str],
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -1755,7 +1790,10 @@ async def _build_partner_financial_map_uncached(
     if not by_id:
         return {}
 
-    operations = await _fetch_operations_for_partner_financials(workshop_id)
+    operations = await _filter_partner_operations_to_current_scope(
+        await _fetch_operations_for_partner_financials(workshop_id),
+        workshop_id,
+    )
     payment_map = await _fetch_operation_payment_map(workshop_id)
     vehicle_customer_lookup = await _fetch_vehicle_customer_lookup(workshop_id) if p_type == "customer" else {}
 
