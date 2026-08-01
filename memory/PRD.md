@@ -1,5 +1,13 @@
 # Workshop ERP — Product Requirements (PRD)
 
+## CHANGELOG — 2026-08-01 · ♻️ Live Scope Refactor + منع الكتابة المباشرة في القيود
+**مختبَر عبر testing_agent iteration_310 — MOCKED: NONE**
+- تم إصلاح الكود الحالي فقط دون Endpoint/جداول/شاشة جديدة: `confirm-payment` لم يعد يستخدم `operation_payment_income`، ومصدر التسوية أصبح `operation_payment` فقط لمنع تكرار الإيراد عند السداد.
+- أوقفت الواجهات `VehicleDetails / SmartPOSJournal / UnifiedBotWidget / JournalEntries` عن تنفيذ POST/PUT/DELETE مباشر على `/finance/journal-entries`؛ المتبقي قراءة فقط أو تنبيه يمنع الحفظ المباشر.
+- تم تحديث عرض المالية لفصل طرق التحصيل إلى `نقدي / نقاط بيع / تحويل بنكي` مع إبقاء `آجل (ذمة)` كحالة مديونية لا كطريقة دفع، وإضافة حارس token في `AssistantProvider` لتقليل 401 قبل الجلسة.
+- تم تأكيد منطق live/archive قراءة فقط: `live=15` و`archive=176` و`mutation_guard.unchanged=true`.
+- **عائق بيئة المعاينة:** بيانات Preview الحالية أُعيدت تهيئتها خارج مسار الكود: `journal_entries=0` و`operations=45` بدل baseline السابق `journal_entries=182` و`operations=164`؛ لذلك أرقام baseline المالية `15730/4650/16810` لا يمكن إعادة تحققها حتى تُستعاد بيانات المعاينة. لا توجد بيانات MOCKED ولا تم إنشاء seed.
+
 ## CHANGELOG — 2026-08-01 · 🔎 Reconciliation Audit قراءة فقط + Endpoint محمي
 **مختبَر عبر testing_agent iteration_308 + pytest 4/4 — MOCKED: NONE**
 - أضيفت وحدة `/app/backend/financial_reconciliation.py` وEndpoint محمي للمدير: `GET /api/finance/reconciliation-audit`، قراءة فقط بالكامل ولا يغيّر أي جدول.
