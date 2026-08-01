@@ -1,5 +1,13 @@
 # Workshop ERP — Product Requirements (PRD)
 
+## CHANGELOG — 2026-08-01 · 🔎 Reconciliation Audit قراءة فقط + Endpoint محمي
+**مختبَر عبر testing_agent iteration_308 + pytest 4/4 — MOCKED: NONE**
+- أضيفت وحدة `/app/backend/financial_reconciliation.py` وEndpoint محمي للمدير: `GET /api/finance/reconciliation-audit`، قراءة فقط بالكامل ولا يغيّر أي جدول.
+- التقرير يفصل `raw_classification` عن `resolved_exclusive_scopes`: live=15، archive=176، ويكشف تداخل المركبتين `235cb00f...` و`9004d4bd...` دون تعديل حالتهما.
+- التقرير يثبت: لا سجل مالي في نطاقين، مجموع النطاقات يساوي كل السجلات، فرق الذمم 500 محدد بسجل عملية آجلة، فرق الإيراد 210 على الحساب `041`، المصروفات 16,810 على الحساب `035`، والميزان التجريبي متوازن.
+- القيود الافتتاحية `شاص 2019=16,000` و`عمر الخضيري=300` أصبحت `pending_decision` في التقرير، وPOS المستقل 350 مصنف `posting_missing` لأنه بلا قيد مقابل.
+- أضيفت اختبارات: `/app/backend/tests/test_iter308_reconciliation_audit_contract.py` و`/app/backend/tests/test_iter308_reconciliation_audit_api_contract.py`.
+
 ## CHANGELOG — 2026-08-01 · 🧾 إصلاح QuickPrint للفواتير/التشخيص + فلترة الموردين + تثبيت دخول UI
 **مختبَر عبر وكيل الاختبار iteration_306 ثم iteration_307 — MOCKED: NONE**
 - **فاتورة المبيعات وتقرير التشخيص:** QuickPrint يعرض الآن معاينة مرئية داخل النافذة، ويستبعد بنود الموردين من المستندات الموجهة للعميل مع بقاء بنود الموردين محفوظة في أرشيف ملف المركبة كما هي.
