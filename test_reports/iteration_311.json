@@ -1,0 +1,70 @@
+{
+  "summary": "Executed backend+frontend verification against preview URL for visit-source AR logic. Backend contracts pass with expected totals (12570) and supplier exclusion behavior. Frontend DebtFollowUp page remains stuck loading and does not reflect backend AR totals.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DebtFollowUp",
+        "issue": "Page remains in loading state (\"جار تحميل الذمم...\") and shows customer AR card as 0 with count 0 instead of 12570 and 12.",
+        "selector": "[data-testid='debt-followup-loading'], [data-testid='debt-summary-card-customers']",
+        "priority": "HIGH"
+      },
+      {
+        "component": "VehicleDetails route validation",
+        "issue": "Automated check could not complete supplier-summary UI assertion because vehicle details financial card selector did not become available in automation run.",
+        "selector": "[data-testid='vehicle-financial-summary-suppliers-due']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Login -> Debt Follow-up data hydration",
+        "issue": "Backend APIs return correct data via pytest/curl, but UI repeatedly shows loading/zero state. Automation logs show repeated aborted API requests during page lifecycle.",
+        "affected_selectors": [
+          "[data-testid='debt-followup-page']",
+          "[data-testid='debt-summary-card-customers']",
+          "[data-testid='debt-followup-table-wrapper']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/pytest/iter311_backend.xml",
+    "/app/test_reports/iter311_ar_customers.json",
+    "/app/test_reports/iter311_customers.json",
+    "/app/test_reports/iter311_ar_ledger.json",
+    "/app/test_reports/iter311_income_statement.json",
+    "/app/test_reports/iter311_reconciliation_audit.json"
+  ],
+  "action_items": [
+    "Fix DebtFollowUp loading deadlock/integration so it reliably renders /api/customers + /api/suppliers balances and reflects 12570 / 12.",
+    "Decouple DebtFollowUp critical render path from non-critical requests (e.g., chart-of-accounts) or add request timeout/fallback to prevent perpetual loading.",
+    "Re-verify VehicleDetails supplier movement card in UI after route loading stability fix.",
+    "Review VehicleDetails save payload mapping: current logic marks itemType='part' as billingType='supplier' (lines ~1032, ~1201, ~1293), which can incorrectly exclude parts from workshop receivable totals."
+  ],
+  "critical_code_review_comments": [
+    "backend/routes_finance.py build_current_visit_ar_snapshot correctly enforces: workshop items only, supplier items excluded, confirmed journal payments only, archived excluded from current AR.",
+    "backend/supabase_service.py _summarize_visit_notes correctly treats billingType/itemType='supplier' as supplier totals.",
+    "frontend/src/components/VehicleFinancialSummary.jsx label is updated to 'حركة الموردين' and subtitle reflects supplier archive separation.",
+    "frontend/src/pages/VehicleDetails.jsx currently sets billingType='supplier' for both supplier and part itemType during save/close/confirm-payment payload construction; this is a logic risk for AR classification."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/iteration_311.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8)",
+    "frontend": "40% (load/login pass; target debt-followup data rendering failed)"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation executed in tests.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend expected contracts are stable on preview: /finance/ar/customers total_ar=12570 vehicles=15 customers=12; /api/customers positive balances sum=12570 with 12 customer rows; /finance/ar/ledger ending=12570 rows=12; income sales_summary operations_total/credit_total=12570 and cash/pos/bank_transfer=0. سلطان الشاص example token b48c0850 appears as visit_id (not vehicle_id).",
+  "rca of the issue": "Frontend DebtFollowUp issue reproduced 3 times. UI keeps loading and shows zero totals despite backend APIs returning valid data. The page's fetchData awaits customers+suppliers then blocks on /finance/chart-of-accounts before setting entries; any stalled/canceled request can keep loading=true and prevent AR rows from rendering. Browser logs show repeated net::ERR_ABORTED API calls during route lifecycle, consistent with data hydration interruption.",
+  "mocked_api": "NO MOCKED APIs used."
+}

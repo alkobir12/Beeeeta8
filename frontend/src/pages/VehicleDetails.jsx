@@ -3157,7 +3157,7 @@ const VehicleDetails = () => {
         note: `الكمية ${it.qty} × السعر ${it.price}`,
       }));
     } else if (sourceKey === 'suppliers_due') {
-      title = 'مصدر رقم ذمم الموردين (أرشيف)';
+      title = 'مصدر رقم حركة الموردين (أرشيف)';
       rows = supplierArchiveRows.map((it) => ({
         date: it.date,
         visitId: it.visitId,
@@ -3191,9 +3191,9 @@ const VehicleDetails = () => {
       const summary = financeSummary || {};
       rows = [
         { date: '-', visitId: '-', type: 'ذمم الورشة', label: 'إجمالي', amount: Number(summary.total_workshop || 0), note: 'إيراد الورشة' },
-        { date: '-', visitId: '-', type: 'ذمم الموردين', label: 'إجمالي', amount: Number(summary.total_suppliers || 0), note: 'أرشيف منفصل' },
+        { date: '-', visitId: '-', type: 'حركة الموردين', label: 'إجمالي', amount: Number(summary.total_suppliers || 0), note: 'أرشيف منفصل' },
         { date: '-', visitId: '-', type: 'المدفوع', label: 'إجمالي', amount: Number(summary.total_paid || 0), note: 'إجمالي الدفعات' },
-        { date: '-', visitId: '-', type: 'المتبقي', label: 'إجمالي', amount: Number(summary.balance || 0), note: 'المعادلة: (ذمم الورشة + ذمم الموردين) - المدفوع' },
+        { date: '-', visitId: '-', type: 'المتبقي', label: 'إجمالي', amount: Number(summary.balance || 0), note: 'المعادلة: بنود الورشة - السداد المؤكد' },
       ];
     }
 

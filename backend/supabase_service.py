@@ -127,7 +127,8 @@ def _summarize_visit_notes(notes: Any) -> Dict[str, Any]:
         price = _safe_float(item.get('price') or 0)
         line_total = _safe_float(item.get('total'), qty * price)
         item_type = str(item.get('itemType') or item.get('type') or '').strip().lower()
-        if item_type == 'supplier':
+        billing_type = str(item.get('billingType') or item.get('billing_type') or '').strip().lower()
+        if item_type == 'supplier' or billing_type == 'supplier':
             total_suppliers += line_total
         else:
             total_workshop += line_total

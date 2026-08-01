@@ -115,7 +115,7 @@ export default function VehicleFinancialSummary({ summary, t, onShowSource }) {
         sourceKey="workshop_due"
       />
       <StatCard
-        title={safeT('vehicle_finance.suppliers_due', 'ذمم الموردين')}
+        title={safeT('vehicle_finance.suppliers_due', 'حركة الموردين')}
         value={s.total_suppliers}
         subtitle={safeT('vehicle_finance.suppliers_due_hint', 'أرشيف موردين (منفصل عن ربح الورشة)')}
         accent="rose"

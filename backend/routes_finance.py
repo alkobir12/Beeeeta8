@@ -282,6 +282,206 @@ def _live_ar_balances_by_customer(workshop_id: str, end_date: Optional[str] = No
     return {"total_ar": total_ar, "customers": customers, "ledger_rows": rows}
 
 
+def _parse_json_notes(notes: Any) -> Dict[str, Any]:
+    if isinstance(notes, dict):
+        return notes
+    if isinstance(notes, str):
+        raw = notes.strip()
+        if raw.startswith("{") and raw.endswith("}"):
+            try:
+                parsed = json.loads(raw)
+                return parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                return {}
+    return {}
+
+
+def _visit_item_totals(notes: Any) -> Dict[str, float]:
+    parsed = _parse_json_notes(notes)
+    workshop = 0.0
+    suppliers = 0.0
+    for item in parsed.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        qty = _safe_float(item.get("quantity") or item.get("qty") or 1) or 1.0
+        price = _safe_float(item.get("price") or item.get("unit_price") or item.get("amount") or 0)
+        total = _safe_float(item.get("total")) or round(qty * price, 2)
+        item_type = str(item.get("itemType") or item.get("type") or "").strip().lower()
+        billing_type = str(item.get("billingType") or item.get("billing_type") or "").strip().lower()
+        if item_type == "supplier" or billing_type == "supplier":
+            suppliers += total
+        else:
+            workshop += total
+    return {"workshop": round(workshop, 2), "suppliers": round(suppliers, 2)}
+
+
+def _confirmed_payment_amount(entry: Dict[str, Any]) -> float:
+    amount = 0.0
+    for line in entry.get("lines") or []:
+        code = str(line.get("account") or line.get("code") or line.get("account_code") or "").strip()
+        if code in {"005", "1103", "113"}:
+            amount += max(_safe_float(line.get("credit")) - _safe_float(line.get("debit")), 0.0)
+    if amount > 0:
+        return round(amount, 2)
+    return round(_safe_float(entry.get("total")), 2)
+
+
+def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_date: Optional[str] = None) -> Dict[str, Any]:
+    """Current AR from vehicle visits only: workshop items - confirmed journal payments.
+
+    This intentionally ignores supplier items and unposted payments stored in notes.
+    It does not create or mutate journal entries/operations.
+    """
+    if not supabase:
+        return {"total_ar": 0.0, "customers": [], "vehicles": [], "ledger_rows": []}
+
+    vehicles = supabase.table("vehicles").select("id,customer_name,plate_number,status,entry_date").execute().data or []
+    visits = supabase.table("vehicle_visits").select("id,vehicle_id,status,notes,entry_date,created_at").execute().data or []
+    operations = supabase.table("operations").select("id,vehicle_id,visit_id,partner_name,total,payment_method").execute().data or []
+    entries = _fetch_journal_entries(workshop_id, end_date=end_date, limit=10000, include_rakan=False)
+
+    vehicle_by_id = {str(v.get("id") or "").strip(): v for v in vehicles if v.get("id")}
+    visits_by_vehicle: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    ops_by_visit: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for visit in visits:
+        visits_by_vehicle[str(visit.get("vehicle_id") or "").strip()].append(visit)
+    for op in operations:
+        visit_id = str(op.get("visit_id") or "").strip()
+        if visit_id:
+            ops_by_visit[visit_id].append(op)
+
+    refs_by_visit: Dict[str, set] = defaultdict(set)
+    for visit in visits:
+        visit_id = str(visit.get("id") or "").strip()
+        if visit_id:
+            refs_by_visit[visit_id].add(visit_id)
+    for op in operations:
+        visit_id = str(op.get("visit_id") or "").strip()
+        op_id = str(op.get("id") or "").strip()
+        if visit_id and op_id:
+            refs_by_visit[visit_id].add(op_id)
+
+    payments_by_ref: Dict[str, float] = defaultdict(float)
+    payment_method_by_ref: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
+    for entry in entries:
+        source = str(entry.get("source") or "").strip().lower()
+        if source not in {"operation_payment", "payment"}:
+            continue
+        ref = str(entry.get("reference_id") or "").strip()
+        if not ref:
+            continue
+        amount = _confirmed_payment_amount(entry)
+        if amount <= 0:
+            continue
+        payments_by_ref[ref] += amount
+        method = "unknown"
+        for line in entry.get("lines") or []:
+            code = str(line.get("account") or line.get("code") or "").strip()
+            if _safe_float(line.get("debit")) <= 0:
+                continue
+            if code in {"003", "1101"}:
+                method = "cash"
+            elif code in {"006", "1104"}:
+                method = "pos"
+            elif code in {"004", "1102"}:
+                method = "bank_transfer"
+        payment_method_by_ref[ref][method] += amount
+
+    live_vehicles = [v for v in sorted(vehicles, key=lambda r: str(r.get("entry_date") or ""), reverse=True) if str(v.get("status") or "").strip().lower() != "delivered"]
+    customer_balances: Dict[str, float] = defaultdict(float)
+    ledger_rows: List[Dict[str, Any]] = []
+    vehicle_rows: List[Dict[str, Any]] = []
+    totals = {"workshop_total": 0.0, "confirmed_paid": 0.0, "receivable": 0.0, "supplier_total": 0.0, "cash": 0.0, "pos": 0.0, "bank_transfer": 0.0}
+
+    for vehicle in live_vehicles:
+        vehicle_id = str(vehicle.get("id") or "").strip()
+        status = str(vehicle.get("status") or "").strip().lower()
+        excluded = status in {"archived", "delivered"}
+        customer = str(vehicle.get("customer_name") or "غير محدد").strip() or "غير محدد"
+        vehicle_workshop = 0.0
+        vehicle_suppliers = 0.0
+        vehicle_confirmed = 0.0
+        visit_rows = []
+
+        for visit in visits_by_vehicle.get(vehicle_id, []):
+            visit_id = str(visit.get("id") or "").strip()
+            item_totals = _visit_item_totals(visit.get("notes"))
+            refs = refs_by_visit.get(visit_id, {visit_id})
+            confirmed = round(sum(payments_by_ref.get(ref, 0.0) for ref in refs), 2)
+            by_method = defaultdict(float)
+            for ref in refs:
+                for method, amount in payment_method_by_ref.get(ref, {}).items():
+                    by_method[method] += amount
+            if not excluded:
+                totals["cash"] += by_method.get("cash", 0.0)
+                totals["pos"] += by_method.get("pos", 0.0)
+                totals["bank_transfer"] += by_method.get("bank_transfer", 0.0)
+            remaining = max(item_totals["workshop"] - confirmed, 0.0)
+            vehicle_workshop += item_totals["workshop"]
+            vehicle_suppliers += item_totals["suppliers"]
+            vehicle_confirmed += confirmed
+            visit_rows.append({
+                "visit_id": visit_id,
+                "status": visit.get("status"),
+                "workshop_amount": item_totals["workshop"],
+                "supplier_amount": item_totals["suppliers"],
+                "confirmed_paid": confirmed,
+                "remaining": round(remaining, 2),
+                "classification": "آجل — غير مسدد" if item_totals["workshop"] > 0 and confirmed <= 0 else ("سداد جزئي" if remaining > 0 else "مسدد بالكامل"),
+                "operation_ids": [str(op.get("id")) for op in ops_by_visit.get(visit_id, []) if op.get("id")],
+            })
+
+        vehicle_remaining = max(vehicle_workshop - vehicle_confirmed, 0.0)
+        if excluded:
+            receivable = 0.0
+            reason = "مركبة مؤرشفة/مسلمة لا تدخل في الذمم الحالية"
+        elif vehicle_workshop <= 0:
+            receivable = 0.0
+            reason = "لا توجد بنود ورشة"
+        else:
+            receivable = round(vehicle_remaining, 2)
+            reason = "بنود الورشة - قيود السداد المؤكدة"
+            customer_balances[customer] += receivable
+            if receivable > 0:
+                ledger_rows.append({
+                    "date": str((visits_by_vehicle.get(vehicle_id) or [{}])[0].get("entry_date") or ""),
+                    "customer": customer,
+                    "vehicle_id": vehicle_id,
+                    "reference_id": vehicle_id,
+                    "amount": receivable,
+                    "description": reason,
+                })
+
+        if not excluded:
+            totals["workshop_total"] += vehicle_workshop
+            totals["supplier_total"] += vehicle_suppliers
+            totals["confirmed_paid"] += vehicle_confirmed
+            totals["receivable"] += receivable
+
+        vehicle_rows.append({
+            "vehicle_id": vehicle_id,
+            "customer": customer,
+            "plate": vehicle.get("plate_number"),
+            "raw_status": vehicle.get("status"),
+            "included_in_current_ar": not excluded,
+            "exclusion_reason": reason if excluded or vehicle_workshop <= 0 else "",
+            "workshop_amount": round(vehicle_workshop, 2),
+            "supplier_amount": round(vehicle_suppliers, 2),
+            "confirmed_paid": round(vehicle_confirmed, 2),
+            "receivable": round(receivable, 2),
+            "visits": visit_rows,
+        })
+
+    customers = [{"customer": name, "balance": round(balance, 2)} for name, balance in sorted(customer_balances.items()) if balance > 0.005]
+    return {
+        "total_ar": round(sum(row["balance"] for row in customers), 2),
+        "customers": customers,
+        "vehicles": vehicle_rows,
+        "ledger_rows": ledger_rows,
+        "totals": {key: round(value, 2) for key, value in totals.items()},
+    }
+
+
 def _extract_request_actor(request: Optional[Request]) -> Dict[str, str]:
     # 🔐 سمات التدقيق تُشتقّ من JWT الموقَّع (لا الترويسات القابلة للانتحال)
     ident = {}
@@ -947,38 +1147,14 @@ async def get_income_statement(
 
         # لا نسمح لفشل fetch ثانوي (sales summary) بإرجاع التقرير كاملًا بصفر.
         try:
-            operations = _fetch_operations_for_reconciliation(
-                workshop_id=effective_workshop_id,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            operations = _filter_live_operations(operations, effective_workshop_id, keep_standalone=True)
-            for op in operations:
-                op_type = _normalize_operation_type_for_reconciliation(op.get("type"))
-                if op_type != "sale":
-                    continue
-
-                amount = _safe_float(op.get("total"))
-                if amount <= 0:
-                    continue
-
-                operations_sales_count += 1
-                operations_sales_total += amount
-
-                op_method = _normalize_payment_method(
-                    op.get("payment_method") or op.get("paymentMethod") or ""
-                )
-                op_status = str(op.get("payment_status") or op.get("paymentStatus") or "").strip().lower()
-                is_credit = op_method == "credit" or op_status in {"credit", "unpaid", "pending", "partial"}
-
-                if is_credit:
-                    operations_credit_total += amount
-                elif op_method == "bank_transfer":
-                    operations_bank_total += amount
-                elif op_method == "pos":
-                    operations_pos_total += amount
-                else:
-                    operations_cash_total += amount
+            visit_ar = build_current_visit_ar_snapshot(effective_workshop_id, end_date=end_date)
+            visit_totals = visit_ar.get("totals") or {}
+            operations_sales_total = _safe_float(visit_totals.get("workshop_total"))
+            operations_sales_count = sum(1 for row in visit_ar.get("vehicles") or [] if _safe_float(row.get("workshop_amount")) > 0 and row.get("included_in_current_ar"))
+            operations_credit_total = _safe_float(visit_totals.get("receivable"))
+            operations_cash_total = _safe_float(visit_totals.get("cash"))
+            operations_bank_total = _safe_float(visit_totals.get("bank_transfer"))
+            operations_pos_total = _safe_float(visit_totals.get("pos"))
         except Exception as operations_error:
             print(f"Income statement sales summary skipped: {operations_error}")
         
@@ -3599,7 +3775,7 @@ async def ar_ledger(
         start_date = _parse_date_str(start_date)
         end_date = _parse_date_str(end_date)
 
-        ledger_ar = _live_ar_balances_by_customer(workshop_id, end_date=end_date)
+        ledger_ar = build_current_visit_ar_snapshot(workshop_id, end_date=end_date)
         ledger_rows = []
         balance = 0.0
         for row in sorted(ledger_ar["ledger_rows"], key=lambda item: str(item.get("date") or "")):
@@ -3617,7 +3793,7 @@ async def ar_ledger(
                 "credit": round(abs(amount), 2) if amount < 0 else 0.0,
                 "description": row.get("description"),
                 "journal_entry_id": row.get("journal_entry_id"),
-                "source": row.get("source"),
+                "source": row.get("source") or "vehicle_visit_current_ar",
                 "running_balance": round(balance, 2),
             })
         return {"success": True, "data": {"account": {"code": "1103", "name": "ذمم مدينة عملاء"}, "rows": ledger_rows, "ending_balance": round(balance, 2)}}
@@ -3722,8 +3898,8 @@ async def ar_customers(
         # Example: op_date=2026-01-29T14:xxZ should be included for as_of=2026-01-29
         as_of_eod = f"{as_of}T23:59:59Z" if include_today else as_of
 
-        ledger_ar = _live_ar_balances_by_customer(workshop_id, end_date=as_of_eod)
-        return {"success": True, "data": {"as_of": as_of, "total_ar": ledger_ar["total_ar"], "customers": ledger_ar["customers"]}}
+        ledger_ar = build_current_visit_ar_snapshot(workshop_id, end_date=as_of_eod)
+        return {"success": True, "data": {"as_of": as_of, "total_ar": ledger_ar["total_ar"], "customers": ledger_ar["customers"], "vehicles": ledger_ar["vehicles"], "totals": ledger_ar["totals"]}}
 
         # all credit ops up to as_of (EOD)
         ops = _filter_live_operations(_fetch_credit_sales_ops(workshop_id, end_date=as_of_eod), workshop_id, keep_standalone=False)

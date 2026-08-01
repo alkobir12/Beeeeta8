@@ -91,7 +91,7 @@ from routes_analytics_advanced import router as analytics_advanced_router
 from routes_ai_recommendations import router as ai_recommendations_router
 
 # Import Finance Routes
-from routes_finance import router as finance_router, set_db as set_db_finance
+from routes_finance import router as finance_router, set_db as set_db_finance, build_current_visit_ar_snapshot
 from routes_finance_bot import router as finance_bot_router
 from routes_suppliers_extended import router as suppliers_ext_router
 from routes_stitch import router as stitch_router
@@ -1759,7 +1759,7 @@ async def _build_partner_financial_map(
     # Cache key includes entity count + first/last IDs to detect when caller passes different sets.
     entity_ids = sorted(str(e.get("id") or "") for e in (entities or []) if str(e.get("id") or ""))
     cache_signature = f"{len(entity_ids)}:{entity_ids[0] if entity_ids else ''}:{entity_ids[-1] if entity_ids else ''}"
-    cache_key = f"{p_type}|{workshop_id or '_'}|{cache_signature}"
+    cache_key = f"visit-ar-v2|{p_type}|{workshop_id or '_'}|{cache_signature}"
     cached = _perf_cache.get_cached("partner_fin_map", cache_key)
     if cached is not None:
         return cached
@@ -1789,6 +1789,74 @@ async def _build_partner_financial_map_uncached(
 
     if not by_id:
         return {}
+
+    if p_type == "customer":
+        try:
+            snapshot = build_current_visit_ar_snapshot(workshop_id or "finmodule-sync")
+            for vehicle_row in snapshot.get("vehicles") or []:
+                customer_key = _normalize_partner_name(vehicle_row.get("customer"))
+                target_id = by_name.get(customer_key)
+                if not target_id or target_id not in by_id:
+                    continue
+                summary = by_id[target_id]
+                workshop_amount = _safe_float(vehicle_row.get("workshop_amount"))
+                confirmed_paid = _safe_float(vehicle_row.get("confirmed_paid"))
+                receivable = _safe_float(vehicle_row.get("receivable"))
+                if workshop_amount <= 0 and confirmed_paid <= 0 and receivable <= 0:
+                    continue
+                summary["debitBalance"] += workshop_amount
+                summary["creditBalance"] += confirmed_paid
+                summary["settledAmount"] += confirmed_paid
+                summary["overdueBalance"] += receivable
+                summary["ajelBalance"] += receivable
+                if receivable > 0:
+                    summary["paymentPlanCount"] += 1
+                _append_partner_movement(
+                    summary,
+                    {
+                        "id": f"vehicle-visit-ar-{vehicle_row.get('vehicle_id')}",
+                        "direction": "debit",
+                        "label": "آجل — غير مسدد" if confirmed_paid <= 0 else ("سداد جزئي" if receivable > 0 else "مسدد بالكامل"),
+                        "amount": round(workshop_amount, 2),
+                        "date": "",
+                        "flow": "in",
+                        "flowLabel": "داخل",
+                        "visitId": "",
+                        "vehicleId": vehicle_row.get("vehicle_id"),
+                        "source": "vehicle_visit_current_ar",
+                        "operationId": "",
+                        "note": "بنود الورشة فقط ناقص قيود السداد المؤكدة",
+                    },
+                )
+                if confirmed_paid > 0:
+                    _append_partner_movement(
+                        summary,
+                        {
+                            "id": f"vehicle-visit-paid-{vehicle_row.get('vehicle_id')}",
+                            "direction": "credit",
+                            "label": "سداد مؤكد",
+                            "amount": round(confirmed_paid, 2),
+                            "date": "",
+                            "flow": "in",
+                            "flowLabel": "داخل",
+                            "visitId": "",
+                            "vehicleId": vehicle_row.get("vehicle_id"),
+                            "source": "operation_payment",
+                            "operationId": "",
+                            "note": "قيود يومية مؤكدة مرتبطة بالزيارة/العملية",
+                        },
+                    )
+            for summary in by_id.values():
+                summary["debitBalance"] = round(_safe_float(summary.get("debitBalance")), 2)
+                summary["creditBalance"] = round(_safe_float(summary.get("creditBalance")), 2)
+                summary["overdueBalance"] = round(_safe_float(summary.get("overdueBalance")), 2)
+                summary["ajelBalance"] = round(_safe_float(summary.get("ajelBalance")), 2)
+                summary["settledAmount"] = round(_safe_float(summary.get("settledAmount")), 2)
+                summary["balance"] = round(_safe_float(summary.get("overdueBalance")), 2)
+                summary["netBalance"] = round(summary["debitBalance"] - summary["creditBalance"], 2)
+            return by_id
+        except Exception as visit_ar_error:
+            print(f"customer visit AR snapshot failed, falling back to operations: {visit_ar_error}")
 
     operations = await _filter_partner_operations_to_current_scope(
         await _fetch_operations_for_partner_financials(workshop_id),

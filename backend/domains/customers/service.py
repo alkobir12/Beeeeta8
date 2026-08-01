@@ -42,6 +42,7 @@ class CustomerService:
 
         empty_summary = _pf.partner_summary_template()
         enriched = []
+        known_names = {str((row.get("name") or row.get("customerName") or row.get("customer_name") or "")).strip() for row in rows}
         for row in rows:
             cid = str(row.get("id") or "")
             summary = financial_map.get(cid, empty_summary)
@@ -50,6 +51,34 @@ class CustomerService:
                 **summary,
                 "fileNumber": row.get("fileNumber") or file_map.get(cid) or None,
             })
+        try:
+            from routes_finance import build_current_visit_ar_snapshot
+
+            snapshot = build_current_visit_ar_snapshot(workshop_id or "finmodule-sync")
+            for customer in snapshot.get("customers") or []:
+                name = str(customer.get("customer") or "").strip()
+                balance = float(customer.get("balance") or 0)
+                if not name or balance <= 0 or name in known_names:
+                    continue
+                summary = _pf.partner_summary_template()
+                summary.update({
+                    "debitBalance": balance,
+                    "overdueBalance": balance,
+                    "ajelBalance": balance,
+                    "balance": balance,
+                    "netBalance": balance,
+                    "paymentPlanCount": 1,
+                })
+                enriched.append({
+                    "id": f"visit-ar:{name}",
+                    "name": name,
+                    "phone": "",
+                    "source": "vehicle_visit_current_ar",
+                    **summary,
+                    "fileNumber": None,
+                })
+        except Exception:
+            pass
         return enriched
 
     async def get_customer(self, customer_id: str) -> Optional[Dict[str, Any]]:
