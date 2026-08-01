@@ -1,0 +1,47 @@
+{
+  "summary": "Executed requested backend+frontend verification for DebtFollowUp mobile/desktop enhancements. Backend regression passed 8/8, desktop and mobile UI checks passed, hydration showed stable data (12 customers / 12,570), required mobile testids existed, and no fatal console runtime errors were observed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Login -> /debts-followup navigation/reloads during automation",
+        "issue": "Multiple net::ERR_ABORTED request failures observed in console logs during route transitions/reloads, but page still rendered correct final hydrated state.",
+        "affected_selectors": [
+          "[data-testid='debt-followup-page']",
+          "[data-testid='debt-followup-mobile-list']",
+          "[data-testid='debt-followup-entries-count']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/pytest/iter317_backend.xml"
+  ],
+  "action_items": [
+    "Optional hardening: reduce noisy aborted background requests during navigation/reload churn.",
+    "Optional config cleanup: remove workshop-id hardcoded fallback and rely on strict env fail-fast only."
+  ],
+  "critical_code_review_comments": [
+    "DebtFollowUp still uses `process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync'` fallback in multiple API payloads/queries; this weakens strict env-only configuration discipline.",
+    "Responsive split is correctly implemented: mobile list is md:hidden and desktop table is hidden on mobile." 
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_317.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8)",
+    "frontend": "100% (all requested desktop/mobile checks passed)"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation performed during test run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Validated on preview URL with manager PIN login. Desktop showed required controls (Refresh/Select All/Bulk Preview), supplier label became حركة الموردين, and hydration settled to 12 customers with 12,570 total. Mobile viewport (390x844) showed debt-followup-mobile-list, debt-mobile-card-*, debt-mobile-row-settlement-order-*, debt-mobile-row-preview-* with touch-friendly heights (~60.5px) and no horizontal overflow.",
+  "rca of the issue": "No blocking functional issue reproduced in this scope. Remaining observable behavior is non-fatal network abort noise during route changes/reloads, likely from in-flight request cancellation or browser/edge instrumentation fetch interruption rather than broken DebtFollowUp rendering logic.",
+  "mocked_api": "NO MOCKED APIs used."
+}

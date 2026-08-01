@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, MessageCircle, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, MessageCircle, RefreshCw, Send, WalletCards } from 'lucide-react';
 import { api, customerAPI, supplierAPI } from '../services/api';
 import { useToast } from '../hooks/use-toast';
 import DebtWhatsAppComposerDialog from '../components/DebtWhatsAppComposerDialog';
@@ -273,12 +273,12 @@ export default function DebtFollowUp() {
       },
       {
         key: 'suppliers',
-        title: 'ذمم الموردين (آجل)',
+        title: 'حركة الموردين',
         value: totals.suppliers,
         tone: 'border-amber-400/20 bg-amber-500/10 text-amber-100',
         subtitle: `عدد الموردين: ${supplierRows.length}`,
         details: [
-          `متوسط الذمة/مورد: ${fmt(supplierRows.length ? totals.suppliers / supplierRows.length : 0)} ر.س`,
+          `متوسط الحركة/مورد: ${fmt(supplierRows.length ? totals.suppliers / supplierRows.length : 0)} ر.س`,
           `إجمالي الجهات المحددة حاليًا: ${selectedEntries.filter((row) => row.entityType === 'supplier').length}`,
         ],
       },
@@ -464,15 +464,15 @@ export default function DebtFollowUp() {
   };
 
   return (
-    <div className="space-y-6" dir="rtl" data-testid="debt-followup-page">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100" data-testid="debt-followup-title">متابعة الذمم والتحصيل</h1>
-          <p className="text-sm text-slate-300/80 mt-1">تقادم الذمم + معاينة وتعديل رسائل واتساب قبل الإرسال الفردي أو الجماعي.</p>
+    <div className="space-y-4 sm:space-y-6 pb-24 md:pb-6" dir="rtl" data-testid="debt-followup-page">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-100" data-testid="debt-followup-title">متابعة الذمم والتحصيل</h1>
+          <p className="text-xs sm:text-sm text-slate-300/80 mt-1 leading-6">تقادم الذمم + معاينة رسائل واتساب قبل الإرسال الفردي أو الجماعي.</p>
         </div>
         <button
           type="button"
-          className="apple-button h-10 px-4"
+          className="apple-button h-11 w-full sm:w-auto px-4 justify-center active:scale-[0.98] transition-transform"
           onClick={fetchData}
           data-testid="debt-followup-refresh-button"
         >
@@ -493,25 +493,25 @@ export default function DebtFollowUp() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-testid="debt-metrics-cards-grid">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3" data-testid="debt-metrics-cards-grid">
         {metricsCards.map((card) => {
           const expanded = !!expandedCards[card.key];
           return (
             <div
               key={card.key}
-              className={`rounded-xl border p-3 ${card.tone}`}
+              className={`rounded-xl border p-2.5 sm:p-3 min-h-[118px] ${card.tone}`}
               data-testid={`debt-summary-card-${card.key}`}
             >
               <button
                 type="button"
                 onClick={() => setExpandedCards((prev) => ({ ...prev, [card.key]: !prev[card.key] }))}
-                className="w-full flex items-start justify-between gap-3 text-right"
+                className="w-full flex items-start justify-between gap-2 text-right min-h-[92px]"
                 data-testid={`debt-summary-card-toggle-${card.key}`}
               >
                 <div>
-                  <p className="text-xs opacity-80">{card.title}</p>
-                  <p className="text-lg font-bold mt-1">{fmt(card.value)} ر.س</p>
-                  <p className="text-[11px] opacity-80 mt-1">{card.subtitle}</p>
+                  <p className="text-[11px] sm:text-xs opacity-80 leading-5">{card.title}</p>
+                  <p className="text-base sm:text-lg font-bold mt-1 leading-6 break-words">{fmt(card.value)} ر.س</p>
+                  <p className="text-[10px] sm:text-[11px] opacity-80 mt-1 leading-5">{card.subtitle}</p>
                 </div>
                 <span className="mt-1 opacity-80">
                   {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -532,13 +532,16 @@ export default function DebtFollowUp() {
         })}
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4" data-testid="debt-followup-table-wrapper">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div className="text-sm text-slate-200">عدد الجهات: <span className="font-semibold">{entries.length}</span></div>
-          <div className="flex gap-2">
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4" data-testid="debt-followup-table-wrapper">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-200 sm:border-0 sm:bg-transparent sm:p-0">
+            <span>عدد الجهات</span>
+            <span className="font-semibold text-cyan-100" data-testid="debt-followup-entries-count">{entries.length}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
             <button
               type="button"
-              className="apple-button-secondary h-9 px-3"
+              className="apple-button-secondary h-11 px-3 justify-center active:scale-[0.98] transition-transform"
               onClick={() => setSelectedIds(entries.map((row) => `${row.entityType}-${row.id}`))}
               data-testid="debt-select-all-button"
             >
@@ -546,11 +549,11 @@ export default function DebtFollowUp() {
             </button>
             <button
               type="button"
-              className="apple-button h-9 px-3"
+              className="apple-button h-11 px-3 justify-center active:scale-[0.98] transition-transform"
               onClick={() => openPreviewForRows(selectedEntries)}
               data-testid="debt-open-bulk-preview-button"
             >
-              <span className="inline-flex items-center gap-1"><MessageCircle size={14} /> معاينة/إرسال جماعي</span>
+              <span className="inline-flex items-center gap-1"><MessageCircle size={15} /> معاينة جماعية</span>
             </button>
           </div>
         </div>
@@ -560,7 +563,91 @@ export default function DebtFollowUp() {
         ) : entries.length === 0 ? (
           <div className="py-10 text-center text-slate-400" data-testid="debt-followup-empty">لا توجد ذمم آجلة حالياً.</div>
         ) : (
-          <div className="overflow-auto">
+          <>
+          <div className="md:hidden space-y-3" data-testid="debt-followup-mobile-list">
+            {entries.map((row) => {
+              const rowId = `${row.entityType}-${row.id}`;
+              const selected = selectedIds.includes(rowId);
+              return (
+                <div
+                  key={`mobile-${rowId}`}
+                  className="rounded-2xl border border-white/10 bg-slate-950/40 p-3 shadow-lg shadow-black/10"
+                  data-testid={`debt-mobile-card-${rowId}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex items-start gap-3 min-w-0" data-testid={`debt-mobile-select-label-${rowId}`}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, rowId] : prev.filter((id) => id !== rowId))}
+                        className="mt-1 h-5 w-5 accent-cyan-400"
+                        data-testid={`debt-mobile-row-checkbox-${rowId}`}
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-bold text-slate-50">{row.name}</span>
+                        <span className="mt-1 inline-flex rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-slate-300">
+                          {row.entityType === 'supplier' ? 'مورد' : 'عميل'}
+                        </span>
+                      </span>
+                    </label>
+                    <div className="text-left shrink-0">
+                      <p className="text-[11px] text-slate-400">آجل</p>
+                      <p className="text-lg font-extrabold text-rose-200" data-testid={`debt-mobile-row-ajel-${rowId}`}>{fmt(row.ajelBalance)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-xl bg-white/5 p-2" data-testid={`debt-mobile-row-debit-${rowId}`}>
+                      <span className="block text-slate-400">مدين</span>
+                      <b className="text-slate-100">{fmt(row.debitBalance)}</b>
+                    </div>
+                    <div className="rounded-xl bg-white/5 p-2" data-testid={`debt-mobile-row-credit-${rowId}`}>
+                      <span className="block text-slate-400">دائن</span>
+                      <b className="text-slate-100">{fmt(row.creditBalance)}</b>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-2 text-xs text-slate-400" data-testid={`debt-mobile-row-phone-${rowId}`}>
+                    <span className="ltr text-left">{row.phone || 'لا يوجد رقم'}</span>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={manualAmounts[rowId] ?? ''}
+                      onChange={(e) => setManualAmounts((prev) => ({ ...prev, [rowId]: e.target.value }))}
+                      placeholder={`المبلغ: ${Number(row.ajelBalance || 0).toFixed(2)}`}
+                      className="h-11 w-full rounded-xl border border-white/15 bg-white/10 px-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none"
+                      data-testid={`debt-mobile-row-manual-amount-${rowId}`}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        className="h-11 rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-3 text-sm font-semibold text-cyan-100 active:scale-[0.98] transition-transform disabled:opacity-60"
+                        onClick={() => createSettlementOrder(row)}
+                        disabled={savingRowId === rowId}
+                        data-testid={`debt-mobile-row-settlement-order-${rowId}`}
+                      >
+                        <span className="inline-flex items-center justify-center gap-1"><WalletCards size={15} /> {savingRowId === rowId ? 'جارٍ...' : 'سداد'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="h-11 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 text-sm font-semibold text-emerald-100 active:scale-[0.98] transition-transform"
+                        onClick={() => openPreviewForRows([row])}
+                        data-testid={`debt-mobile-row-preview-${rowId}`}
+                      >
+                        <span className="inline-flex items-center justify-center gap-1"><Send size={15} /> واتساب</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="hidden md:block overflow-auto">
             <table className="w-full text-sm" data-testid="debt-followup-table">
               <thead>
                 <tr className="text-slate-300 border-b border-white/10">
@@ -602,12 +689,12 @@ export default function DebtFollowUp() {
                             value={manualAmounts[rowId] ?? ''}
                             onChange={(e) => setManualAmounts((prev) => ({ ...prev, [rowId]: e.target.value }))}
                             placeholder={String(Number(row.ajelBalance || 0).toFixed(2))}
-                            className="w-28 rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-white"
+                            className="h-10 w-32 rounded-xl border border-white/20 bg-white/10 px-3 py-1 text-xs text-white focus:border-cyan-300 focus:outline-none"
                             data-testid={`debt-row-manual-amount-${rowId}`}
                           />
                           <button
                             type="button"
-                            className="text-xs px-2 py-1 rounded border border-cyan-400/40 bg-cyan-500/15 text-cyan-100"
+                            className="h-10 rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-3 text-xs font-semibold text-cyan-100 active:scale-[0.98] transition-transform disabled:opacity-60"
                             onClick={() => createSettlementOrder(row)}
                             disabled={savingRowId === rowId}
                             data-testid={`debt-row-settlement-order-${rowId}`}
@@ -616,7 +703,7 @@ export default function DebtFollowUp() {
                           </button>
                           <button
                             type="button"
-                            className="text-xs px-2 py-1 rounded border border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+                            className="h-10 rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-100 active:scale-[0.98] transition-transform"
                             onClick={() => openPreviewForRows([row])}
                             data-testid={`debt-row-preview-${rowId}`}
                           >
@@ -630,6 +717,7 @@ export default function DebtFollowUp() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
