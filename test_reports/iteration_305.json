@@ -1,0 +1,52 @@
+{
+  "summary": "Iter-305 RETEST of iter-304 fixes PASSED (5/5 backend pytest + UI consistency verified). (1) Operation snapshot no longer misclassifies credit-with-balance visits as 'cash-immediate'/'paid'; new credit visit 300 SAR credit gives op.totalPaid=0, balance=300, paymentStatus='unconfirmed', paymentMethod='credit' (NOT 'paid' as in iter-304). (2) After 100 SAR partial payment: op.totalPaid=100 (uses max(journal 100, notes 100)), balance=200, paymentStatus='partial'; journal has Dr 005=300 (accrual) + Cr 005=100 (collection) exactly as required. (3) Customer.ajelBalance freshness confirmed — reads 300 immediately after credit visit and 200 immediately after 100 payment (both fetched within ~2.9s including HTTP RTT; perf_cache invalidation working). (4) Idempotency confirmed (re-PUT same payload → no duplicate JE). (5) Delete cascade confirmed (JEs+op removed, customer ajel back to 0, ledger back to baseline 51735, gap 0). UI: Login via data-testids worked; debts-followup shows total ذمم العملاء=51,735.00 and محمد الحربي 600/0/600 (مدين/دائن/آجل); operations page shows 164 ops with محمد الحربي visible; vehicle 61fe0b56 details page shows visit 001 workshop=600 (matches AR) + supplier 179 = 779 remaining; QuickPrint dialog opens without raw placeholders. Final ledger check: 51735 = 51735 gap 0.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/operations (paymentStatus for pure credit visits)",
+        "issue": "For a new credit visit with 0 payments, operation.paymentStatus is 'unconfirmed' rather than 'unpaid'/'deferred'. This is an accepted synthesized-value quirk (Supabase ops table lacks payment_status column) and the balance/totalPaid values are correct — but for a business-labeled 'credit' sale with 0 payments, 'unconfirmed' is semantically ambiguous. Cosmetic; consider mapping (paymentMethod=='credit' && totalPaid==0) → 'unpaid'/'deferred'."
+      },
+      {
+        "endpoint": "GET /api/customers (freshness)",
+        "issue": "customer.ajelBalance is now fresh after visit_sync perf_cache invalidation (verified: 300 immediately after credit visit, 200 immediately after 100 payment). Wall-clock latency ~2.9s including HTTP RTT for a 47-customer scan — acceptable but not sub-second. If a tighter SLA is needed, consider returning a single-customer endpoint or partial computation."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Post-login initial page loads",
+        "issue": "Console shows several 401 errors after login (some endpoints seem to be called before token attaches or via a stale interceptor). Displayed data is correct on debts-followup, operations, and vehicle pages — but the transient 401s are noisy and could confuse users if they persist on retry paths.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter305_credit_ops_display_retest.py",
+    "/app/test_reports/pytest/iter305.xml"
+  ],
+  "action_items": [
+    "(Optional cosmetic) Map operation paymentStatus for (method=='credit' && totalPaid==0) → 'unpaid' or 'deferred' instead of 'unconfirmed' for clearer UI semantics.",
+    "(Optional) Investigate the console 401s that flash briefly after login — they don't affect displayed data but pollute the console."
+  ],
+  "critical_code_review_comments": [
+    "Iter-304 fixes verified working end-to-end: _operation_payment_snapshot correctly avoids cash-immediate classification for visits with remaining balance / partial/unpaid status; operations_list max(journal_paid, notes_paid) preserves correctness against both sources; visit_sync perf_cache invalidation ensures ajelBalance freshness.",
+    "The AR SSOT (ledger_ar_total==stored_balances_total==51735, gap 0) held across the full E2E flow — no accounting drift.",
+    "Idempotent PUT visit is a critical correctness property and it holds."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter305_credit_ops_display_retest.py (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 iter305 pytest cases passed — baseline, credit visit, partial payment, idempotency, delete cascade)",
+    "frontend": "100% for the consistency claim (debts-followup 51735 + محمد الحربي 600; operations page loads; vehicle 61fe0b56 shows workshop 600; QuickPrint renders without raw placeholders)"
+  },
+  "test_credentials": "مدير / PIN 123123 (login-username-input / login-pin-input / login-submit-button data-testids), x-ratelimit-bypass header set",
+  "seed_data_creation": "Ephemeral TEST customer (phone 0590000777) + vehicle + visit + 100 SAR payment created and fully cleaned up via DELETE cascade. Final ledger 51735 = 51735, gap 0, verified post-test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter-304 backend fixes are all verified. Journal endpoint is /api/finance/journal-entries with workshop_id=finmodule-sync. ar-ledger response is wrapped {success,data}. UI login must use data-testids (login-username-input, login-pin-input, login-submit-button) and wait ~5s post-click before navigating. Token localStorage key is 'auth_token'. If retesting UI operations page, note it takes 10-15s to fetch 164 ops (initial screenshot showed empty state)."
+}

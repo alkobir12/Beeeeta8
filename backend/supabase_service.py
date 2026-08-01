@@ -174,9 +174,13 @@ def _operation_payment_snapshot(row: Dict[str, Any], visit_summary: Dict[str, An
     # المنطق السابق كان يُعيد 'unpaid' عند paid<=0 رغم أن العملية مدفوعة نقدًا فوراً
     stored_method = str(row.get('payment_method') or row.get('paymentMethod') or '').strip().lower()
     stored_status = str(row.get('payment_status') or row.get('paymentStatus') or '').strip().lower()
+    visit_status = str(visit_summary.get('payment_status') or '').strip().lower()
+    visit_balance = _safe_float(visit_summary.get('balance'))
     is_cash_immediate = (
         stored_method in {'cash', 'transfer', 'bank', 'card', 'pos', 'mada', 'visa', 'mastercard', 'supplier_balance'}
         and stored_status not in {'credit', 'unpaid', 'partial', 'deferred', 'pending'}
+        # ⛔ زيارة برصيد متبقٍ أو حالة آجلة ليست عملية نقدية فورية حتى لو آخر دفعة كاش
+        and not (bool(visit_summary) and (visit_status in {'partial', 'unpaid', 'credit', 'deferred', 'unconfirmed'} or visit_balance > 0.009))
     )
     if is_cash_immediate:
         # العملية مدفوعة فوراً — تظهر بصفتها كذلك دون انتظار journal_entries
@@ -692,7 +696,8 @@ class SupabaseService:
             extra_operation_paid = operation_payment_totals.get(str(r.get("id") or "").strip(), 0.0)
             if extra_operation_paid:
                 visit_summary = dict(visit_summary)
-                visit_summary["total_paid"] = _safe_float(visit_summary.get("total_paid")) + extra_operation_paid
+                # نفس الدفعة قد تكون في ملاحظات الزيارة وفي قيد التحصيل — نأخذ الأكبر لا المجموع
+                visit_summary["total_paid"] = max(_safe_float(visit_summary.get("total_paid")), extra_operation_paid)
             has_visit_summary = bool(visit_summary)
             payment_method = visit_summary.get("last_payment_method") if has_visit_summary else None
             if not payment_method:

@@ -135,6 +135,8 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
         items = []
         payments = []
         visit_number = None
+        notes_payment_method = None
+        notes_payment_status = None
         if notes_raw:
             try:
                 if isinstance(notes_raw, str) and notes_raw.strip().startswith("{"):
@@ -143,10 +145,14 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
                     items = parsed.get("items", [])
                     payments = parsed.get("payments", []) or []
                     visit_number = parsed.get("visitNumberDisplay") or parsed.get("visitNumber") or parsed.get("visit_number")
+                    notes_payment_method = parsed.get("paymentMethod") or parsed.get("payment_method")
+                    notes_payment_status = parsed.get("paymentStatus") or parsed.get("payment_status")
                 elif isinstance(notes_raw, dict):
                     items = notes_raw.get("items", [])
                     payments = notes_raw.get("payments", []) or []
                     visit_number = notes_raw.get("visitNumberDisplay") or notes_raw.get("visitNumber") or notes_raw.get("visit_number")
+                    notes_payment_method = notes_raw.get("paymentMethod") or notes_raw.get("payment_method")
+                    notes_payment_status = notes_raw.get("paymentStatus") or notes_raw.get("payment_status")
             except Exception:
                 pass
         
@@ -212,7 +218,7 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
         else:
             computed_payment_status = "unpaid"
 
-        explicit_status = visit_data.get("payment_status") or visit_data.get("paymentStatus")
+        explicit_status = visit_data.get("payment_status") or visit_data.get("paymentStatus") or notes_payment_status
         # نُعطي الأولوية للحساب الفعلي عند توفر مدفوعات
         if net_paid > 0.01:
             payment_status = computed_payment_status
@@ -222,6 +228,7 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
         raw_payment_method = (
             visit_data.get("payment_method")
             or visit_data.get("paymentMethod")
+            or notes_payment_method
             or ((payments or [])[-1].get("method") if payments else None)
             or ((payments or [])[-1].get("payment_method") if payments else None)
         )
@@ -292,6 +299,13 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
                 _sync_visit_journal(supa_service, visit_id, op_data, total_paid, total_discount, payment_method)
             except Exception as je_error:
                 print(f"⚠️ Visit journal sync failed for {visit_id}: {je_error}")
+            # 🧹 إبطال كاش الحسابات المالية فوراً حتى تعكس الصفحات الأرقام الجديدة
+            try:
+                import perf_cache
+                for ns in ("ops_for_partner_fin", "op_payment_map", "partner_fin_map", "vehicle_customer_lookup", "visits_for_financials"):
+                    perf_cache.invalidate(ns)
+            except Exception:
+                pass
         
         # MongoDB support (Legacy)
         else:
