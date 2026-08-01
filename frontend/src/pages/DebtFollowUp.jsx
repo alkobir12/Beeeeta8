@@ -7,12 +7,34 @@ import ConfirmPaymentDialog from '../components/ConfirmPaymentDialog';
 import { buildDebtWhatsAppDraft } from '../utils/debtWhatsapp';
 import { getWhatsAppLink } from '../utils/constants';
 
+const CURRENT_AR_CACHE_KEY = 'debt-followup.current-ar.snapshot.v1';
+
+const readCurrentArCache = () => {
+  try {
+    const raw = localStorage.getItem(CURRENT_AR_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed?.rows) ? parsed.rows : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeCurrentArCache = (rows = []) => {
+  if (!Array.isArray(rows) || !rows.length) return;
+  try {
+    localStorage.setItem(CURRENT_AR_CACHE_KEY, JSON.stringify({ rows, savedAt: new Date().toISOString() }));
+  } catch {
+    // best effort cache فقط لتثبيت العرض عند abort/reload
+  }
+};
+
 export default function DebtFollowUp() {
   const workshopId = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState(() => readCurrentArCache());
   const [selectedIds, setSelectedIds] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [drafts, setDrafts] = useState([]);
@@ -76,6 +98,7 @@ export default function DebtFollowUp() {
         }))
         .filter((row) => row.ajelBalance > 0 || row.overdueBalance > 0);
 
+      if (merged.length > 0) writeCurrentArCache(merged);
       setEntries((current) => {
         if (merged.length > 0) return merged;
         return current.length > 0 ? current : [];
@@ -124,6 +147,8 @@ export default function DebtFollowUp() {
           setLiquidityBalances({ cash: 0, bank: 0 });
         });
     } catch (error) {
+      const cached = readCurrentArCache();
+      if (cached.length) setEntries(cached);
       toast({ title: 'خطأ', description: 'تعذر تحميل متابعة الذمم', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -140,7 +165,14 @@ export default function DebtFollowUp() {
       if (!response.ok) return;
       const payload = await response.json();
       const rows = Array.isArray(payload?.data?.customers) ? payload.data.customers : [];
-      if (!rows.length) return;
+      if (!rows.length) {
+        const cached = readCurrentArCache();
+        if (cached.length) {
+          setEntries((current) => (current.length ? current : cached));
+          setLoading(false);
+        }
+        return;
+      }
       const hydratedRows = rows.map((row, index) => ({
         id: row.id || `ar-customer-${index}`,
         name: row.customer || row.name || 'عميل',
@@ -150,6 +182,7 @@ export default function DebtFollowUp() {
         entityType: 'customer',
         source: 'vehicle_visit_current_ar',
       }));
+      writeCurrentArCache(hydratedRows);
       setEntries((current) => {
         const currentTotal = current.reduce((sum, row) => sum + Number(row.ajelBalance || row.overdueBalance || 0), 0);
         const hydratedTotal = hydratedRows.reduce((sum, row) => sum + Number(row.ajelBalance || row.overdueBalance || 0), 0);
@@ -157,7 +190,11 @@ export default function DebtFollowUp() {
       });
       setLoading(false);
     } catch {
-      // الصفحة تبقى على المسار الأساسي إن فشل fallback.
+      const cached = readCurrentArCache();
+      if (cached.length) {
+        setEntries((current) => (current.length ? current : cached));
+        setLoading(false);
+      }
     }
   };
 

@@ -1,0 +1,56 @@
+{
+  "summary": "Executed Iter-314 backend+frontend retest on preview. Backend regression suite passed 8/8, AR API contract returned expected values, and after a valid snapshot appears on /debts-followup, 3 consecutive reloads stayed stable at 12570/12 without reverting to empty.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DebtFollowUp",
+        "issue": "Cold load can remain empty/0 for ~10s before snapshot appears; data recovered by ~15s in this run.",
+        "selector": "[data-testid='debt-summary-card-customers'], [data-testid='debt-followup-empty']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Login -> /debts-followup -> warmup + reloads",
+        "issue": "Frequent request failures with net::ERR_ABORTED for /api/finance/ar/customers, /api/customers, /api/suppliers were observed during route/reload churn; cache still preserved stable display after snapshot acquisition.",
+        "affected_selectors": [
+          "[data-testid='debt-followup-page']",
+          "[data-testid='debt-followup-empty']",
+          "tr[data-testid^='debt-row-']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter311_visit_source_ar_contracts.py",
+    "/app/test_reports/pytest/iter315_backend.xml"
+  ],
+  "action_items": [
+    "Reduce first-load empty window (0/empty state shown before AR snapshot resolves) to improve UX confidence.",
+    "Investigate repeated request abort churn in DebtFollowUp fetch cycle to reduce noisy ERR_ABORTED frequency.",
+    "Optionally add telemetry around fetchData/hydrateCurrentAr timing to confirm why first valid snapshot may be delayed despite healthy API response times."
+  ],
+  "critical_code_review_comments": [
+    "CURRENT_AR_CACHE_KEY behavior is aligned with API snapshot rows (source=vehicle_visit_current_ar), and no hardcoded fixed total was detected in runtime validation.",
+    "DebtFollowUp still uses hardcoded fallback workshop id (`process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync'`) in multiple places, which weakens strict env-only fail-fast discipline.",
+    "Read-only finance flows stayed non-mutating in this run (reconciliation mutation_guard unchanged=true, journal_entries before/after remained 0)."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_315.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8)",
+    "frontend": "85% (post-snapshot reload stability passed 3/3; initial load may show temporary empty)"
+  },
+  "seed_data_creation": "No seed data created. No DB mutation executed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "In this iteration, /debts-followup eventually reached correct snapshot (12570/12) around 15s and stayed stable across 3 reloads after snapshot acquisition. However, temporary empty/0 can appear during initial warmup and many net::ERR_ABORTED request failures are still observable under reload churn.",
+  "rca of the issue": "Root cause appears to be frontend request lifecycle/race behavior under route transitions and timed parallel fetches: many requests are aborted (ERR_ABORTED), and initial UI can settle at temporary empty before delayed hydration repopulates. Once cache is populated from API snapshot rows, display remains stable through reloads.",
+  "mocked_api": "NO MOCKED APIs used."
+}
