@@ -16,6 +16,7 @@ import io
 from supabase import create_client
 from motor.motor_asyncio import AsyncIOMotorClient
 import openpyxl
+from financial_reconciliation import build_reconciliation_audit
 
 router = APIRouter(prefix="/api/finance", tags=["finance"])
 
@@ -127,10 +128,36 @@ def _extract_request_actor(request: Optional[Request]) -> Dict[str, str]:
     return {"user_id": user_id, "user_role": user_role}
 
 
+def _require_reconciliation_admin(request: Request) -> Dict[str, str]:
+    actor = _extract_request_actor(request)
+    role = str(actor.get("user_role") or "").strip().lower()
+    user_id = str(actor.get("user_id") or "").strip()
+    allowed_roles = {"admin", "manager", "system_manager", "مدير", "مدير النظام"}
+    if role not in allowed_roles and user_id != "مدير":
+        raise HTTPException(status_code=403, detail={"error": "permission_denied", "msg": "تقرير المصالحة المالي متاح للمدير أو مدير النظام فقط", "role": role or "unknown"})
+    return actor
+
+
 def _count_value(value: Any) -> Any:
     if isinstance(value, float):
         return round(value, 2)
     return value
+
+
+@router.get("/reconciliation-audit")
+async def get_financial_reconciliation_audit(
+    request: Request,
+    workshop_id: str = Query("finmodule-sync", description="معرف الورشة"),
+):
+    _require_reconciliation_admin(request)
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase not connected")
+    try:
+        return build_reconciliation_audit(supabase, workshop_id=workshop_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"reconciliation_audit_failed: {str(exc)[:200]}") from exc
 
 
 def _normalize_date_string(value: Optional[str]) -> Optional[str]:

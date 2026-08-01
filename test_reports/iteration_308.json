@@ -1,0 +1,42 @@
+{
+  "summary": "Backend-only verification completed for /api/finance/reconciliation-audit (auth guard + full acceptance contract + read-only stability).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter308_reconciliation_audit_contract.py",
+    "/app/backend/tests/test_iter308_reconciliation_audit_api_contract.py",
+    "/app/test_reports/pytest/iter308_reconciliation_audit.xml"
+  ],
+  "action_items": [
+    "No functional backend defects found in requested Iter-308 scope.",
+    "Keep new API contract test in regression suite for future finance changes."
+  ],
+  "critical_code_review_comments": [
+    "Endpoint auth+RBAC behavior matches requirement: anonymous denied (401/403), manager access allowed.",
+    "Read-only/mutation guard behavior is deterministic across repeated calls in same run.",
+    "Test-level issue found and fixed: test_iter308_reconciliation_audit_contract.py had ModuleNotFoundError due to missing /app/backend in import path."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter308_reconciliation_audit_api_contract.py",
+    "/app/backend/tests/test_iter308_reconciliation_audit_contract.py",
+    "/app/test_reports/iteration_308.json"
+  ],
+  "success_rate": {
+    "backend": "100% (4/4 passed)",
+    "frontend": "N/A (skipped by request)"
+  },
+  "test_credentials": "مدير / PIN 123123 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "No seed data created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iter-308 requested contract is green on preview URL. Re-run pytest file pair if reconciliation logic or role guard changes.",
+  "rca of the issue": "Only failure during this run was non-functional test import path (ModuleNotFoundError for financial_reconciliation). Root cause: pytest cwd (/app) did not include /app/backend on sys.path for direct module import. Mitigation applied in test file by prepending /app/backend to sys.path; all requested tests then passed.",
+  "mocked_api": "NO MOCKED APIs used."
+}
