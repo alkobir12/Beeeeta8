@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
+import { printHtmlDocument, toStandalonePrintHtml } from '../utils/printDocument';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
 import { findUnresolvedTemplateVariables, renderDocumentTemplate, splitTemplateHtml } from '../utils/documentTemplate';
@@ -497,30 +498,43 @@ export default function DocumentPrint() {
 
   const numberToWords = (value) => value <= 0 ? 'فقط صفر ريال لا غير' : `فقط ${SAR(value)} لا غير`;
 
+  const createPdfRenderWrapper = useCallback(() => {
+    if (!renderedTemplate) return null;
+    const standaloneHtml = toStandalonePrintHtml(renderedTemplate, `${docType}_${formData.settings.document_number || 'document'}`);
+    const doc = new DOMParser().parseFromString(standaloneHtml, 'text/html');
+    const wrapper = document.createElement('div');
+    const styles = Array.from(doc.head?.querySelectorAll('style, link[rel="stylesheet"]') || []).map((node) => node.outerHTML).join('');
+    wrapper.innerHTML = `${styles}${doc.body?.innerHTML || ''}`;
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-10000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '794px';
+    wrapper.style.background = '#ffffff';
+    wrapper.style.direction = 'rtl';
+    wrapper.setAttribute('data-testid', 'document-print-pdf-render-root');
+    document.body.appendChild(wrapper);
+    return wrapper;
+  }, [docType, formData.settings.document_number, renderedTemplate]);
+
   const downloadCurrentPdf = async () => {
-    if (!ensureTemplateComplete() || !previewRef.current) return;
+    if (!ensureTemplateComplete() || !renderedTemplate) return;
     setPdfBusy(true);
+    const wrapper = createPdfRenderWrapper();
     try {
-      await downloadPDF(previewRef.current, `${docType}_${formData.settings.document_number || 'document'}.pdf`, { scale: 2, backgroundColor: '#ffffff' });
+      await downloadPDF(wrapper, `${docType}_${formData.settings.document_number || 'document'}.pdf`, { scale: 2, backgroundColor: '#ffffff' });
     } finally {
+      wrapper?.remove();
       setPdfBusy(false);
     }
   };
 
   const printCurrent = () => {
     if (!ensureTemplateComplete() || !renderedTemplate) return;
-    const frame = document.createElement('iframe');
-    frame.setAttribute('aria-hidden', 'true');
-    frame.style.cssText = 'position:fixed;width:0;height:0;border:0;right:-9999px;bottom:-9999px;';
-    frame.srcdoc = renderedTemplate;
-    document.body.appendChild(frame);
-    frame.onload = () => {
-      const cleanup = () => frame.remove();
-      frame.contentWindow?.addEventListener('afterprint', cleanup, { once: true });
-      frame.contentWindow?.focus();
-      frame.contentWindow?.print();
-      window.setTimeout(cleanup, 60000);
-    };
+    try {
+      printHtmlDocument(renderedTemplate, `${docType}_${formData.settings.document_number || 'document'}`);
+    } catch (error) {
+      setAlertMessage(error?.message || 'تعذر فتح نافذة الطباعة');
+    }
   };
 
   const sendWhatsApp = async () => {
@@ -541,7 +555,10 @@ export default function DocumentPrint() {
       phone,
       fileBaseName: `${docType}_${formData.settings.document_number || 'document'}`,
       context: 'document-print-page',
-      getElement: async () => ({ element: previewRef.current, cleanup: null }),
+      getElement: async () => {
+        const wrapper = createPdfRenderWrapper();
+        return { element: wrapper, cleanup: () => wrapper?.remove() };
+      },
     });
     if (!result?.pdfBlob) return;
     const normalized = normalizePhoneLocal(result.phone);

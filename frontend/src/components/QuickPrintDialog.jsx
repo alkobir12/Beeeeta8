@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, api } from '../services/api';
 import { downloadPDF } from '../utils/pdfGenerator';
+import { printHtmlDocument, toStandalonePrintHtml } from '../utils/printDocument';
 import { loadWorkshopPrintInfo } from '../utils/workshopPrintInfo';
 import { useWhatsAppShare } from '../hooks/useWhatsAppShare';
 import { assertTemplateComplete, findUnresolvedTemplateVariables, renderDocumentTemplate } from '../utils/documentTemplate';
@@ -149,7 +150,7 @@ const QuickPrintDialog = ({
       table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed; }
       th, td { word-break: break-word; overflow-wrap: anywhere; line-height: 1.65; }
       img { max-width: 100%; height: auto; }
-      .container, .quotation-container, .document, .page, .invoice-container, .quotation-wrapper { max-width: 190mm !important; margin-left: auto !important; margin-right: auto !important; }
+      .container, .quotation-container, .document, .invoice-container, .quotation-wrapper { max-width: 190mm !important; margin-left: auto !important; margin-right: auto !important; }
       [style*="letter-spacing"] { letter-spacing: normal !important; }
       [style*="font-family"] { font-family: "Tahoma", "Arial", "Segoe UI", sans-serif !important; }
       @media print { html, body { background: #fff; } }
@@ -192,7 +193,8 @@ const QuickPrintDialog = ({
   }, []);
 
   const htmlToCanvasWrapper = (htmlContent) => {
-    const doc = new DOMParser().parseFromString(htmlContent, 'text/html');
+    const standaloneHtml = toStandalonePrintHtml(htmlContent, title);
+    const doc = new DOMParser().parseFromString(standaloneHtml, 'text/html');
     const wrapper = document.createElement('div');
     const styles = Array.from(doc.head?.querySelectorAll('style, link[rel="stylesheet"]') || []).map((node) => node.outerHTML).join('');
     wrapper.innerHTML = `${styles}${doc.body?.innerHTML || htmlContent}`;
@@ -202,6 +204,7 @@ const QuickPrintDialog = ({
     wrapper.style.width = '794px';
     wrapper.style.background = '#ffffff';
     wrapper.style.direction = 'rtl';
+    wrapper.setAttribute('data-testid', 'quick-print-pdf-render-root');
     document.body.appendChild(wrapper);
     return wrapper;
   };
@@ -283,9 +286,12 @@ const QuickPrintDialog = ({
 
   const handlePrint = async () => {
     const htmlContent = html || (await generateHtml());
-    if (!htmlContent || !iframeRef.current) return;
-    iframeRef.current.contentWindow?.focus();
-    iframeRef.current.contentWindow?.print();
+    if (!htmlContent) return;
+    try {
+      printHtmlDocument(htmlContent, title);
+    } catch (e) {
+      setError(e?.message || 'تعذر فتح نافذة الطباعة');
+    }
   };
 
   const handleDownloadPdf = async () => {
