@@ -2422,7 +2422,10 @@ const VehicleDetails = () => {
 
     const loadLayout = async () => {
       try {
-        const res = await userLayoutsAPI.getVehicleDetailsLayout(userId);
+        const res = await Promise.race([
+          userLayoutsAPI.getVehicleDetailsLayout(userId),
+          new Promise((resolve) => setTimeout(() => resolve({ data: { blocks: DEFAULT_BLOCKS } }), 5000)),
+        ]);
         const blocks = res?.data?.blocks || [];
         const normalized = Array.isArray(blocks) ? blocks.filter(Boolean) : [];
 
@@ -2655,8 +2658,12 @@ const VehicleDetails = () => {
   // Lightweight fetch that doesn't show loading spinner
   const fetchDataLight = useCallback(async () => {
     try {
-      const visitsRes = await axios.get(`${API_URL}/vehicles/${id}/visits`).catch(() => ({ data: [] }));
+      const [visitsRes, summaryRes] = await Promise.all([
+        axios.get(`${API_URL}/vehicles/${id}/visits`).catch(() => ({ data: [] })),
+        vehicleFinanceAPI.summary(id).catch(() => ({ data: null })),
+      ]);
       setVisits(normalizeListPayload(visitsRes, ['visits']));
+      if (summaryRes?.data) setFinanceSummary(summaryRes.data);
     } catch (e) {
       console.error('fetchDataLight error:', e);
     }
@@ -3142,6 +3149,11 @@ const VehicleDetails = () => {
   }, [visits]);
 
   const openFinancialSource = useCallback((sourceKey) => {
+    const isAdvancePayment = (payment = {}) => {
+      const kind = String(payment.kind || '').trim().toLowerCase();
+      return ['advance', 'prepayment', 'customer_advance', 'دفعة مقدمة', 'مقدم', 'مقدمة'].includes(kind);
+    };
+
     const allItems = (visits || []).flatMap((visit) =>
       (visit.items || []).map((item) => {
         const qty = Number(item?.quantity || 1);
@@ -3168,6 +3180,20 @@ const VehicleDetails = () => {
         method: payment.method || payment.payment_method || 'cash',
       }))
     );
+    const localAdvanceTotal = allPayments
+      .filter((payment) => isAdvancePayment(payment))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const localOnAccountTotal = allPayments
+      .filter((payment) => !isAdvancePayment(payment))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const summaryAdvanceTotal = Number(financeSummary?.advance_paid || 0);
+    const summaryOnAccountTotal = Number(
+      financeSummary?.paid_on_account
+      ?? financeSummary?.confirmed_paid
+      ?? Math.max(Number(financeSummary?.total_paid || 0) - summaryAdvanceTotal, 0)
+    );
+    const extraAdvanceFromSummary = Math.max(summaryAdvanceTotal - localAdvanceTotal, 0);
+    const extraOnAccountFromSummary = Math.max(summaryOnAccountTotal - localOnAccountTotal, 0);
 
     let title = 'مصدر الرقم';
     let rows = [];
@@ -3197,14 +3223,34 @@ const VehicleDetails = () => {
       rows = allPayments.map((p) => ({
         date: p.date,
         visitId: p.visitId,
-        type: 'دفعة',
-        label: p.kind,
+        type: isAdvancePayment(p) ? 'دفعة مقدمة' : 'تحت الحساب / تأكيد سداد',
+        label: isAdvancePayment(p) ? 'دفعة مقدمة' : 'دفعة مؤكدة',
         amount: p.amount,
         note: `طريقة الدفع: ${p.method}`,
       }));
+      if (extraOnAccountFromSummary > 0) {
+        rows.push({
+          date: '-',
+          visitId: '-',
+          type: 'تحت الحساب / تأكيد سداد',
+          label: 'سداد مؤكد من القيود',
+          amount: extraOnAccountFromSummary,
+          note: 'مبلغ مؤكد من دفتر اليومية مرتبط بالعملية/المركبة',
+        });
+      }
+      if (extraAdvanceFromSummary > 0) {
+        rows.push({
+          date: '-',
+          visitId: '-',
+          type: 'دفعة مقدمة',
+          label: 'دفعة مقدمة من الملخص',
+          amount: extraAdvanceFromSummary,
+          note: 'مبلغ دفعة مقدمة ظاهر في الملخص المالي',
+        });
+      }
     } else if (sourceKey === 'advance') {
       title = 'مصدر رقم الدفعة المقدمة';
-      rows = allPayments.filter((p) => String(p.kind || '').toLowerCase() === 'advance').map((p) => ({
+      rows = allPayments.filter((p) => isAdvancePayment(p)).map((p) => ({
         date: p.date,
         visitId: p.visitId,
         type: 'دفعة مقدمة',
@@ -3212,14 +3258,46 @@ const VehicleDetails = () => {
         amount: p.amount,
         note: `طريقة الدفع: ${p.method}`,
       }));
+      if (extraAdvanceFromSummary > 0) {
+        rows.push({ date: '-', visitId: '-', type: 'دفعة مقدمة', label: 'دفعة مقدمة من الملخص', amount: extraAdvanceFromSummary, note: 'مبلغ إضافي ظاهر في الملخص المالي' });
+      }
+    } else if (sourceKey === 'on_account') {
+      title = 'مصدر رقم تحت الحساب / تأكيد سداد';
+      rows = allPayments.filter((p) => !isAdvancePayment(p)).map((p) => ({
+        date: p.date,
+        visitId: p.visitId,
+        type: 'تحت الحساب / تأكيد سداد',
+        label: p.kind || 'payment',
+        amount: p.amount,
+        note: `طريقة الدفع: ${p.method}`,
+      }));
+      if (extraOnAccountFromSummary > 0) {
+        rows.push({ date: '-', visitId: '-', type: 'تحت الحساب / تأكيد سداد', label: 'سداد مؤكد من القيود', amount: extraOnAccountFromSummary, note: 'مبلغ مؤكد من دفتر اليومية مرتبط بالعملية/المركبة' });
+      }
+    } else if (sourceKey === 'display_total') {
+      title = 'معادلة إجمالي البنود بعد الدفعات';
+      const summary = financeSummary || {};
+      const totalItems = Number(summary.total_items ?? summary.total_amount ?? ((Number(summary.total_workshop || 0) + Number(summary.total_suppliers || 0))));
+      const totalPaid = Number(summary.total_paid || 0);
+      const remaining = Number(summary.display_remaining ?? summary.balance ?? (totalItems - totalPaid));
+      rows = [
+        { date: '-', visitId: '-', type: 'ذمم الورشة', label: 'إجمالي', amount: Number(summary.total_workshop || 0), note: 'بنود الورشة' },
+        { date: '-', visitId: '-', type: 'الموردين', label: 'إجمالي', amount: Number(summary.total_suppliers || 0), note: 'بنود الموردين/الأرشيف' },
+        { date: '-', visitId: '-', type: 'إجمالي البنود', label: 'ورشة + موردين', amount: totalItems, note: 'قبل الدفعات' },
+        { date: '-', visitId: '-', type: 'مطروح المدفوع', label: 'دفعة مقدمة + تحت الحساب', amount: totalPaid, note: 'كل الدفعات المسجلة' },
+        { date: '-', visitId: '-', type: 'الناتج المعروض', label: 'المتبقي', amount: remaining, note: 'المعادلة: إجمالي البنود - المدفوع' },
+      ];
     } else if (sourceKey === 'balance') {
       title = 'كيف تم احتساب المتبقي';
       const summary = financeSummary || {};
+      const totalItems = Number(summary.total_items ?? summary.total_amount ?? ((Number(summary.total_workshop || 0) + Number(summary.total_suppliers || 0))));
+      const totalPaid = Number(summary.total_paid || 0);
+      const remaining = Number(summary.display_remaining ?? summary.balance ?? (totalItems - totalPaid));
       rows = [
         { date: '-', visitId: '-', type: 'ذمم الورشة', label: 'إجمالي', amount: Number(summary.total_workshop || 0), note: 'إيراد الورشة' },
         { date: '-', visitId: '-', type: 'حركة الموردين', label: 'إجمالي', amount: Number(summary.total_suppliers || 0), note: 'أرشيف منفصل' },
-        { date: '-', visitId: '-', type: 'المدفوع', label: 'إجمالي', amount: Number(summary.total_paid || 0), note: 'إجمالي الدفعات' },
-        { date: '-', visitId: '-', type: 'المتبقي', label: 'إجمالي', amount: Number(summary.balance || 0), note: 'المعادلة: بنود الورشة - السداد المؤكد' },
+        { date: '-', visitId: '-', type: 'المدفوع', label: 'إجمالي', amount: totalPaid, note: 'دفعة مقدمة + تحت الحساب / تأكيد سداد' },
+        { date: '-', visitId: '-', type: 'المتبقي', label: 'إجمالي', amount: remaining, note: 'المعادلة: (ذمم الورشة + الموردين) - المدفوع' },
       ];
     }
 

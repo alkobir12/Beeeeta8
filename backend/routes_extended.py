@@ -4131,13 +4131,16 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
             total_workshop += line_total
 
     advance_paid = 0.0
+    paid_on_account = 0.0
     total_paid = 0.0
     for p in payments:
         amt = _num(p.get('amount'), 0.0)
         total_paid += amt
-        kind = (p.get('kind') or '').lower()
-        if kind == 'advance':
+        kind = str(p.get('kind') or '').strip().lower()
+        if kind in {'advance', 'prepayment', 'customer_advance', 'دفعة مقدمة', 'مقدم', 'مقدمة'}:
             advance_paid += amt
+        else:
+            paid_on_account += amt
 
     # Keep legacy total/balance view for vehicle page display
     # while exposing supplier archive explicitly in a separate field.
@@ -4162,6 +4165,7 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
         'total_amount': round(total_amount, 2),
         'total_paid': round(total_paid, 2),
         'advance_paid': round(advance_paid, 2),
+        'paid_on_account': round(paid_on_account, 2),
         'balance': round(balance, 2),
         'payment_status': payment_status,
     }
@@ -4761,6 +4765,7 @@ async def vehicle_financial_summary(vehicle_id: str):
         total_suppliers = 0.0
         total_paid = 0.0
         total_advance = 0.0
+        total_paid_on_account = 0.0
 
         if provider == "supabase":
             from supabase_service import SupabaseService
@@ -4791,6 +4796,7 @@ async def vehicle_financial_summary(vehicle_id: str):
                 total_suppliers += fin['total_suppliers']
                 total_paid += fin['total_paid']
                 total_advance += fin['advance_paid']
+                total_paid_on_account += fin.get('paid_on_account', 0.0)
 
             try:
                 operation_rows = (
@@ -4836,6 +4842,7 @@ async def vehicle_financial_summary(vehicle_id: str):
                     operation_paid = sum(float(row.get("total") or 0) for row in payment_rows)
                     if operation_paid > 0:
                         total_paid += operation_paid
+                        total_paid_on_account += operation_paid
             except Exception as summary_link_error:
                 print(f"Vehicle financial summary operation-link warning: {summary_link_error}")
 
@@ -4852,10 +4859,13 @@ async def vehicle_financial_summary(vehicle_id: str):
                 total_suppliers += fin['total_suppliers']
                 total_paid += fin['total_paid']
                 total_advance += fin['advance_paid']
+                total_paid_on_account += fin.get('paid_on_account', 0.0)
 
         # Keep current UI-compatible balance formula
         total_amount = total_workshop + total_suppliers
         balance = total_amount - total_paid
+        workshop_receivable_balance = total_workshop - total_paid_on_account
+        customer_advance_liability = total_advance
 
         return {
             "total_workshop": round(total_workshop, 2),
@@ -4863,8 +4873,14 @@ async def vehicle_financial_summary(vehicle_id: str):
             "supplier_archive_total": round(total_suppliers, 2),
             "total_paid": round(total_paid, 2),
             "advance_paid": round(total_advance, 2),
+            "paid_on_account": round(total_paid_on_account, 2),
+            "confirmed_paid": round(total_paid_on_account, 2),
             "total_amount": round(total_amount, 2),
+            "total_items": round(total_amount, 2),
             "balance": round(balance, 2),
+            "display_remaining": round(balance, 2),
+            "workshop_receivable_balance": round(workshop_receivable_balance, 2),
+            "customer_advance_liability": round(customer_advance_liability, 2),
         }
 
     except HTTPException:
