@@ -620,3 +620,10 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم تصحيح دليل الحساب المقترح: الحساب الأب `الخصوم المتداولة` id `acc-2100`، طبيعته liability/credit، والكود `210201` غير مستخدم — معاينة فقط دون إنشاء.
 - الملفات: `/app/memory/p0_financial_engine_preview_corrected_2026-08-02.md` و`/app/test_reports/p0_financial_engine_preview_corrected_raw.json`.
 
+## تحديث 2026-08-02 — P0.1 مركبات لوحة التحكم الـ15
+- تم إصدار P0.1 قراءة فقط لأول 15 مركبة نشطة ظاهرة في لوحة التحكم بعد استبعاد `delivered/archived/archive/voided/cancelled/deleted`، دون إنشاء حسابات/قيود أو تعديل/حذف بيانات أو تغيير واجهات.
+- تم تطبيق القاعدة النهائية: فواتير الموردين تكلفة داخلية مستقلة تظهر في ملف المركبة/الزيارة/حركة الموردين/تقارير التكلفة والربحية فقط، ولا تدخل ذمة العميل أو إيراد الورشة أو تخصيص دفعات العميل.
+- تم تصحيح منع التكرار: نفس `journal_entry_id` لا يحتسب مرتين حتى لو ظهر عبر `visit_id` و`operation_id`.
+- نتيجة الحالة 31/271/200 ضمن المركبات الـ15: خدمة الورشة 31، الموردون 271 أرشيف مستقل، المستلم 200، المطبق 31، المتبقي 0، `customer_advance_pending=169`، الحالة `مسدد + رصيد عميل`.
+- الملفات: `/app/memory/p01_dashboard_15_financial_preview_2026-08-02.md` و`/app/test_reports/p01_dashboard_15_financial_preview_raw.json`.
+
