@@ -1,0 +1,280 @@
+# P0 تقرير معاينة الدورة المالية الموحدة — قراءة فقط
+
+لم يتم إنشاء حسابات، قيود، عمليات، دفعات، أو تعديل/حذف أي بيانات.
+
+- fiscal_start_at: `2026-08-02`
+- accounting_basis: `cash`
+- notes.payments: أرشيف/عرض فقط في هذا التقرير ولا يدخل في الجمع المالي
+
+## ملخص تنفيذي
+- opening_receivable_total_preview: `149471.0`
+- current_operational_receivable_total_preview: `149471.0`
+- supplier_archive_total_detected: `99196.5`
+- notes_payment_anomaly_total: `192330.0`
+- customer_advance_pending_total_preview: `0.0`
+
+## حساب دفعات مقدمة من العملاء
+- الحساب موجود الآن؟ `False`
+- أول كود متاح مقترح للمعاينة فقط بعد فحص الشجرة: `210201`
+- لن يتم إنشاء هذا الحساب إلا في P1 وبعد موافقة صريحة، ولن يختار النظام كودًا عشوائيًا.
+
+## الذمم الافتتاحية المقترحة opening_receivable
+- ابو احمد الدبيخي | vehicle `020dcc0a-5ebf-4900-b837-388e33d3b915` | visit `a93a70b8-ad73-4477-b63d-2c2b7dd4c00c` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- عبدالله الذياب | vehicle `efd4ef26-2b6a-44bc-9b1b-7030ec8492f1` | visit `6c4693aa-9de6-4ddd-88b5-318b1f1ff0ba` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- 1062 ///ملحمة قويصرة   | vehicle `235cb00f-facb-46aa-a4eb-8db039ec21ee` | visit `2fa1bd0a-9b77-43da-8944-9680a3671f94` | workshop `877.0` | confirmed `0.0` | remaining `877.0` | supplier archive `2023.0`
+- نايف المطيري البدائع  | vehicle `f0aacb00-839b-46ef-a9c2-21ba5515c723` | visit `bbdf0bdd-3324-4803-bd9f-ff3f0680390d` | workshop `350.0` | confirmed `0.0` | remaining `350.0` | supplier archive `0.0`
+- عاصم التويجري | vehicle `0ee51492-8405-4235-8c63-4ca01b6bccc8` | visit `ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0` | workshop `150.0` | confirmed `0.0` | remaining `150.0` | supplier archive `0.0`
+- ابراهيم القبيشي | vehicle `945e9f2c-02f7-4883-960e-21a47bf33654` | visit `38478ae1-3f3a-4666-ad14-4477eb34583a` | workshop `4000.0` | confirmed `0.0` | remaining `4000.0` | supplier archive `0.0`
+- ماجد الرشيدي | vehicle `b433407c-0172-4587-8ba2-2de2f24a4307` | visit `817430ba-f4ba-4ec1-8928-0fb965d67aae` | workshop `1700.0` | confirmed `0.0` | remaining `1700.0` | supplier archive `0.0`
+- ماجد العنزي  | vehicle `2430aecb-6b36-4abc-9eb8-963faa3339cd` | visit `f441c5f2-9365-4fc5-928e-2182224b9311` | workshop `4300.0` | confirmed `0.0` | remaining `4300.0` | supplier archive `0.0`
+- فهد نغيمش الحربي | vehicle `d56a22e0-4486-4d1f-9071-90591efafa33` | visit `4a794bb3-86df-4ef4-a8b1-25ae4d397857` | workshop `2000.0` | confirmed `0.0` | remaining `2000.0` | supplier archive `0.0`
+- ابو فيصل | vehicle `c61c7020-daf9-4a59-9a86-22ae2a9a12fd` | visit `43a736a3-efa0-41cf-be96-b1ca30256b6c` | workshop `400.0` | confirmed `0.0` | remaining `400.0` | supplier archive `0.0`
+- عبد العزيز العتيبي | vehicle `67b3bb9a-ee06-45ef-a071-94711c25db5f` | visit `3acd2af5-989d-405e-b656-23d972dbfcab` | workshop `4000.0` | confirmed `0.0` | remaining `4000.0` | supplier archive `0.0`
+- د خالد الراجح | vehicle `680106d7-c9b5-43f6-9229-4df9f7f7a582` | visit `df718c5c-dcaf-400a-ace6-695ff4491ead` | workshop `3500.0` | confirmed `0.0` | remaining `3500.0` | supplier archive `0.0`
+- ابو عبدالله  | vehicle `3f4d770d-73d3-43e8-b4ea-4ca50219fe65` | visit `33e2870f-f74c-4738-bf23-9b377112c90f` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- ابراهيم النغيمشي | vehicle `c6948aef-0fa8-4c30-9746-458810072050` | visit `21bed64f-b1d6-4534-b229-69b33f73556f` | workshop `390.0` | confirmed `0.0` | remaining `390.0` | supplier archive `0.0`
+- 996///راشد الربيعان  | vehicle `987c4fef-47ce-464e-a3e6-f5c4e1a7bdaa` | visit `2e371c2b-dca5-4884-8207-aa8d0b1147ad` | workshop `130.0` | confirmed `0.0` | remaining `130.0` | supplier archive `0.0`
+- نايف الحربي | vehicle `8edf695c-60e8-4d65-b83d-9de0595e64f2` | visit `feb09cfe-b7d7-4b35-8f1d-648e037b6083` | workshop `1000.0` | confirmed `0.0` | remaining `1000.0` | supplier archive `1000.0`
+- علي اليحيى | vehicle `604576c6-90ab-421a-8000-bd81e9c56e29` | visit `4c1ee5de-8fb0-425e-a3cc-7d9174955428` | workshop `890.0` | confirmed `0.0` | remaining `890.0` | supplier archive `0.0`
+- 997///محمد شعبان | vehicle `ca81024e-195b-464e-9671-0f532aad1545` | visit `c09dba75-105d-4e63-b9e6-fc4c021e8260` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- خالد الربيش  | vehicle `44d8587d-5524-43ab-aa32-b4bb0de023dd` | visit `3a9fe0ce-e179-43f6-b555-fe2f593a3a9d` | workshop `4500.0` | confirmed `0.0` | remaining `4500.0` | supplier archive `0.0`
+- ابو تميم  | vehicle `945244d1-5997-4052-84dd-d0ea02607f4e` | visit `3df2e7b7-0a44-41ae-ba3d-28d7a25f2810` | workshop `40.0` | confirmed `0.0` | remaining `40.0` | supplier archive `0.0`
+- 1064 /// سلطان العليان | vehicle `bd4f8cdf-9363-4723-b6f9-32c2651e9e48` | visit `03df6db9-94cd-4e80-8ef5-80f69f571df2` | workshop `2000.0` | confirmed `0.0` | remaining `2000.0` | supplier archive `0.0`
+- غلام باكستاني | vehicle `00a8d7b2-40e3-4848-9201-c75996906220` | visit `3276012a-80fb-43d7-aac3-3bc1093ad31b` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- زياد الحربي | vehicle `d394b77e-52fa-42e0-ab24-28539304b141` | visit `f4f34aa0-d651-4b96-a3d7-41cabf37e5b9` | workshop `300.0` | confirmed `0.0` | remaining `300.0` | supplier archive `0.0`
+- 1009///محمد الشعيبي | vehicle `f77ab3ea-5ea2-4cf6-8e89-1acfadef0098` | visit `473634cc-fc80-44c8-9714-1b2091d734a3` | workshop `600.0` | confirmed `0.0` | remaining `600.0` | supplier archive `0.0`
+- حسام التويجري | vehicle `48b72a27-2a5b-47d0-8664-ba5e7f62bb06` | visit `b876921c-d554-4ade-944e-b20760883fd9` | workshop `500.0` | confirmed `0.0` | remaining `500.0` | supplier archive `0.0`
+- ابو عبدالله العوفي | vehicle `54d13d80-c9a9-407b-9137-b42f9f6eb023` | visit `3dab92e3-3066-47f0-94b5-a484d34c2d07` | workshop `1200.0` | confirmed `0.0` | remaining `1200.0` | supplier archive `0.0`
+- عميل نقدي | vehicle `f58df376-b5aa-4c10-bfe0-fd38aa55b186` | visit `62e31d3a-06d8-4e3f-94dc-5d43632dcac9` | workshop `150.0` | confirmed `0.0` | remaining `150.0` | supplier archive `0.0`
+- جاويد المخرطة  | vehicle `c80b56b3-ca07-4840-86b4-7687dd560c07` | visit `0aff7cd4-16f5-48af-a4e1-4e22b6cf608a` | workshop `4000.0` | confirmed `0.0` | remaining `4000.0` | supplier archive `0.0`
+- محمد فارس العنزي  | vehicle `1193191b-4e40-450b-a604-dcf80305b2ee` | visit `769bbfcc-60ea-4e0c-a7cf-2e210f708d0a` | workshop `2000.0` | confirmed `0.0` | remaining `2000.0` | supplier archive `0.0`
+- فهد شليبيط المطيري | vehicle `cf10edb0-ef41-4d09-87ea-c62c52c5b86a` | visit `840b8a23-4fe3-4b97-b4b3-ddcd014acb68` | workshop `2050.0` | confirmed `0.0` | remaining `2050.0` | supplier archive `0.0`
+- 928///ابو احمد الدبيخي                                                                                                                                                                                                                                     | vehicle `fe9f4e57-8522-492b-8878-c5d1a8fa107c` | visit `ad51bb5a-faff-4973-995e-b3110edab2db` | workshop `200.0` | confirmed `0.0` | remaining `200.0` | supplier archive `0.0`
+- 1038 ///عبد الاله الزارع  | vehicle `8fd74916-748f-44fd-a293-d70adb4c9fc4` | visit `af30e8e6-a833-4932-bb09-2253922dbd31` | workshop `175.0` | confirmed `0.0` | remaining `175.0` | supplier archive `0.0`
+- ابو تركي العوفي  | vehicle `c86260bc-8a43-4820-975f-2cbb5305ed1d` | visit `f395e31a-0b92-4781-92cc-5c02f5b0127f` | workshop `350.0` | confirmed `0.0` | remaining `350.0` | supplier archive `0.0`
+- احمد الجمعه | vehicle `59108515-b840-46dc-97d6-83673a05ea49` | visit `bcd4ccf2-7521-4d3a-8242-4a8649676fc4` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- صالح البشر | vehicle `2d155e40-7273-428a-a4ef-153ee3ee75de` | visit `0297c2ca-0452-4089-86fc-e0d2d2530085` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- سعود الحربي | vehicle `2753cb77-df07-4326-8794-af7667e1ccc6` | visit `ed5a4ef8-44c9-42b1-a4f8-51861d33a8cc` | workshop `1000.0` | confirmed `0.0` | remaining `1000.0` | supplier archive `2157.0`
+- موسسة الزومان | vehicle `e6d27a50-ba67-44ea-b728-1b23ebfa27e3` | visit `cf151787-1155-4f81-8312-ccb2e15f42a0` | workshop `1900.0` | confirmed `0.0` | remaining `1900.0` | supplier archive `0.0`
+- احمد الخضيري | vehicle `d6986b4e-9f3c-4ebb-9bdb-465b32b24991` | visit `8b9bfdb5-a23a-41ac-8c27-31604326bdc1` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- ابو نايف الفايزي | vehicle `94bb8ac0-6b4b-4ad4-97eb-b8a9f55d26ff` | visit `fa41f653-cb79-451c-9d25-f2a701f6a619` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- عبدالعزيز الرشيد  | vehicle `c7e77f22-3338-48f0-b696-a3f7fc5f252a` | visit `f1fe3d41-7013-4ad4-a4b7-4053a9eb7cf5` | workshop `2500.0` | confirmed `0.0` | remaining `2500.0` | supplier archive `17754.5`
+- عبد العزيز الحسين | vehicle `bb1b011b-b913-46d7-a0b9-6fa5e1dc6363` | visit `5d3ef6e1-8ef7-4e0b-a249-70472ed68269` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- صالح اللحيدان  | vehicle `1b9b4214-7078-415a-91c3-2eecaf072f21` | visit `61c2778a-b15b-40ee-9d65-417de38e88a9` | workshop `150.0` | confirmed `0.0` | remaining `150.0` | supplier archive `0.0`
+- 1026//سليمان الظويهر | vehicle `2d72f1fa-1a31-4fe0-8a4d-b0734d092d87` | visit `1fdad395-0930-4637-8c93-a748f1c8505e` | workshop `350.0` | confirmed `0.0` | remaining `350.0` | supplier archive `0.0`
+- 77  //محمد  فهدالعمر | vehicle `bea27237-7274-4fe2-84b3-8106740645d7` | visit `4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `200.0`
+- 738//ابو  الحسن التميمي | vehicle `d5423ffa-1220-40cf-ac57-b7aea236334f` | visit `b1ef779c-4560-4464-94d7-1433be21a1e0` | workshop `250.0` | confirmed `0.0` | remaining `250.0` | supplier archive `0.0`
+- فهد المحيميد  | vehicle `f56b68c9-d9c5-4c64-ac7a-e2842faa1812` | visit `72078883-6db5-4631-8f72-cf308b4b9fc3` | workshop `500.0` | confirmed `0.0` | remaining `500.0` | supplier archive `1750.0`
+- 77  //محمد  فهدالعمر | vehicle `21d93583-1ccf-40b6-9821-64c8b414e9b7` | visit `4f907bf3-10a6-4d43-97c2-cd7d5cad22f8` | workshop `600.0` | confirmed `0.0` | remaining `600.0` | supplier archive `150.0`
+- زياد الشمشم | vehicle `a076e2cb-a2f4-4fd7-aff9-301da9432e18` | visit `c33792fc-8fb8-4739-98e8-f98d345e3c6b` | workshop `500.0` | confirmed `0.0` | remaining `500.0` | supplier archive `0.0`
+- 1037  ا///اياس حمود العقيلي | vehicle `32b67a06-e631-4121-94ac-7f1ef6e44645` | visit `668bed7b-935f-4cc0-9a15-324d4ba9506d` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- سلطان الصالح | vehicle `bd714910-1e07-40b4-b4e7-5c6cc98a6d1d` | visit `0dd49396-8748-4276-8272-2fc5ec70ff09` | workshop `285.0` | confirmed `0.0` | remaining `285.0` | supplier archive `0.0`
+- 1061 ///ابو علي عطاف  الغماس  | vehicle `40739271-f126-4f37-bbf1-0e8c984309cf` | visit `64277504-b070-4509-895e-9467fc37061f` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- محمد سالم الرشيدي  | vehicle `b8f1b52d-d626-4fe1-b811-3a97561859fa` | visit `e7d670fe-809e-44ec-aefb-604ebc4fdb92` | workshop `2000.0` | confirmed `0.0` | remaining `2000.0` | supplier archive `2031.0`
+- 1030// 24  عبدالرحمن محمد المطيري | vehicle `f4c4a5bc-de9d-4871-b36a-5fe264f73fc5` | visit `35d5cbc6-859f-4324-a0dd-8bcc8c10c825` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- 1033//ابو سلمان الخضير | vehicle `c3a4ef72-7297-4a48-8a7c-f0aa8286fafa` | visit `e6ddc1a6-d6c8-439c-8313-cef7c2f99061` | workshop `400.0` | confirmed `0.0` | remaining `400.0` | supplier archive `0.0`
+- 1035 //فهد السحيم | vehicle `4897cb98-373d-4de7-a4db-c56c010ad22d` | visit `ebef6628-8748-4e38-a616-3ad7d3e868a5` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- محمد العمر  | vehicle `9d4ed9a0-b722-497b-b3c1-c60aaa79441c` | visit `ce09e011-0241-4f74-a930-824e538142bb` | workshop `2000.0` | confirmed `0.0` | remaining `2000.0` | supplier archive `0.0`
+- محمد علي الحربي  | vehicle `1aee4a12-ad13-4bfa-bb41-300ec2c4da61` | visit `8e3ec491-7c51-47f7-87d6-683746b4a13d` | workshop `2141.0` | confirmed `0.0` | remaining `2141.0` | supplier archive `2359.0`
+- سليمان السويلمي | vehicle `5d3c165e-cfa3-4046-8613-d8f6b2e59459` | visit `532c84f0-4fa7-45e2-a11d-8720ae63aadf` | workshop `550.0` | confirmed `0.0` | remaining `550.0` | supplier archive `0.0`
+- 228/// خالد جعفر | vehicle `4c001084-143b-4861-855c-ad2f6024ff01` | visit `f963a219-7625-4550-8d33-4cceb7dc09f9` | workshop `150.0` | confirmed `0.0` | remaining `150.0` | supplier archive `0.0`
+- 1036 /// ماجد الربعي | vehicle `6a8ace60-5ed7-48dd-bfd1-7d47d408f706` | visit `ba89782c-65b1-4c4e-8fa7-30707379e2b2` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- سعود الحربي | vehicle `2753cb77-df07-4326-8794-af7667e1ccc6` | visit `be3d5f11-4dff-476c-9fa3-b3d860481463` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- نايف المقحم | vehicle `5b1843a1-d934-4f09-bd82-f150786397ef` | visit `fd598837-6a9c-49d3-a047-9ca90f38f197` | workshop `3817.0` | confirmed `0.0` | remaining `3817.0` | supplier archive `2683.0`
+- 1043  /// مجاهد العبدالله                                                                                                                                    | vehicle `073d6ec7-53f7-4f64-b251-e4cf75cd6356` | visit `e83a015b-1579-4138-b5ed-84bb6b380763` | workshop `700.0` | confirmed `0.0` | remaining `700.0` | supplier archive `0.0`
+- 1040  /// خضير الخضيري | vehicle `8cac2ba9-ce30-4042-9fbf-fcb3186177b4` | visit `87a7e860-d0b0-45ea-a854-1278a4fbfb23` | workshop `450.0` | confirmed `0.0` | remaining `450.0` | supplier archive `0.0`
+- 1041///  اسامه السوداني  | vehicle `8c99b2ba-cfb2-4e75-af18-2a45d29a3a16` | visit `b666d607-dfde-46e4-b221-0dab4111d0bc` | workshop `400.0` | confirmed `0.0` | remaining `400.0` | supplier archive `0.0`
+- عبدالعزيز الموسى | vehicle `4d67d32d-d767-4fb8-9b75-5bbdb1f52e47` | visit `4c96e77e-11da-445c-9578-0c4668711b52` | workshop `325.0` | confirmed `0.0` | remaining `325.0` | supplier archive `25.0`
+- ابو سلطان يوسف | vehicle `0fdea03e-3440-4e87-8eb5-36ef2e02edd4` | visit `3c8d81bb-0b0a-4d66-ae13-8c5f0c07ef09` | workshop `600.0` | confirmed `0.0` | remaining `600.0` | supplier archive `0.0`
+- 1060 /// ابو ياسر الزويد | vehicle `5287aa8d-2969-48ed-bc5e-2ca0f97a03a3` | visit `99970dc5-5e16-481f-a925-65cce2d374f7` | workshop `2300.0` | confirmed `0.0` | remaining `2300.0` | supplier archive `0.0`
+- ابراهيم العجلان | vehicle `53720208-1b25-4764-abd0-bd18fad57a0d` | visit `32fe2aea-c4a4-4edd-8481-303d50d38a6e` | workshop `2500.0` | confirmed `0.0` | remaining `2500.0` | supplier archive `0.0`
+- عاصم المحيميد | vehicle `50c37caa-3329-4c00-a625-54a68837c662` | visit `fec01d72-3827-4d0e-9ba5-cb853acccfb5` | workshop `300.0` | confirmed `0.0` | remaining `300.0` | supplier archive `0.0`
+- المحيميد | vehicle `e7561ca4-3b54-4a87-b725-4728821890a6` | visit `c4665cba-667e-4cca-b0a5-ec4a32728fdc` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- ابو مصري | vehicle `2dff4689-054a-483d-9e82-41a743b7001b` | visit `c0d34b81-4193-446f-b678-c6943dc32beb` | workshop `780.0` | confirmed `0.0` | remaining `780.0` | supplier archive `0.0`
+- حيايل هايلكس  | vehicle `c706c640-5742-4003-acae-38293be15cbd` | visit `40d2d861-6bba-45f2-80b6-f842ceb4f28c` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- صالح المحيميمد  | vehicle `27fe3a2a-f3ac-443e-8c93-461c0046af63` | visit `20cc3c86-2b08-4244-9a4b-8519f8196add` | workshop `3069.0` | confirmed `0.0` | remaining `3069.0` | supplier archive `1.0`
+- ابراهيم ابو الخيل | vehicle `a361c8d6-fef2-42e7-b8a2-c7e62b7e0719` | visit `89c6429e-51da-4eb3-9f77-f95490023f59` | workshop `50.0` | confirmed `0.0` | remaining `50.0` | supplier archive `0.0`
+- عبد العزيز الخضر  | vehicle `a1ce134c-2ea2-4309-94c4-be77b7091853` | visit `c8336959-3486-4a4c-a891-de1f3aaf4c14` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- سلطان عبدالرحمن المحيميد | vehicle `4e348c0f-996f-4d18-aeaf-eb212c8d68b1` | visit `e2f71e35-df55-48d8-a9fe-56deae2034c3` | workshop `200.0` | confirmed `0.0` | remaining `200.0` | supplier archive `0.0`
+- 1059  /// عطية (فهد الشعيبي) | vehicle `6f17d9b6-1683-45fd-919e-8897aca46600` | visit `ef0a3030-d377-4a96-ba7f-acf302cf3ad4` | workshop `1523.0` | confirmed `0.0` | remaining `1523.0` | supplier archive `1477.0`
+- ابو زامل  | vehicle `249e187d-436c-428d-b41b-11c18657eb59` | visit `29dddda3-f860-42a5-a2c2-3587a26484e3` | workshop `1463.0` | confirmed `0.0` | remaining `1463.0` | supplier archive `937.0`
+- ابو حمود التويجري | vehicle `ddc21487-a04e-467f-b31e-f238c255d4a6` | visit `41642e27-4c69-432e-ae8f-49e1bef0013e` | workshop `60.0` | confirmed `0.0` | remaining `60.0` | supplier archive `290.0`
+- 1066 ///وليد بخيت | vehicle `09249139-7bb6-40cb-8a7f-c971fba30162` | visit `52e779ff-10c4-4081-a531-f032cb284678` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- ابو عبد الرحمن  | vehicle `523ae499-35e2-4200-a0b7-90dbc2f2759a` | visit `bc68b514-14f7-483a-820c-12dbaae784c0` | workshop `260.0` | confirmed `0.0` | remaining `260.0` | supplier archive `0.0`
+- عمر عبد العزيزالجعيثن | vehicle `031ab312-cb34-4232-85e1-65c428b7cd36` | visit `1a0f9a63-e158-49af-af14-e682b9ff3dbd` | workshop `400.0` | confirmed `0.0` | remaining `400.0` | supplier archive `0.0`
+- 78 //ابو بندر الراشد | vehicle `9a359734-02bb-460c-92d3-c43306a682c8` | visit `1df378ed-0724-4f31-9882-4dc28c92137b` | workshop `500.0` | confirmed `0.0` | remaining `500.0` | supplier archive `0.0`
+- عاصم النصيان | vehicle `9d68a7a1-1c89-46cb-8b1e-f0cb02cde1ff` | visit `59a6ffa4-63cf-45cf-a177-1a0043d321c2` | workshop `100.0` | confirmed `0.0` | remaining `100.0` | supplier archive `0.0`
+- محمد الجهني  ابو خالد | vehicle `4fa84fca-daef-476f-8a2a-d071a215e886` | visit `77e3369b-724c-4478-8539-b3193f6fd3b4` | workshop `4500.0` | confirmed `0.0` | remaining `4500.0` | supplier archive `0.0`
+- عبد الرحمن فالح الحربي | vehicle `082fd44a-1da4-4783-ad18-652c545ca826` | visit `c33b7e01-3b69-4e02-aff9-a26cc9e42fb4` | workshop `150.0` | confirmed `0.0` | remaining `150.0` | supplier archive `0.0`
+- ابو ياسر الحزيمي | vehicle `edaeb39c-5f09-46c1-9250-6f097adeaba2` | visit `2878d14b-2cf0-455e-ab5a-7d8253c909a4` | workshop `250.0` | confirmed `0.0` | remaining `250.0` | supplier archive `0.0`
+- 1051 /// عبدالرحمن العمرو | vehicle `67787800-50d1-4184-a26d-f1ba8db3fcf8` | visit `6f733df9-1d6a-402f-95d1-e70a44509af6` | workshop `1300.0` | confirmed `0.0` | remaining `1300.0` | supplier archive `0.0`
+- علي السيد | vehicle `044cc8a7-d809-463f-9868-93c5f6e09816` | visit `d484c9d3-4444-47d5-817a-452ce9f4fa96` | workshop `650.0` | confirmed `0.0` | remaining `650.0` | supplier archive `0.0`
+- ابو عبدالعزيز المشيطي | vehicle `41df3535-6637-4998-8ca6-7c467a58427e` | visit `03752a46-4a39-499f-a818-64ec1aa7616d` | workshop `500.0` | confirmed `0.0` | remaining `500.0` | supplier archive `0.0`
+- ب س ص 1968 | vehicle `5c8321ff-f29c-4f55-960f-5647b3f35294` | visit `4971413f-1fa6-4e95-970a-b60499404e46` | workshop `2500.0` | confirmed `0.0` | remaining `2500.0` | supplier archive `0.0`
+- محمد الجهني  ابو خالد | vehicle `4fa84fca-daef-476f-8a2a-d071a215e886` | visit `1b0be2f1-4240-469d-92d9-e2e61812cfcb` | workshop `800.0` | confirmed `0.0` | remaining `800.0` | supplier archive `0.0`
+- عمر عبد العزيزالجعيثن | vehicle `031ab312-cb34-4232-85e1-65c428b7cd36` | visit `7ec953e2-8661-466f-89e7-f1c5a2589146` | workshop `400.0` | confirmed `0.0` | remaining `400.0` | supplier archive `0.0`
+- زبن البدراني | vehicle `406ff62b-2a86-4e57-a08e-60e01acce345` | visit `526a3935-7343-46f8-bde1-eac92003037a` | workshop `2000.0` | confirmed `0.0` | remaining `2000.0` | supplier archive `0.0`
+- عبد الله الخطيب | vehicle `85b7178f-ab3c-4831-8279-87d2ec7cbe76` | visit `c82dbb6a-7d78-4d37-bcb7-a5d9913e1dd7` | workshop `200.0` | confirmed `0.0` | remaining `200.0` | supplier archive `0.0`
+- شركة مصنع اعذاق للصناعه | vehicle `62514f6c-6d2b-43b8-87b6-5099c756318e` | visit `eca7b15a-06f1-4e3b-abf5-98344ae80764` | workshop `150.0` | confirmed `0.0` | remaining `150.0` | supplier archive `160.0`
+- سلطان الشاص | vehicle `c02cc9c7-6ff5-4fc7-9414-b15787fa9000` | visit `b48c0850-1453-4740-9639-1a99687fda67` | workshop `300.0` | confirmed `0.0` | remaining `300.0` | supplier archive `0.0`
+- موسى الصقيري | vehicle `53c5755d-d5da-4b86-a49c-9654eb05ff58` | visit `5f9252eb-3329-4981-b946-0ada9e588f37` | workshop `80.0` | confirmed `0.0` | remaining `80.0` | supplier archive `0.0`
+- ابراهيم العمر | vehicle `75ab383a-b52d-42b2-85f2-2174c1b4f28f` | visit `724a3b53-a0dc-4f5f-a8cf-df4cce4ac23b` | workshop `150.0` | confirmed `0.0` | remaining `150.0` | supplier archive `0.0`
+
+## دفعات notes غير مؤكدة/وهمية
+- 1062 ///ملحمة قويصرة   | visit `2fa1bd0a-9b77-43da-8944-9680a3671f94` | amount `877.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- فهد نغيمش الحربي | visit `4a794bb3-86df-4ef4-a8b1-25ae4d397857` | amount `2000.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- ابراهيم النغيمشي | visit `21bed64f-b1d6-4534-b229-69b33f73556f` | amount `390.0` | journalEntryId `829fb450-7733-4d7f-97e7-fa72f138a6b5` | issue `journalEntryId_missing_in_journal_entries`
+- 1064 /// سلطان العليان | visit `03df6db9-94cd-4e80-8ef5-80f69f571df2` | amount `2000.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- حسام التويجري | visit `b876921c-d554-4ade-944e-b20760883fd9` | amount `500.0` | journalEntryId `f43132ae-5d05-4268-b0e0-47042e86c6cf` | issue `journalEntryId_missing_in_journal_entries`
+- محمد فارس العنزي  | visit `769bbfcc-60ea-4e0c-a7cf-2e210f708d0a` | amount `700.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- محمد فارس العنزي  | visit `769bbfcc-60ea-4e0c-a7cf-2e210f708d0a` | amount `1300.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- فهد شليبيط المطيري | visit `840b8a23-4fe3-4b97-b4b3-ddcd014acb68` | amount `600.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- فهد شليبيط المطيري | visit `840b8a23-4fe3-4b97-b4b3-ddcd014acb68` | amount `500.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- فهد شليبيط المطيري | visit `840b8a23-4fe3-4b97-b4b3-ddcd014acb68` | amount `900.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 928///ابو احمد الدبيخي                                                                                                                                                                                                                                     | visit `ad51bb5a-faff-4973-995e-b3110edab2db` | amount `200.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1038 ///عبد الاله الزارع  | visit `af30e8e6-a833-4932-bb09-2253922dbd31` | amount `175.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- صالح البشر | visit `0297c2ca-0452-4089-86fc-e0d2d2530085` | amount `50.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- سعود الحربي | visit `ed5a4ef8-44c9-42b1-a4f8-51861d33a8cc` | amount `3157.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- موسسة الزومان | visit `cf151787-1155-4f81-8312-ccb2e15f42a0` | amount `1900.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- احمد الخضيري | visit `8b9bfdb5-a23a-41ac-8c27-31604326bdc1` | amount `100.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- ابو نايف الفايزي | visit `fa41f653-cb79-451c-9d25-f2a701f6a619` | amount `50.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- عبدالعزيز الرشيد  | visit `f1fe3d41-7013-4ad4-a4b7-4053a9eb7cf5` | amount `6745.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- عبدالعزيز الرشيد  | visit `f1fe3d41-7013-4ad4-a4b7-4053a9eb7cf5` | amount `1350.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- عبدالعزيز الرشيد  | visit `f1fe3d41-7013-4ad4-a4b7-4053a9eb7cf5` | amount `12150.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- عبد العزيز الحسين | visit `5d3ef6e1-8ef7-4e0b-a249-70472ed68269` | amount `100.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- العنزي | visit `24a1cd32-0218-4c7c-a582-d82627c3e938` | amount `1200.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- صالح اللحيدان  | visit `61c2778a-b15b-40ee-9d65-417de38e88a9` | amount `150.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1026//سليمان الظويهر | visit `1fdad395-0930-4637-8c93-a748f1c8505e` | amount `350.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 77  //محمد  فهدالعمر | visit `4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f` | amount `250.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 738//ابو  الحسن التميمي | visit `b1ef779c-4560-4464-94d7-1433be21a1e0` | amount `250.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- فهد المحيميد  | visit `72078883-6db5-4631-8f72-cf308b4b9fc3` | amount `2250.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 77  //محمد  فهدالعمر | visit `4f907bf3-10a6-4d43-97c2-cd7d5cad22f8` | amount `750.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- زياد الشمشم | visit `c33792fc-8fb8-4739-98e8-f98d345e3c6b` | amount `500.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- سلطان الصالح | visit `0dd49396-8748-4276-8272-2fc5ec70ff09` | amount `200.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1061 ///ابو علي عطاف  الغماس  | visit `64277504-b070-4509-895e-9467fc37061f` | amount `50.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- محمد سالم الرشيدي  | visit `e7d670fe-809e-44ec-aefb-604ebc4fdb92` | amount `4031.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1030// 24  عبدالرحمن محمد المطيري | visit `35d5cbc6-859f-4324-a0dd-8bcc8c10c825` | amount `50.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1033//ابو سلمان الخضير | visit `e6ddc1a6-d6c8-439c-8313-cef7c2f99061` | amount `400.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1035 //فهد السحيم | visit `ebef6628-8748-4e38-a616-3ad7d3e868a5` | amount `50.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- محمد العمر  | visit `ce09e011-0241-4f74-a930-824e538142bb` | amount `2000.0` | journalEntryId `64c3d55c-ca1a-410f-8c23-0b2bf90885cb` | issue `journalEntryId_missing_in_journal_entries`
+- محمد علي الحربي  | visit `8e3ec491-7c51-47f7-87d6-683746b4a13d` | amount `4500.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- محمد علي الحربي  | visit `8e3ec491-7c51-47f7-87d6-683746b4a13d` | amount `4500.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- سليمان السويلمي | visit `532c84f0-4fa7-45e2-a11d-8720ae63aadf` | amount `550.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 228/// خالد جعفر | visit `f963a219-7625-4550-8d33-4cceb7dc09f9` | amount `150.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1036 /// ماجد الربعي | visit `ba89782c-65b1-4c4e-8fa7-30707379e2b2` | amount `100.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- سعود الحربي | visit `be3d5f11-4dff-476c-9fa3-b3d860481463` | amount `50.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- عبدالعزيز الموسى | visit `4c96e77e-11da-445c-9578-0c4668711b52` | amount `350.0` | journalEntryId `2e8fd6e7-81f1-4b88-aff8-ea68e5e20fde` | issue `journalEntryId_missing_in_journal_entries`
+- ابو سلطان يوسف | visit `3c8d81bb-0b0a-4d66-ae13-8c5f0c07ef09` | amount `600.0` | journalEntryId `96ad3545-4089-4b90-8f11-1e5428f4d842` | issue `journalEntryId_missing_in_journal_entries`
+- ابراهيم العجلان | visit `32fe2aea-c4a4-4edd-8481-303d50d38a6e` | amount `2500.0` | journalEntryId `e2e93445-3bf5-4112-9955-a8d742988e72` | issue `journalEntryId_missing_in_journal_entries`
+- عاصم المحيميد | visit `fec01d72-3827-4d0e-9ba5-cb853acccfb5` | amount `300.0` | journalEntryId `81137cdb-d380-4a18-85d3-f03a6113cef0` | issue `journalEntryId_missing_in_journal_entries`
+- المحيميد | visit `c4665cba-667e-4cca-b0a5-ec4a32728fdc` | amount `50.0` | journalEntryId `39c58b2b-d9b9-459e-a736-d5e81668d95a` | issue `journalEntryId_missing_in_journal_entries`
+- ابو مصري | visit `c0d34b81-4193-446f-b678-c6943dc32beb` | amount `780.0` | journalEntryId `e7d77a6d-6ff9-4790-ac22-d162442f1cae` | issue `journalEntryId_missing_in_journal_entries`
+- حيايل هايلكس  | visit `40d2d861-6bba-45f2-80b6-f842ceb4f28c` | amount `50.0` | journalEntryId `2097da5d-2744-4110-bf05-d1a33ca6db8a` | issue `journalEntryId_missing_in_journal_entries`
+- ابراهيم ابو الخيل | visit `89c6429e-51da-4eb3-9f77-f95490023f59` | amount `50.0` | journalEntryId `95d35180-a133-4f99-88c8-b4930da706f1` | issue `journalEntryId_missing_in_journal_entries`
+- عبد العزيز الخضر  | visit `c8336959-3486-4a4c-a891-de1f3aaf4c14` | amount `100.0` | journalEntryId `89b5725e-6bfb-4628-a25c-7fad31a94543` | issue `journalEntryId_missing_in_journal_entries`
+- سلطان عبدالرحمن المحيميد | visit `e2f71e35-df55-48d8-a9fe-56deae2034c3` | amount `200.0` | journalEntryId `7ff3f193-7715-4f8c-828b-a5f0d9090e90` | issue `journalEntryId_missing_in_journal_entries`
+- 1059  /// عطية (فهد الشعيبي) | visit `ef0a3030-d377-4a96-ba7f-acf302cf3ad4` | amount `2500.0` | journalEntryId `efffd424-827c-4795-8ca4-8dbeac14d8ba` | issue `journalEntryId_missing_in_journal_entries`
+- 1059  /// عطية (فهد الشعيبي) | visit `ef0a3030-d377-4a96-ba7f-acf302cf3ad4` | amount `500.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- ابو زامل  | visit `29dddda3-f860-42a5-a2c2-3587a26484e3` | amount `2400.0` | journalEntryId `5fb49673-1e8b-4048-9608-befad5998a69` | issue `journalEntryId_missing_in_journal_entries`
+- نايف المقحم | visit `5efaadae-f771-4910-a520-448b383891e8` | amount `2500.0` | journalEntryId `db59b539-9e23-4cd2-9547-d5ceecdff4db` | issue `journalEntryId_missing_in_journal_entries`
+- ابو حمود التويجري | visit `41642e27-4c69-432e-ae8f-49e1bef0013e` | amount `60.0` | journalEntryId `58bc5f2f-09ab-430c-a208-2455c3861704` | issue `journalEntryId_missing_in_journal_entries`
+- 1066 ///وليد بخيت | visit `52e779ff-10c4-4081-a531-f032cb284678` | amount `100.0` | journalEntryId `5ce26351-d3de-4934-bd48-7b3cef7ccae1` | issue `journalEntryId_missing_in_journal_entries`
+- ابو عبد الرحمن  | visit `bc68b514-14f7-483a-820c-12dbaae784c0` | amount `260.0` | journalEntryId `7052df38-add5-4ddc-88c1-50f1b7656e00` | issue `journalEntryId_missing_in_journal_entries`
+- عمر عبد العزيزالجعيثن | visit `1a0f9a63-e158-49af-af14-e682b9ff3dbd` | amount `400.0` | journalEntryId `ec7aaddb-19b1-45c1-a9d3-b4f10088b06a` | issue `journalEntryId_missing_in_journal_entries`
+- 78 //ابو بندر الراشد | visit `1df378ed-0724-4f31-9882-4dc28c92137b` | amount `500.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- عاصم النصيان | visit `59a6ffa4-63cf-45cf-a177-1a0043d321c2` | amount `100.0` | journalEntryId `f3ba3647-fa95-4e2c-8314-8ae9ad74f2af` | issue `journalEntryId_missing_in_journal_entries`
+- محمد الجهني  ابو خالد | visit `77e3369b-724c-4478-8539-b3193f6fd3b4` | amount `4500.0` | journalEntryId `5ed32dc0-a198-4d63-871c-171c9bf3b9ff` | issue `journalEntryId_missing_in_journal_entries`
+- عبد الرحمن فالح الحربي | visit `c33b7e01-3b69-4e02-aff9-a26cc9e42fb4` | amount `150.0` | journalEntryId `ce13b2e3-7cab-47eb-a400-4dcbcaca9fe8` | issue `journalEntryId_missing_in_journal_entries`
+- ابو ياسر الحزيمي | visit `2878d14b-2cf0-455e-ab5a-7d8253c909a4` | amount `250.0` | journalEntryId `876b9bf6-111d-45ff-83e7-babb49560e0e` | issue `journalEntryId_missing_in_journal_entries`
+- 1051 /// عبدالرحمن العمرو | visit `6f733df9-1d6a-402f-95d1-e70a44509af6` | amount `500.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- 1051 /// عبدالرحمن العمرو | visit `6f733df9-1d6a-402f-95d1-e70a44509af6` | amount `200.0` | journalEntryId `—` | issue `notes_payment_without_journalEntryId`
+- علي السيد | visit `d484c9d3-4444-47d5-817a-452ce9f4fa96` | amount `650.0` | journalEntryId `1cea130c-e1b7-43ba-9aef-b5940a2d9e13` | issue `journalEntryId_missing_in_journal_entries`
+- ابو عبدالعزيز المشيطي | visit `03752a46-4a39-499f-a818-64ec1aa7616d` | amount `500.0` | journalEntryId `668b87ad-9e0d-4855-b7e6-c4a7531213f8` | issue `journalEntryId_missing_in_journal_entries`
+- ب س ص 1968 | visit `4971413f-1fa6-4e95-970a-b60499404e46` | amount `2500.0` | journalEntryId `18f4546d-0311-41ae-a6a6-8c9d9c75871b` | issue `journalEntryId_missing_in_journal_entries`
+- محمد الجهني  ابو خالد | visit `1b0be2f1-4240-469d-92d9-e2e61812cfcb` | amount `800.0` | journalEntryId `f0cfaa94-5459-49d3-b93d-1866910b65a5` | issue `journalEntryId_missing_in_journal_entries`
+- عمر عبد العزيزالجعيثن | visit `7ec953e2-8661-466f-89e7-f1c5a2589146` | amount `400.0` | journalEntryId `d5fbee23-1263-4830-a529-27ef1c148ba2` | issue `journalEntryId_missing_in_journal_entries`
+- زبن البدراني | visit `526a3935-7343-46f8-bde1-eac92003037a` | amount `2000.0` | journalEntryId `0ed4483f-88f3-45ca-96ba-e1e3c6f2e2b1` | issue `journalEntryId_missing_in_journal_entries`
+- عبد الله الخطيب | visit `c82dbb6a-7d78-4d37-bcb7-a5d9913e1dd7` | amount `200.0` | journalEntryId `b7e65ab8-0a32-45aa-8ae3-1a780db2fc35` | issue `journalEntryId_missing_in_journal_entries`
+- شركة مصنع اعذاق للصناعه | visit `eca7b15a-06f1-4e3b-abf5-98344ae80764` | amount `310.0` | journalEntryId `1349e1e5-cc40-4bce-a258-44fe76e083a3` | issue `journalEntryId_missing_in_journal_entries`
+- موسى الصقيري | visit `5f9252eb-3329-4981-b946-0ada9e588f37` | amount `80.0` | journalEntryId `36eed328-e41c-46cc-97d9-7056c0139cf9` | issue `journalEntryId_missing_in_journal_entries`
+- ابراهيم العمر | visit `724a3b53-a0dc-4f5f-a8cf-df4cce4ac23b` | amount `150.0` | journalEntryId `605e1aa0-f883-4633-8059-da752ab89fab` | issue `journalEntryId_missing_in_journal_entries`
+- شركة مصنع اعذاق للصناعه | visit `040b41c7-f8dc-4087-b110-d3b088fceb66` | amount `500.0` | journalEntryId `4b695f37-69a7-4f7b-b377-481eed039738` | issue `journalEntryId_missing_in_journal_entries`
+- ابو علي الشعيبي | visit `da69a9c2-11a6-4c66-9f41-c62dbb4121e0` | amount `150.0` | journalEntryId `10689f74-8ab4-42d6-a7af-e37115c02f12` | issue `journalEntryId_missing_in_journal_entries`
+- حزام سعود المطيري | visit `4365e611-25e1-4110-9960-041179885004` | amount `2300.0` | journalEntryId `5eb0ea83-ff24-4f5b-8349-354b4f098979` | issue `journalEntryId_missing_in_journal_entries`
+- شركة مصنع اعذاق للصناعه | visit `fd04da2a-86d6-4b81-97e6-3f15b556c678` | amount `40.0` | journalEntryId `b0363786-4a24-4b43-b25c-dcc15f1e6999` | issue `journalEntryId_missing_in_journal_entries`
+- عبد العزيز اللافي | visit `6a1f5892-3586-4595-ab85-29a74676cde0` | amount `500.0` | journalEntryId `2341eb71-4087-4517-9407-d8546d637475` | issue `journalEntryId_missing_in_journal_entries`
+- سليمان السويلمي | visit `00226105-77cf-47b2-9c75-c97d15db10d6` | amount `450.0` | journalEntryId `0852048d-fd32-4017-b172-07483b73fd66` | issue `journalEntryId_missing_in_journal_entries`
+- ذياب سليمان الذياب | visit `5f4f40f0-93c5-4041-83f7-12286b5c7867` | amount `500.0` | journalEntryId `1094a13f-8320-4c07-a9c1-7cb36ad149fb` | issue `journalEntryId_missing_in_journal_entries`
+- ابو صهيب الاردني | visit `d22b42a7-055a-4a2e-967d-91fb43bc8f58` | amount `1580.0` | journalEntryId `a1a8c94f-ccce-4b70-ac07-447f74585343` | issue `journalEntryId_missing_in_journal_entries`
+- سالم حسين  | visit `0b080234-11ae-42c4-8bac-79395b4f53c2` | amount `600.0` | journalEntryId `fa929db2-e55f-49ee-8022-284f1fe5a75d` | issue `journalEntryId_missing_in_journal_entries`
+- عبد العزيز الوابل | visit `11c8df2e-b2ad-4ace-8b8d-9cc70cf0ebff` | amount `1600.0` | journalEntryId `83526bb0-b48e-40ac-8d29-4ce01e317e8b` | issue `journalEntryId_missing_in_journal_entries`
+- مد الله الثواتي | visit `b8df4807-e5ad-4537-bef6-a28c67c9b23f` | amount `500.0` | journalEntryId `55654033-34e8-4d94-90f5-91f40bb0cb54` | issue `journalEntryId_missing_in_journal_entries`
+- ابو ركان عبدالله  | visit `5f3b0fd2-b225-407c-8c8d-d3e82c9a129a` | amount `2350.0` | journalEntryId `3715d6c3-831e-402e-8bc8-a61df148297d` | issue `journalEntryId_missing_in_journal_entries`
+- الريان | visit `78740d04-4c93-473a-be4c-987b7ebb8101` | amount `250.0` | journalEntryId `7a9bf05f-748c-420b-b207-81a092f2e889` | issue `journalEntryId_missing_in_journal_entries`
+- ياسر الزيد | visit `0d0e0e1c-4dc6-4036-90a0-dcf6fa66c9f0` | amount `200.0` | journalEntryId `b88dec89-242c-41b4-8078-bc630e8e0468` | issue `journalEntryId_missing_in_journal_entries`
+- عبد الرحمن الراشد  | visit `e3e8bbbc-5793-4db1-90a7-6a0c6fe01dbc` | amount `300.0` | journalEntryId `a14a72d5-cd68-4728-a054-03e61df82b67` | issue `journalEntryId_missing_in_journal_entries`
+- محمد ابو الخير | visit `8e81052c-82a9-4c28-b061-0774537b2e20` | amount `150.0` | journalEntryId `7ccb6e5b-48ed-45c7-ba55-2581db951a36` | issue `journalEntryId_missing_in_journal_entries`
+- الريف الثلاثي للحوم | visit `107ffdb8-4160-4ea2-9d3b-c4c5a1d08c6b` | amount `400.0` | journalEntryId `2ad21441-9e1d-4fde-a3d9-330f5033ea51` | issue `journalEntryId_missing_in_journal_entries`
+- ابو تركي الرويضان  | visit `9aa2e773-59e1-4d69-a0d6-a892e890ee1e` | amount `3700.0` | journalEntryId `078f872a-f097-45a3-aede-645f433a0aac` | issue `journalEntryId_missing_in_journal_entries`
+- ابو جواد  | visit `fcacb037-4e61-4742-b579-897f8a146b07` | amount `450.0` | journalEntryId `a9ee13c0-a44e-40dc-9728-5865c9cc4b7e` | issue `journalEntryId_missing_in_journal_entries`
+- عمر عبد العزيزالجعيثن | visit `e10a7a9e-9809-4be7-994d-bac34b3e7458` | amount `2000.0` | journalEntryId `091ca870-0e00-4f13-88d9-382263305210` | issue `journalEntryId_missing_in_journal_entries`
+- عمر عبد العزيزالجعيثن | visit `e10a7a9e-9809-4be7-994d-bac34b3e7458` | amount `2750.0` | journalEntryId `c0deb830-bdfb-4e8c-af28-159cc5b5bd29` | issue `journalEntryId_missing_in_journal_entries`
+- عبد العزيز العريني | visit `33e1066e-0a1e-46e3-870a-bcb2e3b62059` | amount `2200.0` | journalEntryId `350cf2ec-e181-4d52-a997-703e8292775e` | issue `journalEntryId_missing_in_journal_entries`
+- علي عبد العزيز العازمي | visit `22fd6e87-4c90-403c-bf54-0fc17898bde7` | amount `2140.0` | journalEntryId `46aded4c-f694-40ee-ab45-ea209df176ce` | issue `journalEntryId_missing_in_journal_entries`
+
+## اختلاط الموردين بذمة العميل
+- سيف حمدان المنصوري | visit `104c0779-88f8-475e-b167-a5fc71bcce6e` | workshop `0.0` | supplier archive `90.0` | customer invoice يجب أن يكون `0.0`
+- 1062 ///ملحمة قويصرة   | visit `2fa1bd0a-9b77-43da-8944-9680a3671f94` | workshop `877.0` | supplier archive `2023.0` | customer invoice يجب أن يكون `877.0`
+- نايف الحربي | visit `feb09cfe-b7d7-4b35-8f1d-648e037b6083` | workshop `1000.0` | supplier archive `1000.0` | customer invoice يجب أن يكون `1000.0`
+- سعود الحربي | visit `ed5a4ef8-44c9-42b1-a4f8-51861d33a8cc` | workshop `1000.0` | supplier archive `2157.0` | customer invoice يجب أن يكون `1000.0`
+- عبدالعزيز الرشيد  | visit `f1fe3d41-7013-4ad4-a4b7-4053a9eb7cf5` | workshop `2500.0` | supplier archive `17754.5` | customer invoice يجب أن يكون `2500.0`
+- 77  //محمد  فهدالعمر | visit `4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f` | workshop `50.0` | supplier archive `200.0` | customer invoice يجب أن يكون `50.0`
+- فهد المحيميد  | visit `72078883-6db5-4631-8f72-cf308b4b9fc3` | workshop `500.0` | supplier archive `1750.0` | customer invoice يجب أن يكون `500.0`
+- 77  //محمد  فهدالعمر | visit `4f907bf3-10a6-4d43-97c2-cd7d5cad22f8` | workshop `600.0` | supplier archive `150.0` | customer invoice يجب أن يكون `600.0`
+- محمد سالم الرشيدي  | visit `e7d670fe-809e-44ec-aefb-604ebc4fdb92` | workshop `2000.0` | supplier archive `2031.0` | customer invoice يجب أن يكون `2000.0`
+- محمد علي الحربي  | visit `8e3ec491-7c51-47f7-87d6-683746b4a13d` | workshop `2141.0` | supplier archive `2359.0` | customer invoice يجب أن يكون `2141.0`
+- نايف المقحم | visit `fd598837-6a9c-49d3-a047-9ca90f38f197` | workshop `3817.0` | supplier archive `2683.0` | customer invoice يجب أن يكون `3817.0`
+- نايف المقحم | visit `2dd3dbae-6cc9-46b6-b72d-f76364cc36f7` | workshop `0.0` | supplier archive `3250.0` | customer invoice يجب أن يكون `0.0`
+- 928///ابو احمد الدبيخي                                                                                                                                                                                                                                     | visit `c841307c-1fb6-452d-beef-9f4a0d6f5959` | workshop `0.0` | supplier archive `300.0` | customer invoice يجب أن يكون `0.0`
+- عبدالعزيز الموسى | visit `4c96e77e-11da-445c-9578-0c4668711b52` | workshop `325.0` | supplier archive `25.0` | customer invoice يجب أن يكون `325.0`
+- صالح المحيميمد  | visit `20cc3c86-2b08-4244-9a4b-8519f8196add` | workshop `3069.0` | supplier archive `1.0` | customer invoice يجب أن يكون `3069.0`
+- 1059  /// عطية (فهد الشعيبي) | visit `ef0a3030-d377-4a96-ba7f-acf302cf3ad4` | workshop `1523.0` | supplier archive `1477.0` | customer invoice يجب أن يكون `1523.0`
+- ابو زامل  | visit `29dddda3-f860-42a5-a2c2-3587a26484e3` | workshop `1463.0` | supplier archive `937.0` | customer invoice يجب أن يكون `1463.0`
+- نايف المقحم | visit `5efaadae-f771-4910-a520-448b383891e8` | workshop `0.0` | supplier archive `2500.0` | customer invoice يجب أن يكون `0.0`
+- ابو حمود التويجري | visit `41642e27-4c69-432e-ae8f-49e1bef0013e` | workshop `60.0` | supplier archive `290.0` | customer invoice يجب أن يكون `60.0`
+- شركة مصنع اعذاق للصناعه | visit `eca7b15a-06f1-4e3b-abf5-98344ae80764` | workshop `150.0` | supplier archive `160.0` | customer invoice يجب أن يكون `150.0`
+- عمر عبد العزيزالجعيثن | visit `e10a7a9e-9809-4be7-994d-bac34b3e7458` | workshop `2480.0` | supplier archive `2270.0` | customer invoice يجب أن يكون `2480.0`
+- عبد العزيز الشعيبي | visit `868355a4-59ae-42de-886f-881332bfc4fa` | workshop `800.0` | supplier archive `895.0` | customer invoice يجب أن يكون `800.0`
+- غانم المحيميد  | visit `2a7ff792-4f4f-4c7a-aa8f-d752304efd82` | workshop `350.0` | supplier archive `1397.0` | customer invoice يجب أن يكون `350.0`
+- 1062 ///ملحمة قويصرة   | visit `822ca57a-2cd2-4b2f-84c6-f5001170ce73` | workshop `0.0` | supplier archive `1000.0` | customer invoice يجب أن يكون `0.0`
+- خالد القبيشي | visit `1d40d657-f682-40a5-b404-4bea38757a12` | workshop `31.0` | supplier archive `271.0` | customer invoice يجب أن يكون `31.0`
+- خالد السلمان | visit `394407bd-8006-433d-992f-67b54db0a318` | workshop `300.0` | supplier archive `1179.0` | customer invoice يجب أن يكون `300.0`
+- ابو ركان  | visit `7ce2e6dd-008d-4a65-861f-7105bf205e56` | workshop `150.0` | supplier archive `155.0` | customer invoice يجب أن يكون `150.0`
+- يوسف عبد الرحمن الكبير | visit `29b88c69-15a8-4c74-a20e-0aa9399fb90d` | workshop `2120.0` | supplier archive `6354.0` | customer invoice يجب أن يكون `2120.0`
+- جيب 2025 | visit `98131e8c-3d95-491b-9763-f46cbb822be4` | workshop `1100.0` | supplier archive `287.0` | customer invoice يجب أن يكون `1100.0`
+- ظاهر بن  سعود الحربي | visit `17c6ee15-c2aa-494f-873d-981c16cd61f0` | workshop `400.0` | supplier archive `1040.0` | customer invoice يجب أن يكون `400.0`
+- عمر الخضيري | visit `15b9dfb5-0366-41cd-bc0a-4b024ff301b0` | workshop `150.0` | supplier archive `2267.0` | customer invoice يجب أن يكون `150.0`
+- شركة مصنع اعذاق للصناعه | visit `c7af81ed-037c-46c7-8cfa-02743a186f73` | workshop `0.0` | supplier archive `370.0` | customer invoice يجب أن يكون `0.0`
+- خالد عماش الحربي | visit `73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e` | workshop `2121.0` | supplier archive `5879.0` | customer invoice يجب أن يكون `2121.0`
+- عبد الرحمن الراشد  | visit `320d0a19-5bbf-4dff-a731-1a284e40c644` | workshop `400.0` | supplier archive `1200.0` | customer invoice يجب أن يكون `400.0`
+- العنزي | visit `4b24a2b6-f60e-4e89-ac20-afba51d21a98` | workshop `0.0` | supplier archive `119.0` | customer invoice يجب أن يكون `0.0`
+- محمد الحربي  | visit `b1305e60-4c05-4c10-bbf7-185601cbe66c` | workshop `400.0` | supplier archive `179.0` | customer invoice يجب أن يكون `400.0`
+- نايق الحربي الاسياح | visit `f4031c0e-73ab-4aae-96cd-2174368647dd` | workshop `800.0` | supplier archive `1800.0` | customer invoice يجب أن يكون `800.0`
+- ابو  خالد  | visit `34c7b294-bb63-44bb-963d-dc9c7869f9dc` | workshop `730.0` | supplier archive `2470.0` | customer invoice يجب أن يكون `730.0`
+- صالح اللحيدان  | visit `d8f1691f-63cc-48fb-b80c-b0619d394801` | workshop `500.0` | supplier archive `1367.0` | customer invoice يجب أن يكون `500.0`
+- الحزيمي البصر | visit `49c1187e-1333-4985-89c0-6592c04235de` | workshop `200.0` | supplier archive `150.0` | customer invoice يجب أن يكون `200.0`
+- فهد الطريسي | visit `3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14` | workshop `1800.0` | supplier archive `2578.0` | customer invoice يجب أن يكون `1800.0`
+- محمد الحربي | visit `f55b5c19-5f0d-4872-9562-eb963ed17007` | workshop `2833.0` | supplier archive `4167.0` | customer invoice يجب أن يكون `2833.0`
+- معيض سند  | visit `d978fbfc-311c-4cb5-b56e-d48add8e6a96` | workshop `3972.0` | supplier archive `13028.0` | customer invoice يجب أن يكون `3972.0`
+- حاتم الحزمي ابو عدي | visit `e0bc45cd-5796-4466-a48e-98f948fc6e18` | workshop `550.0` | supplier archive `182.0` | customer invoice يجب أن يكون `550.0`
+- ابراهيم صالح  | visit `6484969a-7714-43f8-b0b9-782c915b8abc` | workshop `1000.0` | supplier archive `975.0` | customer invoice يجب أن يكون `1000.0`
+- الفايز | visit `970abb11-ef69-47ed-850c-041fdceb5ddb` | workshop `100.0` | supplier archive `30.0` | customer invoice يجب أن يكون `100.0`
+- سالم العازمي | visit `d1498141-b134-4823-9586-756506361a19` | workshop `3150.0` | supplier archive `2850.0` | customer invoice يجب أن يكون `3150.0`
+- جيب 2012 | visit `3e166d55-340c-443b-bf7c-7e73f5da58ee` | workshop `1200.0` | supplier archive `3600.0` | customer invoice يجب أن يكون `1200.0`
+
+## نموذج 31/271/200
+- النتيجة المقبولة محفوظة في JSON تحت `sample_31_271_200_expected`.
+- في P0 لا ننشئ حساب دفعات مقدمة، لذلك أي مبلغ زائد يصنف في التقرير كـ `customer_advance_pending`.
+
+## ملفات
+- raw JSON: `/app/test_reports/p0_financial_engine_preview_raw.json`
