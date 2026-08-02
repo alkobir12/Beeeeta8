@@ -600,6 +600,13 @@ export default function DocumentPrint() {
 
       <main className={`doc-workspace ${showPreview ? 'with-preview' : 'editor-only'}`} data-testid="document-workspace">
         <section className="doc-editor" data-testid="document-editor-panel">
+          {!dataReady || loading ? (
+            <Panel title="تجهيز المستند" icon={<RefreshCw size={18} />} testId="document-data-loading-section">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm font-bold text-slate-600" data-testid="document-editor-data-loading">
+                جارٍ تحميل بيانات الزيارة والبنود قبل عرض حقول التحرير…
+              </div>
+            </Panel>
+          ) : (<>
           <Panel title="نوع المستند" icon={<FileText size={18} />} testId="document-type-section">
             <div className="doc-type-grid">
               {Object.entries(docLabels).map(([key, label]) => (
@@ -687,6 +694,7 @@ export default function DocumentPrint() {
               <button type="button" className="doc-action primary" onClick={printCurrent} data-testid="document-print-button"><Printer size={18} /> طباعة</button>
             </div>
           </Panel>
+          </>)}
         </section>
 
         {showPreview && (

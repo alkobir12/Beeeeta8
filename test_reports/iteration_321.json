@@ -1,0 +1,37 @@
+{
+  "summary": "إعادة اختبار Frontend فقط لمسار /print المباشر من جلسة جديدة بعد إصلاحات dataReady. النتيجة: العطل السابق (ظهور حقل البند الأول فارغًا قبل الجاهزية) غير مُعاد إنتاجه، والبنود الصحيحة تظهر من أول تحميل بدون refresh يدوي.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/frontend/src/pages/DocumentPrint.jsx",
+    "/app/test_reports/iteration_320.json"
+  ],
+  "action_items": [
+    "الإبقاء على guard الحالي (!dataReady || loading) كما هو لأنه أغلق سباق التحميل في هذا السيناريو.",
+    "إضافة اختبار UI انحداري ثابت لمسار /print بنفس vehicleId/visitId لضمان عدم رجوع race condition مستقبلًا.",
+    "عند التحقق الآلي من الطباعة، استخدم probe على appendChild لأن iframe قد يُزال سريعًا بعد استدعاء print."
+  ],
+  "critical_code_review_comments": [
+    "DocumentPrint.jsx ما يزال كبيرًا جدًا (>700 سطر)، ما يزيد مخاطر regressions في hydration ويفضّل تقسيمه لوحدات أصغر."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_321.json"
+  ],
+  "success_rate": {
+    "backend": "N/A (skipped by request)",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "لم يتم إنشاء seed data. تم استخدام بيانات البيئة الحالية.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "في إعادة الاختبار الحالية: عند أول فتح مباشر /print كان count(document-item-description-0)=0 أثناء loading (PASS حسب المتطلب)، وبعد الجاهزية ظهرت القيم: ['فك وتركيب تربو','فك وتركيب التانكي','فك وتركيب غطاء بلوف 8س ديزل وتبديل صوف'] بدون refresh. المعاينة/النص لا تحتوي 'طقم اصلاح تربو 2' ولا '{ }' ولا 'undefined' ولا 'null'. زر الطباعة ما زال يستخدم iframe/srcdoc وتم إثباته عبر appendChild probe (appended=1, srcdocLen>0).",
+  "rca of the issue": "RCA للإشارة السابقة في iteration_320: الاختبار الحالي يدعم أن المشكلة كانت hydration race في أول تحميل وقد تم احتواؤها عبر dataReady/loading guards التي تمنع ظهور حقول التحرير قبل اكتمال البيانات. ملاحظة تنفيذية: iframe الطباعة يُنشأ ثم يُزال بسرعة، لذلك عدّ iframe بعد 900ms قد يعطي 0 رغم أن المسار صحيح.",
+  "mocked_api": "NO MOCKED APIs used."
+}
