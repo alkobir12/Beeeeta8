@@ -1,0 +1,64 @@
+{
+  "summary": "إعادة اختبار Frontend فقط لسيناريو /print المباشر + QuickPrint بعد إصلاحات DocumentPrint. نتيجة الاختبار: QuickPrint من صفحة المركبة ما زال يعمل، لكن عطل /print المباشر لم يُغلق بالكامل (حقل البند الأول لا يُحمّل دائمًا في أول فتح ويظهر صحيحًا بعد Refresh يدوي).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DocumentPrint (/print)",
+        "issue": "عند أول فتح مباشر للرابط المطلوب، document-item-description-0 يظهر فارغًا بدل 'فك وتركيب تربو' بينما باقي البنود تظهر. بعد الضغط على document-refresh-button تظهر القيم الثلاث صحيحة.",
+        "selector": "[data-testid='document-item-description-0']",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Direct /print hydration (invoice)",
+        "issue": "Hydration غير ثابت في أول تحميل: بيانات العميل صحيحة فورًا (سالم العازمي/0509915954) لكن قائمة البنود لا تكتمل من أول مرة لنفس vehicleId/visitId.",
+        "affected_selectors": [
+          "[data-testid='document-item-description-0']",
+          "[data-testid='document-refresh-button']",
+          "[data-testid='document-data-loading']"
+        ]
+      },
+      {
+        "flow": "DocumentPrint print mechanism verification",
+        "issue": "تعذر إثبات إنشاء iframe الطباعة في مسار /print أثناء هذه الجولة لأن حالة القالب/المعاينة لم تكن مستقرة دائمًا (لا يظهر document-resolved-template-sheet في كل محاولة)، وبالتالي click على زر الطباعة لا يُنشئ iframe بشكل موثوق في الاختبار.",
+        "affected_selectors": [
+          "[data-testid='document-print-button']",
+          "[data-testid='document-resolved-template-sheet']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_320.json"
+  ],
+  "action_items": [
+    "إصلاح تسلسل تحميل /print المباشر بحيث تُحمّل بنود visit.notes JSON كاملة من أول render بدون الحاجة إلى Refresh يدوي.",
+    "إضافة guard/await واضح بين اكتمال تحميل بيانات الزيارة وبين اعتماد items النهائية لتفادي الحالة الجزئية (البند الأول الفارغ).",
+    "تثبيت حالة القالب في /print بحيث يمكن التحقق من print iframe بشكل حتمي في كل مرة.",
+    "إضافة UI regression test لمسار /print بنفس IDs الحالية للتحقق من القيم الثلاث مباشرة بعد أول تحميل.",
+    "الإبقاء على سلوك QuickPrint الحالي لأنه نجح ويعرض النصوص المطلوبة ويستبعد بند المورد."
+  ],
+  "critical_code_review_comments": [
+    "DocumentPrint.jsx ما يزال ملفًا ضخمًا جدًا (>700 سطر) ويصعّب تتبع race conditions بين loadVehicle/loadVisit/template resolve.",
+    "السلوك الحالي يشير إلى احتمال race condition في أول hydration (مصدر البيانات النهائي للبنود غير مستقر عند أول فتح ثم يتصحح بعد refreshData)."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_320.json"
+  ],
+  "success_rate": {
+    "backend": "N/A (skipped by request)",
+    "frontend": "60%"
+  },
+  "seed_data_creation": "لم يتم إنشاء بيانات Seed. استخدمت بيانات البيئة الحالية فقط.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "المسار المباشر /print لنفس vehicleId/visitId ما زال غير مستقر: أول تحميل قد يعطي ['' , 'فك وتركيب التانكي', 'فك وتركيب غطاء بلوف 8س ديزل وتبديل صوف'] ثم بعد refresh تصبح القيم الثلاث صحيحة. QuickPrint من صفحة المركبة نجح (يتضمن سالم العازمي + 0509915954 + البنود الصحيحة ويستبعد 'طقم اصلاح تربو 2').",
+  "rca of the issue": "RCA محتمل: سباق في hydration لمسار /print بين جلب الزيارة/العمليات وتثبيت formData.items في أول تحميل. إعادة الجلب عبر document-refresh-button تعيد بناء payload بشكل صحيح، ما يرجح خلل ترتيب/اعتمادية بيانات أول render وليس مشكلة بيانات المصدر نفسها.",
+  "mocked_api": "NO MOCKED APIs used."
+}

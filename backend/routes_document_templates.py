@@ -22,7 +22,52 @@ _seed_lock = asyncio.Lock()
 _ALLOWED_TAGS = ["html", "head", "body", "meta", "title", "style", "main", "section", "article", "header", "footer", "div", "span", "p", "strong", "b", "em", "i", "small", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "ul", "ol", "li", "br", "hr", "img"]
 _ALLOWED_ATTRIBUTES = {"*": ["class", "style", "dir", "lang", "id", "data-testid"], "img": ["src", "alt", "width", "height"], "meta": ["charset", "name", "content"]}
 _SANITIZER = bleach.Cleaner(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, protocols=["http", "https", "data"], strip=True, strip_comments=False, css_sanitizer=CSSSanitizer())
-_KNOWN_TEMPLATE_VARIABLES = {"WORKSHOP_NAME", "WORKSHOP_ADDRESS", "WORKSHOP_PHONE", "WORKSHOP_EMAIL", "COMPANY_CR", "COMPANY_TAX", "TAX_NUMBER", "CUSTOMER_NAME", "CUSTOMER_PHONE", "VEHICLE_INFO", "PLATE_NO", "VEHICLE_PLATE", "STATUS_LABEL", "INVOICE_NO", "INVOICE_DATE", "DATE", "ITEMS_ROWS", "SUBTOTAL", "DISCOUNT", "TAX", "TOTAL", "PAID", "REMAINING", "NOTES", "AMOUNT_WORDS", "SEAL_CODE", "DOCUMENT_TITLE", "TAX_ROW", "BARCODE_VALUE", "CUSTOMER_APPROVAL_STAMP", "WORKSHOP_APPROVAL_STAMP"}
+_KNOWN_TEMPLATE_VARIABLES = {"WORKSHOP_NAME", "WORKSHOP_TAGLINE", "WORKSHOP_ADDRESS", "WORKSHOP_PHONE", "WORKSHOP_EMAIL", "COMPANY_CR", "COMPANY_TAX", "TAX_NUMBER", "CUSTOMER_NAME", "CUSTOMER_PHONE", "VEHICLE_INFO", "VEHICLE_MODEL", "VEHICLE_YEAR", "VEHICLE_VIN", "PLATE_NO", "VEHICLE_PLATE", "PLATE_LETTERS_AR", "PLATE_LETTERS_EN", "PLATE_DIGITS_AR", "PLATE_DIGITS_EN", "STATUS_LABEL", "INVOICE_NO", "INVOICE_DATE", "DATE", "ENTRY_DATE", "DELIVERY_DATE", "JOB_ORDER", "PAYMENT_METHOD", "ODOMETER", "COMPLAINT", "INSPECTION", "DTC_LIST", "ITEMS_ROWS", "PARTS_TOTAL", "LABOR_TOTAL", "ITEM_COUNT", "SUBTOTAL", "DISCOUNT", "TAX", "TOTAL", "TOTAL_AMOUNT", "PAID", "REMAINING", "NOTES", "AMOUNT_WORDS", "RECOMMENDATION", "WARRANTY", "TECHNICIAN", "SEAL_CODE", "DOCUMENT_TITLE", "DOCUMENT_TITLE_EN", "TAX_ROW", "BARCODE_VALUE", "CUSTOMER_APPROVAL_STAMP", "WORKSHOP_APPROVAL_STAMP"}
+
+
+async def _ensure_unified_workshop_defaults() -> None:
+    if db is None:
+        return
+    now = _now()
+    names = {
+        "invoice": "قالب ورشة موحّد — فاتورة",
+        "diagnosis": "قالب ورشة موحّد — تشخيص",
+        "quote": "قالب ورشة موحّد — عرض سعر",
+        "receipt": "قالب ورشة موحّد — سند زيارة",
+    }
+    for doc_type in DOC_TYPES:
+        template_id = f"unified-workshop-a4-mobile-{doc_type}-v2"
+        content = _builtin_template_content(doc_type)
+        await db.document_templates.update_many(
+            {
+                "tenant_id": "default",
+                "document_type": doc_type,
+                "locale": "ar-SA",
+                "id": {"$ne": template_id},
+                "is_default": True,
+            },
+            {"$set": {"is_default": False, "updated_at": now}},
+        )
+        existing = await db.document_templates.find_one({"id": template_id}, {"_id": 0})
+        row = {
+            "name": names[doc_type],
+            "tenant_id": "default",
+            "document_type": doc_type,
+            "locale": "ar-SA",
+            "version": 2,
+            "status": "valid",
+            "active": True,
+            "is_default": True,
+            "file_type": "html",
+            "is_builtin": False,
+            "source": "unified_workshop_uploaded_design",
+            "inline_content": content,
+            "updated_at": now,
+        }
+        if existing:
+            await db.document_templates.update_one({"id": template_id}, {"$set": row})
+        else:
+            await db.document_templates.insert_one({"id": template_id, "created_at": now, **row})
 
 
 def _normalize_approved_workflow_content(content: str) -> str:
@@ -116,6 +161,7 @@ async def _ensure_registry() -> None:
         )
         if await collection.count_documents({}) > 0:
             await _migrate_approved_workflow_templates()
+            await _ensure_unified_workshop_defaults()
             return
 
         now = _now()
@@ -162,6 +208,7 @@ async def _ensure_registry() -> None:
         if seeded:
             await collection.insert_many(seeded, ordered=True)
         await _migrate_approved_workflow_templates()
+        await _ensure_unified_workshop_defaults()
 
 
 async def _content(template: Dict[str, Any]) -> str:

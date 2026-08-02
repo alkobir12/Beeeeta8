@@ -1,0 +1,58 @@
+{
+  "summary": "اختبار شامل Backend + Frontend لسيناريو القالب الموحد للطباعة. واجهات القوالب الخلفية نجحت بالكامل (8/8)، وQuickPrint نجح في عرض بيانات العميل والبنود الصحيحة واستبعاد بند المورد. لكن مسار /print المباشر لنفس vehicleId/visitId لا يحمّل بنود الزيارة الفعلية ويعرض نموذجًا بقيم افتراضية جزئية بدل المحتوى المتوقع.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DocumentPrint (/print)",
+        "issue": "عند فتح /print?vehicleId=df10586b-5cf9-44aa-83bc-9364a4da34e2&visitId=d1498141-b134-4823-9586-756506361a19&type=invoice لا يتم تحميل بنود الزيارة المطلوبة (فك وتركيب تربو/التانكي) وتظهر صفوف بنود غير مكتملة/افتراضية مع رقم مستند مولد عشوائياً.",
+        "selector": "[data-testid='document-item-description-0']",
+        "priority": "CRITICAL"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Direct /print route (invoice)",
+        "issue": "عدم اتساق بين مسار /print المباشر ومسار QuickPrint: QuickPrint يعرض البيانات الصحيحة لنفس المركبة/الزيارة بينما /print لا يعرض نفس payload النهائي للبنود.",
+        "affected_selectors": [
+          "[data-testid='document-customer-name-input']",
+          "[data-testid^='document-item-description-']",
+          "[data-testid='document-print-page']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter319_unified_workshop_print_contract.py",
+    "/app/test_reports/pytest/iter319_backend.xml"
+  ],
+  "action_items": [
+    "إصلاح hydration/ربط بيانات الزيارة داخل DocumentPrint لمسار /print بحيث يتم تحميل visitId المستهدف فعليًا وتعبئة البنود الحقيقية بدل fallback الافتراضي.",
+    "ضمان تطابق payload النهائي بين /print وQuickPrint (source-of-truth واحد للبنود والقيم).",
+    "إضافة اختبار واجهة regression يضمن وجود بنود 'فك وتركيب تربو' و'فك وتركيب التانكي' في /print لنفس vehicleId/visitId.",
+    "إبقاء شرط استبعاد بند المورد 'طقم اصلاح تربو 2' ثابتًا في جميع القنوات بعد الإصلاح."
+  ],
+  "critical_code_review_comments": [
+    "ملف DocumentPrint.jsx كبير جدًا (يتجاوز حد 700 سطر) ويحتاج تقسيمًا لوحدات أصغر (data loading / rendering / print actions) لتقليل أخطاء التكامل بين المسارات.",
+    "سلوك الطباعة نفسه صحيح: DocumentPrint يطبع iframe مخفي (srcdoc) وQuickPrint يطبع iframe المعاينة مباشرة، وليس واجهة التطبيق كاملة.",
+    "مسارات PDF/WhatsApp في QuickPrint وDocumentPrint تستخدم نفس HTML المولّد للمعاينة (html/renderedTemplate) حسب مراجعة الكود والتنفيذ العملي."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter319_unified_workshop_print_contract.py",
+    "/app/test_reports/iteration_319.json"
+  ],
+  "success_rate": {
+    "backend": "100% (8/8)",
+    "frontend": "75% (QuickPrint/diagnosis/print-mechanism pass, direct invoice /print data-binding fail)"
+  },
+  "seed_data_creation": "لم يتم إنشاء Seed Data. تم استخدام بيانات البيئة الحالية فقط.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "نقطة الفشل الحالية في /print invoice المباشر لنفس IDs المطلوبة؛ QuickPrint من صفحة المركبة يعرض البيانات الصحيحة (سالم العازمي + 0509915954 + بنود الورشة + استبعاد بند المورد). بعد إصلاح DocumentPrint hydration أعد فحص /print invoice وQuickPrint للتأكد من التطابق الكامل.",
+  "rca of the issue": "RCA محتمل: داخل DocumentPrint.loadVisit، مسار /print المباشر لا ينجح في إسقاط بيانات الزيارة المستهدفة على formData.items/settings (ويستمر fallback الافتراضي)، رغم أن نفس IDs متاحة وQuickPrint ينجح. النتيجة: اختلاف محتوى المستند بين القناتين لنفس vehicleId/visitId.",
+  "mocked_api": "NO MOCKED APIs used."
+}

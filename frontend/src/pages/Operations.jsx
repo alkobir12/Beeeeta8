@@ -1729,6 +1729,15 @@ const Operations = () => {
       settings: {
         document_number: operation?.reference || operation?.id?.slice(0, 8) || '',
         document_title: documentTitle,
+        date: String(operation?.date || operation?.created_at || operation?.createdAt || '').slice(0, 10),
+        entry_date: String(operation?.date || operation?.created_at || operation?.createdAt || '').slice(0, 10),
+        job_order: operation?.visitId || operation?.visit_id || operation?.vehicleVisitId || '',
+        payment_method: operation?.paymentMethod || operation?.payment_method || '',
+        complaint: operation?.complaint || '',
+        inspection: operation?.inspection || operation?.diagnosis || '',
+        recommendation: operation?.recommendation || operation?.recommendations || '',
+        warranty: operation?.warranty || '',
+        technician: operation?.technician || operation?.technicianName || operation?.technician_name || '',
       },
     };
   };

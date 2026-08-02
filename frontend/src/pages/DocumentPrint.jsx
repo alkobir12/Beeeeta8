@@ -119,6 +119,7 @@ export default function DocumentPrint() {
   const [zoom, setZoom] = useState(0.76);
   const [showPreview, setShowPreview] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [saveState, setSaveState] = useState('جاهز');
   const [alertMessage, setAlertMessage] = useState('');
@@ -186,7 +187,7 @@ export default function DocumentPrint() {
     approvals: formData.approvals,
     settings: { ...formData.settings, seal_code: sealCode, totals: { paid: totals.paid } },
   }), [docType, formData, sealCode, totals.paid]);
-  const renderedTemplate = useMemo(() => templateContent ? renderDocumentTemplate(templateContent, templatePayload, formData.workshop) : '', [formData.workshop, templateContent, templatePayload]);
+  const renderedTemplate = useMemo(() => (dataReady && templateContent) ? renderDocumentTemplate(templateContent, templatePayload, formData.workshop) : '', [dataReady, formData.workshop, templateContent, templatePayload]);
   const templateMissingVariables = useMemo(() => findUnresolvedTemplateVariables(renderedTemplate), [renderedTemplate]);
   const templateIsComplete = Boolean(renderedTemplate) && templateMissingVariables.length === 0;
 
@@ -299,15 +300,27 @@ export default function DocumentPrint() {
   const loadVisit = useCallback(async () => {
     if (!visitId) return;
     try {
+      let visit = null;
+      let parsedVisitItems = [];
+      if (vehicleId) {
+        const visitsResponse = await api.get(`/vehicles/${vehicleId}/visits`).catch(() => ({ data: [] }));
+        const visits = getRows(visitsResponse.data, ['visits', 'data']);
+        visit = visits.find((v) => v.id === visitId || v.visitId === visitId) || null;
+        if (String(visit?.notes || '').trim().startsWith('{')) {
+          try { parsedVisitItems = JSON.parse(visit.notes).items || []; } catch (e) { parsedVisitItems = []; }
+        }
+      }
       const opsResponse = await api.get(`/visits/${visitId}/operations`).catch(() => ({ data: [] }));
       const ops = getRows(opsResponse.data, ['operations', 'data']);
       if (ops.length) {
         const op = ops[0];
-        const rawItems = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+        const opRawItems = typeof op.items === 'string' ? JSON.parse(op.items || '[]') : (op.items || []);
+        const rawItems = parsedVisitItems.length ? parsedVisitItems : opRawItems;
         const items = customerPrintableItems(rawItems);
+        const plainVisitNotes = typeof visit?.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : '';
         setFormData((prev) => ({
           ...prev,
-          items: rawItems.length ? items.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || 'زيارة ورشة', price: op.total || op.amount || 0 })],
+          items: rawItems.length ? items.map(normalizeItem) : [normalizeItem({ description: op.description || op.notes || plainVisitNotes || 'زيارة ورشة', price: op.total || op.amount || 0 })],
           customer: {
             ...prev.customer,
             name: op.customerName || op.customer_name || op.partnerName || prev.customer.name,
@@ -315,32 +328,44 @@ export default function DocumentPrint() {
           },
           settings: {
             ...prev.settings,
-            document_number: op.invoiceNumber || op.invoice_number || prev.settings.document_number,
-            date: String(op.date || op.createdAt || today()).slice(0, 10),
-            notes: op.notes || prev.settings.notes,
+            document_number: op.invoiceNumber || op.invoice_number || visit?.invoiceNumber || visit?.id || prev.settings.document_number,
+            date: String(visit?.entryDate || visit?.entry_date || op.date || op.createdAt || today()).slice(0, 10),
+            entry_date: String(visit?.entryDate || visit?.entry_date || op.date || op.createdAt || '').slice(0, 10),
+            delivery_date: String(visit?.exitDate || visit?.delivery_date || visit?.delivered_at || visit?.completed_at || '').slice(0, 10),
+            job_order: visit?.jobOrder || visit?.job_order || visit?.id || '',
+            payment_method: op.paymentMethod || op.payment_method || visit?.paymentMethod || visit?.payment_method || prev.payment?.method || '',
+            notes: op.notes || plainVisitNotes || prev.settings.notes,
+            complaint: visit?.complaint || visit?.customer_complaint || visit?.issue || prev.settings.complaint || '',
+            inspection: visit?.inspection || visit?.diagnosis || visit?.diagnosis_result || prev.settings.inspection || '',
+            dtc: visit?.dtc || visit?.dtc_codes || prev.settings.dtc || '',
+            recommendation: visit?.recommendation || visit?.recommendations || prev.settings.recommendation || '',
+            warranty: visit?.warranty || prev.settings.warranty || '',
+            technician: visit?.technician || visit?.technicianName || visit?.technician_name || prev.settings.technician || '',
           },
           approvals: { ...prev.approvals, workshop: normalizeApproval(op.workshopApproval || op.workshop_approval || { status: op.approval_status, approved_by: op.approved_by, approved_at: op.approved_at }) },
         }));
         return;
       }
       if (!vehicleId) return;
-      const visitsResponse = await api.get(`/vehicles/${vehicleId}/visits`).catch(() => ({ data: [] }));
-      const visits = getRows(visitsResponse.data, ['visits', 'data']);
-      const visit = visits.find((v) => v.id === visitId || v.visitId === visitId);
       if (!visit) return;
-      let parsed = [];
-      if (String(visit.notes || '').trim().startsWith('{')) {
-        try { parsed = JSON.parse(visit.notes).items || []; } catch (e) { parsed = []; }
-      }
-      const printableParsed = customerPrintableItems(parsed);
+      const printableParsed = customerPrintableItems(parsedVisitItems);
       setFormData((prev) => ({
         ...prev,
-        items: parsed.length ? printableParsed.map(normalizeItem) : [normalizeItem({ description: docType === 'diagnosis' ? 'تقرير تشخيص' : 'زيارة ورشة', price: visit.total_workshop ?? visit.total ?? 0 })],
+        items: parsedVisitItems.length ? printableParsed.map(normalizeItem) : [normalizeItem({ description: docType === 'diagnosis' ? 'تقرير تشخيص' : 'زيارة ورشة', price: visit.total_workshop ?? visit.total ?? 0 })],
         settings: {
           ...prev.settings,
           document_number: visit.invoiceNumber || visit.id || prev.settings.document_number,
-          date: String(visit.created_at || visit.createdAt || today()).slice(0, 10),
+          date: String(visit.entryDate || visit.entry_date || visit.created_at || visit.createdAt || today()).slice(0, 10),
+          entry_date: String(visit.entryDate || visit.entry_date || visit.created_at || visit.createdAt || '').slice(0, 10),
+          delivery_date: String(visit.exitDate || visit.delivery_date || visit.delivered_at || visit.completed_at || '').slice(0, 10),
+          job_order: visit.jobOrder || visit.job_order || visit.id || '',
           notes: typeof visit.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : prev.settings.notes,
+          complaint: visit.complaint || visit.customer_complaint || visit.issue || prev.settings.complaint || '',
+          inspection: visit.inspection || visit.diagnosis || visit.diagnosis_result || prev.settings.inspection || '',
+          dtc: visit.dtc || visit.dtc_codes || prev.settings.dtc || '',
+          recommendation: visit.recommendation || visit.recommendations || prev.settings.recommendation || '',
+          warranty: visit.warranty || prev.settings.warranty || '',
+          technician: visit.technician || visit.technicianName || visit.technician_name || prev.settings.technician || '',
         },
       }));
     } catch (e) {
@@ -403,6 +428,7 @@ export default function DocumentPrint() {
 
   const refreshData = useCallback(async () => {
     setLoading(true);
+    setDataReady(false);
     setAlertMessage('');
     setSaveState('تحديث البيانات...');
     try {
@@ -413,6 +439,7 @@ export default function DocumentPrint() {
       if (invoiceId) await loadInvoice(invoiceId);
       await loadApprovalLogs();
       setSealInvalidated(false);
+      setDataReady(true);
       setSaveState('محفوظ');
     } finally {
       setLoading(false);
@@ -533,10 +560,10 @@ export default function DocumentPrint() {
   };
 
   useEffect(() => {
-    if ((!autoPrint && !autoWhatsApp) || autoActionRef.current) return;
+    if ((!autoPrint && !autoWhatsApp) || autoActionRef.current || loading || !dataReady || !templateIsComplete) return;
     autoActionRef.current = true;
     setTimeout(() => { autoPrint ? printCurrent() : sendWhatsApp(); }, 900);
-  }, [autoPrint, autoWhatsApp]);
+  }, [autoPrint, autoWhatsApp, dataReady, loading, templateIsComplete]);
 
   const updateItem = (index, key, value) => {
     setSealInvalidated(true);
@@ -671,7 +698,7 @@ export default function DocumentPrint() {
             </div>
             <div className="doc-preview-viewport" data-testid="document-preview-viewport">
               <div className="doc-sheet-scale" style={{ transform: `scale(${zoom})`, height: `${1124 * zoom}px` }}>
-                {templateIsComplete ? <ResolvedTemplateSheet ref={previewRef} html={renderedTemplate} /> : <div className="rounded-xl bg-white p-8 text-center text-sm font-bold text-rose-600" data-testid="document-template-error">{templateMissingVariables.length ? `القالب غير مكتمل: ${templateMissingVariables.join('، ')}` : 'تعذر عرض القالب المختار.'}</div>}
+                {!dataReady || loading ? <div className="rounded-xl bg-white p-8 text-center text-sm font-bold text-slate-600" data-testid="document-data-loading">جارٍ تجهيز بيانات الزيارة…</div> : (templateIsComplete ? <ResolvedTemplateSheet ref={previewRef} html={renderedTemplate} /> : <div className="rounded-xl bg-white p-8 text-center text-sm font-bold text-rose-600" data-testid="document-template-error">{templateMissingVariables.length ? `القالب غير مكتمل: ${templateMissingVariables.join('، ')}` : 'تعذر عرض القالب المختار.'}</div>)}
               </div>
             </div>
           </section>
@@ -832,7 +859,7 @@ function Panel({ title, icon, children, testId }) {
 }
 
 function Field({ label, value, onChange, type = 'text', testId }) {
-  return <label className="doc-field" data-testid={`${testId}-field`}><span>{label}</span><input type={type} value={value ?? ''} onChange={(e) => onChange(e.target.value)} data-testid={testId} /></label>;
+  return <label className="doc-field" data-testid={`field-wrapper-${testId}`}><span>{label}</span><input type={type} value={value ?? ''} onChange={(e) => onChange(e.target.value)} data-testid={testId} /></label>;
 }
 
 function SelectField({ label, value, onChange, options, testId }) {

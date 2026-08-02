@@ -12,6 +12,7 @@ import uuid
 import shutil
 from pathlib import Path
 import json
+from unified_workshop_template import unified_workshop_template
 
 router = APIRouter(prefix="/api/templates")
 
@@ -45,6 +46,7 @@ templates_db = _load_templates()
 
 
 def _builtin_template_content(doc_type: str) -> str:
+    return unified_workshop_template(doc_type)
     titles = {
         "invoice": "فاتورة الورشة — ختم إلكتروني",
         "diagnosis": "تقرير تشخيص — ختم إلكتروني",

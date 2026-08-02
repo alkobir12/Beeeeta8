@@ -85,10 +85,11 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
     let totalPaid = 0;
     let totalAmount = 0;
     let invoiceNumber = '';
+    let latestVisit = null;
     try {
       const visitsRes = await axios.get(`${API_URL}/vehicles/${vehicle.id}/visits`);
       const visits = visitsRes.data || [];
-      const latestVisit = visits[0] || null;
+      latestVisit = visits[0] || null;
       const visitId = latestVisit?.id || null;
 
       let ops = [];
@@ -171,10 +172,24 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
         plate: vehicle?.plateNumber || vehicle?.plate || '',
         model: vehicle?.vehicleModel || vehicle?.model || '',
         brand: vehicle?.vehicleBrand || vehicle?.brand || '',
+        year: vehicle?.year || vehicle?.vehicleYear || '',
+        vin: vehicle?.vin || vehicle?.chassisNumber || '',
+        mileage: vehicle?.mileage || latestVisit?.mileage || '',
       },
       settings: {
         document_number: invoiceNumber || '',
         document_title: labelMap[docType] || 'مستند',
+        date: String(latestVisit?.entry_date || latestVisit?.created_at || latestVisit?.createdAt || new Date().toISOString()).slice(0, 10),
+        entry_date: String(latestVisit?.entry_date || latestVisit?.created_at || latestVisit?.createdAt || '').slice(0, 10),
+        delivery_date: String(latestVisit?.delivery_date || latestVisit?.delivered_at || latestVisit?.completed_at || '').slice(0, 10),
+        job_order: latestVisit?.jobOrder || latestVisit?.job_order || latestVisit?.id || '',
+        payment_method: latestVisit?.paymentMethod || latestVisit?.payment_method || '',
+        complaint: latestVisit?.complaint || latestVisit?.customer_complaint || latestVisit?.issue || '',
+        inspection: latestVisit?.inspection || latestVisit?.diagnosis || latestVisit?.diagnosis_result || '',
+        dtc: latestVisit?.dtc || latestVisit?.dtc_codes || '',
+        recommendation: latestVisit?.recommendation || latestVisit?.recommendations || '',
+        warranty: latestVisit?.warranty || '',
+        technician: latestVisit?.technician || latestVisit?.technicianName || latestVisit?.technician_name || '',
         ...(docType === 'receipt' ? { totals: { paid: totalPaid } } : { totals: { amount: totalAmount } }),
       },
     };

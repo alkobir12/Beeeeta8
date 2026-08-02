@@ -2320,6 +2320,9 @@ const VehicleDetails = () => {
     const visitItems = extractVisitItems(visit);
     const workshopOnlyItems = customerPrintableItems(visitItems);
     const items = visitItems.length ? workshopOnlyItems.map((item) => normalizePrintItem(item)) : buildVisitItemsFromOperations(visit);
+    const plainNotes = typeof visit?.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : '';
+    const visitDate = String(visit?.entryDate || visit?.entry_date || visit?.created_at || visit?.createdAt || '').slice(0, 10);
+    const deliveryDate = String(visit?.exitDate || visit?.delivery_date || visit?.delivered_at || visit?.completed_at || '').slice(0, 10);
     const printableItems = items.length ? items : [normalizePrintItem({
       name: docType === 'diagnosis' ? (visit?.diagnosis || visit?.issue || 'تقرير تشخيص') : 'زيارة ورشة',
       quantity: 1,
@@ -2339,14 +2342,24 @@ const VehicleDetails = () => {
         year: vehicle?.year || vehicle?.vehicleYear || '',
         vin: vehicle?.vin || vehicle?.chassisNumber || '',
         mileage: vehicle?.mileage || visit?.mileage || '',
-        notes: typeof visit?.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : '',
+        notes: plainNotes,
       },
       settings: {
         document_number: visit?.invoiceNumber || visit?.id || '',
         document_title: labelMap[docType] || 'مستند',
-        date: String(visit?.created_at || visit?.createdAt || '').slice(0, 10),
+        date: visitDate,
+        entry_date: visitDate,
+        delivery_date: deliveryDate,
+        job_order: visit?.jobOrder || visit?.job_order || visit?.workOrderNumber || visit?.work_order_number || visit?.id || '',
+        payment_method: visit?.paymentMethod || visit?.payment_method || '',
         description: docType === 'diagnosis' ? 'تقرير تشخيص للمركبة' : 'خدمات صيانة وإصلاح',
-        notes: typeof visit?.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : '',
+        notes: plainNotes,
+        complaint: visit?.complaint || visit?.customer_complaint || visit?.issue || '',
+        inspection: visit?.inspection || visit?.diagnosis || visit?.diagnosis_result || '',
+        dtc: visit?.dtc || visit?.dtc_codes || '',
+        recommendation: visit?.recommendation || visit?.recommendations || '',
+        warranty: visit?.warranty || '',
+        technician: visit?.technician || visit?.technicianName || visit?.technician_name || '',
       },
     };
   };
