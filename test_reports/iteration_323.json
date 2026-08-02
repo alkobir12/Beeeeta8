@@ -1,0 +1,38 @@
+{
+  "summary": "تم تنفيذ اختبار Backend + Frontend لمسار القالب المرجعي الموحّد وطباعة الزيارات المحددة. جميع العقود المطلوبة في الطلب الحالي تحققت: resolve يُرجع HTML الخام المرجعي، اختيار الزيارة إجباري من زر الطباعة العلوي، وطباعة كل زيارة معزولة ببياناتها الصحيحة، مع التحقق من سلوك الموبايل وprint isolation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter323_reference_template_and_visit_contract.py",
+    "/app/test_reports/pytest/iter323_reference_template_and_visit_contract.xml"
+  ],
+  "action_items": [
+    "الإبقاء على تدفق اختيار الزيارة الإجباري قبل فتح QuickPrint من زر الطباعة العلوي.",
+    "الإبقاء على مسار toStandalonePrintHtml الموحد لجميع قنوات الطباعة/PDF/واتساب لأنه اجتاز التحقق التكاملي.",
+    "إضافة UI regression آلي ثابت لنفس vehicle/visit IDs المستخدمة هنا لتثبيت السلوك مستقبلًا."
+  ],
+  "critical_code_review_comments": [
+    "DocumentPrint.jsx وVehicleDetails.jsx ملفات كبيرة جدًا وتتجاوز حد القابلية للصيانة؛ يوصى بتقسيمها لوحدات أصغر لتقليل مخاطر regressions في مسارات الطباعة."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter323_reference_template_and_visit_contract.py",
+    "/app/test_reports/iteration_323.json"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7)",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "لم يتم إنشاء seed data. تم استخدام بيانات البيئة الحالية والـ IDs المحددة في الطلب.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "تحقق فعليًا: 1) /api/document-templates/resolve أعاد القالب الخام المرجعي مع data-field/doc-no وrow-template/items-body وCSS child selector (.crow>div) غير محوّل، وخطوط data:font/woff2;base64. 2) مركبة ce2e... من الزر العلوي: اختيار نوع المستند ثم ظهور picker للزيارات بدون فتح معاينة تلقائي. 3) زيارة 5f3...: تاريخ 2026-06-23، البنود الثلاثة المتوقعة، إجمالي 2,350.00، طريقة دفع آجل — غير مسدد، doc-no/job-order = —، ولا undefined/null. 4) زر طباعة داخل زيارة 77a3...: تاريخ 2026-07-12 وإجمالي 0.00 بدون بنود الزيارة الثانية. 5) على iPhone viewport: iframe بعرض 794px مع scale 0.43 وlayout أفقي .crow/.diag-b/.foot/.sign كـ table/cells. 6) صفحة القالب بارتفاع ~1122.5px مع وجود footer/sign داخل الصفحة الأولى. 7) Print isolation strict probe: standalone-print-css موجود، embedded fonts موجودة، ولا app shell/tailwind nodes داخل HTML المطبوع.",
+  "rca of the issue": "لا توجد أعطال وظيفية في النطاق المختبر. ملاحظة RCA: فحص نصّي بسيط لعبارات shell داخل HTML المطبوع قد يعطي false-positive بسبب وجود هذه العبارات داخل CSS الإخفاء فقط؛ التحقق الصحيح يجب أن يكون DOM-based (وجود nodes فعلية) وليس substring فقط.",
+  "mocked_api": "NO MOCKED APIs used."
+}

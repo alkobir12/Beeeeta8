@@ -2247,7 +2247,15 @@ const VehicleDetails = () => {
   const [technicians, setTechnicians] = useState([]);
   const [printDialogConfig, setPrintDialogConfig] = useState(null);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
+  const [printVisitPickerOpen, setPrintVisitPickerOpen] = useState(false);
+  const [pendingHeaderPrintType, setPendingHeaderPrintType] = useState('');
   const [loadError, setLoadError] = useState('');
+
+  const isUuidLike = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+  const humanDocNumber = (...values) => {
+    const found = values.map((value) => String(value || '').trim()).find((value) => value && !isUuidLike(value));
+    return found || '';
+  };
 
   const extractVisitItems = (visit) => {
     if (!visit) return [];
@@ -2345,12 +2353,12 @@ const VehicleDetails = () => {
         notes: plainNotes,
       },
       settings: {
-        document_number: visit?.invoiceNumber || visit?.id || '',
+        document_number: humanDocNumber(visit?.invoiceNumber, visit?.invoice_number, visit?.documentNumber, visit?.document_number),
         document_title: labelMap[docType] || 'مستند',
         date: visitDate,
         entry_date: visitDate,
         delivery_date: deliveryDate,
-        job_order: visit?.jobOrder || visit?.job_order || visit?.workOrderNumber || visit?.work_order_number || visit?.id || '',
+        job_order: humanDocNumber(visit?.jobOrder, visit?.job_order, visit?.workOrderNumber, visit?.work_order_number),
         payment_method: visit?.paymentMethod || visit?.payment_method || '',
         description: docType === 'diagnosis' ? 'تقرير تشخيص للمركبة' : 'خدمات صيانة وإصلاح',
         notes: plainNotes,
@@ -2371,7 +2379,11 @@ const VehicleDetails = () => {
       quote: 'عرض سعر',
       receipt: 'طباعة الزيارة',
     };
-    const visit = visitId ? visits.find((v) => v.id === visitId) : visits[0];
+    const visit = visitId ? visits.find((v) => String(v.id) === String(visitId)) : null;
+    if (!visit) {
+      setLoadError('اختر زيارة محددة قبل فتح المستند.');
+      return;
+    }
     const nextConfig = {
       key: `${type}-${visit?.id || 'vehicle'}-${Date.now()}`,
       title: labelMap[type] || 'طباعة مستند',
@@ -2381,17 +2393,18 @@ const VehicleDetails = () => {
     setPrintDialogConfig(nextConfig);
   };
 
-  const openHeaderPrintDialog = (type) => {
-    const active = visits.find(v => (v.status || '') === 'in_progress') || visits[0];
-    const vid = active?.id;
+  const openHeaderPrintDialog = (type, visitId) => {
     setPrintMenuOpen(false);
-    openQuickPrintDialog({ type, visitId: vid });
+    setPrintVisitPickerOpen(false);
+    openQuickPrintDialog({ type, visitId });
   };
 
   const handleHeaderPrintPress = (event, type) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
-    openHeaderPrintDialog(type);
+    setPendingHeaderPrintType(type);
+    setPrintMenuOpen(false);
+    setPrintVisitPickerOpen(true);
   };
 
   const openLatestVisitPrintDialog = (event) => {
@@ -4277,6 +4290,49 @@ const VehicleDetails = () => {
               <ClipboardList size={16} style={{ color: 'rgba(180,83,9,0.95)' }} />
               <span>تقرير تشخيص</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {printVisitPickerOpen && (
+        <div className="fixed inset-0 z-[71] flex items-start justify-center bg-black/30 px-4 pt-24" data-testid="vehicle-print-visit-picker-overlay">
+          <div
+            className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.99)', border: '1px solid rgba(203,213,225,0.9)' }}
+            data-testid="vehicle-print-visit-picker"
+          >
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(203,213,225,0.8)' }}>
+              <span className="text-sm font-bold" style={{ color: 'rgba(15,23,42,0.95)' }}>اختر الزيارة للطباعة</span>
+              <button
+                type="button"
+                onClick={() => { setPrintVisitPickerOpen(false); setPendingHeaderPrintType(''); }}
+                className="text-xs px-2 py-1 rounded-lg"
+                data-testid="vehicle-print-visit-picker-close"
+              >
+                إلغاء
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-2" data-testid="vehicle-print-visit-picker-list">
+              {visits.length === 0 ? (
+                <div className="px-4 py-5 text-sm text-slate-500" data-testid="vehicle-print-visit-picker-empty">لا توجد زيارات قابلة للطباعة</div>
+              ) : visits.map((visit, index) => {
+                const visitDate = String(visit.entryDate || visit.entry_date || visit.created_at || visit.createdAt || '').slice(0, 10) || '—';
+                const visitLabel = visit.invoiceNumber || visit.invoice_number || visit.documentNumber || visit.document_number || `زيارة ${index + 1}`;
+                const visitTotal = Number(visit.total_workshop ?? visit.workshop_total ?? visit.total ?? 0).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return (
+                  <button
+                    key={visit.id || index}
+                    type="button"
+                    onClick={() => openHeaderPrintDialog(pendingHeaderPrintType, visit.id)}
+                    className="mb-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-right transition-colors hover:bg-slate-50"
+                    data-testid={`vehicle-print-visit-option-${visit.id}`}
+                  >
+                    <span className="block text-sm font-bold text-slate-900" data-testid={`vehicle-print-visit-option-title-${visit.id}`}>{visitLabel}</span>
+                    <span className="mt-1 block text-xs text-slate-500" data-testid={`vehicle-print-visit-option-meta-${visit.id}`}>التاريخ: {visitDate} · مبلغ الورشة: {visitTotal}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

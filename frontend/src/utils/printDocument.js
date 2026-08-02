@@ -3,15 +3,14 @@ import { assertTemplateComplete } from './documentTemplate';
 const standalonePrintCss = `
   <style id="standalone-print-css">
     @page { size: A4 portrait; margin: 10mm; }
-    * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    html, body { margin: 0 !important; padding: 0 !important; background: #ffffff !important; direction: rtl; }
-    body { width: 100% !important; min-height: auto !important; display: block !important; overflow: visible !important; }
     button, .pbtn, [data-testid="quick-print-output-actions"], [data-testid="document-shell-header"], .doc-shell-header, .doc-editor, .doc-preview-toolbar { display: none !important; }
-    .page, [data-testid="document-a4-page"] { width: 210mm !important; min-height: 297mm !important; margin: 0 auto !important; box-shadow: none !important; overflow: visible !important; page-break-after: always; }
-    .sheet, [data-testid="document-a4-sheet"] { width: 190mm !important; margin: 0 auto !important; }
-    table { page-break-inside: auto; }
-    thead { display: table-header-group; }
-    tr, .card, .diag, .foot, .strip, .sign, .sbox { break-inside: avoid; page-break-inside: avoid; }
+    @media print {
+      .crow, .diag-b, .foot, .sign { display: table !important; width: 100% !important; table-layout: fixed !important; }
+      .crow > div, .diag-b > div, .foot > div, .sign > div { display: table-cell !important; }
+      .sheet { width: auto !important; }
+      tbody tr, .diag, .sbox { break-inside: avoid !important; page-break-inside: avoid !important; }
+      thead { display: table-header-group !important; }
+    }
   </style>
 `;
 

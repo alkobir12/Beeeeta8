@@ -135,25 +135,12 @@ const QuickPrintDialog = ({
   const printStabilityCss = `
     <style id="quick-print-stability-css">
       @page { size: A4; margin: 10mm; }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
-      body, button, input, table, div, span, p, h1, h2, h3, h4, th, td {
-        font-family: "Tahoma", "Arial", "Segoe UI", sans-serif !important;
-        letter-spacing: normal !important;
-        word-spacing: normal !important;
-        font-kerning: normal !important;
-        text-rendering: optimizeLegibility !important;
-        -webkit-font-smoothing: antialiased !important;
-        direction: rtl;
+      @media print {
+        .crow, .diag-b, .foot, .sign { display: table !important; width: 100% !important; table-layout: fixed !important; }
+        .crow > div, .diag-b > div, .foot > div, .sign > div { display: table-cell !important; }
+        .sheet { width: auto !important; }
+        .pbtn { display: none !important; }
       }
-      body { font-size: 13px; line-height: 1.7; }
-      table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed; }
-      th, td { word-break: break-word; overflow-wrap: anywhere; line-height: 1.65; }
-      img { max-width: 100%; height: auto; }
-      .container, .quotation-container, .document, .invoice-container, .quotation-wrapper { max-width: 190mm !important; margin-left: auto !important; margin-right: auto !important; }
-      [style*="letter-spacing"] { letter-spacing: normal !important; }
-      [style*="font-family"] { font-family: "Tahoma", "Arial", "Segoe UI", sans-serif !important; }
-      @media print { html, body { background: #fff; } }
     </style>`;
 
   const statusWatermarkBlock = (status) => {
@@ -450,8 +437,8 @@ const QuickPrintDialog = ({
         </div>
 
         {templateSheetOpen && <div className="fixed inset-0 z-[70] bg-black/60" data-testid="quick-print-template-sheet"><div className="absolute inset-x-0 bottom-0 max-h-[75dvh] overflow-y-auto rounded-t-3xl bg-slate-950 p-5"><div className="mb-4 flex items-center justify-between"><strong className="text-white">تغيير القالب</strong><button onClick={() => setTemplateSheetOpen(false)} className="text-slate-300" data-testid="quick-print-template-sheet-close">إغلاق</button></div>{templateLoading && <div className="text-slate-300" data-testid="quick-print-template-loading">جارٍ التحميل…</div>}{filteredTemplates.map((tpl) => <button key={tpl.id} onClick={() => { setSelectedTemplateId(tpl.id); setTemplateSheetOpen(false); }} className="mb-2 block w-full rounded-xl border border-white/10 p-4 text-right text-white" data-testid={`quick-print-template-option-${tpl.id}`}><b>{tpl.name}</b><small className="mt-1 block text-slate-400">إصدار {tpl.version} · {tpl.is_builtin ? 'نظامي' : 'مخصص'} {tpl.is_default ? '· افتراضي' : ''}</small></button>)}</div></div>}
-        {previewOpen && <div className="document-preview-modal fixed inset-0 z-[80] flex h-[100dvh] w-screen flex-col overflow-hidden bg-slate-950" data-testid="quick-print-preview-modal"><header className="flex shrink-0 items-center justify-between border-b border-white/10 p-4 text-white"><strong data-testid="quick-print-preview-title">معاينة المستند</strong><button onClick={() => setPreviewOpen(false)} className="rounded-lg border border-white/20 px-3 py-2" data-testid="quick-print-preview-close">إغلاق</button></header><div className="document-preview-body min-h-0 flex-1 overflow-y-auto p-3" data-testid="quick-print-preview-body">{loading && <div className="text-slate-300" data-testid="quick-print-preview-loading">جارٍ تجهيز المعاينة…</div>}{error && <div className="text-rose-300" data-testid="quick-print-preview-error">{error}</div>}{html && <iframe ref={iframeRef} title="print-preview" className="h-[1120px] w-full rounded-xl bg-white" srcDoc={html} data-testid="quick-print-preview" />}</div><div className="document-preview-actions sticky bottom-0 grid shrink-0 grid-cols-3 gap-2 border-t border-white/10 bg-slate-950 p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><button onClick={handleWhatsApp} className="rounded-lg bg-emerald-500 p-3 font-bold text-white" data-testid="quick-print-preview-whatsapp">واتساب</button><button onClick={handleDownloadPdf} className="rounded-lg bg-white/10 p-3 font-bold text-white" data-testid="quick-print-preview-download-pdf">PDF</button><button onClick={handlePrint} className="rounded-lg bg-blue-500 p-3 font-bold text-white" data-testid="quick-print-preview-print">طباعة</button></div></div>}
-        <div className="mt-5 min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-3 max-md:pb-20" data-testid="quick-print-preview-panel">
+        {previewOpen && <div className="document-preview-modal fixed inset-0 z-[80] flex h-[100dvh] w-screen flex-col overflow-hidden bg-slate-950" data-testid="quick-print-preview-modal"><header className="flex shrink-0 items-center justify-between border-b border-white/10 p-4 text-white"><strong data-testid="quick-print-preview-title">معاينة المستند</strong><button onClick={() => setPreviewOpen(false)} className="rounded-lg border border-white/20 px-3 py-2" data-testid="quick-print-preview-close">إغلاق</button></header><div className="document-preview-body min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 max-md:flex max-md:justify-center" data-testid="quick-print-preview-body">{loading && <div className="text-slate-300" data-testid="quick-print-preview-loading">جارٍ تجهيز المعاينة…</div>}{error && <div className="text-rose-300" data-testid="quick-print-preview-error">{error}</div>}{html && <iframe ref={iframeRef} title="print-preview" className="h-[1120px] w-full rounded-xl bg-white max-md:h-[1123px] max-md:w-[794px] max-md:min-w-[794px] max-md:origin-top max-md:scale-[0.43]" srcDoc={html} data-testid="quick-print-preview" />}</div><div className="document-preview-actions sticky bottom-0 grid shrink-0 grid-cols-3 gap-2 border-t border-white/10 bg-slate-950 p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><button onClick={handleWhatsApp} className="rounded-lg bg-emerald-500 p-3 font-bold text-white" data-testid="quick-print-preview-whatsapp">واتساب</button><button onClick={handleDownloadPdf} className="rounded-lg bg-white/10 p-3 font-bold text-white" data-testid="quick-print-preview-download-pdf">PDF</button><button onClick={handlePrint} className="rounded-lg bg-blue-500 p-3 font-bold text-white" data-testid="quick-print-preview-print">طباعة</button></div></div>}
+        <div className="mt-5 min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-3 max-md:flex max-md:justify-center max-md:pb-20" data-testid="quick-print-preview-panel">
           {loading && <div className="text-sm text-slate-300" data-testid="quick-print-loading">جارٍ تجهيز المعاينة...</div>}
           {error && (
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-rose-300" data-testid="quick-print-error">
@@ -470,7 +457,7 @@ const QuickPrintDialog = ({
             <iframe
               ref={iframeRef}
               title="print-preview"
-              className="h-[520px] max-h-[62vh] min-h-[420px] w-full rounded-xl bg-white max-md:h-full max-md:max-h-none max-md:min-h-[58dvh]"
+              className="h-[520px] max-h-[62vh] min-h-[420px] w-full rounded-xl bg-white max-md:h-[1123px] max-md:max-h-none max-md:min-h-[1123px] max-md:w-[794px] max-md:min-w-[794px] max-md:origin-top max-md:scale-[0.43]"
               data-testid="quick-print-preview"
               srcDoc={html}
             />

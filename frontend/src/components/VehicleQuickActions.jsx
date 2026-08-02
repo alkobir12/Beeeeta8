@@ -20,6 +20,9 @@ const API_URL = (
     : `${resolveBackendBase() || ''}/api`.replace('//api', '/api')
 );
 
+const isUuidLike = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+const humanDocNumber = (...values) => values.map((value) => String(value || '').trim()).find((value) => value && !isUuidLike(value)) || '';
+
 const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelete }) => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
@@ -177,12 +180,12 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
         mileage: vehicle?.mileage || latestVisit?.mileage || '',
       },
       settings: {
-        document_number: invoiceNumber || '',
+        document_number: humanDocNumber(invoiceNumber, latestVisit?.invoiceNumber, latestVisit?.invoice_number, latestVisit?.documentNumber, latestVisit?.document_number),
         document_title: labelMap[docType] || 'مستند',
         date: String(latestVisit?.entry_date || latestVisit?.created_at || latestVisit?.createdAt || new Date().toISOString()).slice(0, 10),
         entry_date: String(latestVisit?.entry_date || latestVisit?.created_at || latestVisit?.createdAt || '').slice(0, 10),
         delivery_date: String(latestVisit?.delivery_date || latestVisit?.delivered_at || latestVisit?.completed_at || '').slice(0, 10),
-        job_order: latestVisit?.jobOrder || latestVisit?.job_order || latestVisit?.id || '',
+        job_order: humanDocNumber(latestVisit?.jobOrder, latestVisit?.job_order, latestVisit?.workOrderNumber, latestVisit?.work_order_number),
         payment_method: latestVisit?.paymentMethod || latestVisit?.payment_method || '',
         complaint: latestVisit?.complaint || latestVisit?.customer_complaint || latestVisit?.issue || '',
         inspection: latestVisit?.inspection || latestVisit?.diagnosis || latestVisit?.diagnosis_result || '',

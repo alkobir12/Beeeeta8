@@ -72,6 +72,9 @@ const isSupplierArchiveItem = (item = {}) => {
   return rawType === 'supplier' || billingType === 'supplier';
 };
 
+const isUuidLike = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+const humanDocNumber = (...values) => values.map((value) => String(value || '').trim()).find((value) => value && !isUuidLike(value)) || '';
+
 const customerPrintableItems = (items = []) => (
   Array.isArray(items) ? items.filter((item) => !isSupplierArchiveItem(item)) : []
 );
@@ -329,11 +332,11 @@ export default function DocumentPrint() {
           },
           settings: {
             ...prev.settings,
-            document_number: op.invoiceNumber || op.invoice_number || visit?.invoiceNumber || visit?.id || prev.settings.document_number,
+            document_number: humanDocNumber(op.invoiceNumber, op.invoice_number, visit?.invoiceNumber, visit?.invoice_number, visit?.documentNumber, visit?.document_number, prev.settings.document_number),
             date: String(visit?.entryDate || visit?.entry_date || op.date || op.createdAt || today()).slice(0, 10),
             entry_date: String(visit?.entryDate || visit?.entry_date || op.date || op.createdAt || '').slice(0, 10),
             delivery_date: String(visit?.exitDate || visit?.delivery_date || visit?.delivered_at || visit?.completed_at || '').slice(0, 10),
-            job_order: visit?.jobOrder || visit?.job_order || visit?.id || '',
+            job_order: humanDocNumber(visit?.jobOrder, visit?.job_order, visit?.workOrderNumber, visit?.work_order_number),
             payment_method: op.paymentMethod || op.payment_method || visit?.paymentMethod || visit?.payment_method || prev.payment?.method || '',
             notes: op.notes || plainVisitNotes || prev.settings.notes,
             complaint: visit?.complaint || visit?.customer_complaint || visit?.issue || prev.settings.complaint || '',
@@ -355,11 +358,11 @@ export default function DocumentPrint() {
         items: parsedVisitItems.length ? printableParsed.map(normalizeItem) : [normalizeItem({ description: docType === 'diagnosis' ? 'تقرير تشخيص' : 'زيارة ورشة', price: visit.total_workshop ?? visit.total ?? 0 })],
         settings: {
           ...prev.settings,
-          document_number: visit.invoiceNumber || visit.id || prev.settings.document_number,
+          document_number: humanDocNumber(visit.invoiceNumber, visit.invoice_number, visit.documentNumber, visit.document_number, prev.settings.document_number),
           date: String(visit.entryDate || visit.entry_date || visit.created_at || visit.createdAt || today()).slice(0, 10),
           entry_date: String(visit.entryDate || visit.entry_date || visit.created_at || visit.createdAt || '').slice(0, 10),
           delivery_date: String(visit.exitDate || visit.delivery_date || visit.delivered_at || visit.completed_at || '').slice(0, 10),
-          job_order: visit.jobOrder || visit.job_order || visit.id || '',
+          job_order: humanDocNumber(visit.jobOrder, visit.job_order, visit.workOrderNumber, visit.work_order_number),
           notes: typeof visit.notes === 'string' && !visit.notes.trim().startsWith('{') ? visit.notes : prev.settings.notes,
           complaint: visit.complaint || visit.customer_complaint || visit.issue || prev.settings.complaint || '',
           inspection: visit.inspection || visit.diagnosis || visit.diagnosis_result || prev.settings.inspection || '',

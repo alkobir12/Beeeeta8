@@ -12,7 +12,6 @@ const safeNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const money = (value) => `${safeNumber(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 const amount = (value) => safeNumber(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const unique = (values) => [...new Set(values.map((value) => String(value).trim()).filter(Boolean))];
@@ -23,7 +22,6 @@ export const findUnresolvedTemplateVariables = (html = '') => {
     ...source.matchAll(/{{\s*([^{}]+?)\s*}}/g),
     ...source.matchAll(/\[\[\s*([^\]]+?)\s*\]\]/g),
     ...source.matchAll(/<%=?\s*([\s\S]*?)\s*%>/g),
-    ...source.matchAll(/\{([A-Z][A-Z0-9_]*)\}/g),
   ].map((match) => match[1]);
   return unique(matches);
 };
@@ -51,7 +49,7 @@ const itemKindLabel = (item = {}) => {
   const type = String(item.type || item.itemType || item.kind || '').trim().toLowerCase();
   if (['part', 'parts', 'spare', 'spare_part', 'قطعة', 'قطع'].includes(type)) return 'قطعة';
   if (['labor', 'service', 'work', 'أجرة', 'اجرة', 'خدمة'].includes(type)) return 'أجرة';
-  return cleanText(item.kindLabel || item.category || '');
+  return cleanText(item.kindLabel || item.category || 'أجرة');
 };
 
 const normalizeRows = (rows = []) => (Array.isArray(rows) ? rows : [])
@@ -68,10 +66,16 @@ const normalizeRows = (rows = []) => (Array.isArray(rows) ? rows : [])
       description: cleanText(item.description || item.name || item.itemName || item.serviceName || item.title || ''),
       quantity,
       price,
-      discount,
       total,
     };
   });
+
+const isUuidLike = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+const humanId = (value) => {
+  const text = cleanText(value);
+  if (!text || isUuidLike(text)) return '—';
+  return text;
+};
 
 const docTitle = (docType) => ({
   invoice: ['فاتورة مبيعات', 'SALES INVOICE'],
@@ -80,13 +84,23 @@ const docTitle = (docType) => ({
   receipt: ['سند زيارة', 'VISIT RECEIPT'],
 }[docType] || ['مستند', 'DOCUMENT']);
 
-const paymentLabel = (method = '') => ({
-  cash: 'نقد',
-  pos: 'نقاط بيع',
-  bank: 'تحويل بنكي',
-  bank_transfer: 'تحويل بنكي',
-  transfer: 'تحويل بنكي',
-}[String(method || '').toLowerCase()] || cleanText(method));
+const paymentLabel = (method = '', total = 0, paid = 0) => {
+  const key = String(method || '').trim().toLowerCase();
+  const mapped = {
+    cash: 'نقد',
+    pos: 'نقاط بيع',
+    bank: 'تحويل بنكي',
+    bank_transfer: 'تحويل بنكي',
+    transfer: 'تحويل بنكي',
+    credit: 'آجل — غير مسدد',
+    deferred: 'آجل — غير مسدد',
+    ajel: 'آجل — غير مسدد',
+    'آجل': 'آجل — غير مسدد',
+  }[key];
+  if (mapped) return mapped;
+  if (!key && safeNumber(total) > safeNumber(paid)) return 'آجل — غير مسدد';
+  return cleanText(method);
+};
 
 const splitPlate = (plate = '') => {
   const text = cleanText(plate);
@@ -95,110 +109,110 @@ const splitPlate = (plate = '') => {
   return { digits, lettersAr: letters, lettersEn: '', digitsEn: digits };
 };
 
-const dtcHtml = (value) => {
-  const raw = Array.isArray(value) ? value : String(value || '').split(/[،,\s]+/);
-  return raw.map(cleanText).filter(Boolean).map((code) => `<span class="dtc">${escapeHtml(code)}</span>`).join('');
+const parseDtc = (value) => {
+  if (Array.isArray(value)) return value.map(cleanText).filter(Boolean);
+  return String(value || '').split(/[،,\s]+/).map(cleanText).filter(Boolean);
 };
 
-const approvalStamp = (approval, label) => approval?.name && approval?.at
-  ? `<div class="approved-stamp" style="border:2px solid #15803d;color:#15803d;border-radius:50%;width:92px;height:92px;display:grid;place-items:center;text-align:center;font-weight:900;font-size:11px;line-height:1.3;margin-top:8px">تمت الموافقة<br><small>${escapeHtml(label)}</small><small>${escapeHtml(approval.name)}</small><small>${escapeHtml(new Date(approval.at).toLocaleDateString('ar-SA'))}</small><small>${escapeHtml(String(approval.id || '').slice(0, 12))}</small></div>`
-  : '';
+const setText = (root, field, value) => {
+  root.querySelectorAll(`[data-field="${field}"]`).forEach((node) => {
+    node.textContent = cleanText(value);
+    node.removeAttribute('data-placeholder');
+  });
+};
 
-const replaceToken = (html, key, value) => {
-  const escaped = String(value ?? '');
-  return html
-    .replace(new RegExp(`{{\\s*${key}\\s*}}`, 'g'), escaped)
-    .replace(new RegExp(`\\[\\[\\s*${key}\\s*\\]\\]`, 'g'), escaped)
-    .replace(new RegExp(`<%=\\s*${key}\\s*%>`, 'g'), escaped)
-    .replaceAll(`{${key}}`, escaped)
-    .replaceAll(`<!--{{${key}}}-->`, escaped);
+const setHtml = (root, field, html) => {
+  root.querySelectorAll(`[data-field="${field}"]`).forEach((node) => {
+    node.innerHTML = html || '';
+    node.removeAttribute('data-placeholder');
+  });
+};
+
+const fillRowField = (row, field, value) => {
+  row.querySelectorAll(`[data-field="${field}"]`).forEach((node) => { node.textContent = cleanText(value); });
 };
 
 export const renderDocumentTemplate = (templateHtml, payload = {}, workshop = {}) => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(String(templateHtml || ''), 'text/html');
   const settings = payload.settings || {};
   const customer = payload.customer || payload.client || {};
   const vehicle = payload.vehicle || {};
   const rows = normalizeRows(payload.items || []);
-  const subtotal = rows.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  const discount = rows.reduce((sum, item) => sum + item.discount, 0);
-  const itemsTotal = rows.reduce((sum, item) => sum + item.total, 0);
-  const taxAmount = safeNumber(settings?.totals?.tax || payload.tax || 0);
-  const total = itemsTotal + taxAmount;
+  const partsTotal = rows.filter((item) => item.kind === 'قطعة').reduce((sum, item) => sum + item.total, 0);
+  const laborTotal = rows.filter((item) => item.kind !== 'قطعة').reduce((sum, item) => sum + item.total, 0);
+  const total = rows.reduce((sum, item) => sum + item.total, 0) + safeNumber(settings?.totals?.tax || payload.tax || 0);
   const paid = safeNumber(settings?.totals?.paid || payload?.payment?.paid || 0);
   const docType = payload.doc_type || payload.docType || settings.doc_type || 'invoice';
   const [titleAr, titleEn] = docTitle(docType);
-  const documentNumber = cleanText(settings.document_number || payload.document_number || '');
   const plateRaw = cleanText(vehicle.plateNumber || vehicle.plate || '');
   const plate = splitPlate(plateRaw);
-  const approvals = payload.approvals || {};
-  const partsTotal = rows.filter((item) => item.kind === 'قطعة').reduce((sum, item) => sum + item.total, 0);
-  const laborTotal = rows.filter((item) => item.kind !== 'قطعة').reduce((sum, item) => sum + item.total, 0);
   const vehicleName = cleanText(`${vehicle.brand || vehicle.vehicleBrand || ''} ${vehicle.model || vehicle.vehicleModel || ''}`);
+  const documentNumber = humanId(settings.document_number || payload.document_number || payload.invoiceNumber || payload.invoice_number);
+  const jobOrder = humanId(settings.job_order || settings.jobOrder || payload.job_order || payload.jobOrder || payload.workOrderNumber || payload.work_order_number);
+
   const values = {
-    WORKSHOP_NAME: cleanText(workshop.name || workshop.business_name || ''),
-    WORKSHOP_TAGLINE: cleanText(workshop.slogan || workshop.tagline || workshop.sloganEnglish || ''),
-    WORKSHOP_ADDRESS: cleanText(workshop.address || ''),
-    WORKSHOP_PHONE: cleanText(workshop.phone || workshop.whatsapp || ''),
-    WORKSHOP_EMAIL: cleanText(workshop.email || ''),
-    COMPANY_CR: cleanText(workshop.commercial_register || workshop.commercialRegister || ''),
-    COMPANY_TAX: cleanText(workshop.tax_number || workshop.taxNumber || ''),
-    TAX_NUMBER: cleanText(workshop.tax_number || workshop.taxNumber || ''),
-    CUSTOMER_NAME: cleanText(customer.name || customer.customerName || ''),
-    CUSTOMER_PHONE: cleanText(customer.phone || customer.customerPhone || ''),
-    VEHICLE_INFO: cleanText(`${vehicleName} ${vehicle.year || vehicle.vehicleYear || ''}`),
-    VEHICLE_MODEL: vehicleName,
-    VEHICLE_YEAR: cleanText(vehicle.year || vehicle.vehicleYear || ''),
-    VEHICLE_VIN: cleanText(vehicle.vin || vehicle.chassisNumber || ''),
-    PLATE_NO: plateRaw,
-    VEHICLE_PLATE: plateRaw,
-    PLATE_LETTERS_AR: plate.lettersAr,
-    PLATE_LETTERS_EN: plate.lettersEn,
-    PLATE_DIGITS_AR: plate.digits,
-    PLATE_DIGITS_EN: plate.digitsEn,
-    STATUS_LABEL: cleanText(settings.status || ''),
-    INVOICE_NO: documentNumber,
-    INVOICE_DATE: cleanText(settings.date || payload.date || ''),
-    DATE: cleanText(settings.date || payload.date || ''),
-    ENTRY_DATE: cleanText(settings.entry_date || settings.entryDate || settings.date || payload.entry_date || payload.entryDate || payload.date || ''),
-    DELIVERY_DATE: cleanText(settings.delivery_date || settings.deliveryDate || payload.delivery_date || payload.deliveryDate || ''),
-    JOB_ORDER: cleanText(settings.job_order || settings.jobOrder || payload.job_order || payload.jobOrder || payload.visit_id || payload.visitId || ''),
-    PAYMENT_METHOD: paymentLabel(settings.payment_method || settings.paymentMethod || payload?.payment?.method || ''),
-    ODOMETER: cleanText(vehicle.mileage || vehicle.odometer || settings.mileage || ''),
-    COMPLAINT: cleanText(settings.complaint || payload.complaint || vehicle.complaint || ''),
-    INSPECTION: cleanText(settings.inspection || settings.diagnosis || payload.inspection || payload.diagnosis || ''),
-    DTC_LIST: dtcHtml(settings.dtc || settings.dtc_codes || payload.dtc || payload.dtc_codes || vehicle.dtc || ''),
-    ITEMS_ROWS: rows.map((item, index) => `<tr data-testid="document-item-row-${index}"><td class="c-no" data-testid="document-item-no-${index}">${index + 1}</td><td class="c-kind" data-testid="document-item-kind-${index}">${escapeHtml(item.kind)}</td><td class="c-code" data-testid="document-item-code-${index}">${escapeHtml(item.code)}</td><td class="c-desc" data-testid="document-item-desc-${index}">${escapeHtml(item.description)}</td><td class="c-qty" data-testid="document-item-qty-${index}">${escapeHtml(item.quantity)}</td><td class="c-unit" data-testid="document-item-unit-${index}">${amount(item.price)}</td><td class="c-sum" data-testid="document-item-sum-${index}">${amount(item.total)}</td></tr>`).join(''),
-    PARTS_TOTAL: amount(partsTotal),
-    LABOR_TOTAL: amount(laborTotal),
-    ITEM_COUNT: String(rows.length),
-    SUBTOTAL: money(subtotal),
-    DISCOUNT: money(discount),
-    TAX: money(taxAmount),
-    TOTAL: money(total),
-    TOTAL_AMOUNT: amount(total),
-    PAID: money(paid),
-    REMAINING: money(total - paid),
-    NOTES: cleanText(settings.notes || payload.notes || ''),
-    AMOUNT_WORDS: total > 0 ? `فقط ${money(total)} لا غير` : '',
-    RECOMMENDATION: cleanText(settings.recommendation || payload.recommendation || settings.recommendations || payload.recommendations || ''),
-    WARRANTY: cleanText(settings.warranty || payload.warranty || ''),
-    TECHNICIAN: cleanText(settings.technician || payload.technician || payload.technicianName || ''),
-    SEAL_CODE: cleanText(settings.seal_code || settings.sealCode || ''),
-    DOCUMENT_TITLE: cleanText(settings.document_title || titleAr),
-    DOCUMENT_TITLE_EN: titleEn,
-    TAX_ROW: taxAmount ? `<div><span>الضريبة</span><b>${money(taxAmount)}</b></div>` : '',
-    BARCODE_VALUE: documentNumber,
-    CUSTOMER_APPROVAL_STAMP: approvalStamp(approvals.customer, 'اعتماد العميل'),
-    WORKSHOP_APPROVAL_STAMP: approvalStamp(approvals.workshop, 'اعتماد الورشة'),
+    'ws-name': cleanText(workshop.name || workshop.business_name || ''),
+    'ws-tagline': cleanText(workshop.slogan || workshop.tagline || workshop.sloganEnglish || ''),
+    'doc-kind': cleanText(settings.document_title || titleAr),
+    'doc-kind-en': titleEn,
+    'ws-cr': cleanText(workshop.commercial_register || workshop.commercialRegister || ''),
+    'ws-phone': cleanText(workshop.phone || workshop.whatsapp || ''),
+    'ws-address': cleanText(workshop.address || ''),
+    'doc-no': documentNumber,
+    'job-order': jobOrder,
+    'date-in': cleanText(settings.entry_date || settings.entryDate || settings.date || payload.entry_date || payload.entryDate || payload.date || ''),
+    'date-out': cleanText(settings.delivery_date || settings.deliveryDate || payload.delivery_date || payload.deliveryDate || ''),
+    'payment-method': paymentLabel(settings.payment_method || settings.paymentMethod || payload?.payment?.method || '', total, paid),
+    'customer-name': cleanText(customer.name || customer.customerName || ''),
+    'customer-phone': cleanText(customer.phone || customer.customerPhone || ''),
+    odometer: cleanText(vehicle.mileage || vehicle.odometer || settings.mileage || ''),
+    'vehicle-model': vehicleName,
+    'vehicle-year': cleanText(vehicle.year || vehicle.vehicleYear || ''),
+    'vehicle-vin': cleanText(vehicle.vin || vehicle.chassisNumber || ''),
+    'plate-letters-ar': plate.lettersAr,
+    'plate-letters-en': plate.lettersEn,
+    'plate-digits-ar': plate.digits,
+    'plate-digits-en': plate.digitsEn,
+    complaint: cleanText(settings.complaint || payload.complaint || vehicle.complaint || ''),
+    inspection: cleanText(settings.inspection || settings.diagnosis || payload.inspection || payload.diagnosis || ''),
+    'parts-total': amount(partsTotal),
+    'labor-total': amount(laborTotal),
+    'item-count': String(rows.length),
+    'total-sar': amount(total),
+    'total-words': total > 0 ? `فقط ${amount(total)} ريال سعودي لا غير` : '',
+    recommendation: cleanText(settings.recommendation || payload.recommendation || settings.recommendations || payload.recommendations || ''),
+    warranty: cleanText(settings.warranty || payload.warranty || ''),
+    technician: cleanText(settings.technician || payload.technician || payload.technicianName || ''),
   };
-  let html = String(templateHtml || '');
-  Object.entries(values).forEach(([key, value]) => {
-    html = replaceToken(html, key, value);
-  });
-  return html.replace(/>\s*(undefined|null|NaN)\s*</gi, '><');
+
+  Object.entries(values).forEach(([field, value]) => setText(doc, field, value));
+  const dtcCodes = parseDtc(settings.dtc || settings.dtc_codes || payload.dtc || payload.dtc_codes || vehicle.dtc || '');
+  setHtml(doc, 'dtc-list', dtcCodes.map((code) => `<span class="dtc">${escapeHtml(code)}</span>`).join(''));
+
+  const template = doc.getElementById('row-template');
+  const body = doc.getElementById('items-body');
+  if (template && body) {
+    body.innerHTML = '';
+    rows.forEach((item, index) => {
+      const row = template.content?.firstElementChild?.cloneNode(true) || doc.createElement('tr');
+      fillRowField(row, 'row-no', String(index + 1));
+      fillRowField(row, 'row-kind', item.kind);
+      fillRowField(row, 'row-code', item.code);
+      fillRowField(row, 'row-desc', item.description);
+      fillRowField(row, 'row-qty', String(item.quantity));
+      fillRowField(row, 'row-unit', amount(item.price));
+      fillRowField(row, 'row-sum', amount(item.total));
+      body.appendChild(row);
+    });
+  }
+
+  doc.querySelectorAll('[data-placeholder]').forEach((node) => node.removeAttribute('data-placeholder'));
+  doc.querySelectorAll('button.pbtn, script').forEach((node) => node.remove());
+  return `<!doctype html>${doc.documentElement.outerHTML}`.replace(/>\s*(undefined|null|NaN)\s*</gi, '><');
 };
 
 export const splitTemplateHtml = (html = '') => {
   const documentNode = new DOMParser().parseFromString(html, 'text/html');
-  return { body: documentNode.body?.innerHTML || html, styles: Array.from(documentNode.head?.querySelectorAll('style') || []).map((node) => node.textContent).join('\n') };
+  return { body: documentNode.body?.innerHTML || html, styles: Array.from(documentNode.head?.querySelectorAll('style, link[rel="stylesheet"]') || []).map((node) => node.outerHTML || node.textContent).join('\n') };
 };

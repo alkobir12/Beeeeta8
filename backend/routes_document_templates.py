@@ -19,8 +19,8 @@ from routes_templates import DOC_TYPES, INDEX_FILE, TEMPLATES_DIR, _builtin_temp
 router = APIRouter(prefix="/api/document-templates", tags=["document-templates"])
 db = None
 _seed_lock = asyncio.Lock()
-_ALLOWED_TAGS = ["html", "head", "body", "meta", "title", "style", "main", "section", "article", "header", "footer", "div", "span", "p", "strong", "b", "em", "i", "small", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "ul", "ol", "li", "br", "hr", "img"]
-_ALLOWED_ATTRIBUTES = {"*": ["class", "style", "dir", "lang", "id", "data-testid"], "img": ["src", "alt", "width", "height"], "meta": ["charset", "name", "content"]}
+_ALLOWED_TAGS = ["html", "head", "body", "meta", "title", "style", "main", "section", "article", "header", "footer", "div", "span", "p", "strong", "b", "em", "i", "small", "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tfoot", "tr", "th", "td", "template", "ul", "ol", "li", "br", "hr", "img"]
+_ALLOWED_ATTRIBUTES = {"*": ["class", "style", "dir", "lang", "id", "data-testid", "data-field", "data-placeholder"], "img": ["src", "alt", "width", "height"], "meta": ["charset", "name", "content"]}
 _SANITIZER = bleach.Cleaner(tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRIBUTES, protocols=["http", "https", "data"], strip=True, strip_comments=False, css_sanitizer=CSSSanitizer())
 _KNOWN_TEMPLATE_VARIABLES = {"WORKSHOP_NAME", "WORKSHOP_TAGLINE", "WORKSHOP_ADDRESS", "WORKSHOP_PHONE", "WORKSHOP_EMAIL", "COMPANY_CR", "COMPANY_TAX", "TAX_NUMBER", "CUSTOMER_NAME", "CUSTOMER_PHONE", "VEHICLE_INFO", "VEHICLE_MODEL", "VEHICLE_YEAR", "VEHICLE_VIN", "PLATE_NO", "VEHICLE_PLATE", "PLATE_LETTERS_AR", "PLATE_LETTERS_EN", "PLATE_DIGITS_AR", "PLATE_DIGITS_EN", "STATUS_LABEL", "INVOICE_NO", "INVOICE_DATE", "DATE", "ENTRY_DATE", "DELIVERY_DATE", "JOB_ORDER", "PAYMENT_METHOD", "ODOMETER", "COMPLAINT", "INSPECTION", "DTC_LIST", "ITEMS_ROWS", "PARTS_TOTAL", "LABOR_TOTAL", "ITEM_COUNT", "SUBTOTAL", "DISCOUNT", "TAX", "TOTAL", "TOTAL_AMOUNT", "PAID", "REMAINING", "NOTES", "AMOUNT_WORDS", "RECOMMENDATION", "WARRANTY", "TECHNICIAN", "SEAL_CODE", "DOCUMENT_TITLE", "DOCUMENT_TITLE_EN", "TAX_ROW", "BARCODE_VALUE", "CUSTOMER_APPROVAL_STAMP", "WORKSHOP_APPROVAL_STAMP"}
 
@@ -212,6 +212,8 @@ async def _ensure_registry() -> None:
 
 
 async def _content(template: Dict[str, Any]) -> str:
+    if str(template.get("id") or "").startswith("unified-workshop-a4-mobile-") or template.get("source") == "unified_workshop_uploaded_design":
+        return _builtin_template_content(template.get("document_type", "invoice"))
     if template.get("is_builtin") or template.get("source") == "system_default_clone":
         content = _builtin_template_content(template["document_type"])
         return _sanitize_html(content)[0]
