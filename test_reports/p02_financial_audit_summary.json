@@ -1,0 +1,130 @@
+{
+  "generated_at": "2026-08-02T23:58:45.509492+03:00",
+  "reports": {
+    "preview": {
+      "md": "/app/memory/p02_preview_financial_audit_2026-08-02.md",
+      "json": "/app/test_reports/p02_preview_financial_audit_raw.json",
+      "dashboard_match": {
+        "expected_dashboard_count_from_user": 12,
+        "actual_dashboard_count_from_dom_logic": 17,
+        "report_count": 17,
+        "dashboard_vehicle_ids": [
+          "a422209f-8cec-48a6-b06a-49e0c89972e6",
+          "f6590225-aef6-452b-af39-e0e42061fd81",
+          "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+          "a57b698d-752d-43bf-be66-41a0337de9eb",
+          "a717c745-3d53-43d0-b235-ef90a794311f",
+          "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+          "d5376421-bd6e-420e-8585-ba36c3314082",
+          "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+          "c5bfe993-c45a-4412-b196-be1cdd310c40",
+          "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+          "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+          "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+          "523451c4-01a9-455e-902c-b21ae944a85f",
+          "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+          "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+          "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+          "bea27237-7274-4fe2-84b3-8106740645d7"
+        ],
+        "report_vehicle_ids": [
+          "a422209f-8cec-48a6-b06a-49e0c89972e6",
+          "f6590225-aef6-452b-af39-e0e42061fd81",
+          "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+          "a57b698d-752d-43bf-be66-41a0337de9eb",
+          "a717c745-3d53-43d0-b235-ef90a794311f",
+          "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+          "d5376421-bd6e-420e-8585-ba36c3314082",
+          "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+          "c5bfe993-c45a-4412-b196-be1cdd310c40",
+          "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+          "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+          "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+          "523451c4-01a9-455e-902c-b21ae944a85f",
+          "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+          "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+          "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+          "bea27237-7274-4fe2-84b3-8106740645d7"
+        ],
+        "missing_in_report": [],
+        "extra_in_report": [],
+        "ids_equal": true,
+        "count_matches_user_expected": false
+      },
+      "blockers": [
+        {
+          "severity": "BLOCKER",
+          "type": "orphan_journal_entries_detected",
+          "count": 5,
+          "note": "قيود ذات مراجع غير مرتبطة تحتاج تفسير قبل P1."
+        },
+        {
+          "severity": "BLOCKER",
+          "type": "dashboard_count_mismatch_with_user_gate",
+          "expected": 12,
+          "actual": 17,
+          "note": "لا يمكن اعتماد P0.2 كبوابة P1 لهذه البيئة حتى يتطابق عدد لوحة التحكم مع العدد المعتمد من المستخدم أو يثبت فلتر مختلف."
+        }
+      ]
+    },
+    "production": {
+      "md": "/app/memory/p02_production_financial_audit_2026-08-02.md",
+      "json": "/app/test_reports/p02_production_financial_audit_raw.json",
+      "dashboard_match": {
+        "expected_dashboard_count_from_user": 17,
+        "actual_dashboard_count_from_dom_logic": 17,
+        "report_count": 17,
+        "dashboard_vehicle_ids": [
+          "a422209f-8cec-48a6-b06a-49e0c89972e6",
+          "f6590225-aef6-452b-af39-e0e42061fd81",
+          "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+          "a57b698d-752d-43bf-be66-41a0337de9eb",
+          "a717c745-3d53-43d0-b235-ef90a794311f",
+          "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+          "d5376421-bd6e-420e-8585-ba36c3314082",
+          "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+          "c5bfe993-c45a-4412-b196-be1cdd310c40",
+          "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+          "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+          "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+          "523451c4-01a9-455e-902c-b21ae944a85f",
+          "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+          "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+          "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+          "bea27237-7274-4fe2-84b3-8106740645d7"
+        ],
+        "report_vehicle_ids": [
+          "a422209f-8cec-48a6-b06a-49e0c89972e6",
+          "f6590225-aef6-452b-af39-e0e42061fd81",
+          "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+          "a57b698d-752d-43bf-be66-41a0337de9eb",
+          "a717c745-3d53-43d0-b235-ef90a794311f",
+          "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+          "d5376421-bd6e-420e-8585-ba36c3314082",
+          "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+          "c5bfe993-c45a-4412-b196-be1cdd310c40",
+          "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+          "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+          "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+          "523451c4-01a9-455e-902c-b21ae944a85f",
+          "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+          "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+          "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+          "bea27237-7274-4fe2-84b3-8106740645d7"
+        ],
+        "missing_in_report": [],
+        "extra_in_report": [],
+        "ids_equal": true,
+        "count_matches_user_expected": true
+      },
+      "blockers": [
+        {
+          "severity": "BLOCKER",
+          "type": "orphan_journal_entries_detected",
+          "count": 5,
+          "note": "قيود ذات مراجع غير مرتبطة تحتاج تفسير قبل P1."
+        }
+      ]
+    }
+  }
+}

@@ -627,3 +627,11 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - نتيجة الحالة 31/271/200 ضمن المركبات الـ15: خدمة الورشة 31، الموردون 271 أرشيف مستقل، المستلم 200، المطبق 31، المتبقي 0، `customer_advance_pending=169`، الحالة `مسدد + رصيد عميل`.
 - الملفات: `/app/memory/p01_dashboard_15_financial_preview_2026-08-02.md` و`/app/test_reports/p01_dashboard_15_financial_preview_raw.json`.
 
+## تحديث 2026-08-02 — P0.2 تدقيق مالي شامل Preview/Production
+- تم إصدار P0.2 قراءة فقط لبيئتين منفصلتين: Preview وProduction، دون إنشاء حسابات/قيود أو تعديل/حذف/ترحيل أو تغيير واجهات.
+- الملفات: `/app/memory/p02_preview_financial_audit_2026-08-02.md`, `/app/test_reports/p02_preview_financial_audit_raw.json`, `/app/memory/p02_production_financial_audit_2026-08-02.md`, `/app/test_reports/p02_production_financial_audit_raw.json`, وملخص `/app/memory/p02_financial_audit_summary_2026-08-02.md`.
+- Production: `dashboard_count=17`, `report_count=17`, و`dashboard_vehicle_ids == report_vehicle_ids` صحيح.
+- Preview: الكود الفعلي للوحة التحكم وDOM الحالي يعرضان `17` مركبة لا `12`؛ التقرير يطابق معرفات DOM/لوحة التحكم الحالية لكنه يفشل بوابة المستخدم المتوقعة `12`، وتم تسجيل ذلك كـ BLOCKER.
+- تم تسجيل BLOCKER إضافي في البيئتين: وجود 5 قيود يومية بمراجع غير مرتبطة تحتاج تفسيراً قبل P1.
+- لا يبدأ P1 قبل إزالة BLOCKERs واعتماد ذمم الإنتاج سطراً بسطر.
+

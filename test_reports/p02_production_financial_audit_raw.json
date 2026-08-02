@@ -1,0 +1,2064 @@
+{
+  "environment": "production",
+  "base_url": "https://alkobir.com",
+  "login_result": {
+    "status": 200,
+    "ok": true,
+    "body": "{\"access_token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJcdTA2NDVcdTA2MmZcdTA2NGFcdTA2MzEiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3ODU3MDQyODQsImV4cCI6MTc4NTcwNzg4NCwidHlwZSI6ImFjY2VzcyJ9.bjktp5ehnHCLR"
+  },
+  "dashboard_match": {
+    "expected_dashboard_count_from_user": 17,
+    "actual_dashboard_count_from_dom_logic": 17,
+    "report_count": 17,
+    "dashboard_vehicle_ids": [
+      "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "f6590225-aef6-452b-af39-e0e42061fd81",
+      "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+      "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "a717c745-3d53-43d0-b235-ef90a794311f",
+      "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "d5376421-bd6e-420e-8585-ba36c3314082",
+      "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+      "523451c4-01a9-455e-902c-b21ae944a85f",
+      "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+      "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "bea27237-7274-4fe2-84b3-8106740645d7"
+    ],
+    "report_vehicle_ids": [
+      "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "f6590225-aef6-452b-af39-e0e42061fd81",
+      "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+      "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "a717c745-3d53-43d0-b235-ef90a794311f",
+      "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "d5376421-bd6e-420e-8585-ba36c3314082",
+      "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+      "523451c4-01a9-455e-902c-b21ae944a85f",
+      "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+      "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "bea27237-7274-4fe2-84b3-8106740645d7"
+    ],
+    "missing_in_report": [],
+    "extra_in_report": [],
+    "ids_equal": true,
+    "count_matches_user_expected": true
+  },
+  "status_counts": {
+    "diagnosis": 10,
+    "delivered": 177,
+    "ready": 4,
+    "تشخيص": 1,
+    "archived": 2
+  },
+  "page_sections": [
+    {
+      "page": "لوحة التحكم",
+      "data_sources": [
+        "/api/vehicles",
+        "/api/technicians",
+        "/api/finance/ar/customers"
+      ],
+      "records_read_count": 17,
+      "visible_or_endpoint_total": 17,
+      "correct_financial_total": 17,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "dashboard_vehicle_ids يجب أن تساوي report_vehicle_ids",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "PASS",
+      "issues": []
+    },
+    {
+      "page": "ملف المركبة",
+      "data_sources": [
+        "/api/vehicles",
+        "/api/vehicles/{vehicle_id}/visits",
+        "/api/vehicles/{vehicle_id}/financial-summary"
+      ],
+      "records_read_count": 17,
+      "visible_or_endpoint_total": 25505.0,
+      "correct_financial_total": 12579.0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "الموردون منفصلون عن فاتورة العميل",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "BLOCKER",
+      "issues": [
+        "supplier total shown separately; not customer AR"
+      ]
+    },
+    {
+      "page": "الزيارات وجميع تبويباتها",
+      "data_sources": [
+        "/api/vehicles/{vehicle_id}/visits",
+        "/api/visits/{visit_id}/operations"
+      ],
+      "records_read_count": 19,
+      "visible_or_endpoint_total": 12579.0,
+      "correct_financial_total": 12579.0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "visit_id -> operation_id -> journal_entry_id",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "BLOCKER",
+      "issues": []
+    },
+    {
+      "page": "صفحة العمليات",
+      "data_sources": [
+        "/api/operations"
+      ],
+      "records_read_count": 12,
+      "visible_or_endpoint_total": 9343.86,
+      "correct_financial_total": 12579.0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "operation total يجب أن يطابق خدمة الورشة فقط عند ربطه بزيارة",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "BLOCKER",
+      "issues": [
+        "requires P1 engine to enforce single source"
+      ]
+    },
+    {
+      "page": "متابعة الذمم والتحصيل",
+      "data_sources": [
+        "/api/finance/ar/customers",
+        "/api/finance/ar/ledger"
+      ],
+      "records_read_count": 1,
+      "visible_or_endpoint_total": -200.0,
+      "correct_financial_total": 12548.0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "AR = remaining_on_customer للعمليات الحية المفتوحة",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "BLOCKER",
+      "issues": []
+    },
+    {
+      "page": "دفتر اليومية",
+      "data_sources": [
+        "/api/finance/journal-entries"
+      ],
+      "records_read_count": 10,
+      "visible_or_endpoint_total": 5343.86,
+      "correct_financial_total": 5343.86,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "journal_entry_id مع reference_id/origin_id",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "BLOCKER",
+      "issues": [
+        "orphan refs: 5"
+      ]
+    },
+    {
+      "page": "القوائم والتقارير المالية",
+      "data_sources": [
+        "/api/finance/reports/income-statement",
+        "/api/finance/reconciliation-audit"
+      ],
+      "records_read_count": 0,
+      "visible_or_endpoint_total": 200,
+      "correct_financial_total": 31.0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "cash basis: الإيراد = applied_to_service فقط",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "BLOCKER",
+      "issues": []
+    },
+    {
+      "page": "النقد والبنك ونقاط البيع",
+      "data_sources": [
+        "/api/finance/journal-entries",
+        "/api/biz-accounts"
+      ],
+      "records_read_count": 10,
+      "visible_or_endpoint_total": "حسب journal lines",
+      "correct_financial_total": "يحتاج breakdown من journal lines بعد P1",
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "cash/bank/pos فقط؛ الآجل ليس طريقة دفع",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "WARNING",
+      "issues": [
+        "read-only endpoint لا يعطي breakdown موحد حالياً"
+      ]
+    },
+    {
+      "page": "POS",
+      "data_sources": [
+        "/api/operations",
+        "/api/finance/journal-entries"
+      ],
+      "records_read_count": 0,
+      "visible_or_endpoint_total": 0,
+      "correct_financial_total": 0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "POS يجب أن يسدد أصل العملية أو ينشئ standalone_pos_sale",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "WARNING",
+      "issues": [
+        "requires endpoint-level enforcement audit in P1"
+      ]
+    },
+    {
+      "page": "الموردون والمشتريات",
+      "data_sources": [
+        "/api/suppliers-ext/movements",
+        "/api/suppliers-ext/purchases",
+        "/api/suppliers-ext/suppliers"
+      ],
+      "records_read_count": 0,
+      "visible_or_endpoint_total": 12926.0,
+      "correct_financial_total": 12926.0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "supplier movements مستقلة عن customer AR",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "WARNING",
+      "issues": [
+        "supplier endpoints غير متاحة/تحتاج صلاحية أو مسار مختلف"
+      ]
+    },
+    {
+      "page": "العملاء وأرصدة العملاء المقدمة",
+      "data_sources": [
+        "/api/customers",
+        "/api/finance/ar/customers"
+      ],
+      "records_read_count": 216,
+      "visible_or_endpoint_total": 169.0,
+      "correct_financial_total": 169.0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "customer_advance_pending مؤقت حتى إنشاء حساب liability",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "WARNING",
+      "issues": [
+        "account not created by design in P0.2"
+      ]
+    },
+    {
+      "page": "الأرشيف والاستعادة",
+      "data_sources": [
+        "/api/archive/vehicles",
+        "/api/vehicles"
+      ],
+      "records_read_count": 0,
+      "visible_or_endpoint_total": 0,
+      "correct_financial_total": 0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "archive excluded from current dashboard/AR",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "PASS",
+      "issues": []
+    },
+    {
+      "page": "كاترينا وسجل إجراءاتها",
+      "data_sources": [
+        "/api/runtime/approvals",
+        "/api/assistant/*",
+        "/api/workshop-bot/*"
+      ],
+      "records_read_count": 0,
+      "visible_or_endpoint_total": 0,
+      "correct_financial_total": 0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "entry_channel=katrina must be execution channel only",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "WARNING",
+      "issues": [
+        "static scan shows assistant can preview/create financial actions; P1 must enforce backend engine"
+      ]
+    },
+    {
+      "page": "شجرة الحسابات والسنة المالية",
+      "data_sources": [
+        "/api/chart-of-accounts",
+        "/api/accounts"
+      ],
+      "records_read_count": 189,
+      "visible_or_endpoint_total": 0,
+      "correct_financial_total": 0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "no account creation in P0.2",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "PASS",
+      "issues": []
+    },
+    {
+      "page": "زر حذف العمليات وأثر الحذف السابق",
+      "data_sources": [
+        "/api/operations",
+        "/api/finance/journal-entries"
+      ],
+      "records_read_count": 12,
+      "visible_or_endpoint_total": 0,
+      "correct_financial_total": 0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "void/reversal only for posted operations",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "BLOCKER",
+      "issues": [
+        "journal references missing due previous deletion"
+      ]
+    },
+    {
+      "page": "Endpoints ذات أثر مالي",
+      "data_sources": [
+        "static scan + listed APIs"
+      ],
+      "records_read_count": 0,
+      "visible_or_endpoint_total": 0,
+      "correct_financial_total": 0,
+      "scope": "live/archive/legacy حسب السجل؛ تقرير المركبات يركز live من dashboard",
+      "links_required": [
+        "vehicle_id",
+        "visit_id",
+        "operation_id",
+        "payment_id",
+        "journal_entry_id",
+        "origin_type",
+        "origin_id",
+        "entry_channel"
+      ],
+      "links_note": "static list attached",
+      "duplicates": 0,
+      "unlinked_records": 5,
+      "result": "WARNING",
+      "issues": [
+        "see mutation_endpoints_scan"
+      ]
+    }
+  ],
+  "vehicle_audit": [
+    {
+      "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "customer": "ابو فهد ",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 0.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 0.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "بدون مبلغ خدمة ورشة",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+            "visit_id": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+            "operation_id": [],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 0.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 0.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+      "customer": "خالد القبيشي",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+          "operation_ids": [
+            "1d40d657-f682-40a5-b404-4bea38757a12"
+          ],
+          "journal_entry_ids": [
+            "657aaebd-e08c-4b91-bdf0-6a085243a174"
+          ],
+          "workshop_service_total": 31.0,
+          "supplier_cost_archive_total": 271.0,
+          "confirmed_received_no_duplicates": 200.0,
+          "applied_to_service": 31.0,
+          "remaining_on_customer": 0.0,
+          "customer_advance_pending": 169.0,
+          "status_expected": "مسدد + رصيد عميل",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1785682544818",
+              "amount": 200.0,
+              "journalEntryId": "",
+              "classification": "دفعة مؤكدة ولها دليل",
+              "counted": false,
+              "evidence_journal_ids": [
+                "657aaebd-e08c-4b91-bdf0-6a085243a174"
+              ]
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+            "visit_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+            "operation_id": [
+              "1d40d657-f682-40a5-b404-4bea38757a12"
+            ],
+            "payment_id": [
+              "pay-1785682544818"
+            ],
+            "journal_entry_id": [
+              "657aaebd-e08c-4b91-bdf0-6a085243a174"
+            ],
+            "origin_type": "vehicle_visit",
+            "origin_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 31.0,
+        "supplier_cost_archive_total": 271.0,
+        "confirmed_received_no_duplicates": 200.0,
+        "applied_to_service": 31.0,
+        "remaining_on_customer": 0.0,
+        "customer_advance_pending": 169.0
+      }
+    },
+    {
+      "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+      "customer": "فيصل الجفير",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 0.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 0.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "بدون مبلغ خدمة ورشة",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+            "visit_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+            "operation_id": [],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 0.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 0.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "customer": "ابراهيم صالح ",
+      "status": "ready",
+      "visits": [
+        {
+          "visit_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+          "operation_ids": [
+            "6484969a-7714-43f8-b0b9-782c915b8abc"
+          ],
+          "journal_entry_ids": [],
+          "workshop_service_total": 1000.0,
+          "supplier_cost_archive_total": 975.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 1000.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+            "visit_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+            "operation_id": [
+              "6484969a-7714-43f8-b0b9-782c915b8abc"
+            ],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 1000.0,
+        "supplier_cost_archive_total": 975.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 1000.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+      "customer": "خالد عماش الحربي",
+      "status": "ready",
+      "visits": [
+        {
+          "visit_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+          "operation_ids": [
+            "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e"
+          ],
+          "journal_entry_ids": [],
+          "workshop_service_total": 2121.0,
+          "supplier_cost_archive_total": 5879.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 2121.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1785309866589",
+              "amount": 3000.0,
+              "journalEntryId": "f4a335b3-29a2-440e-bdad-a818abdbf3a0",
+              "classification": "قيدها مفقود بسبب الحذف السابق",
+              "counted": false,
+              "evidence_journal_ids": []
+            },
+            {
+              "payment_id": "pay-1785676543850",
+              "amount": 5000.0,
+              "journalEntryId": "",
+              "classification": "تحتاج تأكيد المالك",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+            "visit_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+            "operation_id": [
+              "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e"
+            ],
+            "payment_id": [
+              "pay-1785309866589",
+              "pay-1785676543850"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 2121.0,
+        "supplier_cost_archive_total": 5879.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 2121.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "customer": "سلطان الشاص",
+      "status": "تشخيص",
+      "visits": [
+        {
+          "visit_id": "b48c0850-1453-4740-9639-1a99687fda67",
+          "operation_ids": [
+            "b48c0850-1453-4740-9639-1a99687fda67"
+          ],
+          "journal_entry_ids": [],
+          "workshop_service_total": 300.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 300.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+            "visit_id": "b48c0850-1453-4740-9639-1a99687fda67",
+            "operation_id": [
+              "b48c0850-1453-4740-9639-1a99687fda67"
+            ],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "b48c0850-1453-4740-9639-1a99687fda67",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 300.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 300.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+      "customer": "فهد الطريسي",
+      "status": "ready",
+      "visits": [
+        {
+          "visit_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 1800.0,
+          "supplier_cost_archive_total": 2578.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 1800.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1784044252497",
+              "amount": 1950.0,
+              "journalEntryId": "f6611322-da47-45c4-8bce-7a40909696ac",
+              "classification": "قيدها مفقود بسبب الحذف السابق",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+            "visit_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+            "operation_id": [],
+            "payment_id": [
+              "pay-1784044252497"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 1800.0,
+        "supplier_cost_archive_total": 2578.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 1800.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "customer": "فارس عوض ",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+          "operation_ids": [
+            "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+          ],
+          "journal_entry_ids": [],
+          "workshop_service_total": 2500.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 2500.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1784130563641",
+              "amount": 2000.0,
+              "journalEntryId": "1828fc4c-156a-4af5-9451-3b906ba220ac",
+              "classification": "قيدها مفقود بسبب الحذف السابق",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+            "visit_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+            "operation_id": [
+              "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+            ],
+            "payment_id": [
+              "pay-1784130563641"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 2500.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 2500.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "customer": "عبد الكريم الشايعي ",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+          "operation_ids": [
+            "72ccd3b0-f63b-4efc-957a-30c92aa163cf"
+          ],
+          "journal_entry_ids": [],
+          "workshop_service_total": 800.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 800.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+            "visit_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+            "operation_id": [
+              "72ccd3b0-f63b-4efc-957a-30c92aa163cf"
+            ],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 800.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 800.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "customer": "ابو ركان عبدالله ",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "77a3d80a-70be-4274-b646-b9aff8b80e55",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 0.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 0.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "بدون مبلغ خدمة ورشة",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+            "visit_id": "77a3d80a-70be-4274-b646-b9aff8b80e55",
+            "operation_id": [],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "77a3d80a-70be-4274-b646-b9aff8b80e55",
+            "entry_channel": "unknown/legacy"
+          }
+        },
+        {
+          "visit_id": "5f3b0fd2-b225-407c-8c8d-d3e82c9a129a",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 2350.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 2350.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1782229775832-s0wd10t1tzk",
+              "amount": 2350.0,
+              "journalEntryId": "3715d6c3-831e-402e-8bc8-a61df148297d",
+              "classification": "قيدها مفقود بسبب الحذف السابق",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+            "visit_id": "5f3b0fd2-b225-407c-8c8d-d3e82c9a129a",
+            "operation_id": [],
+            "payment_id": [
+              "pay-1782229775832-s0wd10t1tzk"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "5f3b0fd2-b225-407c-8c8d-d3e82c9a129a",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 2350.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 2350.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "customer": "عاصم التويجري",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+          "operation_ids": [
+            "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0"
+          ],
+          "journal_entry_ids": [],
+          "workshop_service_total": 150.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 150.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+            "visit_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+            "operation_id": [
+              "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0"
+            ],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 150.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 150.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+      "customer": "1062 ///ملحمة قويصرة  ",
+      "status": "archived",
+      "visits": [
+        {
+          "visit_id": "822ca57a-2cd2-4b2f-84c6-f5001170ce73",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 0.0,
+          "supplier_cost_archive_total": 1000.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 0.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "بدون مبلغ خدمة ورشة",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1784126078762-4ie56ng6jtp",
+              "amount": 1000.0,
+              "journalEntryId": "6194a071-fded-42df-a6cc-6bd42be9736e",
+              "classification": "قيدها مفقود بسبب الحذف السابق",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+            "visit_id": "822ca57a-2cd2-4b2f-84c6-f5001170ce73",
+            "operation_id": [],
+            "payment_id": [
+              "pay-1784126078762-4ie56ng6jtp"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "822ca57a-2cd2-4b2f-84c6-f5001170ce73",
+            "entry_channel": "unknown/legacy"
+          }
+        },
+        {
+          "visit_id": "2fa1bd0a-9b77-43da-8944-9680a3671f94",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 877.0,
+          "supplier_cost_archive_total": 2023.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 877.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1778596491891-q41teziqukp",
+              "amount": 877.0,
+              "journalEntryId": "",
+              "classification": "تحتاج تأكيد المالك",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+            "visit_id": "2fa1bd0a-9b77-43da-8944-9680a3671f94",
+            "operation_id": [],
+            "payment_id": [
+              "pay-1778596491891-q41teziqukp"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "2fa1bd0a-9b77-43da-8944-9680a3671f94",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 877.0,
+        "supplier_cost_archive_total": 3023.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 877.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
+      "customer": "صالح  سليمان ابراهيم المهوس",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "2819677c-380c-4c97-b23e-e783a434a150",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 0.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 0.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "بدون مبلغ خدمة ورشة",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
+            "visit_id": "2819677c-380c-4c97-b23e-e783a434a150",
+            "operation_id": [],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "2819677c-380c-4c97-b23e-e783a434a150",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 0.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 0.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+      "customer": "1059 ///بنقالي عناية ميزان",
+      "status": "archived",
+      "visits": [
+        {
+          "visit_id": "c2677678-827b-4959-90b6-e914ca4ff82a",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 0.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 0.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "بدون مبلغ خدمة ورشة",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+            "visit_id": "c2677678-827b-4959-90b6-e914ca4ff82a",
+            "operation_id": [],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "c2677678-827b-4959-90b6-e914ca4ff82a",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 0.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 0.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "customer": "   1046 ///صالح القصير",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+          "operation_ids": [
+            "6973ed6f-8895-42cf-ad24-331832ebef96"
+          ],
+          "journal_entry_ids": [],
+          "workshop_service_total": 500.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 500.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+            "visit_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+            "operation_id": [
+              "6973ed6f-8895-42cf-ad24-331832ebef96"
+            ],
+            "payment_id": [],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 500.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 500.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "customer": "1036 /// ماجد الربعي",
+      "status": "diagnosis",
+      "visits": [
+        {
+          "visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 100.0,
+          "supplier_cost_archive_total": 0.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 100.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1776233334777",
+              "amount": 100.0,
+              "journalEntryId": "",
+              "classification": "تحتاج تأكيد المالك",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+            "visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+            "operation_id": [],
+            "payment_id": [
+              "pay-1776233334777"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 100.0,
+        "supplier_cost_archive_total": 0.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 100.0,
+        "customer_advance_pending": 0.0
+      }
+    },
+    {
+      "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+      "customer": "77  //محمد  فهدالعمر",
+      "status": "ready",
+      "visits": [
+        {
+          "visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+          "operation_ids": [],
+          "journal_entry_ids": [],
+          "workshop_service_total": 50.0,
+          "supplier_cost_archive_total": 200.0,
+          "confirmed_received_no_duplicates": 0.0,
+          "applied_to_service": 0.0,
+          "remaining_on_customer": 50.0,
+          "customer_advance_pending": 0.0,
+          "status_expected": "آجل — غير مسدد",
+          "notes_payments": [
+            {
+              "payment_id": "pay-1775458538822",
+              "amount": 250.0,
+              "journalEntryId": "",
+              "classification": "تحتاج تأكيد المالك",
+              "counted": false,
+              "evidence_journal_ids": []
+            }
+          ],
+          "scope": "live",
+          "links": {
+            "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+            "visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+            "operation_id": [],
+            "payment_id": [
+              "pay-1775458538822"
+            ],
+            "journal_entry_id": [],
+            "origin_type": "vehicle_visit",
+            "origin_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+            "entry_channel": "unknown/legacy"
+          }
+        }
+      ],
+      "totals": {
+        "workshop_service_total": 50.0,
+        "supplier_cost_archive_total": 200.0,
+        "confirmed_received_no_duplicates": 0.0,
+        "applied_to_service": 0.0,
+        "remaining_on_customer": 50.0,
+        "customer_advance_pending": 0.0
+      }
+    }
+  ],
+  "known_case_31_271_200": {
+    "environment": "production",
+    "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+    "visit_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+    "customer": "خالد القبيشي",
+    "workshop_service_total": 31.0,
+    "supplier_cost_archive_total": 271.0,
+    "received_amount": 200.0,
+    "applied_to_service": 31.0,
+    "remaining_on_customer": 0.0,
+    "customer_advance_pending": 169.0,
+    "status_expected": "مسدد + رصيد عميل",
+    "invalid_values_absent": [
+      "102",
+      "400",
+      "-98"
+    ]
+  },
+  "exceptions": [
+    {
+      "severity": "BLOCKER",
+      "type": "orphan_journal_entries_detected",
+      "count": 5,
+      "note": "قيود ذات مراجع غير مرتبطة تحتاج تفسير قبل P1."
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+      "visit_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+      "amount": 3000.0,
+      "classification": "قيدها مفقود بسبب الحذف السابق",
+      "journalEntryId": "f4a335b3-29a2-440e-bdad-a818abdbf3a0"
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+      "visit_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+      "amount": 5000.0,
+      "classification": "تحتاج تأكيد المالك",
+      "journalEntryId": ""
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+      "visit_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+      "amount": 1950.0,
+      "classification": "قيدها مفقود بسبب الحذف السابق",
+      "journalEntryId": "f6611322-da47-45c4-8bce-7a40909696ac"
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "visit_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+      "amount": 2000.0,
+      "classification": "قيدها مفقود بسبب الحذف السابق",
+      "journalEntryId": "1828fc4c-156a-4af5-9451-3b906ba220ac"
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "visit_id": "5f3b0fd2-b225-407c-8c8d-d3e82c9a129a",
+      "amount": 2350.0,
+      "classification": "قيدها مفقود بسبب الحذف السابق",
+      "journalEntryId": "3715d6c3-831e-402e-8bc8-a61df148297d"
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+      "visit_id": "822ca57a-2cd2-4b2f-84c6-f5001170ce73",
+      "amount": 1000.0,
+      "classification": "قيدها مفقود بسبب الحذف السابق",
+      "journalEntryId": "6194a071-fded-42df-a6cc-6bd42be9736e"
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+      "visit_id": "2fa1bd0a-9b77-43da-8944-9680a3671f94",
+      "amount": 877.0,
+      "classification": "تحتاج تأكيد المالك",
+      "journalEntryId": ""
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+      "amount": 100.0,
+      "classification": "تحتاج تأكيد المالك",
+      "journalEntryId": ""
+    },
+    {
+      "severity": "WARNING",
+      "type": "notes_payment_not_verified",
+      "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+      "visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+      "amount": 250.0,
+      "classification": "تحتاج تأكيد المالك",
+      "journalEntryId": ""
+    },
+    {
+      "severity": "WARNING",
+      "type": "orphan_journal_reference",
+      "details": {
+        "journal_entry_id": "607b2ed6-4e78-4f52-b508-98eecfabf3e1",
+        "reference_id": "b1305e60-4c05-4c10-bbf7-185601cbe66c",
+        "source": "operation",
+        "total": 400.0
+      }
+    },
+    {
+      "severity": "WARNING",
+      "type": "orphan_journal_reference",
+      "details": {
+        "journal_entry_id": "8a4ac035-c30d-4906-afcd-f85fdcc93af5",
+        "reference_id": "b1305e60-4c05-4c10-bbf7-185601cbe66c",
+        "source": "operation_payment",
+        "total": 400.0
+      }
+    },
+    {
+      "severity": "WARNING",
+      "type": "orphan_journal_reference",
+      "details": {
+        "journal_entry_id": "4e7442fc-00d5-49ab-be18-838d07e985dc",
+        "reference_id": "574e6384-7436-4751-9474-c673676e6c9e",
+        "source": "operation",
+        "total": 37.0
+      }
+    },
+    {
+      "severity": "WARNING",
+      "type": "orphan_journal_reference",
+      "details": {
+        "journal_entry_id": "5ee0f987-f2f5-44e3-b288-6ab6aaf0ba9d",
+        "reference_id": "c95623c4-b0b3-4ac8-9f77-a6cc89587bb5",
+        "source": "operation",
+        "total": 126.0
+      }
+    },
+    {
+      "severity": "WARNING",
+      "type": "orphan_journal_reference",
+      "details": {
+        "journal_entry_id": "08dcd95b-cf12-4fdd-9081-66ec3ab27f6f",
+        "reference_id": "0b422be3-52eb-4de3-9616-47283db56f42",
+        "source": "operation",
+        "total": 498.86
+      }
+    }
+  ],
+  "orphan_journals": [
+    {
+      "journal_entry_id": "607b2ed6-4e78-4f52-b508-98eecfabf3e1",
+      "reference_id": "b1305e60-4c05-4c10-bbf7-185601cbe66c",
+      "source": "operation",
+      "total": 400.0
+    },
+    {
+      "journal_entry_id": "8a4ac035-c30d-4906-afcd-f85fdcc93af5",
+      "reference_id": "b1305e60-4c05-4c10-bbf7-185601cbe66c",
+      "source": "operation_payment",
+      "total": 400.0
+    },
+    {
+      "journal_entry_id": "4e7442fc-00d5-49ab-be18-838d07e985dc",
+      "reference_id": "574e6384-7436-4751-9474-c673676e6c9e",
+      "source": "operation",
+      "total": 37.0
+    },
+    {
+      "journal_entry_id": "5ee0f987-f2f5-44e3-b288-6ab6aaf0ba9d",
+      "reference_id": "c95623c4-b0b3-4ac8-9f77-a6cc89587bb5",
+      "source": "operation",
+      "total": 126.0
+    },
+    {
+      "journal_entry_id": "08dcd95b-cf12-4fdd-9081-66ec3ab27f6f",
+      "reference_id": "0b422be3-52eb-4de3-9616-47283db56f42",
+      "source": "operation",
+      "total": 498.86
+    }
+  ],
+  "duplicate_payment_risks": [],
+  "financial_totals": {
+    "workshop_service_total": 12579.0,
+    "supplier_cost_archive_total": 12926.0,
+    "confirmed_received_no_duplicates": 200.0,
+    "applied_to_service": 31.0,
+    "remaining_on_customer": 12548.0,
+    "customer_advance_pending": 169.0
+  },
+  "journal_balance_proof": {
+    "total_debit": 5343.86,
+    "total_credit": 5343.86,
+    "balanced": true,
+    "imbalanced_entries": []
+  },
+  "archive_proof": {
+    "dashboard_filter": "status !== delivered حسب Dashboard.jsx؛ الأرشيف ظهر إذا status=archived لأن الكود الحالي لا يستبعده",
+    "archive_endpoint_count": 0,
+    "archive_not_in_report_current_logic": "depends on dashboard ids; P1 should enforce archive exclusion explicitly"
+  },
+  "mutation_endpoints_scan": [
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "DELETE",
+      "route": "/invoice-templates/{tid}"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "PUT",
+      "route": "/invoice-templates/{tid}"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/invoice-templates/create-blank"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/invoice-templates/{tid}/design"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/invoice-templates/{tid}/save-json"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/invoice-templates/{tid}/make-default"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/invoice-templates/{tid}/update-mapping"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/invoice-templates/{tid}/save-named"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/invoice-templates/{tid}/auto-save"
+    },
+    {
+      "file": "/app/backend/routes_templates_extended.py",
+      "method": "POST",
+      "route": "/print/invoice-xlsx"
+    },
+    {
+      "file": "/app/backend/routes_accounts_extended.py",
+      "method": "POST",
+      "route": "/accounts"
+    },
+    {
+      "file": "/app/backend/routes_accounts_extended.py",
+      "method": "PUT",
+      "route": "/accounts/{account_id}"
+    },
+    {
+      "file": "/app/backend/routes_accounts_extended.py",
+      "method": "PATCH",
+      "route": "/accounts/{account_id}/active"
+    },
+    {
+      "file": "/app/backend/routes_accounts_extended.py",
+      "method": "DELETE",
+      "route": "/accounts/{account_id}"
+    },
+    {
+      "file": "/app/backend/routes_accounts_extended.py",
+      "method": "POST",
+      "route": "/accounts/reindex-display-codes"
+    },
+    {
+      "file": "/app/backend/routes_accounts_extended.py",
+      "method": "PATCH",
+      "route": "/accounts/{account_id}/touch"
+    },
+    {
+      "file": "/app/backend/routes_accounts_extended.py",
+      "method": "POST",
+      "route": "/accounts/init-defaults"
+    },
+    {
+      "file": "/app/backend/routes_invoices.py",
+      "method": "PUT",
+      "route": "/{invoice_id}"
+    },
+    {
+      "file": "/app/backend/routes_financial_actions.py",
+      "method": "POST",
+      "route": "/invoice"
+    },
+    {
+      "file": "/app/backend/routes_financial_actions.py",
+      "method": "POST",
+      "route": "/payment"
+    },
+    {
+      "file": "/app/backend/idempotency.py",
+      "method": "POST",
+      "route": "/confirm-payment"
+    },
+    {
+      "file": "/app/backend/routes_notion.py",
+      "method": "POST",
+      "route": "/customers"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/reports/reconciliation/backfill-journals"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/chart-of-accounts"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/journal-entries"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "PUT",
+      "route": "/journal-entries/{entry_id}"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "DELETE",
+      "route": "/journal-entries/{entry_id}"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/reports/reclassify-payment-accounts"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/reports/repost-bank-and-fix-imbalance"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/reports/reclassify-vehicle-workshop-dues"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "DELETE",
+      "route": "/reset-ops-journals-keep-debts"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/ar/migrate-operations-workshop"
+    },
+    {
+      "file": "/app/backend/routes_finance.py",
+      "method": "POST",
+      "route": "/reports/reclassify-revenue-sub-accounts"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/biz-accounts"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/biz-accounts/cleanup"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "PUT",
+      "route": "/biz-accounts/{aid}"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "DELETE",
+      "route": "/biz-accounts/{aid}"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/operations/integrity/check"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/operations/integrity/fix-all"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/vehicles/dashboard/summaries"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "PUT",
+      "route": "/operations/{op_id}"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "DELETE",
+      "route": "/operations/{op_id}"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "DELETE",
+      "route": "/operations"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/operations/{op_id}/confirm-payment"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/operations"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "POST",
+      "route": "/vehicles/{vehicle_id}/visits"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "PUT",
+      "route": "/visits/{visit_id}"
+    },
+    {
+      "file": "/app/backend/routes_extended.py",
+      "method": "DELETE",
+      "route": "/visits/{visit_id}"
+    },
+    {
+      "file": "/app/backend/routes_accounts_chart.py",
+      "method": "PUT",
+      "route": "/{account_id}"
+    },
+    {
+      "file": "/app/backend/routes_accounts_chart.py",
+      "method": "DELETE",
+      "route": "/{account_id}"
+    },
+    {
+      "file": "/app/backend/routes_accounts_chart.py",
+      "method": "POST",
+      "route": "/{account_id}/adjust"
+    },
+    {
+      "file": "/app/backend/routes_import.py",
+      "method": "POST",
+      "route": "/customers"
+    },
+    {
+      "file": "/app/backend/routes_smart_accounting.py",
+      "method": "POST",
+      "route": "/accounts/track-usage"
+    },
+    {
+      "file": "/app/backend/routes_smart_accounting.py",
+      "method": "POST",
+      "route": "/supplier-balance-payment"
+    },
+    {
+      "file": "/app/backend/routes_smart_accounting.py",
+      "method": "POST",
+      "route": "/operations/{op_id}/confirm-via-supplier-balance"
+    },
+    {
+      "file": "/app/backend/routes_smart_accounting.py",
+      "method": "POST",
+      "route": "/vehicle/{vehicle_id}/archive"
+    },
+    {
+      "file": "/app/backend/routes_action_runtime.py",
+      "method": "POST",
+      "route": "/drafts/{draft_id}/spawn_supplier"
+    },
+    {
+      "file": "/app/backend/routes_vehicle_files.py",
+      "method": "POST",
+      "route": "/vehicles/{vehicle_id}/upload-file"
+    },
+    {
+      "file": "/app/backend/routes_vehicle_files.py",
+      "method": "POST",
+      "route": "/vehicles/compare-diagnostics"
+    },
+    {
+      "file": "/app/backend/routes_suppliers_extended.py",
+      "method": "POST",
+      "route": "/{supplier_id}/settlements"
+    },
+    {
+      "file": "/app/backend/routes_suppliers_extended.py",
+      "method": "DELETE",
+      "route": "/{supplier_id}/settlements/{settlement_id}"
+    },
+    {
+      "file": "/app/backend/domains/vehicles/router.py",
+      "method": "PUT",
+      "route": "/{vehicle_id}"
+    },
+    {
+      "file": "/app/backend/domains/vehicles/router.py",
+      "method": "DELETE",
+      "route": "/{vehicle_id}"
+    },
+    {
+      "file": "/app/backend/domains/customers/router.py",
+      "method": "PUT",
+      "route": "/{customer_id}"
+    },
+    {
+      "file": "/app/backend/domains/customers/router.py",
+      "method": "DELETE",
+      "route": "/{customer_id}"
+    },
+    {
+      "file": "/app/backend/domains/suppliers/router.py",
+      "method": "PUT",
+      "route": "/{supplier_id}"
+    },
+    {
+      "file": "/app/backend/domains/suppliers/router.py",
+      "method": "DELETE",
+      "route": "/{supplier_id}"
+    }
+  ],
+  "raw_endpoint_status": {
+    "/api/vehicles?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/operations?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/a422209f-8cec-48a6-b06a-49e0c89972e6/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/f6590225-aef6-452b-af39-e0e42061fd81/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/b885d618-a2fa-45df-b14f-0a9e9ff1b484/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/a57b698d-752d-43bf-be66-41a0337de9eb/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/a717c745-3d53-43d0-b235-ef90a794311f/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/c02cc9c7-6ff5-4fc7-9414-b15787fa9000/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/d5376421-bd6e-420e-8585-ba36c3314082/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/b9fe95f6-e4c3-4466-b853-c0103dc75929/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/c5bfe993-c45a-4412-b196-be1cdd310c40/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/ce2e776e-d750-4e34-b20a-ef21f49cad63/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/0ee51492-8405-4235-8c63-4ca01b6bccc8/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/235cb00f-facb-46aa-a4eb-8db039ec21ee/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/523451c4-01a9-455e-902c-b21ae944a85f/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/c92405eb-2097-4f42-aa3e-ccd455d9812f/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/6a8ace60-5ed7-48dd-bfd1-7d47d408f706/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/vehicles/bea27237-7274-4fe2-84b3-8106740645d7/visits?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/finance/ar/customers?{\"as_of\": \"2026-08-02\", \"include_today\": \"true\", \"workshop_id\": \"finmodule-sync\"}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/finance/ar/ledger?{\"workshop_id\": \"finmodule-sync\"}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/finance/journal-entries?{\"limit\": 100000, \"workshop_id\": \"finmodule-sync\"}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/finance/reports/income-statement?{\"workshop_id\": \"finmodule-sync\"}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/finance/reconciliation-audit?{\"workshop_id\": \"finmodule-sync\"}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/accounts?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/chart-of-accounts?{}": {
+      "status": 404,
+      "ok": false,
+      "error": null
+    },
+    "/api/customers?{}": {
+      "status": 200,
+      "ok": true,
+      "error": null
+    },
+    "/api/archive/vehicles?{}": {
+      "status": 404,
+      "ok": false,
+      "error": null
+    },
+    "/api/suppliers-ext/movements?{}": {
+      "status": 404,
+      "ok": false,
+      "error": null
+    },
+    "/api/suppliers-ext/purchases?{}": {
+      "status": 404,
+      "ok": false,
+      "error": null
+    },
+    "/api/runtime/approvals?{\"limit\": 1000, \"status\": \"pending\"}": {
+      "status": 422,
+      "ok": false,
+      "error": null
+    }
+  }
+}
