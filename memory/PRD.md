@@ -613,3 +613,10 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - الملفات: `/app/memory/p0_financial_engine_preview_2026-08-02.md` و`/app/test_reports/p0_financial_engine_preview_raw.json`.
 - لا توجد MOCKED APIs، ولم يتم تنفيذ P1 أو إنشاء حساب `دفعات مقدمة من العملاء` بعد.
 
+## تحديث 2026-08-02 — P0 المصحح وفق ملاحظات الاعتماد المالي
+- أُعيد إصدار P0 قراءة فقط دون إنشاء حسابات/قيود/تعديل/حذف/ترحيل، مع تثبيت `fiscal_start_at=2026-08-02T00:00:00+03:00` و`timezone=Asia/Riyadh`.
+- تم تصحيح تصنيف `notes.payments` إلى: دفعة مؤكدة ولها دليل، قيدها مفقود بسبب الحذف الجماعي، دفعة أرشيفية قبل السنة، دفعة سنة جديدة تحتاج تأكيد المالك؛ ولم تُلغَ أو تُرحّل أي دفعة.
+- تم إثبات الحالة المعروفة 31/271/200 من قاعدة البيانات: فاتورة العميل 31، المستلم 200، المطبق 31، المتبقي 0، `customer_advance_pending=169`، الموردون 271 أرشيف مستقل.
+- تم تصحيح دليل الحساب المقترح: الحساب الأب `الخصوم المتداولة` id `acc-2100`، طبيعته liability/credit، والكود `210201` غير مستخدم — معاينة فقط دون إنشاء.
+- الملفات: `/app/memory/p0_financial_engine_preview_corrected_2026-08-02.md` و`/app/test_reports/p0_financial_engine_preview_corrected_raw.json`.
+
