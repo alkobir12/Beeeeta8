@@ -310,8 +310,20 @@ const QuickPrintDialog = ({
   };
 
   const handleWhatsApp = async () => {
+    if (typeof window !== 'undefined') {
+      window.__quickPrintShareTelemetry = {
+        context: 'quick-print-dialog',
+        started: true,
+        renderRootCreated: false,
+        prepared: false,
+        opened: false,
+      };
+    }
     const htmlContent = html || (await generateHtml());
-    if (!htmlContent) return;
+    if (!htmlContent) {
+      if (typeof window !== 'undefined') window.__quickPrintShareTelemetry = { ...(window.__quickPrintShareTelemetry || {}), noHtml: true };
+      return;
+    }
     const meta = lastPayloadRef.current || {};
     const phoneCandidate = phone || meta.payload?.customer?.phone || meta.payload?.client?.phone || '';
     if (!normalizePhoneLocal(phoneCandidate).valid) {
@@ -331,18 +343,38 @@ const QuickPrintDialog = ({
       context: 'quick-print-dialog',
       getElement: async () => {
         const wrapper = htmlToCanvasWrapper(htmlContent);
+        if (typeof window !== 'undefined') {
+          window.__quickPrintShareTelemetry = {
+            ...(window.__quickPrintShareTelemetry || {}),
+            renderRootCreated: true,
+            renderRootTestId: 'quick-print-pdf-render-root',
+            renderRootLength: wrapper.innerHTML.length,
+          };
+          window.dispatchEvent(new CustomEvent('quickprint-whatsapp-render-root', {
+            detail: { testId: 'quick-print-pdf-render-root', length: wrapper.innerHTML.length },
+          }));
+        }
         return { element: wrapper, cleanup: () => wrapper.remove() };
       },
     });
     if (!result?.pdfBlob) return;
+    if (typeof window !== 'undefined') {
+      window.__quickPrintShareTelemetry = {
+        ...(window.__quickPrintShareTelemetry || {}),
+        prepared: true,
+        pdfSize: result.pdfBlob.size,
+      };
+    }
     const normalized = normalizePhoneLocal(result.phone);
     const pdfFile = new File([result.pdfBlob], `${title.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
     try {
       if (navigator.canShare?.({ files: [pdfFile] })) {
         await navigator.share({ files: [pdfFile], text: result.message });
+        if (typeof window !== 'undefined') window.__quickPrintShareTelemetry = { ...(window.__quickPrintShareTelemetry || {}), opened: true, channel: 'native-share' };
         logShareEvent('share_sheet_opened', { files: '1' });
       } else {
         window.open(`https://wa.me/${normalized.wa}?text=${encodeURIComponent(result.message)}`, '_blank', 'noopener,noreferrer');
+        if (typeof window !== 'undefined') window.__quickPrintShareTelemetry = { ...(window.__quickPrintShareTelemetry || {}), opened: true, channel: 'wa-me' };
         logShareEvent('whatsapp_opened', { phone: normalized.e164 });
       }
     } catch (error) {
@@ -351,6 +383,7 @@ const QuickPrintDialog = ({
   };
 
   if (!open) return null;
+  const actionsDisabled = loading || templateLoading || !html;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 max-md:items-stretch max-md:p-0" data-testid="quick-print-dialog">
@@ -381,16 +414,16 @@ const QuickPrintDialog = ({
             onClick={handleWhatsApp}
             className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400"
             data-testid="quick-print-action-whatsapp"
-            disabled={loading || share.stage === 'preparing'}
+            disabled={actionsDisabled || share.stage === 'preparing'}
           >
-            {share.stage === 'preparing' ? 'جارٍ تجهيز PDF...' : 'واتساب'}
+            {share.stage === 'preparing' || actionsDisabled ? 'جارٍ تجهيز PDF...' : 'واتساب'}
           </button>
           <button
             type="button"
             onClick={handleDownloadPdf}
             className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-white/15"
             data-testid="quick-print-action-download-pdf"
-            disabled={loading}
+            disabled={actionsDisabled}
           >
             PDF
           </button>
@@ -399,7 +432,7 @@ const QuickPrintDialog = ({
             onClick={handlePrint}
             className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400"
             data-testid="quick-print-action-print"
-            disabled={loading}
+            disabled={actionsDisabled}
           >
             طباعة
           </button>

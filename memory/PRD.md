@@ -561,3 +561,19 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - P1: صفحة التحقق العامة للمستندات عبر QR مع Verification ID وDocument Hash وتوقيع/اعتماد.
 - P2: تقرير أعمار الديون 30/60/90 مع تذكيرات واتساب آلية.
 
+## تحديث 2026-08-02 — عزل طباعة iPhone وPDF عن واجهة التطبيق
+- تم إصلاح زر الطباعة في DocumentPrint وQuickPrint ليستخدم نافذة مستند مستقلة `window.open` مع HTML معزول وCSS طباعة A4، بدل طباعة iframe داخل صفحة التطبيق؛ هذا يمنع ظهور لوحة التحكم والقوائم والبوت في iPhone Print Options.
+- تم توحيد مسارات PDF وواتساب لاستخدام نفس HTML المعزول عبر `toStandalonePrintHtml` وrender roots مستقلة، لتفادي التقاط واجهة التطبيق أو الحقول الخام.
+- تم تنظيف HTML الطباعة من الأزرار والسكربتات والعناصر غير الطباعية، مع تحقق عدم وجود `{{ }}` أو `undefined/null` واستمرار استبعاد بنود المورد من مستند العميل.
+- الاختبار: self-test + testing_agent iteration_322 PASS؛ `/print` وQuickPrint على viewport جوال يستخدمان مستند A4 مستقل فقط، وPDF يستخدم render root مستقل، بدون MOCKED APIs.
+
+### Next Action Items
+- P1: إضافة telemetry صريح لمسار QuickPrint WhatsApp لإثبات render-root في native share وwa.me fallback.
+- P1: إضافة UI regression ثابت لطباعة iPhone/QuickPrint لمنع رجوع طباعة واجهة التطبيق.
+- P1: صفحة التحقق العامة للمستندات عبر QR مع Verification ID وDocument Hash وتوقيع/اعتماد.
+
+### متابعة تحديث 2026-08-02 — جاهزية أزرار QuickPrint
+- تم تعطيل أزرار واتساب/PDF/طباعة في QuickPrint حتى يكتمل تحميل القالب وHTML النهائي، لمنع الضغط المبكر الذي قد ينتج PDF/طباعة غير مكتملة.
+- تم إضافة telemetry داخلي لمسار واتساب QuickPrint لتسهيل اختبار إنشاء render root المعزول لاحقًا.
+- self-test: زر طباعة QuickPrint بعد الجاهزية يفتح HTML مستقل يحتوي المستند فقط ولا يحتوي واجهة التطبيق أو حقول خام.
+
