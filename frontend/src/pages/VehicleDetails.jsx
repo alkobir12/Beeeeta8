@@ -4168,6 +4168,7 @@ const VehicleDetails = () => {
         .vehicle-details-page [style*="100, 116, 139"] { color: rgba(51,65,85,0.95) !important; }
         .vehicle-details-page [style*="248, 250, 252, 0.6"] { background: rgba(248,250,252,0.96) !important; }
         .vehicle-details-page [style*="255, 255, 255, 0.8"] { background: rgba(255,255,255,0.96) !important; }
+        ${(printMenuOpen || printVisitPickerOpen || printDialogConfig) ? '[data-testid^="unified-assistant"], [data-testid^="unified-bot"] { display: none !important; pointer-events: none !important; }' : ''}
       `}</style>
 
       {isArchiveSource && (
@@ -4264,7 +4265,7 @@ const VehicleDetails = () => {
       </div>
 
       {printMenuOpen && (
-        <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/25 px-4 pt-24" data-testid="vehicle-print-menu-overlay">
+        <div className="fixed inset-0 z-[2147483500] flex items-start justify-center bg-black/25 px-4 pt-24" data-testid="vehicle-print-menu-overlay">
           <div
             id="vehicle-print-menu"
             className="w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
@@ -4295,7 +4296,7 @@ const VehicleDetails = () => {
       )}
 
       {printVisitPickerOpen && (
-        <div className="fixed inset-0 z-[71] flex items-start justify-center bg-black/30 px-4 pt-24" data-testid="vehicle-print-visit-picker-overlay">
+        <div className="fixed inset-0 z-[2147483501] flex items-start justify-center bg-black/30 px-4 pt-24" data-testid="vehicle-print-visit-picker-overlay">
           <div
             className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
             style={{ background: 'rgba(255,255,255,0.99)', border: '1px solid rgba(203,213,225,0.9)' }}

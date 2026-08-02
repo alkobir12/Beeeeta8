@@ -33,6 +33,7 @@ export const useWhatsAppShare = () => {
     try {
       const payloadCustomer = payload.customer || payload.client || {};
       const payloadVehicle = payload.vehicle || {};
+      const visibleDocumentNumber = payload.settings?.document_number || payload.document_number || '—';
       const resolvedPhone = phone || payloadCustomer.phone || payloadCustomer.customerPhone || '';
       const enrichedPayload = {
         ...payload,
@@ -45,8 +46,9 @@ export const useWhatsAppShare = () => {
         },
         settings: {
           ...(payload.settings || {}),
+          document_number: visibleDocumentNumber,
           seal_code: payload.settings?.seal_code
-            || computeSealCode(payload.settings?.document_number || payload.document_number),
+            || computeSealCode(visibleDocumentNumber),
         },
       };
       const material = buildShareMaterial({ docType, payload: enrichedPayload, workshop, templateId, templateVersion, templateSelectionReason });

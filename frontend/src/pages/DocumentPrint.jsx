@@ -566,16 +566,22 @@ export default function DocumentPrint() {
     if (!result?.pdfBlob) return;
     const normalized = normalizePhoneLocal(result.phone);
     const file = new File([result.pdfBlob], `${docType}_${formData.settings.document_number || 'document'}.pdf`, { type: 'application/pdf' });
+    const whatsappUrl = `https://wa.me/${normalized.wa}?text=${encodeURIComponent(result.message)}`;
     try {
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: result.message });
+        await navigator.share({ files: [file] });
         logShareEvent('share_sheet_opened', { files: '1' });
       } else {
-        window.open(`https://wa.me/${normalized.wa}?text=${encodeURIComponent(result.message)}`, '_blank', 'noopener,noreferrer');
+        window.location.assign(whatsappUrl);
         logShareEvent('whatsapp_opened', { phone: normalized.e164 });
       }
     } catch (error) {
-      if (error?.name !== 'AbortError') setAlertMessage('تعذر فتح مشاركة واتساب. تم تجهيز PDF من القالب نفسه.');
+      if (error?.name === 'AbortError') {
+        logShareEvent('share_cancelled', { message: 'user_cancelled' });
+        return;
+      }
+      window.location.assign(whatsappUrl);
+      logShareEvent('whatsapp_opened_after_share_failed', { phone: normalized.e164, message: error?.message || 'unknown' });
     }
   };
 

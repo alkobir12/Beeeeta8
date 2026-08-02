@@ -344,7 +344,10 @@ const QuickPrintDialog = ({
         return { element: wrapper, cleanup: () => wrapper.remove() };
       },
     });
-    if (!result?.pdfBlob) return;
+    if (!result?.pdfBlob) {
+      setError('تعذر تجهيز ملف PDF للمشاركة عبر واتساب. حاول مرة أخرى.');
+      return;
+    }
     if (typeof window !== 'undefined') {
       window.__quickPrintShareTelemetry = {
         ...(window.__quickPrintShareTelemetry || {}),
@@ -354,18 +357,25 @@ const QuickPrintDialog = ({
     }
     const normalized = normalizePhoneLocal(result.phone);
     const pdfFile = new File([result.pdfBlob], `${title.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
+    const whatsappUrl = `https://wa.me/${normalized.wa}?text=${encodeURIComponent(result.message)}`;
     try {
       if (navigator.canShare?.({ files: [pdfFile] })) {
-        await navigator.share({ files: [pdfFile], text: result.message });
+        await navigator.share({ files: [pdfFile] });
         if (typeof window !== 'undefined') window.__quickPrintShareTelemetry = { ...(window.__quickPrintShareTelemetry || {}), opened: true, channel: 'native-share' };
         logShareEvent('share_sheet_opened', { files: '1' });
       } else {
-        window.open(`https://wa.me/${normalized.wa}?text=${encodeURIComponent(result.message)}`, '_blank', 'noopener,noreferrer');
+        window.location.assign(whatsappUrl);
         if (typeof window !== 'undefined') window.__quickPrintShareTelemetry = { ...(window.__quickPrintShareTelemetry || {}), opened: true, channel: 'wa-me' };
         logShareEvent('whatsapp_opened', { phone: normalized.e164 });
       }
     } catch (error) {
-      if (error?.name !== 'AbortError') setError('تعذر فتح مشاركة واتساب. تم تجهيز PDF من القالب نفسه.');
+      if (error?.name === 'AbortError') {
+        logShareEvent('share_cancelled', { message: 'user_cancelled' });
+        return;
+      }
+      window.location.assign(whatsappUrl);
+      if (typeof window !== 'undefined') window.__quickPrintShareTelemetry = { ...(window.__quickPrintShareTelemetry || {}), opened: true, channel: 'wa-me-after-share-failed', shareError: error?.message || 'unknown' };
+      logShareEvent('whatsapp_opened_after_share_failed', { phone: normalized.e164, message: error?.message || 'unknown' });
     }
   };
 
@@ -373,7 +383,8 @@ const QuickPrintDialog = ({
   const actionsDisabled = loading || templateLoading || !html;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 max-md:items-stretch max-md:p-0" data-testid="quick-print-dialog">
+    <div className="fixed inset-0 z-[2147483600] flex items-center justify-center bg-black/70 p-4 max-md:items-stretch max-md:p-0" data-testid="quick-print-dialog">
+      <style>{`[data-testid^="unified-assistant"], [data-testid^="unified-bot"] { display: none !important; pointer-events: none !important; }`}</style>
       <div className="flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950/90 p-6 max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -395,7 +406,7 @@ const QuickPrintDialog = ({
           <button type="button" onClick={() => setTemplateSheetOpen(true)} className="rounded-xl border border-sky-300/30 px-4 py-2 text-sm font-bold text-sky-200" data-testid="quick-print-change-template">تغيير القالب</button>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-[60] max-md:border-t max-md:border-white/10 max-md:bg-slate-950 max-md:p-3" data-testid="quick-print-output-actions">
+        <div className="mt-5 flex flex-wrap gap-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-[2147483602] max-md:border-t max-md:border-white/10 max-md:bg-slate-950 max-md:p-3" data-testid="quick-print-output-actions">
           <button
             type="button"
             onClick={handleWhatsApp}
@@ -436,8 +447,8 @@ const QuickPrintDialog = ({
           }
         </div>
 
-        {templateSheetOpen && <div className="fixed inset-0 z-[70] bg-black/60" data-testid="quick-print-template-sheet"><div className="absolute inset-x-0 bottom-0 max-h-[75dvh] overflow-y-auto rounded-t-3xl bg-slate-950 p-5"><div className="mb-4 flex items-center justify-between"><strong className="text-white">تغيير القالب</strong><button onClick={() => setTemplateSheetOpen(false)} className="text-slate-300" data-testid="quick-print-template-sheet-close">إغلاق</button></div>{templateLoading && <div className="text-slate-300" data-testid="quick-print-template-loading">جارٍ التحميل…</div>}{filteredTemplates.map((tpl) => <button key={tpl.id} onClick={() => { setSelectedTemplateId(tpl.id); setTemplateSheetOpen(false); }} className="mb-2 block w-full rounded-xl border border-white/10 p-4 text-right text-white" data-testid={`quick-print-template-option-${tpl.id}`}><b>{tpl.name}</b><small className="mt-1 block text-slate-400">إصدار {tpl.version} · {tpl.is_builtin ? 'نظامي' : 'مخصص'} {tpl.is_default ? '· افتراضي' : ''}</small></button>)}</div></div>}
-        {previewOpen && <div className="document-preview-modal fixed inset-0 z-[80] flex h-[100dvh] w-screen flex-col overflow-hidden bg-slate-950" data-testid="quick-print-preview-modal"><header className="flex shrink-0 items-center justify-between border-b border-white/10 p-4 text-white"><strong data-testid="quick-print-preview-title">معاينة المستند</strong><button onClick={() => setPreviewOpen(false)} className="rounded-lg border border-white/20 px-3 py-2" data-testid="quick-print-preview-close">إغلاق</button></header><div className="document-preview-body min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 max-md:flex max-md:justify-center" data-testid="quick-print-preview-body">{loading && <div className="text-slate-300" data-testid="quick-print-preview-loading">جارٍ تجهيز المعاينة…</div>}{error && <div className="text-rose-300" data-testid="quick-print-preview-error">{error}</div>}{html && <iframe ref={iframeRef} title="print-preview" className="h-[1120px] w-full rounded-xl bg-white max-md:h-[1123px] max-md:w-[794px] max-md:min-w-[794px] max-md:origin-top max-md:scale-[0.43]" srcDoc={html} data-testid="quick-print-preview" />}</div><div className="document-preview-actions sticky bottom-0 grid shrink-0 grid-cols-3 gap-2 border-t border-white/10 bg-slate-950 p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><button onClick={handleWhatsApp} className="rounded-lg bg-emerald-500 p-3 font-bold text-white" data-testid="quick-print-preview-whatsapp">واتساب</button><button onClick={handleDownloadPdf} className="rounded-lg bg-white/10 p-3 font-bold text-white" data-testid="quick-print-preview-download-pdf">PDF</button><button onClick={handlePrint} className="rounded-lg bg-blue-500 p-3 font-bold text-white" data-testid="quick-print-preview-print">طباعة</button></div></div>}
+        {templateSheetOpen && <div className="fixed inset-0 z-[2147483603] bg-black/60" data-testid="quick-print-template-sheet"><div className="absolute inset-x-0 bottom-0 max-h-[75dvh] overflow-y-auto rounded-t-3xl bg-slate-950 p-5"><div className="mb-4 flex items-center justify-between"><strong className="text-white">تغيير القالب</strong><button onClick={() => setTemplateSheetOpen(false)} className="text-slate-300" data-testid="quick-print-template-sheet-close">إغلاق</button></div>{templateLoading && <div className="text-slate-300" data-testid="quick-print-template-loading">جارٍ التحميل…</div>}{filteredTemplates.map((tpl) => <button key={tpl.id} onClick={() => { setSelectedTemplateId(tpl.id); setTemplateSheetOpen(false); }} className="mb-2 block w-full rounded-xl border border-white/10 p-4 text-right text-white" data-testid={`quick-print-template-option-${tpl.id}`}><b>{tpl.name}</b><small className="mt-1 block text-slate-400">إصدار {tpl.version} · {tpl.is_builtin ? 'نظامي' : 'مخصص'} {tpl.is_default ? '· افتراضي' : ''}</small></button>)}</div></div>}
+        {previewOpen && <div className="document-preview-modal fixed inset-0 z-[2147483604] flex h-[100dvh] w-screen flex-col overflow-hidden bg-slate-950" data-testid="quick-print-preview-modal"><header className="flex shrink-0 items-center justify-between border-b border-white/10 p-4 text-white"><strong data-testid="quick-print-preview-title">معاينة المستند</strong><button onClick={() => setPreviewOpen(false)} className="rounded-lg border border-white/20 px-3 py-2" data-testid="quick-print-preview-close">إغلاق</button></header><div className="document-preview-body min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3 max-md:flex max-md:justify-center" data-testid="quick-print-preview-body">{loading && <div className="text-slate-300" data-testid="quick-print-preview-loading">جارٍ تجهيز المعاينة…</div>}{error && <div className="text-rose-300" data-testid="quick-print-preview-error">{error}</div>}{html && <iframe ref={iframeRef} title="print-preview" className="h-[1120px] w-full rounded-xl bg-white max-md:h-[1123px] max-md:w-[794px] max-md:min-w-[794px] max-md:origin-top max-md:scale-[0.43]" srcDoc={html} data-testid="quick-print-preview" />}</div><div className="document-preview-actions sticky bottom-0 grid shrink-0 grid-cols-3 gap-2 border-t border-white/10 bg-slate-950 p-3 pb-[max(12px,env(safe-area-inset-bottom))]"><button onClick={handleWhatsApp} className="rounded-lg bg-emerald-500 p-3 font-bold text-white" data-testid="quick-print-preview-whatsapp">واتساب</button><button onClick={handleDownloadPdf} className="rounded-lg bg-white/10 p-3 font-bold text-white" data-testid="quick-print-preview-download-pdf">PDF</button><button onClick={handlePrint} className="rounded-lg bg-blue-500 p-3 font-bold text-white" data-testid="quick-print-preview-print">طباعة</button></div></div>}
         <div className="mt-5 min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-3 max-md:flex max-md:justify-center max-md:pb-20" data-testid="quick-print-preview-panel">
           {loading && <div className="text-sm text-slate-300" data-testid="quick-print-loading">جارٍ تجهيز المعاينة...</div>}
           {error && (
