@@ -4132,20 +4132,33 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
 
     advance_paid = 0.0
     paid_on_account = 0.0
+    pending_payment_total = 0.0
     total_paid = 0.0
     for p in payments:
         amt = _num(p.get('amount'), 0.0)
-        total_paid += amt
+        if amt <= 0:
+            continue
         kind = str(p.get('kind') or '').strip().lower()
-        if kind in {'advance', 'prepayment', 'customer_advance', 'دفعة مقدمة', 'مقدم', 'مقدمة'}:
-            advance_paid += amt
+        status = str(p.get('status') or p.get('paymentStatus') or p.get('payment_status') or '').strip().lower()
+        confirmed_flag = p.get('confirmed')
+        is_pending = (
+            confirmed_flag is False
+            or status in {'pending', 'pending_confirmation', 'awaiting_confirmation', 'unconfirmed', 'بانتظار التأكيد', 'بانتظار_التأكيد'}
+        )
+        if is_pending:
+            pending_payment_total += amt
         else:
+            total_paid += amt
             paid_on_account += amt
+            if kind in {'advance', 'prepayment', 'customer_advance', 'دفعة مقدمة', 'مقدم', 'مقدمة'}:
+                advance_paid += amt
 
     # Keep legacy total/balance view for vehicle page display
     # while exposing supplier archive explicitly in a separate field.
     total_amount = total_workshop + total_suppliers
-    balance = total_amount - total_paid
+    applied_paid = min(total_paid, total_amount)
+    balance = max(total_amount - applied_paid, 0.0)
+    customer_credit = max(total_paid - total_amount, 0.0)
 
     if total_paid == 0:
         payment_status = 'unconfirmed'
@@ -4162,10 +4175,17 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
         'total_workshop': round(total_workshop, 2),
         'total_suppliers': round(total_suppliers, 2),
         'supplier_archive_total': round(total_suppliers, 2),
+        'supplier_cost_total': round(total_suppliers, 2),
+        'parts_charge_total': round(total_suppliers, 2),
+        'customer_charge_total': round(total_amount, 2),
+        'customer_total': round(total_amount, 2),
         'total_amount': round(total_amount, 2),
         'total_paid': round(total_paid, 2),
         'advance_paid': round(advance_paid, 2),
         'paid_on_account': round(paid_on_account, 2),
+        'pending_payment_total': round(pending_payment_total, 2),
+        'applied_paid': round(applied_paid, 2),
+        'customer_credit': round(customer_credit, 2),
         'balance': round(balance, 2),
         'payment_status': payment_status,
     }
@@ -4766,6 +4786,7 @@ async def vehicle_financial_summary(vehicle_id: str):
         total_paid = 0.0
         total_advance = 0.0
         total_paid_on_account = 0.0
+        total_pending_payments = 0.0
 
         if provider == "supabase":
             from supabase_service import SupabaseService
@@ -4797,6 +4818,7 @@ async def vehicle_financial_summary(vehicle_id: str):
                 total_paid += fin['total_paid']
                 total_advance += fin['advance_paid']
                 total_paid_on_account += fin.get('paid_on_account', 0.0)
+                total_pending_payments += fin.get('pending_payment_total', 0.0)
 
             try:
                 operation_rows = (
@@ -4841,8 +4863,8 @@ async def vehicle_financial_summary(vehicle_id: str):
                     )
                     operation_paid = sum(float(row.get("total") or 0) for row in payment_rows)
                     if operation_paid > 0:
-                        total_paid += operation_paid
-                        total_paid_on_account += operation_paid
+                        total_paid = max(total_paid, operation_paid)
+                        total_paid_on_account = max(total_paid_on_account, operation_paid)
             except Exception as summary_link_error:
                 print(f"Vehicle financial summary operation-link warning: {summary_link_error}")
 
@@ -4860,21 +4882,30 @@ async def vehicle_financial_summary(vehicle_id: str):
                 total_paid += fin['total_paid']
                 total_advance += fin['advance_paid']
                 total_paid_on_account += fin.get('paid_on_account', 0.0)
+                total_pending_payments += fin.get('pending_payment_total', 0.0)
 
-        # Keep current UI-compatible balance formula
         total_amount = total_workshop + total_suppliers
-        balance = total_amount - total_paid
-        workshop_receivable_balance = total_workshop - total_paid_on_account
-        customer_advance_liability = total_advance
+        applied_paid = min(total_paid, total_amount)
+        balance = max(total_amount - applied_paid, 0.0)
+        customer_credit = max(total_paid - total_amount, 0.0)
+        workshop_receivable_balance = max(total_amount - applied_paid, 0.0)
+        customer_advance_liability = customer_credit
 
         return {
             "total_workshop": round(total_workshop, 2),
             "total_suppliers": round(total_suppliers, 2),
             "supplier_archive_total": round(total_suppliers, 2),
+            "supplier_cost_total": round(total_suppliers, 2),
+            "parts_charge_total": round(total_suppliers, 2),
+            "customer_charge_total": round(total_amount, 2),
+            "customer_total": round(total_amount, 2),
             "total_paid": round(total_paid, 2),
             "advance_paid": round(total_advance, 2),
             "paid_on_account": round(total_paid_on_account, 2),
             "confirmed_paid": round(total_paid_on_account, 2),
+            "pending_payment_total": round(total_pending_payments, 2),
+            "applied_paid": round(applied_paid, 2),
+            "customer_credit": round(customer_credit, 2),
             "total_amount": round(total_amount, 2),
             "total_items": round(total_amount, 2),
             "balance": round(balance, 2),

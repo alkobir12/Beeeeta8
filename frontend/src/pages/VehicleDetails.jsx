@@ -804,7 +804,6 @@ const VisitCard = ({
   const [items, setItems] = useState([]);
   const [payments, setPayments] = useState([]);
   const [originalPayments, setOriginalPayments] = useState([]);
-  const [paymentDraft, setPaymentDraft] = useState({ kind: 'advance', amount: '', method: 'cash' });
   const [status, setStatus] = useState(visit.status);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -1118,13 +1117,15 @@ const VisitCard = ({
 
   // ─── تأكيد السداد من الزيارة مباشرة ────────────────────────────────────────
   const handleConfirmVisitPayment = async ({ paymentLines, date, archiveVehicle, viaSupplierBalance, supplierId: spId, discount = 0 }) => {
-    // حساب الرصيد المتبقي للورشة
-    const workshopTotal = items.reduce((sum, it) => {
-      if (it.itemType === 'supplier') return sum;
-      return sum + Number(it.total ?? (Number(it.quantity || 1) * Number(it.price || 0)));
-    }, 0);
-    const alreadyPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const remainingBalance = Math.round((workshopTotal - alreadyPaid) * 100) / 100;
+    // حساب الرصيد المتبقي للعميل: خدمات الورشة + القطع المحملة - المدفوع المؤكد
+    const customerTotal = items.reduce((sum, it) => (
+      sum + Number(it.total ?? (Number(it.quantity || 1) * Number(it.price || 0)))
+    ), 0);
+    const alreadyPaid = payments
+      .filter((p) => !isPaymentPending(p))
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const appliedPaid = Math.min(alreadyPaid, customerTotal);
+    const remainingBalance = Math.round(Math.max(customerTotal - appliedPaid, 0) * 100) / 100;
 
     if (remainingBalance <= 0.01) {
       toast({ title: 'تنبيه', description: 'لا يوجد رصيد متبقٍ للسداد', variant: 'destructive' });
@@ -1184,6 +1185,8 @@ const VisitCard = ({
       const newPaymentEntries = resolvedLines.map(l => ({
         id: `pay-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         kind: 'payment',
+        status: 'confirmed',
+        confirmed: true,
         amount: l.amount,
         date: date || new Date().toISOString().split('T')[0],
         method: l.method,
@@ -1270,13 +1273,14 @@ const VisitCard = ({
   const handleCloseVisit = async () => {
     if (isSaving) return;
 
-    // حساب رصيد الورشة المتبقي (الموردون مستثنون)
-    const workshopTotal = items.reduce((sum, it) => {
-      if (it.itemType === 'supplier') return sum;
-      return sum + Number(it.total ?? (Number(it.quantity || 1) * Number(it.price || 0)));
-    }, 0);
-    const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const remainingBalance = Math.round((workshopTotal - totalPaid) * 100) / 100;
+    // المتبقي على العميل يشمل الخدمة والقطع، ولا يحتسب إلا الدفعات المؤكدة
+    const customerTotal = items.reduce((sum, it) => (
+      sum + Number(it.total ?? (Number(it.quantity || 1) * Number(it.price || 0)))
+    ), 0);
+    const totalPaid = payments
+      .filter((p) => !isPaymentPending(p))
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const remainingBalance = Math.round(Math.max(customerTotal - Math.min(totalPaid, customerTotal), 0) * 100) / 100;
 
     if (remainingBalance > 0.01) {
       toast({
@@ -1370,55 +1374,81 @@ const VisitCard = ({
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const addPayment = () => {
-    const amount = Number(paymentDraft.amount);
+  const persistVisitPayments = useCallback(async (nextPayments) => {
+    const itemsForSave = items.map((item) => ({
+      ...item,
+      billingType: resolveItemBillingType(item),
+    }));
+    await axios.put(`${API_URL}/visits/${visit.id}`, {
+      status,
+      technicianId: techId || null,
+      mileage: Number(mileage || 0),
+      notes: JSON.stringify({ text: notes, items: itemsForSave, payments: nextPayments }),
+    });
+    setPayments(nextPayments);
+    setOriginalPayments(nextPayments);
+    try {
+      window.dispatchEvent(new CustomEvent('finance:updated', {
+        detail: { source: 'vehicle_summary_payment', visitId: visit.id, vehicleId: visit.vehicleId || visit.vehicle_id },
+      }));
+      window.dispatchEvent(new CustomEvent('vehicles:updated', {
+        detail: { source: 'vehicle_summary_payment', vehicleId: visit.vehicleId || visit.vehicle_id },
+      }));
+    } catch (evtErr) {
+      console.warn('summary payment event dispatch failed', evtErr);
+    }
+    onUpdate?.();
+  }, [items, status, techId, mileage, notes, visit.id, visit.vehicleId, visit.vehicle_id, onUpdate]);
+
+  const addPaymentFromSummary = useCallback(async (detail = {}) => {
+    const amount = Number(detail.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       toast({ title: 'تنبيه', description: 'يرجى إدخال مبلغ صحيح', variant: 'destructive' });
       return;
     }
     const entry = {
       id: `pay-${Date.now()}`,
-      kind: paymentDraft.kind || 'advance',
+      kind: 'payment',
+      status: 'pending_confirmation',
+      confirmed: false,
       amount,
-      date: new Date().toISOString(),
-      method: paymentDraft.method || 'cash',
-      paymentMethod: paymentDraft.method || 'cash',
+      date: detail.date || new Date().toISOString().split('T')[0],
+      method: detail.method || 'cash',
+      paymentMethod: detail.method || 'cash',
+      reference: detail.reference || '',
+      customerName: vehicle?.customerName || vehicle?.customer_name || '',
+      vehicleId: vehicle?.id || visit.vehicleId || visit.vehicle_id || '',
+      visitId: visit.id,
     };
-    setPayments([...payments, entry]);
-    setPaymentDraft({ kind: paymentDraft.kind || 'advance', amount: '', method: paymentDraft.method || 'cash' });
-  };
+    await persistVisitPayments([...payments, entry]);
+    toast({ title: 'تم تسجيل الدفعة', description: 'تمت إضافتها كدفعة بانتظار التأكيد.' });
+  }, [payments, persistVisitPayments, toast, vehicle, visit.id, visit.vehicleId, visit.vehicle_id]);
 
-  const removePayment = (paymentId, index) => {
-    setPayments(payments.filter((p, i) => (paymentId ? p.id !== paymentId : i !== index)));
+  const isPaymentPending = (payment = {}) => {
+    const statusValue = String(payment.status || payment.paymentStatus || payment.payment_status || '').trim().toLowerCase();
+    return payment.confirmed === false || ['pending', 'pending_confirmation', 'awaiting_confirmation', 'unconfirmed', 'بانتظار التأكيد', 'بانتظار_التأكيد'].includes(statusValue);
   };
-
-  const paymentsTotal = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const advanceTotal = payments
-    .filter((p) => (p.kind || '').toLowerCase() === 'advance')
+  const confirmedPaymentsTotal = payments
+    .filter((p) => !isPaymentPending(p))
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-  const supplierCandidates = useMemo(() => {
-    const suppliersByName = new Map(
-      (suppliersCatalog || [])
-        .filter((row) => row?.id && row?.name)
-        .map((row) => [String(row.name).trim().toLowerCase(), row])
-    );
-
-    const unique = new Map();
-    (items || [])
-      .filter((it) => it?.itemType === 'supplier' && String(it?.name || '').trim())
-      .forEach((it) => {
-        const key = String(it.name).trim().toLowerCase();
-        const matched = suppliersByName.get(key);
-        if (matched?.id) {
-          unique.set(String(matched.id), { id: matched.id, name: matched.name });
-        }
-      });
-
-    return Array.from(unique.values());
-  }, [items, suppliersCatalog]);
-
-  const singleSupplierForBalance = supplierCandidates.length === 1 ? supplierCandidates[0] : null;
+  useEffect(() => {
+    const matchesVisit = (detail = {}) => !detail.visitId || String(detail.visitId) === String(visit.id);
+    const onOpenConfirm = (event) => {
+      if (!matchesVisit(event?.detail || {})) return;
+      setConfirmPayOpen(true);
+    };
+    const onAddPending = (event) => {
+      if (!matchesVisit(event?.detail || {})) return;
+      addPaymentFromSummary(event.detail || {});
+    };
+    window.addEventListener('vehicle:open-confirm-payment', onOpenConfirm);
+    window.addEventListener('vehicle:add-pending-payment', onAddPending);
+    return () => {
+      window.removeEventListener('vehicle:open-confirm-payment', onOpenConfirm);
+      window.removeEventListener('vehicle:add-pending-payment', onAddPending);
+    };
+  }, [visit.id, addPaymentFromSummary]);
 
   const totalAmount = items.reduce((sum, item) => {
     const qty   = Number(item.quantity || item.qty || 1);
@@ -1806,168 +1836,6 @@ const VisitCard = ({
             </div>
           </div>
 
-          {/* Payments */}
-          <div
-            className="mb-4 liquid-surface"
-            style={{
-              borderRadius: 20,
-              padding: 12,
-              background: 'rgba(248,250,252,0.96)',
-              border: '1px solid rgba(203,213,225,0.8)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-            data-testid={`visit-payments-${visit.id}`}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <div>
-                <div className="text-sm font-bold" style={{ color: 'rgba(15,23,42,0.95)' }}>
-                  المدفوعات
-                </div>
-                <div className="text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>
-                  تحت الحساب / دفعة مقدمة
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-[11px] font-semibold" style={{ color: 'rgba(3,105,161,0.95)' }} data-testid={`visit-payments-summary-${visit.id}`}>
-                  إجمالي الدفعات: {formatCurrency(paymentsTotal)} • المقدّم: {formatCurrency(advanceTotal)}
-                </div>
-                {/* زر تأكيد السداد */}
-                <button
-                  type="button"
-                  onClick={() => setConfirmPayOpen(true)}
-                  className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90 active:scale-95"
-                  style={{
-                    background: 'rgba(34,197,94,0.18)',
-                    border: '1px solid rgba(34,197,94,0.40)',
-                    color: 'rgba(4,120,87,0.95)',
-                  }}
-                  data-testid={`visit-confirm-payment-btn-${visit.id}`}
-                >
-                  <span>✓</span>
-                  <span>تأكيد السداد</span>
-                </button>
-              </div>
-            </div>
-
-            {supplierCandidates.length > 1 && (
-              <div
-                className="mb-3 rounded-lg border border-amber-500/35 bg-amber-100 px-3 py-2 text-[11px] text-amber-900"
-                data-testid={`visit-supplier-balance-multi-suppliers-note-${visit.id}`}
-              >
-                يوجد أكثر من مورد في هذه الزيارة. عند اختيار «السداد من رصيد المورد» سيتم طلب تحديد المورد داخل نافذة السداد.
-              </div>
-            )}
-
-            {payments.length === 0 ? (
-              <div className="text-xs" style={{ color: 'rgba(100,116,139,0.9)' }} data-testid={`visit-payments-empty-${visit.id}`}>
-                لا توجد دفعات مسجلة لهذه الزيارة
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {payments.map((payment, idx) => {
-                  const kindLabel = (payment.kind || '').toLowerCase() === 'advance' ? 'دفعة مقدمة' : 'تحت الحساب';
-                  const methodLabel = paymentMethodLabelMap[payment.paymentMethod || payment.method || 'cash'] || (payment.paymentMethod || payment.method || 'cash');
-                  return (
-                    <div
-                      key={payment.id || idx}
-                      className="flex items-center justify-between gap-2 rounded-xl px-3 py-2"
-                      style={{
-                        background: 'rgba(255,255,255,0.8)',
-                        border: '1px solid rgba(203,213,225,0.8)',
-                      }}
-                      data-testid={`visit-payment-row-${visit.id}-${idx}`}
-                    >
-                      <div className="text-xs font-semibold" style={{ color: 'rgba(71,85,105,0.9)' }} data-testid={`visit-payment-kind-${visit.id}-${idx}`}>
-                        {kindLabel}
-                        <div className="text-[10px] mt-1" style={{ color: 'rgba(71,85,105,0.95)' }} data-testid={`visit-payment-method-${visit.id}-${idx}`}>
-                          {methodLabel}
-                        </div>
-                      </div>
-                      <div className="text-xs font-extrabold tabular-nums" style={{ color: 'rgba(4,120,87,0.95)' }} data-testid={`visit-payment-amount-${visit.id}-${idx}`}>
-                        {formatCurrency(payment.amount || 0)}
-                      </div>
-                      {isEditing && (
-                        <button
-                          type="button"
-                          onClick={() => removePayment(payment.id, idx)}
-                          className="p-2 rounded-lg"
-                          style={{
-                            background: 'rgba(244,63,94,0.14)',
-                            border: '1px solid rgba(244,63,94,0.28)',
-                            color: 'rgba(159,18,57,0.95)',
-                          }}
-                          data-testid={`visit-payment-remove-${visit.id}-${idx}`}
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {isEditing && (
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                <select
-                  value={paymentDraft.kind}
-                  onChange={(e) => setPaymentDraft({ ...paymentDraft, kind: e.target.value })}
-                  className="w-full text-xs rounded-lg p-2"
-                  style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(203,213,225,0.8)',
-                    color: 'rgba(15,23,42,0.92)',
-                  }}
-                  data-testid={`visit-payment-kind-select-${visit.id}`}
-                >
-                  <option value="advance">دفعة مقدمة</option>
-                  <option value="payment">تحت الحساب</option>
-                </select>
-                <select
-                  value={paymentDraft.method || 'cash'}
-                  onChange={(e) => setPaymentDraft({ ...paymentDraft, method: e.target.value })}
-                  className="w-full text-xs rounded-lg p-2"
-                  style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(203,213,225,0.8)',
-                    color: 'rgba(15,23,42,0.92)',
-                  }}
-                  data-testid={`visit-payment-method-select-${visit.id}`}
-                >
-                  <option value="cash">نقد</option>
-                  <option value="bank">تحويل بنكي</option>
-                  <option value="pos">نقاط بيع</option>
-                </select>
-                <input
-                  type="number"
-                  value={paymentDraft.amount}
-                  onChange={(e) => setPaymentDraft({ ...paymentDraft, amount: e.target.value })}
-                  className="w-full text-xs rounded-lg p-2"
-                  style={{
-                    background: 'rgba(255,255,255,0.8)',
-                    border: '1px solid rgba(203,213,225,0.8)',
-                    color: 'rgba(15,23,42,0.92)',
-                  }}
-                  placeholder="المبلغ"
-                  data-testid={`visit-payment-amount-input-${visit.id}`}
-                />
-                <button
-                  type="button"
-                  onClick={addPayment}
-                  className="w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-bold"
-                  style={{
-                    background: 'rgba(56,189,248,0.14)',
-                    border: '1px solid rgba(56,189,248,0.28)',
-                    color: 'rgba(3,105,161,0.95)',
-                  }}
-                  data-testid={`visit-payment-add-${visit.id}`}
-                >
-                  إضافة دفعة
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Notes */}
           <div className="mb-4" onClick={(e) => e.stopPropagation()}>
             <label className="block text-[11px] font-medium mb-1" style={{ color: 'rgba(100,116,139,0.9)' }}>
@@ -2182,13 +2050,13 @@ const VisitCard = ({
         onOpenChange={setConfirmPayOpen}
         onConfirm={handleConfirmVisitPayment}
         loading={confirmPayLoading}
-        supplierId={singleSupplierForBalance?.id || null}
-        allowSupplierBalance={true}
+        supplierId={null}
+        allowSupplierBalance={false}
         vehicleId={visit.vehicleId || visit.vehicle_id}
         showArchiveOption={true}
         remainingBalance={Math.max(0, Math.round((
-          items.filter(it => it.itemType !== 'supplier').reduce((s, it) => s + Number(it.total ?? (Number(it.quantity||1) * Number(it.price||0))), 0)
-          - paymentsTotal
+          items.reduce((s, it) => s + Number(it.total ?? (Number(it.quantity||1) * Number(it.price||0))), 0)
+          - confirmedPaymentsTotal
         ) * 100) / 100)}
       />
     </div>
@@ -2215,7 +2083,6 @@ const VehicleDetails = () => {
       'vehicle_info',
       'visits',
       'financial_summary',
-      'guidance',
       'status_actions',
     ],
     []
@@ -2630,6 +2497,31 @@ const VehicleDetails = () => {
     }
     return sorted;
   }, [visits, visitFilter]);
+
+  const targetPaymentVisit = useMemo(
+    () => activeVisit || filteredVisits.find((visit) => (visit.status || '').toLowerCase() === 'in_progress') || filteredVisits[0] || visits[0] || null,
+    [activeVisit, filteredVisits, visits]
+  );
+
+  const handleFinancialSummaryAddPayment = useCallback((paymentPayload = {}) => {
+    if (!targetPaymentVisit?.id) {
+      toast({ title: 'تنبيه', description: 'لا توجد زيارة مرتبطة لإضافة الدفعة.', variant: 'destructive' });
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('vehicle:add-pending-payment', {
+      detail: { ...paymentPayload, visitId: targetPaymentVisit.id },
+    }));
+  }, [targetPaymentVisit, toast]);
+
+  const handleFinancialSummaryConfirmPayment = useCallback(() => {
+    if (!targetPaymentVisit?.id) {
+      toast({ title: 'تنبيه', description: 'لا توجد زيارة مرتبطة لتأكيد السداد.', variant: 'destructive' });
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('vehicle:open-confirm-payment', {
+      detail: { visitId: targetPaymentVisit.id },
+    }));
+  }, [targetPaymentVisit, toast]);
 
   // Handler for when a visit is closed - shows WhatsApp notification at page level
   const handleVisitClosed = useCallback((notification) => {
@@ -3148,12 +3040,71 @@ const VehicleDetails = () => {
     return rows.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   }, [visits]);
 
-  const openFinancialSource = useCallback((sourceKey) => {
-    const isAdvancePayment = (payment = {}) => {
-      const kind = String(payment.kind || '').trim().toLowerCase();
-      return ['advance', 'prepayment', 'customer_advance', 'دفعة مقدمة', 'مقدم', 'مقدمة'].includes(kind);
+  const localFinanceSummary = useMemo(() => {
+    let serviceTotal = 0;
+    let partsCharge = 0;
+    let confirmedPaid = 0;
+    let pendingPayment = 0;
+
+    const isPending = (payment = {}) => {
+      const statusValue = String(payment.status || payment.paymentStatus || payment.payment_status || '').trim().toLowerCase();
+      return payment.confirmed === false || ['pending', 'pending_confirmation', 'awaiting_confirmation', 'unconfirmed', 'بانتظار التأكيد', 'بانتظار_التأكيد'].includes(statusValue);
     };
 
+    (visits || []).forEach((visit) => {
+      (visit.items || []).forEach((item) => {
+        const qty = Number(item?.quantity || item?.qty || 1);
+        const price = Number(item?.price || item?.unit_price || 0);
+        const amount = Number(item?.total ?? (qty * price));
+        const itemType = String(item?.itemType || item?.billingType || item?.billing_type || '').toLowerCase();
+        if (itemType === 'supplier') partsCharge += amount;
+        else serviceTotal += amount;
+      });
+
+      (visit.payments || []).forEach((payment) => {
+        const amount = Number(payment?.amount || 0);
+        if (amount <= 0) return;
+        if (isPending(payment)) pendingPayment += amount;
+        else confirmedPaid += amount;
+      });
+    });
+
+    const customerTotal = serviceTotal + partsCharge;
+    const appliedPaid = Math.min(confirmedPaid, customerTotal);
+    const remaining = Math.max(customerTotal - appliedPaid, 0);
+    const customerCredit = Math.max(confirmedPaid - customerTotal, 0);
+    const round2 = (value) => Math.round(Number(value || 0) * 100) / 100;
+
+    return {
+      total_workshop: round2(serviceTotal),
+      total_suppliers: round2(partsCharge),
+      supplier_archive_total: round2(partsCharge),
+      supplier_cost_total: round2(partsCharge),
+      parts_charge_total: round2(partsCharge),
+      customer_charge_total: round2(customerTotal),
+      customer_total: round2(customerTotal),
+      total_amount: round2(customerTotal),
+      total_items: round2(customerTotal),
+      total_paid: round2(confirmedPaid),
+      confirmed_paid: round2(confirmedPaid),
+      paid_on_account: round2(confirmedPaid),
+      pending_payment_total: round2(pendingPayment),
+      applied_paid: round2(appliedPaid),
+      balance: round2(remaining),
+      display_remaining: round2(remaining),
+      customer_credit: round2(customerCredit),
+      customer_advance_liability: round2(customerCredit),
+    };
+  }, [visits]);
+
+  const effectiveFinanceSummary = useMemo(() => {
+    const apiTotal = Number(financeSummary?.customer_total ?? financeSummary?.total_items ?? financeSummary?.total_amount ?? 0);
+    const localTotal = Number(localFinanceSummary.customer_total || 0);
+    if (!financeSummary || (apiTotal <= 0 && localTotal > 0)) return localFinanceSummary;
+    return { ...localFinanceSummary, ...financeSummary };
+  }, [financeSummary, localFinanceSummary]);
+
+  const openFinancialSource = useCallback((sourceKey) => {
     const allItems = (visits || []).flatMap((visit) =>
       (visit.items || []).map((item) => {
         const qty = Number(item?.quantity || 1);
@@ -3176,24 +3127,27 @@ const VehicleDetails = () => {
         date: payment.date || payment.createdAt || payment.created_at || visit.entryDate || '',
         visitId: visit.id,
         kind: payment.kind || 'payment',
+        status: payment.status || payment.paymentStatus || payment.payment_status || '',
+        confirmed: payment.confirmed,
         amount: Number(payment.amount || 0),
         method: payment.method || payment.payment_method || 'cash',
+        reference: payment.reference || '',
       }))
     );
-    const localAdvanceTotal = allPayments
-      .filter((payment) => isAdvancePayment(payment))
+    const isPendingSourcePayment = (payment = {}) => {
+      const statusValue = String(payment.status || '').trim().toLowerCase();
+      return payment.confirmed === false || ['pending', 'pending_confirmation', 'awaiting_confirmation', 'unconfirmed', 'بانتظار التأكيد', 'بانتظار_التأكيد'].includes(statusValue);
+    };
+    const localConfirmedTotal = allPayments
+      .filter((payment) => !isPendingSourcePayment(payment))
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-    const localOnAccountTotal = allPayments
-      .filter((payment) => !isAdvancePayment(payment))
+    const localPendingTotal = allPayments
+      .filter((payment) => isPendingSourcePayment(payment))
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-    const summaryAdvanceTotal = Number(financeSummary?.advance_paid || 0);
-    const summaryOnAccountTotal = Number(
-      financeSummary?.paid_on_account
-      ?? financeSummary?.confirmed_paid
-      ?? Math.max(Number(financeSummary?.total_paid || 0) - summaryAdvanceTotal, 0)
-    );
-    const extraAdvanceFromSummary = Math.max(summaryAdvanceTotal - localAdvanceTotal, 0);
-    const extraOnAccountFromSummary = Math.max(summaryOnAccountTotal - localOnAccountTotal, 0);
+    const summaryConfirmedTotal = Number(effectiveFinanceSummary?.confirmed_paid ?? effectiveFinanceSummary?.total_paid ?? 0);
+    const summaryPendingTotal = Number(effectiveFinanceSummary?.pending_payment_total || 0);
+    const extraConfirmedFromSummary = Math.max(summaryConfirmedTotal - localConfirmedTotal, 0);
+    const extraPendingFromSummary = Math.max(summaryPendingTotal - localPendingTotal, 0);
 
     let title = 'مصدر الرقم';
     let rows = [];
@@ -3219,92 +3173,78 @@ const VehicleDetails = () => {
         note: `الكمية ${it.qty} × السعر ${it.price}`,
       }));
     } else if (sourceKey === 'paid') {
-      title = 'مصدر رقم المدفوع';
-      rows = allPayments.map((p) => ({
+      title = 'مصدر رقم المدفوع المؤكد';
+      rows = allPayments.filter((p) => !isPendingSourcePayment(p)).map((p) => ({
         date: p.date,
         visitId: p.visitId,
-        type: isAdvancePayment(p) ? 'دفعة مقدمة' : 'تحت الحساب / تأكيد سداد',
-        label: isAdvancePayment(p) ? 'دفعة مقدمة' : 'دفعة مؤكدة',
+        type: 'دفعة مؤكدة',
+        label: p.reference ? `مرجع ${p.reference}` : 'دفعة مؤكدة',
         amount: p.amount,
         note: `طريقة الدفع: ${p.method}`,
       }));
-      if (extraOnAccountFromSummary > 0) {
+      if (extraConfirmedFromSummary > 0) {
         rows.push({
           date: '-',
           visitId: '-',
-          type: 'تحت الحساب / تأكيد سداد',
+          type: 'دفعة مؤكدة',
           label: 'سداد مؤكد من القيود',
-          amount: extraOnAccountFromSummary,
+          amount: extraConfirmedFromSummary,
           note: 'مبلغ مؤكد من دفتر اليومية مرتبط بالعملية/المركبة',
         });
       }
-      if (extraAdvanceFromSummary > 0) {
-        rows.push({
-          date: '-',
-          visitId: '-',
-          type: 'دفعة مقدمة',
-          label: 'دفعة مقدمة من الملخص',
-          amount: extraAdvanceFromSummary,
-          note: 'مبلغ دفعة مقدمة ظاهر في الملخص المالي',
-        });
-      }
-    } else if (sourceKey === 'advance') {
-      title = 'مصدر رقم الدفعة المقدمة';
-      rows = allPayments.filter((p) => isAdvancePayment(p)).map((p) => ({
+    } else if (sourceKey === 'pending_payment') {
+      title = 'مصدر رقم الدفعات بانتظار التأكيد';
+      rows = allPayments.filter((p) => isPendingSourcePayment(p)).map((p) => ({
         date: p.date,
         visitId: p.visitId,
-        type: 'دفعة مقدمة',
-        label: p.kind,
+        type: 'دفعة بانتظار التأكيد',
+        label: p.reference ? `مرجع ${p.reference}` : 'دفعة غير مؤكدة',
         amount: p.amount,
         note: `طريقة الدفع: ${p.method}`,
       }));
-      if (extraAdvanceFromSummary > 0) {
-        rows.push({ date: '-', visitId: '-', type: 'دفعة مقدمة', label: 'دفعة مقدمة من الملخص', amount: extraAdvanceFromSummary, note: 'مبلغ إضافي ظاهر في الملخص المالي' });
-      }
-    } else if (sourceKey === 'on_account') {
-      title = 'مصدر رقم تحت الحساب / تأكيد سداد';
-      rows = allPayments.filter((p) => !isAdvancePayment(p)).map((p) => ({
-        date: p.date,
-        visitId: p.visitId,
-        type: 'تحت الحساب / تأكيد سداد',
-        label: p.kind || 'payment',
-        amount: p.amount,
-        note: `طريقة الدفع: ${p.method}`,
-      }));
-      if (extraOnAccountFromSummary > 0) {
-        rows.push({ date: '-', visitId: '-', type: 'تحت الحساب / تأكيد سداد', label: 'سداد مؤكد من القيود', amount: extraOnAccountFromSummary, note: 'مبلغ مؤكد من دفتر اليومية مرتبط بالعملية/المركبة' });
+      if (extraPendingFromSummary > 0) {
+        rows.push({ date: '-', visitId: '-', type: 'دفعة بانتظار التأكيد', label: 'دفعة غير مؤكدة من الملخص', amount: extraPendingFromSummary, note: 'مبلغ ظاهر في الملخص ولم يؤكد بعد' });
       }
     } else if (sourceKey === 'display_total') {
-      title = 'معادلة إجمالي البنود بعد الدفعات';
-      const summary = financeSummary || {};
-      const totalItems = Number(summary.total_items ?? summary.total_amount ?? ((Number(summary.total_workshop || 0) + Number(summary.total_suppliers || 0))));
-      const totalPaid = Number(summary.total_paid || 0);
-      const remaining = Number(summary.display_remaining ?? summary.balance ?? (totalItems - totalPaid));
+      title = 'تفاصيل ومصادر الملخص المالي';
+      const summary = effectiveFinanceSummary || {};
+      const serviceTotal = Number(summary.total_workshop || 0);
+      const partsCharge = Number(summary.parts_charge_total ?? summary.total_suppliers ?? 0);
+      const customerTotal = Number(summary.customer_total ?? summary.total_items ?? summary.total_amount ?? (serviceTotal + partsCharge));
+      const confirmedPaid = Number(summary.confirmed_paid ?? summary.total_paid ?? 0);
+      const applied = Number(summary.applied_paid ?? Math.min(confirmedPaid, customerTotal));
+      const remaining = Number(summary.display_remaining ?? summary.balance ?? Math.max(customerTotal - applied, 0));
+      const credit = Number(summary.customer_credit ?? Math.max(confirmedPaid - customerTotal, 0));
+      const pending = Number(summary.pending_payment_total || 0);
       rows = [
-        { date: '-', visitId: '-', type: 'ذمم الورشة', label: 'إجمالي', amount: Number(summary.total_workshop || 0), note: 'بنود الورشة' },
-        { date: '-', visitId: '-', type: 'الموردين', label: 'إجمالي', amount: Number(summary.total_suppliers || 0), note: 'بنود الموردين/الأرشيف' },
-        { date: '-', visitId: '-', type: 'إجمالي البنود', label: 'ورشة + موردين', amount: totalItems, note: 'قبل الدفعات' },
-        { date: '-', visitId: '-', type: 'مطروح المدفوع', label: 'دفعة مقدمة + تحت الحساب', amount: totalPaid, note: 'كل الدفعات المسجلة' },
-        { date: '-', visitId: '-', type: 'الناتج المعروض', label: 'المتبقي', amount: remaining, note: 'المعادلة: إجمالي البنود - المدفوع' },
+        { date: '-', visitId: '-', type: 'خدمات الورشة', label: 'إجمالي الخدمة', amount: serviceTotal, note: 'تسجل على العميل' },
+        { date: '-', visitId: '-', type: 'قطع محملة على العميل', label: 'إجمالي القطع', amount: partsCharge, note: 'customer_charge = supplier_cost حالياً' },
+        { date: '-', visitId: '-', type: 'إجمالي العميل', label: 'خدمة + قطع', amount: customerTotal, note: 'إجمالي العميل قبل الدفعات' },
+        { date: '-', visitId: '-', type: 'المدفوع المؤكد', label: 'إجمالي المستلم المؤكد', amount: confirmedPaid, note: 'لا يجمع من notes ودفتر اليومية معاً' },
+        { date: '-', visitId: '-', type: 'المطبق', label: 'min(المستلم، إجمالي العميل)', amount: applied, note: 'تفصيل داخلي لا يظهر كبطاقة أساسية' },
+        { date: '-', visitId: '-', type: 'المتبقي على العميل', label: 'max(الإجمالي - المطبق، 0)', amount: remaining, note: 'المتبقي بعد الدفعات المؤكدة' },
+        { date: '-', visitId: '-', type: 'رصيد العميل', label: 'max(المستلم - الإجمالي، 0)', amount: credit, note: 'يظهر كبطاقة شرطية إذا أكبر من صفر' },
+        { date: '-', visitId: '-', type: 'دفعة بانتظار التأكيد', label: 'غير مؤكدة', amount: pending, note: 'لا تُطبق حتى التأكيد' },
       ];
     } else if (sourceKey === 'balance') {
       title = 'كيف تم احتساب المتبقي';
-      const summary = financeSummary || {};
-      const totalItems = Number(summary.total_items ?? summary.total_amount ?? ((Number(summary.total_workshop || 0) + Number(summary.total_suppliers || 0))));
-      const totalPaid = Number(summary.total_paid || 0);
-      const remaining = Number(summary.display_remaining ?? summary.balance ?? (totalItems - totalPaid));
+      const summary = effectiveFinanceSummary || {};
+      const totalItems = Number(summary.customer_total ?? summary.total_items ?? summary.total_amount ?? ((Number(summary.total_workshop || 0) + Number(summary.total_suppliers || 0))));
+      const confirmedPaid = Number(summary.confirmed_paid ?? summary.total_paid ?? 0);
+      const applied = Number(summary.applied_paid ?? Math.min(confirmedPaid, totalItems));
+      const remaining = Number(summary.display_remaining ?? summary.balance ?? Math.max(totalItems - applied, 0));
       rows = [
-        { date: '-', visitId: '-', type: 'ذمم الورشة', label: 'إجمالي', amount: Number(summary.total_workshop || 0), note: 'إيراد الورشة' },
-        { date: '-', visitId: '-', type: 'حركة الموردين', label: 'إجمالي', amount: Number(summary.total_suppliers || 0), note: 'أرشيف منفصل' },
-        { date: '-', visitId: '-', type: 'المدفوع', label: 'إجمالي', amount: totalPaid, note: 'دفعة مقدمة + تحت الحساب / تأكيد سداد' },
-        { date: '-', visitId: '-', type: 'المتبقي', label: 'إجمالي', amount: remaining, note: 'المعادلة: (ذمم الورشة + الموردين) - المدفوع' },
+        { date: '-', visitId: '-', type: 'إجمالي العميل', label: 'خدمة + قطع', amount: totalItems, note: 'خدمات الورشة + القطع المحملة' },
+        { date: '-', visitId: '-', type: 'المدفوع المؤكد', label: 'إجمالي', amount: confirmedPaid, note: 'المستلم المؤكد فقط' },
+        { date: '-', visitId: '-', type: 'المطبق', label: 'إجمالي', amount: applied, note: 'أقل قيمة بين المستلم والإجمالي' },
+        { date: '-', visitId: '-', type: 'المتبقي', label: 'إجمالي', amount: remaining, note: 'max(إجمالي العميل - المطبق، 0)' },
       ];
     }
 
     setFinancialSourceTitle(title);
     setFinancialSourceRows(rows);
     setFinancialSourceOpen(true);
-  }, [visits, supplierArchiveRows, financeSummary]);
+  }, [visits, supplierArchiveRows, effectiveFinanceSummary]);
 
   if (loading) {
     return (
@@ -3908,7 +3848,13 @@ const VehicleDetails = () => {
             style={{ padding: 0, background: 'transparent', border: '0' }}
             data-testid="vehicle-financial-summary-block"
           >
-            <VehicleFinancialSummary summary={financeSummary || {}} t={t} onShowSource={openFinancialSource} />
+            <VehicleFinancialSummary
+              summary={effectiveFinanceSummary || {}}
+              t={t}
+              onShowSource={openFinancialSource}
+              onAddPayment={handleFinancialSummaryAddPayment}
+              onConfirmPayment={handleFinancialSummaryConfirmPayment}
+            />
 
             {/* supplier archive block removed - visible only in /suppliers page */}
           </div>

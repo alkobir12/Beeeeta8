@@ -1,0 +1,37 @@
+{
+  "summary": "تم تنفيذ اختبار Backend + Frontend لنطاق الملخص المالي في صفحة تفاصيل المركبة. تم التحقق من الصيغ المالية المطلوبة، ونجاح نقل زري \"إضافة دفعة\" و\"تأكيد السداد\" داخل كرت إجمالي العميل، وإخفاء بلوك الإرشادات وبلوك المدفوعات القديم، مع اختبار غير مُعدِّل للبيانات (فتح النماذج/الحوارات فقط دون حفظ/تأكيد نهائي).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter324_vehicle_financial_summary_contract.py",
+    "/app/test_reports/pytest/iter324_vehicle_financial_summary_contract.xml"
+  ],
+  "action_items": [
+    "الاستمرار على نفس منطق الحساب الحالي: customer_total = total_workshop + parts_charge_total، applied_paid = min(confirmed_paid, customer_total)، display_remaining = max(customer_total - applied_paid, 0)، customer_credit = max(confirmed_paid - customer_total, 0).",
+    "الحفاظ على تموضع زري إضافة دفعة/تأكيد السداد داخل كرت إجمالي العميل وعدم إعادة بلوك المدفوعات القديم أو بلوك الإرشادات لهذه الصفحة."
+  ],
+  "critical_code_review_comments": [
+    "VehicleDetails.jsx ما يزال ملفاً كبيراً جداً (يتجاوز 700 سطر بكثير)، ويُفضَّل تقسيمه لتقليل مخاطر regressions مستقبلية في هذا التدفق."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter324_vehicle_financial_summary_contract.py",
+    "/app/test_reports/iteration_324.json"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6)",
+    "frontend": "100% (critical flow scope)"
+  },
+  "seed_data_creation": "لم يتم إنشاء seed data ولم يتم تعديل أي بيانات تاريخية.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "تم الاختبار على المركبة f6590225-aef6-452b-af39-e0e42061fd81 عبر الرابط العام. تم التحقق من القيم المعروضة: إجمالي 302، خدمة 31، قطع 271. تم فتح نموذج إضافة دفعة (حقل قيمة + حقل وسيلة) ثم إغلاقه بدون حفظ. تم فتح نافذة تأكيد السداد من نفس الكرت ثم إغلاقها بدون تأكيد. guidance count=0 وold visit-payments data-testid count=0. لقطات UI الحالية محفوظة في /app/test_reports/screenshots_iter324_cont/.",
+  "rca of the issue": "لا توجد أعطال ضمن النطاق المختبَر. تم فشل أول محاولة UI لأن التنقل إلى صفحة المركبة سبق اكتمال طلب تسجيل الدخول (نتج عنها request aborted)، وتم علاج ذلك في سكربت الاختبار بانتظار استجابة /api/auth/login والتحقق من auth_token قبل الانتقال.",
+  "mocked_api": "NO MOCKED APIs used."
+}

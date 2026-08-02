@@ -1,5 +1,5 @@
-import React from 'react';
-import { Calculator, ReceiptText } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calculator, CheckCircle2, CreditCard, FileSearch, Plus, Wallet } from 'lucide-react';
 
 const formatMoney = (value) => {
   const n = Number(value || 0);
@@ -13,99 +13,57 @@ const formatMoney = (value) => {
   }
 };
 
-const StatCard = ({ title, value, subtitle, accent = 'slate', testId, onShowSource, sourceKey }) => {
-  const accentMap = {
-    emerald: {
-      bg: 'rgba(16,185,129,0.10)',
-      border: 'rgba(16,185,129,0.22)',
-      text: 'rgba(167,243,208,0.95)',
-    },
-    rose: {
-      bg: 'rgba(244,63,94,0.10)',
-      border: 'rgba(244,63,94,0.22)',
-      text: 'rgba(254,202,202,0.95)',
-    },
-    sky: {
-      bg: 'rgba(56,189,248,0.10)',
-      border: 'rgba(56,189,248,0.22)',
-      text: 'rgba(186,230,253,0.95)',
-    },
-    violet: {
-      bg: 'rgba(168,85,247,0.10)',
-      border: 'rgba(168,85,247,0.22)',
-      text: 'rgba(233,213,255,0.95)',
-    },
-    slate: {
-      bg: 'rgba(255,255,255,0.06)',
-      border: 'rgba(148,163,184,0.20)',
-      text: 'rgba(226,232,240,0.92)',
-    },
+const MiniMetric = ({ title, value, tone = 'slate', testId }) => {
+  const tones = {
+    teal: { bg: 'rgba(20,184,166,0.11)', border: 'rgba(20,184,166,0.24)', text: 'rgba(153,246,228,0.96)' },
+    emerald: { bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.22)', text: 'rgba(167,243,208,0.96)' },
+    rose: { bg: 'rgba(244,63,94,0.10)', border: 'rgba(244,63,94,0.22)', text: 'rgba(254,202,202,0.96)' },
+    amber: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)', text: 'rgba(253,230,138,0.96)' },
+    sky: { bg: 'rgba(56,189,248,0.10)', border: 'rgba(56,189,248,0.22)', text: 'rgba(186,230,253,0.96)' },
+    slate: { bg: 'rgba(255,255,255,0.06)', border: 'rgba(148,163,184,0.20)', text: 'rgba(226,232,240,0.92)' },
   };
-
-  const c = accentMap[accent] || accentMap.slate;
-
+  const c = tones[tone] || tones.slate;
   return (
     <div
       className="dash-widget-shell"
-      data-testid={testId}
       style={{
-        background:
-          `radial-gradient(circle at 12% 18%, ${c.bg}, transparent 55%), rgba(255,255,255,0.06)`,
+        background: `radial-gradient(circle at 12% 18%, ${c.bg}, transparent 55%), rgba(255,255,255,0.06)`,
         border: `1px solid ${c.border}`,
-        boxShadow: '0 18px 60px rgba(2,6,23,0.55)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        padding: 12,
+        boxShadow: '0 18px 60px rgba(2,6,23,0.45)',
+        padding: 14,
       }}
+      data-testid={testId}
     >
-      <div className="text-[11px] sm:text-xs font-medium" style={{ color: 'rgba(226,232,240,0.72)' }} data-testid={`${testId}-title`}>{title}</div>
-      <div className="mt-1 text-lg sm:text-2xl font-extrabold tabular-nums" style={{ color: c.text }} data-testid={`${testId}-value`}>
-        {formatMoney(value)}
-        <span className="text-xs font-medium" style={{ color: 'rgba(226,232,240,0.65)', marginInlineStart: 6 }}>
-          {subtitle ? '' : 'ر.س'}
-        </span>
+      <div className="text-[11px] sm:text-xs font-semibold" style={{ color: 'rgba(226,232,240,0.72)' }} data-testid={`${testId}-title`}>
+        {title}
       </div>
-      {subtitle ? (
-        <div className="mt-1 text-xs" style={{ color: 'rgba(226,232,240,0.65)' }} data-testid={`${testId}-subtitle`}>{subtitle}</div>
-      ) : (
-        <div className="mt-1 text-[11px]" style={{ color: 'rgba(226,232,240,0.55)' }} data-testid={`${testId}-subtitle`}>
-          {title}
-        </div>
-      )}
-      {typeof onShowSource === 'function' ? (
-        <button
-          type="button"
-          onClick={() => onShowSource(sourceKey)}
-          className="mt-2 text-[11px] px-2 py-1 rounded-lg"
-          style={{
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(148,163,184,0.18)',
-            color: 'rgba(186,230,253,0.95)',
-          }}
-          data-testid={`${testId}-source-button`}
-        >
-          عرض المصدر
-        </button>
-      ) : null}
+      <div className="mt-2 text-xl sm:text-3xl font-black tabular-nums" style={{ color: c.text }} data-testid={`${testId}-value`}>
+        {formatMoney(value)} <span className="text-xs font-medium" style={{ color: 'rgba(226,232,240,0.65)' }}>ر.س</span>
+      </div>
     </div>
   );
 };
 
-export default function VehicleFinancialSummary({ summary, t, onShowSource }) {
+export default function VehicleFinancialSummary({ summary, onShowSource, onAddPayment, onConfirmPayment }) {
   const s = summary || {};
-  const totalItems = Number(s.total_items ?? s.total_amount ?? ((Number(s.total_workshop || 0) + Number(s.total_suppliers || 0))));
-  const advancePaid = Number(s.advance_paid || 0);
-  const paidOnAccount = Number(s.paid_on_account ?? s.confirmed_paid ?? Math.max(Number(s.total_paid || 0) - advancePaid, 0));
-  const totalPaid = Number(s.total_paid ?? (advancePaid + paidOnAccount));
-  const balance = Number(s.display_remaining ?? s.balance ?? (totalItems - totalPaid));
+  const serviceTotal = Number(s.total_workshop || 0);
+  const partsCharge = Number(s.parts_charge_total ?? s.total_suppliers ?? 0);
+  const customerTotal = Number(s.customer_total ?? s.total_items ?? s.total_amount ?? (serviceTotal + partsCharge));
+  const confirmedPaid = Number(s.confirmed_paid ?? s.total_paid ?? 0);
+  const appliedPaid = Number(s.applied_paid ?? Math.min(confirmedPaid, customerTotal));
+  const remaining = Number(s.display_remaining ?? s.balance ?? Math.max(customerTotal - appliedPaid, 0));
+  const customerCredit = Number(s.customer_credit ?? s.customer_advance_liability ?? Math.max(confirmedPaid - customerTotal, 0));
+  const pendingPayment = Number(s.pending_payment_total || 0);
+  const [quickPaymentOpen, setQuickPaymentOpen] = useState(false);
+  const [quickPayment, setQuickPayment] = useState({ amount: '', method: 'cash' });
 
-  const safeT = (key, fallback) => {
-    const v = t?.(key);
-    if (!v || v === key) return fallback;
-    return v;
+  const submitQuickPayment = () => {
+    const amount = Number(quickPayment.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    onAddPayment?.({ amount, method: quickPayment.method || 'cash' });
+    setQuickPayment({ amount: '', method: quickPayment.method || 'cash' });
+    setQuickPaymentOpen(false);
   };
-
-  const balanceAccent = balance === 0 ? 'emerald' : balance > 0 ? 'rose' : 'sky';
 
   return (
     <div className="space-y-3" data-testid="vehicle-financial-summary-layout">
@@ -118,101 +76,135 @@ export default function VehicleFinancialSummary({ summary, t, onShowSource }) {
           boxShadow: '0 18px 60px rgba(2,6,23,0.55)',
           padding: 16,
         }}
-        data-testid="vehicle-financial-summary-grand-total-card"
+        data-testid="vehicle-financial-summary-customer-total-card"
       >
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'rgba(153,246,228,0.9)' }}>
               <Calculator size={16} />
-              <span data-testid="vehicle-financial-summary-grand-total-title">إجمالي البنود بعد الدفعات</span>
+              <span data-testid="vehicle-financial-summary-customer-total-title">إجمالي العميل</span>
             </div>
             <div
-              className="mt-2 text-2xl sm:text-4xl font-black tabular-nums"
-              style={{ color: balance < 0 ? 'rgba(186,230,253,0.98)' : 'rgba(240,253,250,0.98)' }}
-              data-testid="vehicle-financial-summary-grand-total-value"
+              className="mt-2 text-3xl sm:text-5xl font-black tabular-nums"
+              style={{ color: 'rgba(240,253,250,0.98)' }}
+              data-testid="vehicle-financial-summary-customer-total-value"
             >
-              {formatMoney(balance)} <span className="text-sm font-medium" style={{ color: 'rgba(226,232,240,0.68)' }}>ر.س</span>
+              {formatMoney(customerTotal)} <span className="text-sm font-medium" style={{ color: 'rgba(226,232,240,0.68)' }}>ر.س</span>
             </div>
-            <div className="mt-1 text-xs" style={{ color: 'rgba(226,232,240,0.68)' }} data-testid="vehicle-financial-summary-grand-total-formula">
-              الموردين + ذمم الورشة - الدفعات
+            <div className="mt-2 text-xs" style={{ color: 'rgba(226,232,240,0.68)' }} data-testid="vehicle-financial-summary-customer-total-formula">
+              إجمالي العميل = خدمات الورشة + القطع المحملة على العميل
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs" data-testid="vehicle-financial-summary-customer-total-breakdown">
+              <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(226,232,240,0.86)' }} data-testid="vehicle-financial-summary-service-chip">
+                خدمة: {formatMoney(serviceTotal)} ر.س
+              </span>
+              <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(226,232,240,0.86)' }} data-testid="vehicle-financial-summary-parts-chip">
+                قطع: {formatMoney(partsCharge)} ر.س
+              </span>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 min-w-[220px]">
-            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(148,163,184,0.18)' }} data-testid="vehicle-financial-summary-total-items-mini">
-              <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.62)' }}>إجمالي البنود</div>
-              <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(240,253,250,0.95)' }}>{formatMoney(totalItems)}</div>
-            </div>
-            <div className="rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(148,163,184,0.18)' }} data-testid="vehicle-financial-summary-total-paid-mini">
-              <div className="text-[11px]" style={{ color: 'rgba(226,232,240,0.62)' }}>مطروح المدفوع</div>
-              <div className="text-sm font-extrabold tabular-nums" style={{ color: 'rgba(167,243,208,0.95)' }}>{formatMoney(totalPaid)}</div>
-            </div>
+          <div className="flex flex-wrap lg:flex-col gap-2 lg:min-w-[210px]">
+            <button
+              type="button"
+              onClick={() => setQuickPaymentOpen(true)}
+              className="rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
+              style={{ background: 'rgba(20,184,166,0.14)', border: '1px solid rgba(20,184,166,0.28)', color: 'rgba(153,246,228,0.95)' }}
+              data-testid="vehicle-financial-summary-add-payment-button"
+            >
+              <Plus size={14} /> إضافة دفعة
+            </button>
+            <button
+              type="button"
+              onClick={() => onConfirmPayment?.()}
+              className="rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
+              style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.30)', color: 'rgba(187,247,208,0.95)' }}
+              data-testid="vehicle-financial-summary-confirm-payment-button"
+            >
+              <CheckCircle2 size={14} /> تأكيد السداد
+            </button>
             <button
               type="button"
               onClick={() => onShowSource?.('display_total')}
-              className="rounded-xl px-3 py-2 text-xs font-bold inline-flex items-center justify-center gap-2 col-span-2 sm:col-span-1"
-              style={{ background: 'rgba(45,212,191,0.13)', border: '1px solid rgba(45,212,191,0.24)', color: 'rgba(153,246,228,0.95)' }}
-              data-testid="vehicle-financial-summary-grand-total-source-button"
+              className="rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(148,163,184,0.22)', color: 'rgba(226,232,240,0.9)' }}
+              data-testid="vehicle-financial-summary-details-sources-button"
             >
-              <ReceiptText size={14} /> المصدر
+              <FileSearch size={14} /> عرض التفاصيل والمصادر
             </button>
           </div>
         </div>
+
+        {quickPaymentOpen && (
+          <div
+            className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-2"
+            data-testid="vehicle-financial-summary-quick-payment-form"
+          >
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={quickPayment.amount}
+              onChange={(event) => setQuickPayment((prev) => ({ ...prev, amount: event.target.value }))}
+              className="rounded-xl px-3 py-2 text-xs outline-none"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(148,163,184,0.24)', color: 'rgba(240,253,250,0.96)' }}
+              placeholder="قيمة الدفعة"
+              data-testid="vehicle-financial-summary-quick-payment-amount-input"
+            />
+            <select
+              value={quickPayment.method}
+              onChange={(event) => setQuickPayment((prev) => ({ ...prev, method: event.target.value }))}
+              className="rounded-xl px-3 py-2 text-xs outline-none"
+              style={{ background: 'rgba(15,23,42,0.82)', border: '1px solid rgba(148,163,184,0.24)', color: 'rgba(240,253,250,0.96)' }}
+              data-testid="vehicle-financial-summary-quick-payment-method-select"
+            >
+              <option value="cash">نقد</option>
+              <option value="bank_transfer">تحويل/بنك</option>
+              <option value="pos">نقاط بيع</option>
+            </select>
+            <button
+              type="button"
+              onClick={submitQuickPayment}
+              className="rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95 disabled:opacity-50"
+              style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.32)', color: 'rgba(153,246,228,0.96)' }}
+              disabled={!Number.isFinite(Number(quickPayment.amount)) || Number(quickPayment.amount) <= 0}
+              data-testid="vehicle-financial-summary-quick-payment-save-button"
+            >
+              حفظ كدفعة بانتظار التأكيد
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickPaymentOpen(false)}
+              className="rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(148,163,184,0.20)', color: 'rgba(226,232,240,0.86)' }}
+              data-testid="vehicle-financial-summary-quick-payment-cancel-button"
+            >
+              إلغاء
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3" data-testid="vehicle-financial-summary-breakdown-grid">
-        <StatCard
-          title={safeT('vehicle_finance.workshop_due', 'ذمم الورشة')}
-          value={s.total_workshop}
-          subtitle={safeT('vehicle_finance.workshop_due_hint', 'إيراد الورشة / ذمة العميل')}
-          accent="violet"
-          testId="vehicle-financial-summary-workshop-due"
-          onShowSource={onShowSource}
-          sourceKey="workshop_due"
-        />
-        <StatCard
-          title={safeT('vehicle_finance.suppliers_due', 'الموردين')}
-          value={s.total_suppliers}
-          subtitle={safeT('vehicle_finance.suppliers_due_hint', 'أرشيف تكلفة داخلي')}
-          accent="rose"
-          testId="vehicle-financial-summary-suppliers-due"
-          onShowSource={onShowSource}
-          sourceKey="suppliers_due"
-        />
-        <StatCard
-          title="دفعة مقدمة"
-          value={advancePaid}
-          subtitle="تظهر كرصيد/التزام للعميل"
-          accent="sky"
-          testId="vehicle-financial-summary-advance-paid"
-          onShowSource={onShowSource}
-          sourceKey="advance"
-        />
-        <StatCard
-          title="تحت الحساب / تأكيد سداد"
-          value={paidOnAccount}
-          subtitle="دفعات مؤكدة على الزيارة"
-          accent="emerald"
-          testId="vehicle-financial-summary-paid-on-account"
-          onShowSource={onShowSource}
-          sourceKey="on_account"
-        />
-        <StatCard
-          title={safeT('vehicle_finance.total_paid', 'إجمالي المدفوع')}
-          value={totalPaid}
-          accent="emerald"
-          testId="vehicle-financial-summary-total-paid"
-          onShowSource={onShowSource}
-          sourceKey="paid"
-        />
-        <StatCard
-          title={safeT('vehicle_finance.balance', 'المتبقي')}
-          value={balance}
-          subtitle={balance < 0 ? safeT('vehicle_finance.credit', 'رصيد للعميل') : 'حسب الإجمالي المعروض'}
-          accent={balanceAccent}
-          testId="vehicle-financial-summary-balance"
-          onShowSource={onShowSource}
-          sourceKey="balance"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3" data-testid="vehicle-financial-summary-core-grid">
+        <MiniMetric title="المدفوع المؤكد" value={confirmedPaid} tone="emerald" testId="vehicle-financial-summary-confirmed-paid" />
+        <MiniMetric title="المتبقي على العميل" value={remaining} tone={remaining > 0 ? 'rose' : 'teal'} testId="vehicle-financial-summary-customer-remaining" />
+      </div>
+
+      {(customerCredit > 0 || pendingPayment > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3" data-testid="vehicle-financial-summary-conditional-grid">
+          {customerCredit > 0 && (
+            <MiniMetric title="رصيد العميل" value={customerCredit} tone="sky" testId="vehicle-financial-summary-customer-credit" />
+          )}
+          {pendingPayment > 0 && (
+            <MiniMetric title="دفعة بانتظار التأكيد" value={pendingPayment} tone="amber" testId="vehicle-financial-summary-pending-payment" />
+          )}
+        </div>
+      )}
+
+      <div className="sr-only" data-testid="vehicle-financial-summary-applied-paid-value">
+        {formatMoney(appliedPaid)}
+      </div>
+      <div className="sr-only" data-testid="vehicle-financial-summary-audit-icon-label">
+        <CreditCard size={1} /> <Wallet size={1} />
       </div>
     </div>
   );
