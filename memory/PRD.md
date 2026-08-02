@@ -577,3 +577,16 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم إضافة telemetry داخلي لمسار واتساب QuickPrint لتسهيل اختبار إنشاء render root المعزول لاحقًا.
 - self-test: زر طباعة QuickPrint بعد الجاهزية يفتح HTML مستقل يحتوي المستند فقط ولا يحتوي واجهة التطبيق أو حقول خام.
 
+## تحديث 2026-08-02 — مطابقة القالب المرجعي واختيار الزيارة قبل الطباعة
+- تم اعتماد آخر ملف HTML مرفق كمصدر تنفيذي وحيد للقالب، وحفظه في `backend/templates/reference_workshop_template.html` مع تعطيل استخدام القوالب المبنية سابقًا لمسار القوالب الموحّدة دون حذفها.
+- تم تعديل الـRenderer ليملأ عناصر `data-field` فقط ويستنسخ `template#row-template` داخل `#items-body`، مع الحفاظ على classes/CSS الأصلي وعزل القالب عن Tailwind وCSS التطبيق.
+- تم تضمين خطوط IBM Plex Sans Arabic وIBM Plex Mono محليًا كـ `data:font/woff2;base64` داخل القالب، ومنع عرض UUID في رقم المستند/أمر التشغيل؛ عند غياب الرقم البشري يظهر `—`.
+- تم ضبط طريقة الدفع لتظهر `آجل — غير مسدد` عند وجود فاتورة ورشة غير مسددة، دون إنشاء أي قيد مالي أو تعديل بيانات مالية.
+- تم تعديل زر الطباعة العلوي في ملف المركبة: نوع المستند أولًا ثم اختيار زيارة إلزامي، ولا توجد معاينة تلقائية لآخر زيارة. زر الطباعة داخل الزيارة يطبع الزيارة المحددة فقط.
+- الاختبار: testing_agent iteration_323 PASS بنسبة 100%، self-test للجوال والطباعة، وPDF الناتج `/app/test_reports/iter323_reference_invoice.pdf` صفحة واحدة بلا UUID/undefined/null وبنفس القالب المرجعي.
+
+### Next Action Items
+- P1: إضافة UI regression ثابت لنفس vehicle/visit IDs لمنع رجوع اختيار آخر زيارة تلقائيًا.
+- P1: تقسيم `VehicleDetails.jsx` و`DocumentPrint.jsx` لاحقًا لتقليل مخاطر regressions.
+- P1: صفحة التحقق العامة للمستندات عبر QR.
+
