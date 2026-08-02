@@ -1,0 +1,38 @@
+{
+  "summary": "Completed backend + frontend verification on preview for Debt Follow-up phone visibility and ConfirmPaymentDialog payment-method constraints. Target customer عبد الكريم الشايعي was validated with phone 0505175565 in API, desktop table, and mobile cards. Confirm dialog from Debt Follow-up showed only bank_transfer/cash/pos and did not show credit/آجل.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter318_ar_phone_and_payment_methods.py",
+    "/app/test_reports/pytest/iter318_backend.xml"
+  ],
+  "action_items": [
+    "No blocker found in this scope.",
+    "Optional: run one additional manual regression from Operations/VehicleDetails entry point to re-confirm shared ConfirmPaymentDialog behavior after future changes."
+  ],
+  "critical_code_review_comments": [
+    "ConfirmPaymentDialog BASE_METHODS is correctly constrained to bank_transfer/cash/pos; no credit/آجل method is rendered by this dialog in tested flow.",
+    "DebtFollowUp AR mapping correctly reads phone/customer_phone and identity from id/customer_id for AR customer rows."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter318_ar_phone_and_payment_methods.py",
+    "/app/test_reports/iteration_318.json"
+  ],
+  "success_rate": {
+    "backend": "100% (2/2)",
+    "frontend": "100% (all requested flows passed)"
+  },
+  "seed_data_creation": "No seed data created. No financial records were mutated.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview URL validated with manager PIN login. Backend test requires as_of query for /api/finance/ar/customers. UI automation confirmed Abdulkarim phone in desktop row and mobile card, settlement/whatsapp actions remained clickable, and confirm dialog methods were limited to bank_transfer/cash/pos.",
+  "rca of the issue": "Initial backend test draft failed with 422 because /api/finance/ar/customers requires as_of; after adding as_of, tests passed. No functional regression reproduced for requested phone/payment-method scope.",
+  "mocked_api": "NO MOCKED APIs used."
+}

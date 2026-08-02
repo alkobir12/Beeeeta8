@@ -3741,7 +3741,7 @@ const Operations = () => {
           try {
             const lines = paymentLines && paymentLines.length > 0
               ? paymentLines
-              : [{ method: paymentMethod || 'bank', amount }];
+              : [{ method: paymentMethod || 'bank_transfer', amount }];
 
             for (const line of lines) {
               const payAmt = (line.amount && line.amount > 0) ? line.amount : undefined;

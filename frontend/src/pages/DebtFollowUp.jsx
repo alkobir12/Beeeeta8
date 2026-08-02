@@ -83,10 +83,13 @@ export default function DebtFollowUp() {
       const arCustomerRows = normalizeRows(arCustomersRes?.data?.data, 'customers');
       const customersSource = arCustomerRows.length
         ? arCustomerRows.map((row, index) => ({
-          id: row.id || `ar-customer-${index}`,
+          id: row.id || row.customer_id || `ar-customer-${index}`,
           name: row.customer || row.name || row.customerName || row.customer_name || 'عميل',
+          phone: row.phone || row.customer_phone || row.customerPhone || row.whatsapp || '',
           ajelBalance: Number(row.balance || 0),
           overdueBalance: Number(row.balance || 0),
+          debitBalance: Number(row.debitBalance || row.debit_balance || row.balance || 0),
+          creditBalance: Number(row.creditBalance || row.credit_balance || 0),
           source: 'vehicle_visit_current_ar',
         }))
         : [];
@@ -178,10 +181,13 @@ export default function DebtFollowUp() {
         return;
       }
       const hydratedRows = rows.map((row, index) => ({
-        id: row.id || `ar-customer-${index}`,
+        id: row.id || row.customer_id || `ar-customer-${index}`,
         name: row.customer || row.name || 'عميل',
+        phone: row.phone || row.customer_phone || row.customerPhone || row.whatsapp || '',
         ajelBalance: Number(row.balance || 0),
         overdueBalance: Number(row.balance || 0),
+        debitBalance: Number(row.debitBalance || row.debit_balance || row.balance || 0),
+        creditBalance: Number(row.creditBalance || row.credit_balance || 0),
         movements: [{ date: asOf, amount: Number(row.balance || 0), source: 'vehicle_visit_current_ar' }],
         entityType: 'customer',
         source: 'vehicle_visit_current_ar',
@@ -383,7 +389,7 @@ export default function DebtFollowUp() {
     }
 
     // تنفيذ السداد بعد اختيار الوسيلة
-    const lines = paymentLines.length > 0 ? paymentLines : [{ method: 'bank', amount: null }];
+    const lines = paymentLines.length > 0 ? paymentLines : [{ method: 'bank_transfer', amount: null }];
     const totalFromLines = lines.reduce((s, l) => s + (l.amount || 0), 0);
     const finalAmount = totalFromLines > 0 ? totalFromLines : defaultAmount;
 
@@ -418,7 +424,7 @@ export default function DebtFollowUp() {
           continue;
         }
 
-        const cashAccountCode = line.method === 'pos' ? '006' : line.method === 'bank' ? '004' : '003';
+        const cashAccountCode = line.method === 'pos' ? '006' : ['bank', 'bank_transfer', 'transfer'].includes(line.method) ? '004' : '003';
         const payload = {
           workshopId: process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync',
           workshop_id: process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync',
@@ -584,8 +590,8 @@ export default function DebtFollowUp() {
                         data-testid={`debt-mobile-row-checkbox-${rowId}`}
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-bold text-slate-50">{row.name}</span>
-                        <span className="mt-1 inline-flex rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-slate-300">
+                        <span className="block truncate text-sm font-bold text-slate-50" data-testid={`debt-mobile-row-name-${rowId}`}>{row.name}</span>
+                        <span className="mt-1 inline-flex rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-slate-300" data-testid={`debt-mobile-row-type-${rowId}`}>
                           {row.entityType === 'supplier' ? 'مورد' : 'عميل'}
                         </span>
                       </span>
@@ -674,12 +680,12 @@ export default function DebtFollowUp() {
                           data-testid={`debt-row-checkbox-${rowId}`}
                         />
                       </td>
-                      <td className="p-2 font-semibold">{row.name}</td>
-                      <td className="p-2">{row.entityType === 'supplier' ? 'مورد' : 'عميل'}</td>
-                      <td className="p-2 ltr text-left">{row.phone || '-'}</td>
-                      <td className="p-2">{fmt(row.debitBalance)}</td>
-                      <td className="p-2">{fmt(row.creditBalance)}</td>
-                      <td className="p-2 text-rose-200 font-bold">{fmt(row.ajelBalance)}</td>
+                      <td className="p-2 font-semibold" data-testid={`debt-row-name-${rowId}`}>{row.name}</td>
+                      <td className="p-2" data-testid={`debt-row-type-${rowId}`}>{row.entityType === 'supplier' ? 'مورد' : 'عميل'}</td>
+                      <td className="p-2 ltr text-left" data-testid={`debt-row-phone-${rowId}`}>{row.phone || '-'}</td>
+                      <td className="p-2" data-testid={`debt-row-debit-${rowId}`}>{fmt(row.debitBalance)}</td>
+                      <td className="p-2" data-testid={`debt-row-credit-${rowId}`}>{fmt(row.creditBalance)}</td>
+                      <td className="p-2 text-rose-200 font-bold" data-testid={`debt-row-ajel-${rowId}`}>{fmt(row.ajelBalance)}</td>
                       <td className="p-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <input

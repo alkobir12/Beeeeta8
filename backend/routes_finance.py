@@ -335,10 +335,33 @@ def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_dat
     if not supabase:
         return {"total_ar": 0.0, "customers": [], "vehicles": [], "ledger_rows": []}
 
-    vehicles = supabase.table("vehicles").select("id,customer_name,plate_number,status,entry_date").execute().data or []
+    try:
+        vehicles = supabase.table("vehicles").select("id,customer_id,customer_name,customer_phone,plate_number,status,entry_date").execute().data or []
+    except Exception:
+        vehicles = supabase.table("vehicles").select("id,customer_name,plate_number,status,entry_date").execute().data or []
     visits = supabase.table("vehicle_visits").select("id,vehicle_id,status,notes,entry_date,created_at").execute().data or []
     operations = supabase.table("operations").select("id,vehicle_id,visit_id,partner_name,total,payment_method").execute().data or []
     entries = _fetch_journal_entries(workshop_id, end_date=end_date, limit=10000, include_rakan=False)
+
+    def _compact_name(value: Any) -> str:
+        return re.sub(r"\s+", " ", str(value or "").strip()).lower()
+
+    customer_directory: List[Dict[str, Any]] = []
+    try:
+        customer_directory = supabase.table("customers").select("id,name,phone").execute().data or []
+    except Exception:
+        customer_directory = []
+
+    customer_by_id = {
+        str(row.get("id") or "").strip(): row
+        for row in customer_directory
+        if str(row.get("id") or "").strip()
+    }
+    customer_by_name = {
+        _compact_name(row.get("name")): row
+        for row in customer_directory
+        if _compact_name(row.get("name"))
+    }
 
     vehicle_by_id = {str(v.get("id") or "").strip(): v for v in vehicles if v.get("id")}
     visits_by_vehicle: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -389,6 +412,7 @@ def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_dat
 
     live_vehicles = [v for v in sorted(vehicles, key=lambda r: str(r.get("entry_date") or ""), reverse=True) if str(v.get("status") or "").strip().lower() != "delivered"]
     customer_balances: Dict[str, float] = defaultdict(float)
+    customer_meta: Dict[str, Dict[str, str]] = {}
     ledger_rows: List[Dict[str, Any]] = []
     vehicle_rows: List[Dict[str, Any]] = []
     totals = {"workshop_total": 0.0, "confirmed_paid": 0.0, "receivable": 0.0, "supplier_total": 0.0, "cash": 0.0, "pos": 0.0, "bank_transfer": 0.0}
@@ -398,6 +422,10 @@ def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_dat
         status = str(vehicle.get("status") or "").strip().lower()
         excluded = status in {"archived", "delivered"}
         customer = str(vehicle.get("customer_name") or "غير محدد").strip() or "غير محدد"
+        customer_id = str(vehicle.get("customer_id") or "").strip()
+        customer_record = customer_by_id.get(customer_id) or customer_by_name.get(_compact_name(customer)) or {}
+        customer_phone = str(vehicle.get("customer_phone") or customer_record.get("phone") or "").strip()
+        resolved_customer_id = customer_id or str(customer_record.get("id") or "").strip()
         vehicle_workshop = 0.0
         vehicle_suppliers = 0.0
         vehicle_confirmed = 0.0
@@ -442,10 +470,19 @@ def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_dat
             receivable = round(vehicle_remaining, 2)
             reason = "بنود الورشة - قيود السداد المؤكدة"
             customer_balances[customer] += receivable
+            if receivable > 0 and customer not in customer_meta:
+                customer_meta[customer] = {"id": resolved_customer_id, "phone": customer_phone}
+            elif receivable > 0 and customer in customer_meta:
+                if not customer_meta[customer].get("id") and resolved_customer_id:
+                    customer_meta[customer]["id"] = resolved_customer_id
+                if not customer_meta[customer].get("phone") and customer_phone:
+                    customer_meta[customer]["phone"] = customer_phone
             if receivable > 0:
                 ledger_rows.append({
                     "date": str((visits_by_vehicle.get(vehicle_id) or [{}])[0].get("entry_date") or ""),
                     "customer": customer,
+                    "customer_id": resolved_customer_id,
+                    "phone": customer_phone,
                     "vehicle_id": vehicle_id,
                     "reference_id": vehicle_id,
                     "amount": receivable,
@@ -460,7 +497,9 @@ def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_dat
 
         vehicle_rows.append({
             "vehicle_id": vehicle_id,
+            "customer_id": resolved_customer_id,
             "customer": customer,
+            "phone": customer_phone,
             "plate": vehicle.get("plate_number"),
             "raw_status": vehicle.get("status"),
             "included_in_current_ar": not excluded,
@@ -472,7 +511,20 @@ def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_dat
             "visits": visit_rows,
         })
 
-    customers = [{"customer": name, "balance": round(balance, 2)} for name, balance in sorted(customer_balances.items()) if balance > 0.005]
+    customers = []
+    for name, balance in sorted(customer_balances.items()):
+        if balance <= 0.005:
+            continue
+        meta = customer_meta.get(name) or {}
+        fallback_id = f"customer-{uuid.uuid5(uuid.NAMESPACE_DNS, _compact_name(name)).hex[:12]}"
+        customers.append({
+            "id": meta.get("id") or fallback_id,
+            "customer_id": meta.get("id") or "",
+            "customer": name,
+            "name": name,
+            "phone": meta.get("phone") or "",
+            "balance": round(balance, 2),
+        })
     return {
         "total_ar": round(sum(row["balance"] for row in customers), 2),
         "customers": customers,

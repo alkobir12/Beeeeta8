@@ -13,9 +13,9 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const todayISO = () => new Date().toISOString().split('T')[0];
 
 const BASE_METHODS = [
-  { value: 'bank', label: 'بنك / تحويل', sub: '004', color: 'border-sky-500/60 bg-sky-500/10 text-sky-200' },
-  { value: 'cash', label: 'نقد',          sub: '003', color: 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200' },
-  { value: 'pos',  label: 'نقاط بيع',     sub: '006', color: 'border-violet-500/60 bg-violet-500/10 text-violet-200' },
+  { value: 'bank_transfer', label: 'تحويل بنكي', sub: '004', color: 'border-sky-500/60 bg-sky-500/10 text-sky-200' },
+  { value: 'cash', label: 'نقد', sub: '003', color: 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200' },
+  { value: 'pos', label: 'نقاط بيع', sub: '006', color: 'border-violet-500/60 bg-violet-500/10 text-violet-200' },
 ];
 
 const SUPPLIER_BALANCE_METHOD = {
@@ -25,7 +25,7 @@ const SUPPLIER_BALANCE_METHOD = {
   color: 'border-amber-500/60 bg-amber-500/10 text-amber-200',
 };
 
-const emptyLine = () => ({ id: Date.now() + Math.random(), method: 'bank', amountStr: '' });
+const emptyLine = () => ({ id: Date.now() + Math.random(), method: 'bank_transfer', amountStr: '' });
 
 const ConfirmPaymentDialog = ({
   open, onOpenChange, onConfirm, loading = false, remainingBalance = 0,
@@ -173,11 +173,11 @@ const ConfirmPaymentDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent dir="rtl" className="sm:max-w-md">
+      <DialogContent dir="rtl" className="sm:max-w-md" data-testid="confirm-payment-dialog">
         <DialogHeader>
-          <DialogTitle>تأكيد السداد</DialogTitle>
+          <DialogTitle data-testid="confirm-payment-dialog-title">تأكيد السداد</DialogTitle>
           {remainingBalance > 0 && (
-            <p className="text-sm text-amber-300 mt-1">
+            <p className="text-sm text-amber-300 mt-1" data-testid="confirm-payment-dialog-remaining-balance">
               الرصيد المتبقي: <span className="font-bold tabular-nums">{remainingBalance.toLocaleString('ar-SA', { minimumFractionDigits: 2 })}</span> ر.س
             </p>
           )}
@@ -192,7 +192,7 @@ const ConfirmPaymentDialog = ({
             return (
               <div key={line.id} className="rounded-xl border border-white/10 bg-white/4 p-3 space-y-2" data-testid={`pay-line-${idx}`}>
                 {/* وسيلة الدفع — 2×2 */}
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className={`grid ${methods.length > 3 ? 'grid-cols-4' : 'grid-cols-3'} gap-1.5`} data-testid={`pay-line-${idx}-methods-grid`}>
                   {methods.map(opt => (
                     <button
                       key={opt.value}
@@ -300,7 +300,7 @@ const ConfirmPaymentDialog = ({
           </button>
 
           {enteredTotal > 0 && (
-            <div className="flex justify-between text-sm rounded-lg bg-white/5 px-3 py-2">
+            <div className="flex justify-between text-sm rounded-lg bg-white/5 px-3 py-2" data-testid="confirm-payment-dialog-entered-total">
               <span className="text-slate-400">إجمالي المُدخل</span>
               <span className="font-bold tabular-nums text-sky-300">
                 {enteredTotal.toLocaleString('ar-SA', { minimumFractionDigits: 2 })} ر.س
@@ -311,7 +311,7 @@ const ConfirmPaymentDialog = ({
           {/* حقل الخصم — يقلل من رصيد العميل بدون أن يكون دفعة نقدية */}
           {allowDiscount && (
             <div className="space-y-1.5">
-              <label className="text-xs text-slate-400 flex items-center justify-between">
+              <label className="text-xs text-slate-400 flex items-center justify-between" data-testid="confirm-payment-dialog-discount-label">
                 <span>الخصم (اختياري)</span>
                 {discountValue > 0 && (
                   <span className="text-[10px] text-emerald-300">
