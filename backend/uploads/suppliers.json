@@ -174,5 +174,29 @@
     "rating": 5.0,
     "createdAt": "2026-07-02T21:17:02.052300+00:00",
     "source": "katrina"
+  },
+  {
+    "id": "f079a94e-d449-47db-89c7-32f32294fe29",
+    "name": "فلتر ديزل",
+    "phone": "",
+    "contactPerson": "",
+    "email": "",
+    "address": "",
+    "city": "",
+    "category": "",
+    "rating": 5.0,
+    "createdAt": "2026-08-02T21:05:04.639493"
+  },
+  {
+    "id": "8e53f597-af5f-4c13-8660-7d150b4d744a",
+    "name": "فلتر هواء",
+    "phone": "",
+    "contactPerson": "",
+    "email": "",
+    "address": "",
+    "city": "",
+    "category": "",
+    "rating": 5.0,
+    "createdAt": "2026-08-02T21:05:06.228645"
   }
 ]
