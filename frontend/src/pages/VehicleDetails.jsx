@@ -1127,7 +1127,9 @@ const VisitCard = ({
     const appliedPaid = Math.min(alreadyPaid, customerTotal);
     const remainingBalance = Math.round(Math.max(customerTotal - appliedPaid, 0) * 100) / 100;
 
-    if (remainingBalance <= 0.01) {
+    const explicitPaymentTotal = (paymentLines || []).reduce((sum, line) => sum + Number(line?.amount || 0), 0);
+
+    if (remainingBalance <= 0.01 && explicitPaymentTotal <= 0.01) {
       toast({ title: 'تنبيه', description: 'لا يوجد رصيد متبقٍ للسداد', variant: 'destructive' });
       setConfirmPayOpen(false);
       return;
@@ -1406,23 +1408,15 @@ const VisitCard = ({
       toast({ title: 'تنبيه', description: 'يرجى إدخال مبلغ صحيح', variant: 'destructive' });
       return;
     }
-    const entry = {
-      id: `pay-${Date.now()}`,
-      kind: 'payment',
-      status: 'pending_confirmation',
-      confirmed: false,
-      amount,
+    await handleConfirmVisitPayment({
+      paymentLines: [{ method: detail.method || 'cash', amount }],
       date: detail.date || new Date().toISOString().split('T')[0],
-      method: detail.method || 'cash',
-      paymentMethod: detail.method || 'cash',
-      reference: detail.reference || '',
-      customerName: vehicle?.customerName || vehicle?.customer_name || '',
-      vehicleId: vehicle?.id || visit.vehicleId || visit.vehicle_id || '',
-      visitId: visit.id,
-    };
-    await persistVisitPayments([...payments, entry]);
-    toast({ title: 'تم تسجيل الدفعة', description: 'تمت إضافتها كدفعة بانتظار التأكيد.' });
-  }, [payments, persistVisitPayments, toast, vehicle, visit.id, visit.vehicleId, visit.vehicle_id]);
+      archiveVehicle: false,
+      viaSupplierBalance: false,
+      supplierId: null,
+      discount: 0,
+    });
+  }, [handleConfirmVisitPayment, toast]);
 
   const isPaymentPending = (payment = {}) => {
     const statusValue = String(payment.status || payment.paymentStatus || payment.payment_status || '').trim().toLowerCase();
@@ -1438,15 +1432,17 @@ const VisitCard = ({
       if (!matchesVisit(event?.detail || {})) return;
       setConfirmPayOpen(true);
     };
-    const onAddPending = (event) => {
+    const onAddConfirmed = (event) => {
       if (!matchesVisit(event?.detail || {})) return;
       addPaymentFromSummary(event.detail || {});
     };
     window.addEventListener('vehicle:open-confirm-payment', onOpenConfirm);
-    window.addEventListener('vehicle:add-pending-payment', onAddPending);
+    window.addEventListener('vehicle:add-confirmed-payment', onAddConfirmed);
+    window.addEventListener('vehicle:add-pending-payment', onAddConfirmed);
     return () => {
       window.removeEventListener('vehicle:open-confirm-payment', onOpenConfirm);
-      window.removeEventListener('vehicle:add-pending-payment', onAddPending);
+      window.removeEventListener('vehicle:add-confirmed-payment', onAddConfirmed);
+      window.removeEventListener('vehicle:add-pending-payment', onAddConfirmed);
     };
   }, [visit.id, addPaymentFromSummary]);
 
@@ -2508,7 +2504,7 @@ const VehicleDetails = () => {
       toast({ title: 'تنبيه', description: 'لا توجد زيارة مرتبطة لإضافة الدفعة.', variant: 'destructive' });
       return;
     }
-    window.dispatchEvent(new CustomEvent('vehicle:add-pending-payment', {
+    window.dispatchEvent(new CustomEvent('vehicle:add-confirmed-payment', {
       detail: { ...paymentPayload, visitId: targetPaymentVisit.id },
     }));
   }, [targetPaymentVisit, toast]);

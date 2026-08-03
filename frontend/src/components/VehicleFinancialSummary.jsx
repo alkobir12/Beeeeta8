@@ -169,7 +169,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
               disabled={!Number.isFinite(Number(quickPayment.amount)) || Number(quickPayment.amount) <= 0}
               data-testid="vehicle-financial-summary-quick-payment-save-button"
             >
-              حفظ كدفعة بانتظار التأكيد
+              حفظ وتأكيد الدفعة
             </button>
             <button
               type="button"
