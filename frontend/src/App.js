@@ -46,8 +46,6 @@ const CustomerTracking = lazy(() => import("./pages/CustomerTracking"));
 const Users = lazy(() => import("./pages/UsersManagement"));
 const QuotationGenerator = lazy(() => import("./pages/QuotationGenerator"));
 const DocumentPrint = lazy(() => import("./pages/DocumentPrint"));
-const DensoDiagnostics = lazy(() => import("./pages/DensoDiagnostics"));
-const FaultKnowledge = lazy(() => import("./pages/FaultKnowledge"));
 const TemplatesManager = lazy(() => import("./pages/TemplatesManager"));
 const Taxes = lazy(() => import("./pages/Taxes"));
 const Invoices = lazy(() => import("./pages/Invoices"));
@@ -57,7 +55,6 @@ const ComprehensiveFinancial = lazy(() => import("./pages/ComprehensiveFinancial
 const AIFinancial = lazy(() => import("./pages/AIFinancial"));
 const FirewallPanel = lazy(() => import("./pages/FirewallPanel"));
 const SystemAudit = lazy(() => import("./pages/SystemAudit"));
-const MoltBot = lazy(() => import("./pages/MoltBotStudio"));
 const DebtFollowUp = lazy(() => import("./pages/DebtFollowUp"));
 
 // Loading component
@@ -236,8 +233,8 @@ function App() {
                   <Route path="quotations" element={<QuotationGenerator />} />
                   <Route path="print" element={<DocumentPrint />} />
                   <Route path="templates" element={<TemplatesManager />} />
-                  <Route path="denso-diagnostics" element={<DensoDiagnostics />} />
-                  <Route path="fault-knowledge" element={<FaultKnowledge />} />
+                  <Route path="denso-diagnostics" element={<Navigate to="/" replace />} />
+                  <Route path="fault-knowledge" element={<Navigate to="/" replace />} />
 
                   {/* Finance & Accounting Routes */}
                   <Route path="accounting/test" element={<div data-testid="accounting-test">TEST ACCOUNTING</div>} />
@@ -249,7 +246,7 @@ function App() {
                   <Route path="accounting/firewall" element={<FirewallPanel />} />
                   <Route path="ai-financial" element={<Navigate to="/accounting/firewall" replace />} />
                   <Route path="system-audit" element={<SystemAudit />} />
-                  <Route path="moltbot" element={<MoltBot />} />
+                  <Route path="moltbot" element={<Navigate to="/" replace />} />
 
                   <Route path="*" element={<Dashboard />} />
 

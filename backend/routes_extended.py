@@ -200,6 +200,46 @@ def _extract_request_actor(request: Optional[Request]) -> Dict[str, str]:
     return {"user_id": user_id, "user_role": user_role}
 
 
+async def _require_request_permission(request: Request, module: str, action: str):
+    from core import rbac
+
+    ident = rbac.extract_identity(request)
+    actor = await rbac.resolve_actor(
+        user_id=ident.get("user_id"),
+        name=ident.get("name"),
+        role_hint=ident.get("role_hint"),
+    )
+    if not actor.found or not actor.active:
+        raise HTTPException(status_code=403, detail={"error": "permission_denied", "msg": "المستخدم غير موجود أو غير نشط"})
+    rbac.require(rbac.check_permission(actor, module, action))
+    return actor
+
+
+async def _require_finance_payment_permission(request: Request):
+    from core import rbac
+
+    ident = rbac.extract_identity(request)
+    actor = await rbac.resolve_actor(
+        user_id=ident.get("user_id"),
+        name=ident.get("name"),
+        role_hint=ident.get("role_hint"),
+    )
+    if not actor.found or not actor.active:
+        raise HTTPException(status_code=403, detail={"error": "permission_denied", "msg": "المستخدم غير موجود أو غير نشط"})
+    allowed = (
+        actor.can("debts", "settle")
+        or actor.can("operations", "settle")
+        or actor.can("journal_entries", "create")
+        or actor.can("journal_entries", "pos")
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "permission_denied", "msg": "لا تملك صلاحية تأكيد الدفعات", "role": actor.role},
+        )
+    return actor
+
+
 
 # --------------------- Business Accounts ---------------------
 @router.get("/biz-accounts")
@@ -2626,8 +2666,12 @@ async def delete_operation(op_id: str):
 async def delete_all_operations(request: Request):
     """Delete all operations - for cleanup/reset"""
     try:
+        actor_obj = await _require_request_permission(request, "operations", "delete")
+        await _require_request_permission(request, "journal_entries", "delete")
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         actor = _extract_request_actor(request)
+        actor["user_id"] = actor_obj.name or actor_obj.id or actor["user_id"]
+        actor["user_role"] = actor_obj.role or actor["user_role"]
         if provider == "supabase":
             supa = SupabaseService()
             # Delete all operations - use gt filter instead of neq
@@ -2713,6 +2757,9 @@ async def cleanup_keep_debts_only(request: Request, confirm: str = Query(...)):
     if confirm != "KEEP_DEBTS_ONLY":
         raise HTTPException(status_code=400, detail="confirm=KEEP_DEBTS_ONLY مطلوب")
 
+    actor_obj = await _require_request_permission(request, "operations", "delete")
+    await _require_request_permission(request, "journal_entries", "delete")
+
     def _is_debt_related(op: Dict[str, Any]) -> bool:
         op_type = str(op.get("type") or "").strip().lower()
         payment_method = str(op.get("payment_method") or op.get("paymentMethod") or "").strip().lower()
@@ -2728,6 +2775,8 @@ async def cleanup_keep_debts_only(request: Request, confirm: str = Query(...)):
     try:
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         actor = _extract_request_actor(request)
+        actor["user_id"] = actor_obj.name or actor_obj.id or actor["user_id"]
+        actor["user_role"] = actor_obj.role or actor["user_role"]
         result = {
             "operations_kept": 0,
             "operations_deleted": 0,
@@ -4931,7 +4980,7 @@ async def vehicle_financial_summary(vehicle_id: str):
 
 
 @router.post("/finance-engine/visits/{visit_id}/payments/confirm")
-async def unified_confirm_visit_payment(visit_id: str, payload: Dict[str, Any] = Body(None)):
+async def unified_confirm_visit_payment(request: Request, visit_id: str, payload: Dict[str, Any] = Body(None)):
     """Unified SSOT path for new confirmed visit payments.
 
     New payments are confirmed immediately, written once to visit notes with the
@@ -4948,6 +4997,8 @@ async def unified_confirm_visit_payment(visit_id: str, payload: Dict[str, Any] =
     if provider != "supabase":
         raise HTTPException(status_code=400, detail="unified finance engine supports supabase provider only")
 
+    actor = await _require_finance_payment_permission(request)
+
     try:
         from supabase_service import SupabaseService
         from core.unified_financial_engine import (
@@ -4962,11 +5013,22 @@ async def unified_confirm_visit_payment(visit_id: str, payload: Dict[str, Any] =
         amount = round2(payload.get("amount"))
         if amount <= 0:
             raise HTTPException(status_code=400, detail="amount must be greater than zero")
+        max_payment_amount = float(os.environ.get("MAX_UNIFIED_PAYMENT_AMOUNT", "1000000"))
+        if amount > max_payment_amount:
+            raise HTTPException(status_code=400, detail="amount exceeds allowed limit")
         method = normalize_method(payload.get("method") or payload.get("payment_method") or "cash")
-        payment_id = str(payload.get("payment_id") or payload.get("id") or uuid.uuid4())
+        idempotency_key = str(
+            request.headers.get("Idempotency-Key")
+            or request.headers.get("X-Idempotency-Key")
+            or payload.get("payment_id")
+            or payload.get("id")
+            or ""
+        ).strip()
+        payment_id = idempotency_key or str(uuid.uuid4())
         date_value = payload.get("date") or datetime.now(timezone.utc).date().isoformat()
         reference = str(payload.get("reference") or "").strip()
-        workshop_id = payload.get("workshop_id") or payload.get("workshopId") or os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync")
+        # Tenant/workshop scope is server-derived only; ignore caller-supplied workshop_id.
+        workshop_id = os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync")
 
         supa = SupabaseService()
         visit_rows = (
@@ -5059,6 +5121,8 @@ async def unified_confirm_visit_payment(visit_id: str, payload: Dict[str, Any] =
             "journalEntryId": journal_id,
             "journal_entry_id": journal_id,
             "source": "unified_financial_engine",
+            "confirmed_by": actor.name or actor.id,
+            "confirmed_role": actor.role,
         }
         payments.append(payment_row)
         try:

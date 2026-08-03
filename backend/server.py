@@ -58,9 +58,6 @@ from routes_advanced import router as advanced_router, set_db as set_db_advanced
 # Import Import Routes
 from routes_import import router as import_router, set_db as set_db_import
 
-# Import Injector Routes
-from routes_injectors import router as injectors_router, set_db as set_db_injectors
-
 # Import User Routes
 from routes_users import router as users_router, set_db as set_db_users
 from routes_user_layouts import router as user_layouts_router, set_db as set_db_user_layouts
@@ -72,9 +69,6 @@ from routes_gemini_chat import (
     set_db as set_db_gemini_chat,
 )
 from routes_payroll import set_db as set_db_payroll
-
-# Import Fault Knowledge Routes
-from routes_fault_knowledge import router as fault_knowledge_router
 
 # Import Templates Routes
 from routes_templates import router as templates_router
@@ -330,7 +324,6 @@ db = client[db_name] if (client is not None and db_name) else None
 set_db_users(db)
 set_db_user_layouts(db)
 set_db_import(db)
-set_db_injectors(db)
 set_db_gemini_chat(db)
 set_db_payroll(db)
 set_db_extended(db)
@@ -642,10 +635,8 @@ from auth_jwt import router as auth_router
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(user_layouts_router)
-app.include_router(injectors_router)
 app.include_router(import_router)
 app.include_router(gemini_chat_router)
-app.include_router(fault_knowledge_router)
 app.include_router(templates_router)
 app.include_router(document_templates_router)
 app.include_router(accounts_chart_router)

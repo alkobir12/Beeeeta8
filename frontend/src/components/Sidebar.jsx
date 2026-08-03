@@ -104,8 +104,6 @@ const Sidebar = ({
         { path: '/finance/taxes', label: t('nav.taxes'), enabled: true, permission: { module: 'reports', action: 'view' } },
       ]
     },
-    { path: '/fault-knowledge', label: `📚 ${t('nav.fault_knowledge')}`, icon: Archive, enabled: true, permission: { module: 'vehicles', action: 'view' } },
-    { path: '/denso-diagnostics', label: `⚡ ${t('nav.denso_diagnostics')}`, icon: Activity, enabled: true, permission: { module: 'vehicles', action: 'view' } },
     {
       group: true,
       label: t('nav.documents'),
@@ -119,8 +117,6 @@ const Sidebar = ({
     },
     { path: '/account/security', label: `🔐 ${i18n.language === 'ar' ? 'أمان الحساب' : 'Account Security'}`, icon: Settings, enabled: true },
     { path: '/settings', label: t('nav.settings'), icon: Settings, enabled: true, permission: { module: 'settings', action: 'view' } },
-    // 🤖 Moltbot Studio أُزيل من القائمة الجانبية — البوتات أصبحت موحدة في UnifiedAssistantDrawer العائم.
-    // إذا احتاج المدير الوصول للـ Studio، المسار /moltbot لا يزال متاحاً مباشرة.
   ];
 
   const loadSettings = async () => {

@@ -137,9 +137,6 @@ export const ROUTE_PERMISSIONS = [
   { pattern: /^\/quotations/, module: 'invoices', action: 'view' },
   { pattern: /^\/print/, module: 'invoices', action: 'view' },
   { pattern: /^\/templates/, module: 'invoices', action: 'view' },
-  { pattern: /^\/denso-diagnostics/, module: 'vehicles', action: 'view' },
-  { pattern: /^\/fault-knowledge/, module: 'vehicles', action: 'view' },
-  { pattern: /^\/moltbot/, module: 'reports', action: 'view' },
   { pattern: /^\/debts-followup/, module: 'reports', action: 'view' },
 ];
 

@@ -51,7 +51,7 @@ const Layout = ({ pageTitle }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const isEditorPreview = useMemo(() => new URLSearchParams(location.search).get('editor-preview') === '1', [location.search]);
-  const isEditorWorkspace = isEditorPreview || location.pathname === '/moltbot';
+  const isEditorWorkspace = isEditorPreview;
   const customizationScopeId = useMemo(() => {
     const workshopId = String(process.env.REACT_APP_WORKSHOP_ID || '').trim();
     return workshopId ? `workshop:${workshopId}` : '';
