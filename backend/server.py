@@ -108,7 +108,6 @@ from routes_smart_inventory import (
 )
 
 from routes_alkabeer_bot import router as alkabeer_bot_router
-from routes_moltbot import router as moltbot_router
 from routes_nlp_page_assistant import router as nlp_page_assistant_router, set_db as set_db_nlp_page_assistant
 # Provider mode
 DB_PROVIDER = os.environ.get("DB_PROVIDER", "mongo").lower()
@@ -668,7 +667,6 @@ app.include_router(smart_accounting_router)
 app.include_router(stitch_router)
 app.include_router(invoices_router)
 app.include_router(alkabeer_bot_router)
-app.include_router(moltbot_router)
 app.include_router(nlp_page_assistant_router)
 from routes_firewall import router as firewall_router
 app.include_router(firewall_router)
