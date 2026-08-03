@@ -1,0 +1,3649 @@
+{
+  "generated_at": "2026-08-03T20:38:35.212939+00:00",
+  "read_only": true,
+  "counts": {
+    "vehicles": 194,
+    "visits": 178,
+    "operations_current": 49,
+    "journal_entries_current": 6,
+    "customers": 216,
+    "invoices": 442
+  },
+  "cleanup_events": [
+    {
+      "id": "076f1f0f-42a8-4745-b79a-6c8de9f9076e",
+      "action": "cleanup_keep_debts_only",
+      "source_endpoint": "/api/cleanup/keep-debts-only",
+      "workshop_id": "",
+      "user": {
+        "id": "88fe138a-0768-47d1-aa66-d67679b5f2ff",
+        "role": "admin"
+      },
+      "items": {
+        "operations_kept": 7,
+        "operations_deleted": 52,
+        "journal_entries_deleted": 55
+      },
+      "meta": {
+        "confirm": "KEEP_DEBTS_ONLY",
+        "provider": "supabase"
+      },
+      "created_at": "2026-05-29T17:50:04.197356+00:00"
+    },
+    {
+      "id": "fd5d8998-dcd2-44d7-9f90-01ddc50568ae",
+      "action": "cleanup_keep_debts_only",
+      "source_endpoint": "/api/cleanup/keep-debts-only",
+      "workshop_id": "",
+      "user": {
+        "id": "مدير",
+        "role": "admin"
+      },
+      "items": {
+        "operations_kept": 7,
+        "operations_deleted": 38,
+        "journal_entries_deleted": 64
+      },
+      "meta": {
+        "confirm": "KEEP_DEBTS_ONLY",
+        "provider": "supabase"
+      },
+      "created_at": "2026-07-17T17:52:07.600601+00:00"
+    },
+    {
+      "id": "df475f48-6f66-432e-bf25-ad6e202db520",
+      "action": "cleanup_keep_debts_only",
+      "source_endpoint": "/api/cleanup/keep-debts-only",
+      "workshop_id": "",
+      "user": {
+        "id": "مدير",
+        "role": "admin"
+      },
+      "items": {
+        "operations_kept": 45,
+        "operations_deleted": 119,
+        "journal_entries_deleted": 182
+      },
+      "meta": {
+        "confirm": "KEEP_DEBTS_ONLY",
+        "provider": "supabase"
+      },
+      "created_at": "2026-08-01T20:01:31.767087+00:00"
+    },
+    {
+      "id": "50654dd7-c7a2-48ed-a3e2-012d23fa1ff8",
+      "action": "cleanup_keep_debts_only",
+      "source_endpoint": "/api/cleanup/keep-debts-only",
+      "workshop_id": "",
+      "user": {
+        "id": "مدير",
+        "role": "admin"
+      },
+      "items": {
+        "operations_kept": 45,
+        "operations_deleted": 0,
+        "journal_entries_deleted": 0
+      },
+      "meta": {
+        "confirm": "KEEP_DEBTS_ONLY",
+        "provider": "supabase"
+      },
+      "created_at": "2026-08-01T20:02:07.981989+00:00"
+    },
+    {
+      "id": "43e92f7a-8ef3-46c2-8a46-b7198e2146ba",
+      "action": "cleanup_keep_debts_only",
+      "source_endpoint": "/api/cleanup/keep-debts-only",
+      "workshop_id": "",
+      "user": {
+        "id": "مدير",
+        "role": "admin"
+      },
+      "items": {
+        "operations_kept": 45,
+        "operations_deleted": 6,
+        "journal_entries_deleted": 10
+      },
+      "meta": {
+        "confirm": "KEEP_DEBTS_ONLY",
+        "provider": "supabase"
+      },
+      "created_at": "2026-08-02T21:09:33.684669+00:00"
+    }
+  ],
+  "cleanup_totals_from_audit_log": {
+    "runs": 5,
+    "operations_deleted_sum": 215.0,
+    "journal_entries_deleted_sum": 311.0,
+    "operations_kept_last": 45
+  },
+  "current_operation_classification": {
+    "counts": {
+      "debt_related": 44,
+      "sale/payment_order": 3,
+      "purchase/supplier": 2
+    },
+    "amounts": {
+      "debt_related": 54366.0,
+      "sale/payment_order": 5101.0,
+      "purchase/supplier": 454.0
+    },
+    "debt_ops_current_count": 45,
+    "debt_ops_current_total": 54716.0
+  },
+  "opening_entries_found": [],
+  "possible_ar_journal_entries": [
+    {
+      "journal_entry_id": "d7ba7da9-fb62-4130-ba4d-1da170bd7702",
+      "date": "2026-08-03",
+      "description": "[قيد مؤقت — بيع آجل] عملية من الزيارة 9092eddb",
+      "source": "operation",
+      "reference_id": "9092eddb-cc58-4b21-ad72-2280037ab7d8",
+      "ar_net": 800.0,
+      "total": 800.0,
+      "lines": [
+        {
+          "debit": 800.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 800.0,
+          "account": "026",
+          "description": null,
+          "account_name": "إيرادات خدمات ميكانيكية"
+        }
+      ]
+    }
+  ],
+  "opening_summary": {
+    "opening_entries_count": 0,
+    "allocated_opening_total": 0.0,
+    "unallocated_opening_total": 0.0,
+    "total_opening_detected": 0.0
+  },
+  "reconciliation_totals": {
+    "customers_in_reconciliation": 143,
+    "current_receivable_total": 8978.0,
+    "correct_balance_reference_total": 63769.5,
+    "difference_total_current_minus_correct": -54791.5,
+    "opening_detected_total": 0.0,
+    "status_counts": {
+      "اختلاف يحتاج مراجعة": 41,
+      "مصدر موجود والذمة مفقودة": 41,
+      "مطابق": 102,
+      "قيد افتتاحي مفقود": 9,
+      "دفعة موجودة دون تطبيق/رصيد عميل": 4
+    }
+  },
+  "reconciliation_rows": [
+    {
+      "customer_id": "bc7ec975-32f6-4b98-b030-7c81039f9710",
+      "customer_name": "1009///محمد الشعيبي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 600.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 600.0,
+      "difference_current_minus_correct": -600.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f77ab3ea-5ea2-4cf6-8e89-1acfadef0098",
+          "plate": "ب ر ق 3019",
+          "total": 600.0,
+          "paid": 0.0,
+          "remaining": 600.0
+        }
+      ]
+    },
+    {
+      "customer_id": "129b338b-8169-4ef4-8d84-eb15eef2f83d",
+      "customer_name": "1026//سليمان الظويهر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 350.0,
+      "confirmed_payments_in_data": 350.0,
+      "applied_payments": 350.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "2d72f1fa-1a31-4fe0-8a4d-b0734d092d87",
+          "plate": "ب د ل 2099",
+          "total": 350.0,
+          "paid": 350.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "3080bf5c-60dd-4989-a7f0-2b808360ecec",
+      "customer_name": "1030// 24  عبدالرحمن محمد المطيري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f4c4a5bc-de9d-4871-b36a-5fe264f73fc5",
+          "plate": "ب ع د 7586",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "96355b75-0ebc-4c66-bd7d-1046f8980bcb",
+      "customer_name": "1033//ابو سلمان الخضير",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 400.0,
+      "confirmed_payments_in_data": 400.0,
+      "applied_payments": 400.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c3a4ef72-7297-4a48-8a7c-f0aa8286fafa",
+          "plate": "1033 /// ح هـ ك 7853",
+          "total": 400.0,
+          "paid": 400.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "06778fd0-a1de-42f5-8ec5-95855a59c8ab",
+      "customer_name": "1035 //فهد السحيم",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "4897cb98-373d-4de7-a4db-c56c010ad22d",
+          "plate": "1035//  ا ط ق 7818",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "1036 /// ماجد الربعي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 100.0,
+      "applied_payments": 100.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+          "plate": "0136///  ا ق ر 7756",
+          "total": 100.0,
+          "paid": 100.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "9cb67f46-90fa-4c8e-b4f0-e2ac64b1c3ad",
+      "customer_name": "1037  ا///اياس حمود العقيلي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 50.0,
+      "difference_current_minus_correct": -50.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "32b67a06-e631-4121-94ac-7f1ef6e44645",
+          "plate": "1037  ///ا ع ن 6730",
+          "total": 50.0,
+          "paid": 0.0,
+          "remaining": 50.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6b8d6f87-68a1-4d20-81c7-effeed42efbf",
+      "customer_name": "1038 ///عبد الاله الزارع",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 175.0,
+      "confirmed_payments_in_data": 175.0,
+      "applied_payments": 175.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "8fd74916-748f-44fd-a293-d70adb4c9fc4",
+          "plate": "1038 ///د س ا 9935",
+          "total": 175.0,
+          "paid": 175.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "78514be9-4420-41b7-908d-cef02ab4ec3d",
+      "customer_name": "1040  /// خضير الخضيري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 450.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 450.0,
+      "difference_current_minus_correct": -450.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "8cac2ba9-ce30-4042-9fbf-fcb3186177b4",
+          "plate": "1040 /// د ل ك 5248",
+          "total": 450.0,
+          "paid": 0.0,
+          "remaining": 450.0
+        }
+      ]
+    },
+    {
+      "customer_id": "c291e598-92c1-4d74-9246-e2ada5f6cc2a",
+      "customer_name": "1041///  اسامه السوداني",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 400.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 400.0,
+      "difference_current_minus_correct": -400.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "8c99b2ba-cfb2-4e75-af18-2a45d29a3a16",
+          "plate": "1041  ///  ب ط ع  1676",
+          "total": 400.0,
+          "paid": 0.0,
+          "remaining": 400.0
+        }
+      ]
+    },
+    {
+      "customer_id": "7599d214-0378-426e-aa8c-1b2d58ab8ef4",
+      "customer_name": "1043  /// مجاهد العبدالله",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 700.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 700.0,
+      "difference_current_minus_correct": -700.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "073d6ec7-53f7-4f64-b251-e4cf75cd6356",
+          "plate": "1043  ///  ب س ك 6549",
+          "total": 700.0,
+          "paid": 0.0,
+          "remaining": 700.0
+        }
+      ]
+    },
+    {
+      "customer_id": "fa46140e-e51b-4b81-9c04-33208519454d",
+      "customer_name": "1046 ///صالح القصير",
+      "current_receivable": 500.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 500.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+          "plate": "   1046  /// ب ص ر 6431",
+          "total": 500.0,
+          "paid": 0.0,
+          "remaining": 500.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "1051 /// عبدالرحمن العمرو",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1300.0,
+      "confirmed_payments_in_data": 700.0,
+      "applied_payments": 700.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 600.0,
+      "difference_current_minus_correct": -600.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "67787800-50d1-4184-a26d-f1ba8db3fcf8",
+          "plate": " 1052  // ا س ص 1977",
+          "total": 1300.0,
+          "paid": 700.0,
+          "remaining": 600.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "1059  /// عطية (فهد الشعيبي)",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 3000.0,
+      "confirmed_payments_in_data": 3000.0,
+      "applied_payments": 3000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "6f17d9b6-1683-45fd-919e-8897aca46600",
+          "plate": "1062 /// ب ع ا 9069",
+          "total": 3000.0,
+          "paid": 3000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "840892fd-4382-49e6-803c-4b795ede2922",
+      "customer_name": "1060 /// ابو ياسر الزويد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2300.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 2300.0,
+      "difference_current_minus_correct": -2300.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "5287aa8d-2969-48ed-bc5e-2ca0f97a03a3",
+          "plate": "1060 ///  ب ص م  7782",
+          "total": 2300.0,
+          "paid": 0.0,
+          "remaining": 2300.0
+        }
+      ]
+    },
+    {
+      "customer_id": "5a74791d-cbc7-4dfb-9ad8-ce4ef68ac085",
+      "customer_name": "1061 ///ابو علي عطاف  الغماس",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "40739271-f126-4f37-bbf1-0e8c984309cf",
+          "plate": "ب س س  7341",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "9a675244-27af-4d80-9996-f6774914a011",
+      "customer_name": "1062 ///ملحمة قويصرة",
+      "current_receivable": 2023.0,
+      "vehicle_visit_due_items": 3900.0,
+      "confirmed_payments_in_data": 1877.0,
+      "applied_payments": 1877.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 2023.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+          "plate": "ا ك ل 3820",
+          "total": 3900.0,
+          "paid": 1877.0,
+          "remaining": 2023.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e4df089c-9348-4d88-b0fc-9e64d0234c82",
+      "customer_name": "1064 /// سلطان العليان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2000.0,
+      "confirmed_payments_in_data": 2000.0,
+      "applied_payments": 2000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "bd4f8cdf-9363-4723-b6f9-32c2651e9e48",
+          "plate": "س ط ق 900",
+          "total": 2000.0,
+          "paid": 2000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "c6bdcab8-538f-4a6f-8d62-4da2cb2a8ab0",
+      "customer_name": "1066 ///وليد بخيت",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 100.0,
+      "applied_payments": 100.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "09249139-7bb6-40cb-8a7f-c971fba30162",
+          "plate": "ا ص ح 2760",
+          "total": 100.0,
+          "paid": 100.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "2faeddf1-4c01-4f8e-bf43-7d9e41cde956",
+      "customer_name": "228/// خالد جعفر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 150.0,
+      "confirmed_payments_in_data": 150.0,
+      "applied_payments": 150.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "4c001084-143b-4861-855c-ad2f6024ff01",
+          "plate": "228  ///ات ب ل 9230",
+          "total": 150.0,
+          "paid": 150.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "db2db5b9-c875-4f8a-9798-0f129db51b45",
+      "customer_name": "738//ابو  الحسن التميمي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 250.0,
+      "confirmed_payments_in_data": 250.0,
+      "applied_payments": 250.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "d5423ffa-1220-40cf-ac57-b7aea236334f",
+          "plate": "ا ل ع 9074",
+          "total": 250.0,
+          "paid": 250.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "77  //محمد  فهدالعمر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1000.0,
+      "confirmed_payments_in_data": 1000.0,
+      "applied_payments": 1000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 2,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+          "plate": "ا ر ح 6912",
+          "total": 250.0,
+          "paid": 250.0,
+          "remaining": 0.0
+        },
+        {
+          "vehicle_id": "21d93583-1ccf-40b6-9821-64c8b414e9b7",
+          "plate": "ا ص هـ  8843",
+          "total": 750.0,
+          "paid": 750.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "8cf32822-fa55-49a1-a667-81da0e45bd44",
+      "customer_name": "78 //ابو بندر الراشد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 500.0,
+      "applied_payments": 500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "9a359734-02bb-460c-92d3-c43306a682c8",
+          "plate": "78 //  ب  هـ م 4519",
+          "total": 500.0,
+          "paid": 500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "928///ابو احمد الدبيخي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 200.0,
+      "applied_payments": 200.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 300.0,
+      "difference_current_minus_correct": -300.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "fe9f4e57-8522-492b-8878-c5d1a8fa107c",
+          "plate": "د ك هـ 1736",
+          "total": 500.0,
+          "paid": 200.0,
+          "remaining": 300.0
+        }
+      ]
+    },
+    {
+      "customer_id": "3ceea115-c0b1-46bc-a713-f67c1f405dee",
+      "customer_name": "996///راشد الربيعان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 130.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 130.0,
+      "difference_current_minus_correct": -130.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "987c4fef-47ce-464e-a3e6-f5c4e1a7bdaa",
+          "plate": "ح م ص 1554",
+          "total": 130.0,
+          "paid": 0.0,
+          "remaining": 130.0
+        }
+      ]
+    },
+    {
+      "customer_id": "4abe6ba8-2f66-418d-8666-756d73f69ecf",
+      "customer_name": "997///محمد شعبان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 50.0,
+      "difference_current_minus_correct": -50.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "ca81024e-195b-464e-9671-0f532aad1545",
+          "plate": "ب ح ر 7042",
+          "total": 50.0,
+          "paid": 0.0,
+          "remaining": 50.0
+        }
+      ]
+    },
+    {
+      "customer_id": "5930d40e-9d23-4549-8def-3599182ba4af",
+      "customer_name": "ابراهيم ابو الخيل",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "a361c8d6-fef2-42e7-b8a2-c7e62b7e0719",
+          "plate": "ب د ن 6102",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "fbfb2aec-5133-4cee-92c3-63db70a3fdce",
+      "customer_name": "ابراهيم العجلان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2500.0,
+      "confirmed_payments_in_data": 2500.0,
+      "applied_payments": 2500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "53720208-1b25-4764-abd0-bd18fad57a0d",
+          "plate": "ب ط ل 311",
+          "total": 2500.0,
+          "paid": 2500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "2bfe5f46-97d5-4575-a3bc-1058170ebe7f",
+      "customer_name": "ابراهيم العمر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 150.0,
+      "confirmed_payments_in_data": 150.0,
+      "applied_payments": 150.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "75ab383a-b52d-42b2-85f2-2174c1b4f28f",
+          "plate": "ا ب ل 6352",
+          "total": 150.0,
+          "paid": 150.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6aa29cb1-83c0-422f-9332-6bf0a123c32f",
+      "customer_name": "ابراهيم القبيشي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 4000.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 4000.0,
+      "difference_current_minus_correct": -4000.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "945e9f2c-02f7-4883-960e-21a47bf33654",
+          "plate": "ب ق ه 7484",
+          "total": 4000.0,
+          "paid": 0.0,
+          "remaining": 4000.0
+        }
+      ]
+    },
+    {
+      "customer_id": "3a10b803-9ba4-43dc-9729-532dfa542bd7",
+      "customer_name": "ابراهيم النغيمشي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 390.0,
+      "confirmed_payments_in_data": 390.0,
+      "applied_payments": 390.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c6948aef-0fa8-4c30-9746-458810072050",
+          "plate": "ر ى ى 550",
+          "total": 390.0,
+          "paid": 390.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "ae8c5f80-e0e4-4026-a650-04b4e75e8836",
+      "customer_name": "ابراهيم صالح",
+      "current_receivable": 1975.0,
+      "vehicle_visit_due_items": 1975.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 1975.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+          "plate": "ب ر ق 4806",
+          "total": 1975.0,
+          "paid": 0.0,
+          "remaining": 1975.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f1426725-927b-43ea-89ef-6a6f826d458a",
+      "customer_name": "ابراهيم مقعد الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 350.0,
+      "confirmed_payments_in_data": 350.0,
+      "applied_payments": 350.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "378e91b2-9153-4480-bb17-c2b27edf632d",
+          "plate": "ب ب ط 5732",
+          "total": 350.0,
+          "paid": 350.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "cca4654c-4aab-46c4-9995-440a59e317c6",
+      "customer_name": "ابو  خالد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 3200.0,
+      "confirmed_payments_in_data": 3200.0,
+      "applied_payments": 3200.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "1a290ded-a42b-48b5-8772-edbd1a47ec29",
+          "plate": "ا د ك 7774",
+          "total": 3200.0,
+          "paid": 3200.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "a96c2d63-7bf9-4f79-b1cf-8a9755d1f7b3",
+      "customer_name": "ابو ابراهيم العريني",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1500.0,
+      "confirmed_payments_in_data": 1500.0,
+      "applied_payments": 1500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "8fd4db19-2135-4b12-938b-82eb981d3dd8",
+          "plate": "ب ا ل 7680",
+          "total": 1500.0,
+          "paid": 1500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e3ba7a3b-b682-41f8-a0de-e942ae8d23e7",
+      "customer_name": "ابو احمد الدبيخي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 50.0,
+      "difference_current_minus_correct": -50.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "020dcc0a-5ebf-4900-b837-388e33d3b915",
+          "plate": "د ك ه 1736",
+          "total": 50.0,
+          "paid": 0.0,
+          "remaining": 50.0
+        }
+      ]
+    },
+    {
+      "customer_id": "ab2af380-3f99-4552-8aac-d76095dd2b2b",
+      "customer_name": "ابو تركي الرويضان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 3700.0,
+      "confirmed_payments_in_data": 3700.0,
+      "applied_payments": 3700.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "d8d23ceb-bc73-4d2f-a1a4-5918a51ac634",
+          "plate": "ح ن ط 8712",
+          "total": 3700.0,
+          "paid": 3700.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "cae5d187-dd6c-4377-8045-5b593cfb9613",
+      "customer_name": "ابو تركي العوفي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 350.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 350.0,
+      "difference_current_minus_correct": -350.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c86260bc-8a43-4820-975f-2cbb5305ed1d",
+          "plate": "ا ص د 8685",
+          "total": 350.0,
+          "paid": 0.0,
+          "remaining": 350.0
+        }
+      ]
+    },
+    {
+      "customer_id": "41188f8f-db7d-4552-b309-60a956aec055",
+      "customer_name": "ابو تميم",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 40.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 40.0,
+      "difference_current_minus_correct": -40.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "945244d1-5997-4052-84dd-d0ea02607f4e",
+          "plate": "اه د  6464",
+          "total": 40.0,
+          "paid": 0.0,
+          "remaining": 40.0
+        }
+      ]
+    },
+    {
+      "customer_id": "2a247304-3b61-4631-bcf4-cb279c8d9427",
+      "customer_name": "ابو جواد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 450.0,
+      "confirmed_payments_in_data": 450.0,
+      "applied_payments": 450.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "73b588fd-4fd2-4eb3-abdb-e3f19762915f",
+          "plate": "ر ب هـ 6983",
+          "total": 450.0,
+          "paid": 450.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6d5983b2-5d6f-4d32-99ac-8d5f43602f41",
+      "customer_name": "ابو حمود التويجري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 350.0,
+      "confirmed_payments_in_data": 60.0,
+      "applied_payments": 60.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 290.0,
+      "difference_current_minus_correct": -290.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "ddc21487-a04e-467f-b31e-f238c255d4a6",
+          "plate": "ب ح ط8455",
+          "total": 350.0,
+          "paid": 60.0,
+          "remaining": 290.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "ابو ركان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 305.0,
+      "confirmed_payments_in_data": 305.0,
+      "applied_payments": 305.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "6fa5e146-353b-41ac-97b4-6ae05a69c7d1",
+          "plate": "د ى هـ 8536",
+          "total": 305.0,
+          "paid": 305.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e34cbc8a-9de0-4093-8084-aa7a8d62e798",
+      "customer_name": "ابو ركان عبدالله",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2350.0,
+      "confirmed_payments_in_data": 2350.0,
+      "applied_payments": 2350.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+          "plate": "د ط ص 5787",
+          "total": 2350.0,
+          "paid": 2350.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "3b7c094c-049e-4a80-89aa-9b0d101d4421",
+      "customer_name": "ابو زامل",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2400.0,
+      "confirmed_payments_in_data": 2400.0,
+      "applied_payments": 2400.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "249e187d-436c-428d-b41b-11c18657eb59",
+          "plate": "ا ط ل209",
+          "total": 2400.0,
+          "paid": 2400.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "0d027fcc-b166-4808-8466-c97987944fc2",
+      "customer_name": "ابو سلطان يوسف",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 600.0,
+      "confirmed_payments_in_data": 600.0,
+      "applied_payments": 600.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "0fdea03e-3440-4e87-8eb5-36ef2e02edd4",
+          "plate": "ا ط ك 6977",
+          "total": 600.0,
+          "paid": 600.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f258f224-34f6-45ab-95c9-201a3a0e94a3",
+      "customer_name": "ابو صهيب الاردني",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2380.0,
+      "confirmed_payments_in_data": 1580.0,
+      "applied_payments": 1580.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 800.0,
+      "difference_current_minus_correct": -800.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f0946eb4-13be-4eca-8128-c6b1832601b8",
+          "plate": "ا ك ك 5997",
+          "total": 2380.0,
+          "paid": 1580.0,
+          "remaining": 800.0
+        }
+      ]
+    },
+    {
+      "customer_id": "10d066e6-c429-4f7c-93a9-5b3c588cf41b",
+      "customer_name": "ابو عبد الرحمن",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 260.0,
+      "confirmed_payments_in_data": 260.0,
+      "applied_payments": 260.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "523ae499-35e2-4200-a0b7-90dbc2f2759a",
+          "plate": "ب د ح 5165",
+          "total": 260.0,
+          "paid": 260.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e69dd859-6583-4258-8278-9f576b858206",
+      "customer_name": "ابو عبدالعزيز المشيطي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 500.0,
+      "applied_payments": 500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "41df3535-6637-4998-8ca6-7c467a58427e",
+          "plate": "ا م ب 2533",
+          "total": 500.0,
+          "paid": 500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "5f61c3b6-3a4a-4fae-b099-bcc9eebf1e54",
+      "customer_name": "ابو عبدالله",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 100.0,
+      "difference_current_minus_correct": -100.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "3f4d770d-73d3-43e8-b4ea-4ca50219fe65",
+          "plate": "ا ب و  1266",
+          "total": 100.0,
+          "paid": 0.0,
+          "remaining": 100.0
+        }
+      ]
+    },
+    {
+      "customer_id": "522f1655-98e4-4bd3-9675-9d7750ec0482",
+      "customer_name": "ابو عبدالله العوفي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1200.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 1200.0,
+      "difference_current_minus_correct": -1200.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "54d13d80-c9a9-407b-9137-b42f9f6eb023",
+          "plate": "ب ع س 6247",
+          "total": 1200.0,
+          "paid": 0.0,
+          "remaining": 1200.0
+        }
+      ]
+    },
+    {
+      "customer_id": "3692da85-9f21-495f-985e-d9baf6992598",
+      "customer_name": "ابو علي الشعيبي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 150.0,
+      "confirmed_payments_in_data": 150.0,
+      "applied_payments": 150.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "b3d99135-3986-47c6-bfb4-11721d8b5f55",
+          "plate": "ح هـ هـ 7754",
+          "total": 150.0,
+          "paid": 150.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "371e4be5-1139-4804-9ecf-851bdd3febef",
+      "customer_name": "ابو فيصل",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 400.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 400.0,
+      "difference_current_minus_correct": -400.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c61c7020-daf9-4a59-9a86-22ae2a9a12fd",
+          "plate": "ا ب ق 9252",
+          "total": 400.0,
+          "paid": 0.0,
+          "remaining": 400.0
+        }
+      ]
+    },
+    {
+      "customer_id": "da02441b-566d-4bd8-8d7f-836041f87d95",
+      "customer_name": "ابو ماجد الدخيل الله",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2600.0,
+      "confirmed_payments_in_data": 2600.0,
+      "applied_payments": 2600.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "e00544bd-184a-4388-95bd-125fed165127",
+          "plate": "د ل ح 4662",
+          "total": 2600.0,
+          "paid": 2600.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "50c6781d-edeb-43f9-821f-da16448bbe1d",
+      "customer_name": "ابو مصري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 780.0,
+      "confirmed_payments_in_data": 780.0,
+      "applied_payments": 780.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "2dff4689-054a-483d-9e82-41a743b7001b",
+          "plate": "ب ق د 4410",
+          "total": 780.0,
+          "paid": 780.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e2f15c38-ba42-4442-a04b-fc20b355a04c",
+      "customer_name": "ابو نايف الفايزي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "94bb8ac0-6b4b-4ad4-97eb-b8a9f55d26ff",
+          "plate": "د س هـ 7673",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "ابو ياسر الحزيمي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 250.0,
+      "confirmed_payments_in_data": 250.0,
+      "applied_payments": 250.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "edaeb39c-5f09-46c1-9250-6f097adeaba2",
+          "plate": "بدون لوحه",
+          "total": 250.0,
+          "paid": 250.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "8d78254a-2389-4f12-aaf2-273dfbe4bd09",
+      "customer_name": "احمد الجمعه",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 50.0,
+      "difference_current_minus_correct": -50.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "59108515-b840-46dc-97d6-83673a05ea49",
+          "plate": "ب ص ن 2140",
+          "total": 50.0,
+          "paid": 0.0,
+          "remaining": 50.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "احمد الخضيري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 100.0,
+      "applied_payments": 100.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "d6986b4e-9f3c-4ebb-9bdb-465b32b24991",
+          "plate": "د  ن ن 9597",
+          "total": 100.0,
+          "paid": 100.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "الحزيمي البصر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 350.0,
+      "confirmed_payments_in_data": 350.0,
+      "applied_payments": 350.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "ffcf800c-d1bb-40df-8df3-effa59bc05cd",
+          "plate": "ا ك ا 6616",
+          "total": 350.0,
+          "paid": 350.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "11aa3ea4-c2ba-417c-b033-a71e23c4f495",
+      "customer_name": "الريان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 250.0,
+      "confirmed_payments_in_data": 250.0,
+      "applied_payments": 250.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "a1391141-e312-4cb7-9e37-9a94759e73a1",
+          "plate": "ب ا ر 7880",
+          "total": 250.0,
+          "paid": 250.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f659ae85-c77d-4880-a785-bd48539ec68d",
+      "customer_name": "الريف الثلاثي للحوم",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 400.0,
+      "confirmed_payments_in_data": 400.0,
+      "applied_payments": 400.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "17b1a4eb-cee6-4f6c-830d-b3381a2c03ee",
+          "plate": "ب ص ح 3952",
+          "total": 400.0,
+          "paid": 400.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "4c977b74-e227-4126-8b72-c1f1c436623d",
+      "customer_name": "العنزي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 119.0,
+      "confirmed_payments_in_data": 1200.0,
+      "applied_payments": 119.0,
+      "unapplied_customer_credit": 1081.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، دفعة موجودة دون تطبيق/رصيد عميل",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "df66a121-87a6-4d98-8ee6-407814a143c4",
+          "plate": "د د د 1671",
+          "total": 119.0,
+          "paid": 1200.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6c6a9016-f85e-47b2-85e4-f18f2fec66aa",
+      "customer_name": "الفايز",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 130.0,
+      "confirmed_payments_in_data": 130.0,
+      "applied_payments": 130.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "afdfcd8e-6299-43ed-815e-5e61412bd949",
+          "plate": "ا ر و 5978",
+          "total": 130.0,
+          "paid": 130.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "8001305b-8e07-484c-a2fe-4751f3fa871d",
+      "customer_name": "المحيميد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "e7561ca4-3b54-4a87-b725-4728821890a6",
+          "plate": "س د ى777",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "46b2ef20-a717-4bb1-b6ec-47007e71d76a",
+      "customer_name": "ب س ص 1968",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2500.0,
+      "confirmed_payments_in_data": 2500.0,
+      "applied_payments": 2500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "5c8321ff-f29c-4f55-960f-5647b3f35294",
+          "plate": "ب س ص 1968",
+          "total": 2500.0,
+          "paid": 2500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "720d91ed-18b3-4ab5-9deb-937f57d663f9",
+      "customer_name": "جاويد المخرطة",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 4000.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 4000.0,
+      "difference_current_minus_correct": -4000.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c80b56b3-ca07-4840-86b4-7687dd560c07",
+          "plate": "ب ر م 9827",
+          "total": 4000.0,
+          "paid": 0.0,
+          "remaining": 4000.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "جيب 2012",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 4800.0,
+      "confirmed_payments_in_data": 4800.0,
+      "applied_payments": 4800.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "9a1b39b3-2873-4834-818b-091c232e9c08",
+          "plate": "د هـ ط 6707",
+          "total": 4800.0,
+          "paid": 4800.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e777d0fa-ad5f-404b-9cdf-03e4ef20f733",
+      "customer_name": "جيب 2025",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1387.0,
+      "confirmed_payments_in_data": 1387.0,
+      "applied_payments": 1387.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "4f239a9f-f848-404d-8bcb-9c391db6c62c",
+          "plate": "ر ن ح 7899",
+          "total": 1387.0,
+          "paid": 1387.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "039417d5-b761-4759-be6c-0a830952d02d",
+      "customer_name": "حاتم الحزمي ابو عدي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 732.0,
+      "confirmed_payments_in_data": 732.0,
+      "applied_payments": 732.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f41f491d-ec38-4b58-b80d-a6b2c3704c66",
+          "plate": "ب د ن 8257",
+          "total": 732.0,
+          "paid": 732.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "حزام سعود المطيري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2300.0,
+      "confirmed_payments_in_data": 2300.0,
+      "applied_payments": 2300.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "b769bb31-6e3a-4804-b3e5-b33a70b83b37",
+          "plate": "ا ط ا 9935",
+          "total": 2300.0,
+          "paid": 2300.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "حسام التويجري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 500.0,
+      "applied_payments": 500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "48b72a27-2a5b-47d0-8664-ba5e7f62bb06",
+          "plate": "ا س ر 7033",
+          "total": 500.0,
+          "paid": 500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "7d203044-648a-4b3e-9342-62ed76ad3777",
+      "customer_name": "حيايل هايلكس",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c706c640-5742-4003-acae-38293be15cbd",
+          "plate": "د ر م 333",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "5c8140f9-f7b3-4947-86b1-67cc1ff943f7",
+      "customer_name": "خالد الربيش",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 5500.0,
+      "confirmed_payments_in_data": 1000.0,
+      "applied_payments": 1000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 4500.0,
+      "difference_current_minus_correct": -4500.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "44d8587d-5524-43ab-aa32-b4bb0de023dd",
+          "plate": "ح ل ه 5177",
+          "total": 5500.0,
+          "paid": 1000.0,
+          "remaining": 4500.0
+        }
+      ]
+    },
+    {
+      "customer_id": "512c8dda-d44e-468f-91d5-68d3edfa21dd",
+      "customer_name": "خالد السلمان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1479.0,
+      "confirmed_payments_in_data": 1479.0,
+      "applied_payments": 1479.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "e4deb6b5-6f6e-4d98-99df-4ba9e4f2858a",
+          "plate": "ا م ل 5203",
+          "total": 1479.0,
+          "paid": 1479.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "562a028c-9a55-46da-9e84-b78871c6526b",
+      "customer_name": "خالد القبيشي",
+      "current_receivable": 302.0,
+      "vehicle_visit_due_items": 302.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 302.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+          "plate": " ا ع ط 3550",
+          "total": 302.0,
+          "paid": 0.0,
+          "remaining": 302.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6f4d378c-0560-4247-901b-a4d7a154f96c",
+      "customer_name": "خالد عماش الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 8000.0,
+      "confirmed_payments_in_data": 8000.0,
+      "applied_payments": 8000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+          "plate": "ا ح ق 9342",
+          "total": 8000.0,
+          "paid": 8000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "5e7150c4-0c06-4d73-92f8-17222021f7f7",
+      "customer_name": "د خالد الراجح",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 3500.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 3500.0,
+      "difference_current_minus_correct": -3500.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "680106d7-c9b5-43f6-9229-4df9f7f7a582",
+          "plate": "ب ي ط 7538",
+          "total": 3500.0,
+          "paid": 0.0,
+          "remaining": 3500.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e5a2776d-5075-4710-8beb-244c759458db",
+      "customer_name": "ذياب سليمان الذياب",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 500.0,
+      "applied_payments": 500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "a7103b1d-39d0-41e8-a692-ed22d25c0a57",
+          "plate": "ب ك ع 5140",
+          "total": 500.0,
+          "paid": 500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "4851778f-c2d5-4ee6-a2f0-166ac9b2cfb5",
+      "customer_name": "زبن البدراني",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2000.0,
+      "confirmed_payments_in_data": 2000.0,
+      "applied_payments": 2000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "406ff62b-2a86-4e57-a08e-60e01acce345",
+          "plate": "ا س ص 2919",
+          "total": 2000.0,
+          "paid": 2000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "4b09f1a9-ec6e-4080-a650-9f5533ca4663",
+      "customer_name": "زياد الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 300.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 300.0,
+      "difference_current_minus_correct": -300.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "d394b77e-52fa-42e0-ab24-28539304b141",
+          "plate": "ب د ل 2282",
+          "total": 300.0,
+          "paid": 0.0,
+          "remaining": 300.0
+        }
+      ]
+    },
+    {
+      "customer_id": "c9dafe56-522e-4043-a41d-bc20d603ff40",
+      "customer_name": "زياد الشمشم",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 500.0,
+      "applied_payments": 500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "a076e2cb-a2f4-4fd7-aff9-301da9432e18",
+          "plate": "ص ط د442",
+          "total": 500.0,
+          "paid": 500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6b64bb6e-c1e0-4373-8d4a-808d158bebd7",
+      "customer_name": "سالم العازمي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 6000.0,
+      "confirmed_payments_in_data": 6000.0,
+      "applied_payments": 6000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "df10586b-5cf9-44aa-83bc-9364a4da34e2",
+          "plate": "دولة الكويت60-2698",
+          "total": 6000.0,
+          "paid": 6000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f1510757-ba5b-41d0-b460-4c4547ed4b62",
+      "customer_name": "سالم حسين",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 600.0,
+      "confirmed_payments_in_data": 600.0,
+      "applied_payments": 600.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "7fa6e695-5dce-48e2-a4de-4268724f3c07",
+          "plate": "ا هـ ك 4818",
+          "total": 600.0,
+          "paid": 600.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f201c0d0-4577-42ca-9cc6-b0595f7ba7cf",
+      "customer_name": "سعود الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 3207.0,
+      "confirmed_payments_in_data": 3207.0,
+      "applied_payments": 3207.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "2753cb77-df07-4326-8794-af7667e1ccc6",
+          "plate": "ا ع ن 8041",
+          "total": 3207.0,
+          "paid": 3207.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "db70f20c-a0a2-4519-b621-7d23def4f735",
+      "customer_name": "سلطان الشاص",
+      "current_receivable": 300.0,
+      "vehicle_visit_due_items": 300.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 300.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+          "plate": "ب ح ن 6923",
+          "total": 300.0,
+          "paid": 0.0,
+          "remaining": 300.0
+        }
+      ]
+    },
+    {
+      "customer_id": "da067199-36b2-455c-9075-fed17443b1b3",
+      "customer_name": "سلطان الصالح",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 285.0,
+      "confirmed_payments_in_data": 200.0,
+      "applied_payments": 200.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 85.0,
+      "difference_current_minus_correct": -85.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "bd714910-1e07-40b4-b4e7-5c6cc98a6d1d",
+          "plate": "ب ص ر 303",
+          "total": 285.0,
+          "paid": 200.0,
+          "remaining": 85.0
+        }
+      ]
+    },
+    {
+      "customer_id": "aed9a910-ed7e-4cdd-914e-dea4e5966c19",
+      "customer_name": "سلطان عبدالرحمن المحيميد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 200.0,
+      "confirmed_payments_in_data": 200.0,
+      "applied_payments": 200.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "4e348c0f-996f-4d18-aeaf-eb212c8d68b1",
+          "plate": "د ط س6269",
+          "total": 200.0,
+          "paid": 200.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "54725233-a48a-4574-8935-5fa638966974",
+      "customer_name": "سليمان السويلمي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1000.0,
+      "confirmed_payments_in_data": 1000.0,
+      "applied_payments": 1000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "5d3c165e-cfa3-4046-8613-d8f6b2e59459",
+          "plate": "د هـ ع  1007",
+          "total": 1000.0,
+          "paid": 1000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "66ad9792-2af5-4438-b019-936fb95b979a",
+      "customer_name": "سيف حمدان المنصوري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 90.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 90.0,
+      "difference_current_minus_correct": -90.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f3422cc1-dd9c-4e69-8205-0aa50b3795a1",
+          "plate": "قطر 278675",
+          "total": 90.0,
+          "paid": 0.0,
+          "remaining": 90.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e29394d5-9f20-4e91-907f-d0ca88d05b43",
+      "customer_name": "شركة مصنع اعذاق للصناعه",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1220.0,
+      "confirmed_payments_in_data": 1220.0,
+      "applied_payments": 1220.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "62514f6c-6d2b-43b8-87b6-5099c756318e",
+          "plate": "ب ب ك 7689",
+          "total": 1220.0,
+          "paid": 1220.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "9c8970f9-1b42-494d-ba57-ef3aeae944ed",
+      "customer_name": "صالح البشر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 50.0,
+      "applied_payments": 50.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "2d155e40-7273-428a-a4ef-153ee3ee75de",
+          "plate": "1019///د ن هـ4334",
+          "total": 50.0,
+          "paid": 50.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "aa3e964b-beb7-450a-91c2-2a006074527a",
+      "customer_name": "صالح اللحيدان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2017.0,
+      "confirmed_payments_in_data": 2017.0,
+      "applied_payments": 2017.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 2,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "1b9b4214-7078-415a-91c3-2eecaf072f21",
+          "plate": "ب ح و 7172",
+          "total": 150.0,
+          "paid": 150.0,
+          "remaining": 0.0
+        },
+        {
+          "vehicle_id": "e9cca4ee-f759-4124-8d55-4f6e8895ccc3",
+          "plate": "ب د د 9831",
+          "total": 1867.0,
+          "paid": 1867.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "fa4cd905-3333-420a-a0fb-5eba9d280406",
+      "customer_name": "صالح المحيميمد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 3070.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 3070.0,
+      "difference_current_minus_correct": -3070.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "27fe3a2a-f3ac-443e-8c93-461c0046af63",
+          "plate": "1065 /// ح د ط  7811",
+          "total": 3070.0,
+          "paid": 0.0,
+          "remaining": 3070.0
+        }
+      ]
+    },
+    {
+      "customer_id": "17bd18ec-0d2a-4f17-bb30-a4377994395d",
+      "customer_name": "ظاهر بن  سعود الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1440.0,
+      "confirmed_payments_in_data": 1440.0,
+      "applied_payments": 1440.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "eec7e2a9-2f28-4edf-b11f-cbfc162f1b22",
+          "plate": "ب ر ر 6710",
+          "total": 1440.0,
+          "paid": 1440.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "68aedda6-efee-4af5-a1f9-cd994c9c1711",
+      "customer_name": "عاصم التويجري",
+      "current_receivable": 150.0,
+      "vehicle_visit_due_items": 150.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 150.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+          "plate": "ا ل و 7121",
+          "total": 150.0,
+          "paid": 0.0,
+          "remaining": 150.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6aa3039c-808a-4843-89bc-bdc852598531",
+      "customer_name": "عاصم المحيميد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 300.0,
+      "confirmed_payments_in_data": 300.0,
+      "applied_payments": 300.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "50c37caa-3329-4c00-a625-54a68837c662",
+          "plate": "ب د ب 4462",
+          "total": 300.0,
+          "paid": 300.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "205f8010-1237-4576-9e05-61be49620857",
+      "customer_name": "عاصم النصيان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 100.0,
+      "applied_payments": 100.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "9d68a7a1-1c89-46cb-8b1e-f0cb02cde1ff",
+          "plate": "ع م م 919",
+          "total": 100.0,
+          "paid": 100.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "142ba343-334c-4394-bcda-1f82ef213463",
+      "customer_name": "عبد الرحمن الراشد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1900.0,
+      "confirmed_payments_in_data": 980.0,
+      "applied_payments": 980.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 920.0,
+      "difference_current_minus_correct": -920.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 2,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "b1496211-233e-49b7-9f82-bd0ad7b44f84",
+          "plate": "ا ب ط 7516",
+          "total": 300.0,
+          "paid": 300.0,
+          "remaining": 0.0
+        },
+        {
+          "vehicle_id": "c8072077-d448-4015-a29c-247524fb7c57",
+          "plate": "ا ل ب 5990",
+          "total": 1600.0,
+          "paid": 680.0,
+          "remaining": 920.0
+        }
+      ]
+    },
+    {
+      "customer_id": "10d84c70-2a35-4bd0-b851-50154d155c8b",
+      "customer_name": "عبد الرحمن فالح الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 150.0,
+      "confirmed_payments_in_data": 150.0,
+      "applied_payments": 150.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "082fd44a-1da4-4783-ad18-652c545ca826",
+          "plate": "1067 /// د ا ق 3849",
+          "total": 150.0,
+          "paid": 150.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6c3cc86f-8006-46a3-869b-f5437208b647",
+      "customer_name": "عبد العزيز الحسين",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 100.0,
+      "applied_payments": 100.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "bb1b011b-b913-46d7-a0b9-6fa5e1dc6363",
+          "plate": "1023/// ي ر ك 106",
+          "total": 100.0,
+          "paid": 100.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "39514eb4-f98c-4387-baa8-bc399258f009",
+      "customer_name": "عبد العزيز الخضر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 100.0,
+      "applied_payments": 100.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "a1ce134c-2ea2-4309-94c4-be77b7091853",
+          "plate": "ق ى ا 663",
+          "total": 100.0,
+          "paid": 100.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "afe67a2a-342c-4fd8-ac4b-b2534ba90cef",
+      "customer_name": "عبد العزيز الشعيبي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1695.0,
+      "confirmed_payments_in_data": 1695.0,
+      "applied_payments": 1695.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "30371f9e-59c9-47b5-9619-53048419e546",
+          "plate": "د ح د 8719",
+          "total": 1695.0,
+          "paid": 1695.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "54f01a74-526e-4832-9f86-2aaf7efee08f",
+      "customer_name": "عبد العزيز العتيبي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 4000.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 4000.0,
+      "difference_current_minus_correct": -4000.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "67b3bb9a-ee06-45ef-a071-94711c25db5f",
+          "plate": "ب س ص 1230",
+          "total": 4000.0,
+          "paid": 0.0,
+          "remaining": 4000.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f3c9aa16-295a-42e3-bee2-58dfe9fa82e6",
+      "customer_name": "عبد العزيز العريني",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2200.0,
+      "confirmed_payments_in_data": 2200.0,
+      "applied_payments": 2200.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "55df7179-74a9-45ed-8b01-1125dddfb8e6",
+          "plate": "د ب د 4069",
+          "total": 2200.0,
+          "paid": 2200.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "ffd49f04-aaae-4b6d-8c05-dafb702f8cc4",
+      "customer_name": "عبد العزيز اللافي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 500.0,
+      "applied_payments": 500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "e9b04c22-b0df-4866-959d-a0ee1f5e7ed6",
+          "plate": "ا ص ل 3898",
+          "total": 500.0,
+          "paid": 500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "fff1a413-1670-47aa-b973-6034759568ee",
+      "customer_name": "عبد العزيز الوابل",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1600.0,
+      "confirmed_payments_in_data": 1600.0,
+      "applied_payments": 1600.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "6566f6d6-032c-45ba-ae99-c9f4373e38be",
+          "plate": "ا ن س 3348",
+          "total": 1600.0,
+          "paid": 1600.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "50d8cc32-47cc-404e-8ca0-bc04488db567",
+      "customer_name": "عبد الكريم الشايعي",
+      "current_receivable": 800.0,
+      "vehicle_visit_due_items": 800.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 800.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+          "plate": "ا ص ص 7293",
+          "total": 800.0,
+          "paid": 0.0,
+          "remaining": 800.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f1da344d-3e7d-4e4a-b733-c589e73d1d6f",
+      "customer_name": "عبد الله الخطيب",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 200.0,
+      "confirmed_payments_in_data": 200.0,
+      "applied_payments": 200.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "85b7178f-ab3c-4831-8279-87d2ec7cbe76",
+          "plate": "ب ب ر 1760",
+          "total": 200.0,
+          "paid": 200.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "b38579f7-6206-4503-a09e-c6023c8ab0a4",
+      "customer_name": "عبدالعزيز الرشيد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 20254.5,
+      "confirmed_payments_in_data": 20245.0,
+      "applied_payments": 20245.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 9.5,
+      "difference_current_minus_correct": -9.5,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c7e77f22-3338-48f0-b696-a3f7fc5f252a",
+          "plate": "بدون لوحات",
+          "total": 20254.5,
+          "paid": 20245.0,
+          "remaining": 9.5
+        }
+      ]
+    },
+    {
+      "customer_id": "48771695-3562-485d-8948-8ffd333b550a",
+      "customer_name": "عبدالعزيز الموسى",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 350.0,
+      "confirmed_payments_in_data": 350.0,
+      "applied_payments": 350.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "4d67d32d-d767-4fb8-9b75-5bbdb1f52e47",
+          "plate": "ا و و 7451",
+          "total": 350.0,
+          "paid": 350.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "5f813077-439a-474a-b422-8ea31c6c3c4e",
+      "customer_name": "عبدالله الذياب",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 50.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 50.0,
+      "difference_current_minus_correct": -50.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "efd4ef26-2b6a-44bc-9b1b-7030ec8492f1",
+          "plate": "ا د ق 7737",
+          "total": 50.0,
+          "paid": 0.0,
+          "remaining": 50.0
+        }
+      ]
+    },
+    {
+      "customer_id": "cb83a37b-29cd-432c-befb-e31951b3aacb",
+      "customer_name": "علي السيد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 650.0,
+      "confirmed_payments_in_data": 650.0,
+      "applied_payments": 650.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "044cc8a7-d809-463f-9868-93c5f6e09816",
+          "plate": "ا ك ا 7324",
+          "total": 650.0,
+          "paid": 650.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "5d742f83-9ece-430e-8c25-10fb8ec82c45",
+      "customer_name": "علي اليحيى",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 890.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 890.0,
+      "difference_current_minus_correct": -890.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "604576c6-90ab-421a-8000-bd81e9c56e29",
+          "plate": "ا ا د 506",
+          "total": 890.0,
+          "paid": 0.0,
+          "remaining": 890.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "علي عبد العزيز العازمي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2140.0,
+      "confirmed_payments_in_data": 2140.0,
+      "applied_payments": 2140.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "68a8de57-3925-4cde-91d8-37cad51e28b3",
+          "plate": "ب س ع 7389",
+          "total": 2140.0,
+          "paid": 2140.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "eb74f0ed-0ff4-4440-a43a-c9c0731066b1",
+      "customer_name": "عمر الخضيري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2417.0,
+      "confirmed_payments_in_data": 300.0,
+      "applied_payments": 300.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 2117.0,
+      "difference_current_minus_correct": -2117.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "2d79f3e9-0bf4-426d-ae65-6501b916a890",
+          "plate": " د ص س 7509",
+          "total": 2417.0,
+          "paid": 300.0,
+          "remaining": 2117.0
+        }
+      ]
+    },
+    {
+      "customer_id": "48217715-3f9d-4332-a9d1-7f4d8fe684d5",
+      "customer_name": "عمر عبد العزيزالجعيثن",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 5550.0,
+      "confirmed_payments_in_data": 5550.0,
+      "applied_payments": 5550.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "031ab312-cb34-4232-85e1-65c428b7cd36",
+          "plate": "ب د س 9123",
+          "total": 5550.0,
+          "paid": 5550.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "d876cb34-6ff2-42ad-8d56-c5da79c8e3f9",
+      "customer_name": "عميل نقدي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 150.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 150.0,
+      "difference_current_minus_correct": -150.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f58df376-b5aa-4c10-bfe0-fd38aa55b186",
+          "plate": " ا  ر  س  7576",
+          "total": 150.0,
+          "paid": 0.0,
+          "remaining": 150.0
+        }
+      ]
+    },
+    {
+      "customer_id": "b13ca906-af96-418a-9177-2bb4fffcaaa7",
+      "customer_name": "غانم المحيميد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1747.0,
+      "confirmed_payments_in_data": 1750.0,
+      "applied_payments": 1747.0,
+      "unapplied_customer_credit": 3.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، دفعة موجودة دون تطبيق/رصيد عميل",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "c6dc5b23-b27d-43fa-820c-c34a576286a3",
+          "plate": "ا ك ا 6884",
+          "total": 1747.0,
+          "paid": 1750.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "0d9864ab-26e1-4ce2-9c92-dd19e0472598",
+      "customer_name": "غلام باكستاني",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 100.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 100.0,
+      "difference_current_minus_correct": -100.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "00a8d7b2-40e3-4848-9201-c75996906220",
+          "plate": "ا ن ق 4011",
+          "total": 100.0,
+          "paid": 0.0,
+          "remaining": 100.0
+        }
+      ]
+    },
+    {
+      "customer_id": "6726541e-d2cc-467b-a37b-070bca803473",
+      "customer_name": "فارس عوض",
+      "current_receivable": 500.0,
+      "vehicle_visit_due_items": 2500.0,
+      "confirmed_payments_in_data": 2000.0,
+      "applied_payments": 2000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 500.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+          "plate": "ح ق م 5520",
+          "total": 2500.0,
+          "paid": 2000.0,
+          "remaining": 500.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e164b154-227c-475e-bfc7-fdb6db53aaae",
+      "customer_name": "فهد الطريسي",
+      "current_receivable": 2428.0,
+      "vehicle_visit_due_items": 4378.0,
+      "confirmed_payments_in_data": 1950.0,
+      "applied_payments": 1950.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 2428.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، قيد افتتاحي مفقود",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+          "plate": "ح ل ص 5745",
+          "total": 4378.0,
+          "paid": 1950.0,
+          "remaining": 2428.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "فهد المحيميد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2250.0,
+      "confirmed_payments_in_data": 2250.0,
+      "applied_payments": 2250.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f56b68c9-d9c5-4c64-ac7a-e2842faa1812",
+          "plate": "ا ر د  7975",
+          "total": 2250.0,
+          "paid": 2250.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "bf49a8de-267e-4e1f-ae12-0549708ca864",
+      "customer_name": "فهد شليبيط المطيري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2050.0,
+      "confirmed_payments_in_data": 2000.0,
+      "applied_payments": 2000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 50.0,
+      "difference_current_minus_correct": -50.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "cf10edb0-ef41-4d09-87ea-c62c52c5b86a",
+          "plate": "ب ا م 8263",
+          "total": 2050.0,
+          "paid": 2000.0,
+          "remaining": 50.0
+        }
+      ]
+    },
+    {
+      "customer_id": "0c34f5c9-cfef-494d-ad5d-41a7f252eaea",
+      "customer_name": "فهد نغيمش الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2000.0,
+      "confirmed_payments_in_data": 2000.0,
+      "applied_payments": 2000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "d56a22e0-4486-4d1f-9071-90591efafa33",
+          "plate": "ا ح ص 7327",
+          "total": 2000.0,
+          "paid": 2000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "3e756cdc-c168-4976-b8e8-26b40e8e792b",
+      "customer_name": "ماجد الرشيدي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1700.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 1700.0,
+      "difference_current_minus_correct": -1700.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "b433407c-0172-4587-8ba2-2de2f24a4307",
+          "plate": "ا ص ط 6365",
+          "total": 1700.0,
+          "paid": 0.0,
+          "remaining": 1700.0
+        }
+      ]
+    },
+    {
+      "customer_id": "58806436-0aee-46d1-a32e-ed7e0ce9c261",
+      "customer_name": "ماجد العنزي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 4300.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 4300.0,
+      "difference_current_minus_correct": -4300.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "2430aecb-6b36-4abc-9eb8-963faa3339cd",
+          "plate": "كويت 15/55256",
+          "total": 4300.0,
+          "paid": 0.0,
+          "remaining": 4300.0
+        }
+      ]
+    },
+    {
+      "customer_id": "718eb3e2-b81f-4fbc-8e7b-58b40c33adb1",
+      "customer_name": "محمد ابو الخير",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 150.0,
+      "confirmed_payments_in_data": 150.0,
+      "applied_payments": 150.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "ea9b7f54-ba95-4b74-882a-b5b4a91c4da5",
+          "plate": "ر ح ب 7854",
+          "total": 150.0,
+          "paid": 150.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "a09210e0-2c6d-4ad0-93b8-9fc9a37d9d5d",
+      "customer_name": "محمد الجهني  ابو خالد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 5300.0,
+      "confirmed_payments_in_data": 5300.0,
+      "applied_payments": 5300.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "4fa84fca-daef-476f-8a2a-d071a215e886",
+          "plate": "ن ح ر   717",
+          "total": 5300.0,
+          "paid": 5300.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "0b9de2a2-8df0-4445-a0bb-303b430b8f5d",
+      "customer_name": "محمد الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 7579.0,
+      "confirmed_payments_in_data": 7579.0,
+      "applied_payments": 7579.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 2,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "8524ac12-0489-4993-bc80-13048d714e46",
+          "plate": "د ص ع 3563",
+          "total": 7000.0,
+          "paid": 7000.0,
+          "remaining": 0.0
+        },
+        {
+          "vehicle_id": "61fe0b56-aa66-490d-a5e7-6f3b8195ed56",
+          "plate": "ا ح ا 5110",
+          "total": 579.0,
+          "paid": 579.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "31fe970b-dd33-4c39-b1ce-ee77203f1ffa",
+      "customer_name": "محمد العمر",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2000.0,
+      "confirmed_payments_in_data": 2000.0,
+      "applied_payments": 2000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "9d4ed9a0-b722-497b-b3c1-c60aaa79441c",
+          "plate": "ا ي ح 8162",
+          "total": 2000.0,
+          "paid": 2000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "ac9d3e9c-4ffc-4ea3-a6ba-c0ae74f95082",
+      "customer_name": "محمد سالم الرشيدي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 4031.0,
+      "confirmed_payments_in_data": 4031.0,
+      "applied_payments": 4031.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "b8f1b52d-d626-4fe1-b811-3a97561859fa",
+          "plate": "ا ا م 9757",
+          "total": 4031.0,
+          "paid": 4031.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "",
+      "customer_name": "محمد علي الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 4500.0,
+      "confirmed_payments_in_data": 9000.0,
+      "applied_payments": 4500.0,
+      "unapplied_customer_credit": 4500.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، دفعة موجودة دون تطبيق/رصيد عميل",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "1aee4a12-ad13-4bfa-bb41-300ec2c4da61",
+          "plate": "ح م م 6233",
+          "total": 4500.0,
+          "paid": 9000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "a277e642-48e8-428f-825f-d5dc4ea9ef6b",
+      "customer_name": "محمد فارس العنزي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2000.0,
+      "confirmed_payments_in_data": 2000.0,
+      "applied_payments": 2000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "1193191b-4e40-450b-a604-dcf80305b2ee",
+          "plate": "ب د ن 6971",
+          "total": 2000.0,
+          "paid": 2000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "940cbf02-976f-4799-9fd7-1ec1b57eb886",
+      "customer_name": "مد الله الثواتي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 500.0,
+      "confirmed_payments_in_data": 500.0,
+      "applied_payments": 500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "83ca03df-4a80-4918-b28d-b4c6dbb7bbf3",
+          "plate": "ا ل ق 6161",
+          "total": 500.0,
+          "paid": 500.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "bc8350d8-b122-473d-899f-6bdc5b67b5d5",
+      "customer_name": "معيض سند",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 17000.0,
+      "confirmed_payments_in_data": 17000.0,
+      "applied_payments": 17000.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "1018bb1e-91bf-4a99-b483-7f1c8c25dc5d",
+          "plate": "ب د ل 1854",
+          "total": 17000.0,
+          "paid": 17000.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "7624d660-ceb0-450f-904a-0bada613d825",
+      "customer_name": "موسسة الزومان",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 1900.0,
+      "confirmed_payments_in_data": 1900.0,
+      "applied_payments": 1900.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "e6d27a50-ba67-44ea-b728-1b23ebfa27e3",
+          "plate": "ا ه ص 5954",
+          "total": 1900.0,
+          "paid": 1900.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "7e3d7bfe-d293-4fce-9caa-3e9cd96118fb",
+      "customer_name": "موسى الصقيري",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 80.0,
+      "confirmed_payments_in_data": 80.0,
+      "applied_payments": 80.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "53c5755d-d5da-4b86-a49c-9654eb05ff58",
+          "plate": "ب س ب",
+          "total": 80.0,
+          "paid": 80.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "7e4ffbf9-594b-4505-a1c0-7d25fda729b6",
+      "customer_name": "نايف الحربي",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2000.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 2000.0,
+      "difference_current_minus_correct": -2000.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "8edf695c-60e8-4d65-b83d-9de0595e64f2",
+          "plate": "ب ن ه 3533",
+          "total": 2000.0,
+          "paid": 0.0,
+          "remaining": 2000.0
+        }
+      ]
+    },
+    {
+      "customer_id": "e2dda76d-0903-4a5b-9deb-b4270c4bddec",
+      "customer_name": "نايف المطيري البدائع",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 350.0,
+      "confirmed_payments_in_data": 0.0,
+      "applied_payments": 0.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 350.0,
+      "difference_current_minus_correct": -350.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f0aacb00-839b-46ef-a9c2-21ba5515c723",
+          "plate": "ا ك ا 8218",
+          "total": 350.0,
+          "paid": 0.0,
+          "remaining": 350.0
+        }
+      ]
+    },
+    {
+      "customer_id": "f6fb97b7-0f07-4555-b7ad-724869bbef5c",
+      "customer_name": "نايف المقحم",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 12250.0,
+      "confirmed_payments_in_data": 2500.0,
+      "applied_payments": 2500.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 9750.0,
+      "difference_current_minus_correct": -9750.0,
+      "status": "اختلاف يحتاج مراجعة، مصدر موجود والذمة مفقودة",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "5b1843a1-d934-4f09-bd82-f150786397ef",
+          "plate": "ر ح ن 6278",
+          "total": 12250.0,
+          "paid": 2500.0,
+          "remaining": 9750.0
+        }
+      ]
+    },
+    {
+      "customer_id": "dc4c2bc0-c561-4379-a7ba-683ad7e10b12",
+      "customer_name": "نايق الحربي الاسياح",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 2600.0,
+      "confirmed_payments_in_data": 2600.0,
+      "applied_payments": 2600.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "f72c6e20-fcc8-4750-8ef8-57d96355492f",
+          "plate": "ا ن ط 6164",
+          "total": 2600.0,
+          "paid": 2600.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "b71fda59-2d50-421a-8fa1-c9b6fae82b49",
+      "customer_name": "ياسر الزيد",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 200.0,
+      "confirmed_payments_in_data": 200.0,
+      "applied_payments": 200.0,
+      "unapplied_customer_credit": 0.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "930acc71-7e2f-41c5-a273-5fa21386fd46",
+          "plate": "ا ط م 2370",
+          "total": 200.0,
+          "paid": 200.0,
+          "remaining": 0.0
+        }
+      ]
+    },
+    {
+      "customer_id": "3157b38a-38e1-42e8-9a93-ed5114737d0c",
+      "customer_name": "يوسف عبد الرحمن الكبير",
+      "current_receivable": 0.0,
+      "vehicle_visit_due_items": 8474.0,
+      "confirmed_payments_in_data": 8891.0,
+      "applied_payments": 8474.0,
+      "unapplied_customer_credit": 417.0,
+      "opening_journal_balance": 0.0,
+      "customer_opening_balance_field": 0.0,
+      "correct_balance_reference": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "status": "مطابق، دفعة موجودة دون تطبيق/رصيد عميل",
+      "vehicles_count": 1,
+      "vehicles_sample": [
+        {
+          "vehicle_id": "48fa8789-f6ad-4ab6-870c-23c84da8f36e",
+          "plate": "ا ق ر 8825",
+          "total": 8474.0,
+          "paid": 8891.0,
+          "remaining": 0.0
+        }
+      ]
+    }
+  ],
+  "notes": {
+    "sales_purchases_deleted_breakdown": "غير متوفر بدقة في audit log الحالي؛ سجل الحذف يخزن counts إجمالية فقط للعمليات والقيود، ولا يحتوي snapshot تفصيلي بنوع العملية أو مبلغها وقت الحذف.",
+    "backup_snapshot_found": "لم يظهر backup/snapshot تفصيلي مرتبط مباشرة بكل cleanup_run_id؛ الموجود هو bulk_delete_audit_log.json وتقارير read-only سابقة قبل/بعد بعض عمليات التنظيف.",
+    "do_not_create_opening_entry": "لا يوجد قيد افتتاحي مؤكد؛ يجب عدم إنشاء قيد قبل مراجعة dry_run المقترح ومصادر الأرصدة."
+  }
+}
