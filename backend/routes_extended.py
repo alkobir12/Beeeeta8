@@ -401,12 +401,13 @@ async def create_budget(payload: Dict[str, Any] = Body(...)):
 
 # --------------------- Branch Cleanup (Keep only 2) ---------------------
 @router.post("/biz-accounts/cleanup")
-async def cleanup_biz_accounts(keep: int = 2, mode: str = "hard"):
+async def cleanup_biz_accounts(request: Request, keep: int = 2, mode: str = "hard"):
     """Delete all branches and keep only N (default 2) most recent.
     mode: 'hard' = physical delete, 'soft' = set {'archived': True, 'active': False}
     Ensures at least 2 accounts exist by creating defaults if needed.
     """
     try:
+        await _require_request_permission(request, "settings", "edit")
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         keep = max(0, int(keep or 2))
 
@@ -705,8 +706,9 @@ async def update_biz_account(aid: str, payload: Dict[str, Any] = Body(...)):
 
 
 @router.delete("/biz-accounts/{aid}")
-async def delete_biz_account(aid: str):
+async def delete_biz_account(aid: str, request: Request):
     try:
+        await _require_request_permission(request, "settings", "edit")
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
 
         if provider == "supabase":
@@ -2627,9 +2629,11 @@ async def update_operation(op_id: str, payload: Dict[str, Any] = Body(...)):
 
 
 @router.delete("/operations/{op_id}")
-async def delete_operation(op_id: str):
+async def delete_operation(op_id: str, request: Request):
     """Delete a single operation + cascade delete any linked journal entries (source=operation, reference_id=op_id)."""
     try:
+        await _require_request_permission(request, "operations", "delete")
+        await _require_request_permission(request, "journal_entries", "delete")
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         if provider == "supabase":
             supa = SupabaseService()
