@@ -1,0 +1,54 @@
+{
+  "summary": "تم تنفيذ اختبار Backend + Frontend لنطاق المحرك المالي الموحد (unified-v1) مع التحقق من ملخص المركبة، AR customers/ledger، ومسار dry_run لتأكيد الدفعات بدون أي تعديل فعلي للبيانات. الواجهة اجتازت تدفق زر إضافة دفعة وعرض نموذج (القيمة + الوسيلة) ونص زر الحفظ (حفظ وتأكيد الدفعة) بدون ضغط حفظ نهائي.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login (CORS headers on preview)",
+        "issue": "عند الاختبار عبر Origin صريح في بيئة preview، الاستجابة تُظهر Access-Control-Allow-Origin='*' وبدون Access-Control-Allow-Credentials رغم وجود middleware يضبط origin صريح + credentials=true. قد يكون تطبيع من edge/proxy ويحتاج تحقق نشر.",
+        "priority": "HIGH"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Code quality / lint",
+        "issues": [
+          "eslint يفشل في VehicleDetails.jsx بسبب import/first (imports ليست أعلى الملف).",
+          "eslint تحذيرات متعددة no-unused-vars وreact-hooks/exhaustive-deps في VehicleDetails.jsx.",
+          "eslint تحذير import/no-anonymous-default-export في src/services/api.js."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter325_unified_finance_engine_payments.py",
+    "/app/test_reports/pytest/iter325_unified_engine.xml"
+  ],
+  "action_items": [
+    "معالجة أخطاء eslint في الملفات المرجعية المعدلة (خصوصاً import/first في VehicleDetails.jsx) لأن شرط lint النطاق الحالي غير محقق حالياً.",
+    "التحقق من سلوك CORS في طبقة النشر preview-edge للتأكد من تمرير Access-Control-Allow-Credentials مع Origin صريح عند مسارات auth.",
+    "الاستمرار باستخدام مسار /api/finance-engine/visits/{visit_id}/payments/confirm مع dry_run أثناء الاختبارات غير المعدِّلة للبيانات."
+  ],
+  "critical_code_review_comments": [
+    "VehicleDetails.jsx ما يزال كبيراً جداً (يتجاوز حد 700 سطر) ويظهر أثر ذلك مباشرةً في lintability والصيانة.",
+    "يوجد كود غير قابل للوصول بعد return في ar_ledger و ar_customers داخل routes_finance.py؛ يُفضَّل تنظيفه لتقليل مخاطر الالتباس مستقبلاً."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter325_unified_finance_engine_payments.py",
+    "/app/test_reports/iteration_325.json"
+  ],
+  "success_rate": {
+    "backend": "100% (4/4 في اختبار النطاق المطلوب)",
+    "frontend": "100% (critical flow scope بدون حفظ فعلي)"
+  },
+  "seed_data_creation": "لم يتم إنشاء أي seed data ولم يتم حفظ أي دفعة فعلية (dry_run فقط في API، وإغلاق نموذج الواجهة بدون حفظ).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "تم التحقق على المركبة f6590225-aef6-452b-af39-e0e42061fd81. نتائج backend: financial-summary يُرجع engine_version=unified-v1 وصيغة customer_total صحيحة، /finance/ar/customers و /finance/ar/ledger يعيدان 200 وبيانات غير فارغة، و dry_run confirm payment يعيد payment.confirmed=true + journal_preview + summary دون تغيير confirmed_paid/display_remaining بعد الطلب. نتائج UI: زر إضافة دفعة موجود ويعرض نموذج amount/method وزر حفظ نصه 'حفظ وتأكيد الدفعة'.",
+  "rca of the issue": "RCA-1 (Lint): الإخفاقات ناتجة عن ترتيب imports في VehicleDetails.jsx ووجود متغيرات/هوكات غير مستخدمة؛ ليست مشكلة اختبار بل مشكلة جودة كود. RCA-2 (CORS preview): رغم إعداد allow_credentials=True وenforce_credentialed_cors في backend، الرؤوس المرصودة عبر public preview أظهرت '*' وغياب credentials؛ الاحتمال الأكبر إعادة كتابة headers في edge/proxy أو اختلاف مسار معالجة OPTIONS/POST قبل middleware النهائي.",
+  "mocked_api": "NO MOCKED APIs used."
+}

@@ -42,6 +42,7 @@ const vehicleAPI = {
 
 const vehicleFinanceAPI = {
   summary: (vehicleId) => axios.get(`${API_BASE}/vehicles/${vehicleId}/financial-summary`),
+  confirmVisitPayment: (visitId, data) => api.post(`/finance-engine/visits/${visitId}/payments/confirm`, data),
 };
 
 

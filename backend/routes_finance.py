@@ -327,13 +327,16 @@ def _confirmed_payment_amount(entry: Dict[str, Any]) -> float:
 
 
 def build_current_visit_ar_snapshot(workshop_id: str = "finmodule-sync", end_date: Optional[str] = None) -> Dict[str, Any]:
-    """Current AR from vehicle visits only: workshop items - confirmed journal payments.
+    """Unified current AR snapshot from the financial engine.
 
-    This intentionally ignores supplier items and unposted payments stored in notes.
-    It does not create or mutate journal entries/operations.
+    Customer total = workshop services + customer-charged parts, then confirmed
+    payments are applied once with note/journal de-duplication.
     """
     if not supabase:
         return {"total_ar": 0.0, "customers": [], "vehicles": [], "ledger_rows": []}
+
+    from core.unified_financial_engine import build_current_ar_snapshot
+    return build_current_ar_snapshot(supabase, workshop_id=workshop_id, end_date=end_date)
 
     try:
         vehicles = supabase.table("vehicles").select("id,customer_id,customer_name,customer_phone,plate_number,status,entry_date").execute().data or []

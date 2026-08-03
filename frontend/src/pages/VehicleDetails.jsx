@@ -799,6 +799,7 @@ const VisitCard = ({
   archiveMode = false,
   onAuditEvent,
   onOpenQuickPrintDialog,
+  onFinanceSummaryUpdate,
 }) => {
   const [isExpanded, setIsExpanded] = useState((visit.status || 'in_progress') === 'in_progress');
   const [items, setItems] = useState([]);
@@ -1408,15 +1409,37 @@ const VisitCard = ({
       toast({ title: 'تنبيه', description: 'يرجى إدخال مبلغ صحيح', variant: 'destructive' });
       return;
     }
-    await handleConfirmVisitPayment({
-      paymentLines: [{ method: detail.method || 'cash', amount }],
-      date: detail.date || new Date().toISOString().split('T')[0],
-      archiveVehicle: false,
-      viaSupplierBalance: false,
-      supplierId: null,
-      discount: 0,
-    });
-  }, [handleConfirmVisitPayment, toast]);
+    setConfirmPayLoading(true);
+    try {
+      const res = await vehicleFinanceAPI.confirmVisitPayment(visit.id, {
+        amount,
+        method: detail.method || 'cash',
+        date: detail.date || new Date().toISOString().split('T')[0],
+        reference: detail.reference || '',
+        workshop_id: activeWorkshopId,
+      });
+      const payment = res?.data?.payment;
+      if (payment) {
+        const nextPayments = [...payments, payment];
+        setPayments(nextPayments);
+        setOriginalPayments(nextPayments);
+      }
+      if (res?.data?.summary) onFinanceSummaryUpdate?.(res.data.summary);
+      toast({ title: 'تم السداد', description: 'تم حفظ وتأكيد الدفعة فوراً عبر المحرك المالي الموحد.' });
+      try {
+        window.dispatchEvent(new CustomEvent('finance:updated', { detail: { source: 'unified_visit_payment', visitId: visit.id, amount } }));
+        window.dispatchEvent(new CustomEvent('vehicles:updated', { detail: { source: 'unified_visit_payment', vehicleId: visit.vehicleId || visit.vehicle_id } }));
+      } catch (evtErr) {
+        console.warn('unified payment event dispatch failed', evtErr);
+      }
+      onUpdate?.();
+    } catch (error) {
+      const message = error?.response?.data?.detail || error?.message || 'فشل تأكيد الدفعة';
+      toast({ title: 'خطأ في السداد', description: message, variant: 'destructive' });
+    } finally {
+      setConfirmPayLoading(false);
+    }
+  }, [activeWorkshopId, onFinanceSummaryUpdate, onUpdate, payments, toast, visit.id, visit.vehicleId, visit.vehicle_id]);
 
   const isPaymentPending = (payment = {}) => {
     const statusValue = String(payment.status || payment.paymentStatus || payment.payment_status || '').trim().toLowerCase();
@@ -4040,6 +4063,7 @@ const VehicleDetails = () => {
                       archiveMode={isArchiveSource}
                       onAuditEvent={handleArchiveAuditEvent}
                       onOpenQuickPrintDialog={openQuickPrintDialog}
+                      onFinanceSummaryUpdate={setFinanceSummary}
                     />
                   );
                 })

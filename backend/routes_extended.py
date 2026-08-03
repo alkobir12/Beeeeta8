@@ -4781,6 +4781,16 @@ async def vehicle_financial_summary(vehicle_id: str):
 
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
 
+        if provider == "supabase":
+            from supabase_service import SupabaseService
+            from core.unified_financial_engine import fetch_vehicle_summary
+
+            supa = SupabaseService()
+            try:
+                return fetch_vehicle_summary(supa.client, vehicle_id, os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync"))
+            except ValueError:
+                raise HTTPException(status_code=404, detail="vehicle not found")
+
         total_workshop = 0.0
         total_suppliers = 0.0
         total_paid = 0.0
@@ -4914,6 +4924,160 @@ async def vehicle_financial_summary(vehicle_id: str):
             "customer_advance_liability": round(customer_advance_liability, 2),
         }
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/finance-engine/visits/{visit_id}/payments/confirm")
+async def unified_confirm_visit_payment(visit_id: str, payload: Dict[str, Any] = Body(None)):
+    """Unified SSOT path for new confirmed visit payments.
+
+    New payments are confirmed immediately, written once to visit notes with the
+    linked journal entry id, and posted to journal_entries as a confirmed cash/bank/POS receipt.
+    Historical payments are not migrated or modified by this endpoint.
+    """
+    payload = dict(payload or {})
+    try:
+        uuid.UUID(str(visit_id))
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid visit id")
+
+    provider = os.environ.get("DB_PROVIDER", "mongo").lower()
+    if provider != "supabase":
+        raise HTTPException(status_code=400, detail="unified finance engine supports supabase provider only")
+
+    try:
+        from supabase_service import SupabaseService
+        from core.unified_financial_engine import (
+            build_visit_payment_journal_entry,
+            fetch_vehicle_summary,
+            normalize_method,
+            parse_notes,
+            round2,
+            serialize_notes,
+        )
+
+        amount = round2(payload.get("amount"))
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="amount must be greater than zero")
+        method = normalize_method(payload.get("method") or payload.get("payment_method") or "cash")
+        payment_id = str(payload.get("payment_id") or payload.get("id") or uuid.uuid4())
+        date_value = payload.get("date") or datetime.now(timezone.utc).date().isoformat()
+        reference = str(payload.get("reference") or "").strip()
+        workshop_id = payload.get("workshop_id") or payload.get("workshopId") or os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync")
+
+        supa = SupabaseService()
+        visit_rows = (
+            supa.client.table("vehicle_visits")
+            .select("id,vehicle_id,notes,status,entry_date,created_at")
+            .eq("id", visit_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        if not visit_rows:
+            raise HTTPException(status_code=404, detail="visit not found")
+        visit = visit_rows[0]
+        vehicle_id = str(visit.get("vehicle_id") or "").strip()
+        vehicle_rows = (
+            supa.client.table("vehicles")
+            .select("*")
+            .eq("id", vehicle_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        if not vehicle_rows:
+            raise HTTPException(status_code=404, detail="vehicle not found")
+        vehicle = vehicle_rows[0]
+
+        parsed = parse_notes(visit.get("notes"))
+        payments = parsed.setdefault("payments", [])
+        for existing in payments:
+            if str((existing or {}).get("id") or (existing or {}).get("payment_id") or "") == payment_id:
+                summary = fetch_vehicle_summary(supa.client, vehicle_id, workshop_id)
+                return {"success": True, "idempotent_replay": True, "payment": existing, "summary": summary}
+
+        journal_entry = build_visit_payment_journal_entry(
+            visit=visit,
+            vehicle=vehicle,
+            amount=amount,
+            method=method,
+            date_value=date_value,
+            payment_id=payment_id,
+            workshop_id=workshop_id,
+        )
+        if payload.get("dry_run") is True:
+            current_summary = fetch_vehicle_summary(supa.client, vehicle_id, workshop_id)
+            customer_total = float(current_summary.get("customer_total") or 0)
+            confirmed_after = float(current_summary.get("confirmed_paid") or 0) + amount
+            applied_after = min(confirmed_after, customer_total)
+            preview_summary = {
+                **current_summary,
+                "confirmed_paid": round(confirmed_after, 2),
+                "total_paid": round(confirmed_after, 2),
+                "applied_paid": round(applied_after, 2),
+                "display_remaining": round(max(customer_total - applied_after, 0), 2),
+                "balance": round(max(customer_total - applied_after, 0), 2),
+                "customer_credit": round(max(confirmed_after - customer_total, 0), 2),
+                "customer_advance_liability": round(max(confirmed_after - customer_total, 0), 2),
+            }
+            return {
+                "success": True,
+                "dry_run": True,
+                "payment": {
+                    "id": payment_id,
+                    "status": "confirmed",
+                    "confirmed": True,
+                    "amount": amount,
+                    "method": method,
+                    "source": "unified_financial_engine",
+                },
+                "journal_preview": journal_entry,
+                "summary": preview_summary,
+                "engine_version": "unified-v1",
+            }
+        inserted = _safe_insert_journal_entry(supa, journal_entry)
+        inserted_row = (inserted or [{}])[0] if isinstance(inserted, list) else (inserted or journal_entry)
+        journal_id = inserted_row.get("id") or journal_entry["id"]
+
+        payment_row = {
+            "id": payment_id,
+            "payment_id": payment_id,
+            "kind": "payment",
+            "status": "confirmed",
+            "confirmed": True,
+            "amount": amount,
+            "date": date_value,
+            "method": method,
+            "paymentMethod": method,
+            "reference": reference,
+            "journalEntryId": journal_id,
+            "journal_entry_id": journal_id,
+            "source": "unified_financial_engine",
+        }
+        payments.append(payment_row)
+        try:
+            supa.client.table("vehicle_visits").update({"notes": serialize_notes(parsed)}).eq("id", visit_id).execute()
+        except Exception as update_error:
+            try:
+                supa.client.table("journal_entries").delete().eq("id", journal_id).execute()
+            except Exception as cleanup_error:
+                print(f"unified payment cleanup failed: {cleanup_error}")
+            raise update_error
+
+        summary = fetch_vehicle_summary(supa.client, vehicle_id, workshop_id)
+        return {
+            "success": True,
+            "payment": payment_row,
+            "journal_entry_id": journal_id,
+            "summary": summary,
+            "engine_version": "unified-v1",
+        }
     except HTTPException:
         raise
     except Exception as e:
