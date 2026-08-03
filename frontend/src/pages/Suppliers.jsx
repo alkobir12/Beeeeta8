@@ -55,7 +55,6 @@ const Suppliers = () => {
     const handler = () => fetchSuppliers();
     window.addEventListener('finance:updated', handler);
     return () => window.removeEventListener('finance:updated', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSuppliers = async () => {
@@ -741,7 +740,7 @@ const Suppliers = () => {
                 هل أنت متأكد من حذف المورد:
               </p>
               <p className="text-sm font-bold text-red-300 mt-1" data-testid="delete-confirm-supplier-name">
-                "{deleteConfirm.name}"
+                &quot;{deleteConfirm.name}&quot;
               </p>
               {deleteConfirm.isAccSupplier && (
                 <p className="text-[11px] text-amber-400 mt-1.5">

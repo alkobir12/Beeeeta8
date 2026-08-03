@@ -584,7 +584,7 @@ const InvoiceTemplateStudio = () => {
                             </div>
                           ))}
                           {!(elements.find(e=>e.type==='itemsTable')) && (
-                            <div className="text-xs text-slate-500">أضف "جدول البنود" أولاً لعرض الأعمدة.</div>
+                            <div className="text-xs text-slate-500">أضف &quot;جدول البنود&quot; أولاً لعرض الأعمدة.</div>
                           )}
                         </div>
                       )}
@@ -610,7 +610,7 @@ const InvoiceTemplateStudio = () => {
                             ))}
                             {schema.length === 0 && (
                               <div className="text-sm text-slate-500 text-center py-4">
-                                لا توجد حقول بعد. اضغط "إضافة حقل جديد" للبدء.
+                                لا توجد حقول بعد. اضغط &quot;إضافة حقل جديد&quot; للبدء.
                               </div>
                             )}
                           </div>
@@ -755,7 +755,7 @@ const InvoiceTemplateStudio = () => {
                                 <div><Label>لون الهيدر</Label><Input type="color" value={selEl.headerBg||'#f1f5f9'} onChange={(e)=>updateElement(selEl.id,{headerBg:e.target.value})} /></div>
                                 <div><Label>لون النص</Label><Input type="color" value={selEl.headerColor||'#0f172a'} onChange={(e)=>updateElement(selEl.id,{headerColor:e.target.value})} /></div>
                               </div>
-                              <div className="mt-2 text-xs text-slate-500">تحكم بالأعمدة من لوحة "الأعمدة" على اليمين.</div>
+                              <div className="mt-2 text-xs text-slate-500">تحكم بالأعمدة من لوحة &quot;الأعمدة&quot; على اليمين.</div>
                             </>
                           )}
                           <div className="pt-2 border-t mt-2 flex items-center gap-2">
@@ -880,7 +880,7 @@ const InvoiceTemplateStudio = () => {
                     </div>
                   </div>
                   <div className="mt-4 text-center text-sm text-slate-600">
-                    للطباعة الفعلية، استخدم زر "توليد فاتورة" من الأعلى
+                    للطباعة الفعلية، استخدم زر &quot;توليد فاتورة&quot; من الأعلى
                   </div>
                 </CardContent>
               </Card>

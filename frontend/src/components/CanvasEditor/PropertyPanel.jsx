@@ -40,14 +40,6 @@ const buildDraftFromBlock = (block) => {
 };
 
 const PropertyPanel = ({ block, onChange, onDeselect, selectionMode = 'tap-select', onSelectionModeChange, onMobileConfirm }) => {
-  if (!block) {
-    return (
-      <div className="property-panel empty" data-testid="canvas-editor-property-empty">
-        <p>اختر عنصراً للتعديل</p>
-      </div>
-    );
-  }
-
   const [draft, setDraft] = useState(() => buildDraftFromBlock(block));
   const [mobileSelectMode, setMobileSelectMode] = useState(selectionMode || 'tap-select');
   const [mobileCategory, setMobileCategory] = useState('plant');
@@ -60,6 +52,14 @@ const PropertyPanel = ({ block, onChange, onDeselect, selectionMode = 'tap-selec
   useEffect(() => {
     setMobileSelectMode(selectionMode || 'tap-select');
   }, [selectionMode]);
+
+  if (!block) {
+    return (
+      <div className="property-panel empty" data-testid="canvas-editor-property-empty">
+        <p>اختر عنصراً للتعديل</p>
+      </div>
+    );
+  }
 
   const updateDraftField = (key, value) => {
     setDraft((prev) => ({ ...prev, [key]: value }));

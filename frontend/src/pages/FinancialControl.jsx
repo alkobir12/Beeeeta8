@@ -147,7 +147,7 @@ function FindingsTab() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filterStatus, filterRule]);
+  useEffect(() => { load(); }, [filterStatus, filterRule]);
 
   const runScan = async () => {
     setScanning(true);
@@ -381,7 +381,7 @@ function ApprovalsTab() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filterStatus]);
+  useEffect(() => { load(); }, [filterStatus]);
 
   return (
     <div>

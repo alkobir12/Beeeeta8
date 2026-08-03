@@ -1,4 +1,3 @@
-/* eslint-disable */
 
 import React, { useEffect, useState } from 'react';
 import { Scale, Download, RefreshCw, Calendar, Wallet, Building2, PiggyBank, AlertCircle, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
@@ -31,7 +30,6 @@ const BalanceSheet = () => {
     const handler = () => { if (workshopId) fetchData(); };
     window.addEventListener('finance:updated', handler);
     return () => window.removeEventListener('finance:updated', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {

@@ -44,7 +44,7 @@ const SettingsImportBlock = () => {
     }
   };
 
-  const PANEL = (kind, title, headerHint) => (
+  const renderPanel = (kind, title, headerHint) => (
     <Card className="p-4 border-slate-200 dark:border-white/10">
       <h3 className="text-sm font-bold mb-1 text-slate-800 dark:text-slate-200">{title}</h3>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
@@ -119,9 +119,9 @@ const SettingsImportBlock = () => {
         <TabsTrigger value="services" data-testid="settings-import-tab-services">الخدمات</TabsTrigger>
         <TabsTrigger value="parts" data-testid="settings-import-tab-parts">قطع الغيار</TabsTrigger>
       </TabsList>
-      <TabsContent value="customers">{PANEL('customers', 'استيراد العملاء', 'name,phone,email,address')}</TabsContent>
-      <TabsContent value="services">{PANEL('services', 'استيراد الخدمات', 'name,category,price,duration')}</TabsContent>
-      <TabsContent value="parts">{PANEL('parts', 'استيراد قطع الغيار', 'name,code,category,price,quantity,unit')}</TabsContent>
+      <TabsContent value="customers">{renderPanel('customers', 'استيراد العملاء', 'name,phone,email,address')}</TabsContent>
+      <TabsContent value="services">{renderPanel('services', 'استيراد الخدمات', 'name,category,price,duration')}</TabsContent>
+      <TabsContent value="parts">{renderPanel('parts', 'استيراد قطع الغيار', 'name,code,category,price,quantity,unit')}</TabsContent>
     </Tabs>
   );
 };

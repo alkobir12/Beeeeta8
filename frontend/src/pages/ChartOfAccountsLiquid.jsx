@@ -205,12 +205,10 @@ export default function ChartOfAccountsLiquid() {
   useEffect(() => {
     fetchTree();
     fetchIncomeSnapshot();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, typeFilter, hideZero]);
 
   useEffect(() => {
     fetchReconciliationReport();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workshopId]);
 
   const loadAccountDetails = async (accountId) => {
@@ -813,7 +811,7 @@ export default function ChartOfAccountsLiquid() {
             </>
           ) : (
             <div className="text-xs text-slate-300" data-testid="coa-reconciliation-collapsed-note">
-              تم طي التدقيق. اضغط "فتح التدقيق" لعرض التفاصيل.
+              تم طي التدقيق. اضغط &quot;فتح التدقيق&quot; لعرض التفاصيل.
             </div>
           )}
         </div>

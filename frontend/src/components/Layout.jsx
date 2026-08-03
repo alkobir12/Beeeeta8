@@ -14,6 +14,15 @@ import { applyPageCustomizations, clearPageCustomizations } from '../utils/pageC
 import { useRecentPagesTracker } from '../hooks/useRecentPages';
 import { useTheme } from '../contexts/ThemeContext';
 
+const UnauthorizedPanel = () => (
+  <div className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-950/70 p-6 text-center shadow-xl shadow-black/20">
+    <h2 className="text-lg font-bold text-white" data-testid="permission-denied-title">غير مصرح بالوصول</h2>
+    <p className="mt-2 text-sm text-slate-300" data-testid="permission-denied-description">
+      لا تملك الصلاحية لعرض هذه الصفحة. إذا كنت تعتقد أن هذا خطأ، تواصل مع مدير النظام.
+    </p>
+  </div>
+);
+
 
 
 const Layout = ({ pageTitle }) => {
@@ -205,15 +214,6 @@ const Layout = ({ pageTitle }) => {
 
   const permissionRule = resolveRoutePermission(location.pathname);
   const canAccessRoute = hasRoutePermission(session, permissionRule);
-
-  const UnauthorizedPanel = () => (
-    <div className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-slate-950/70 p-6 text-center shadow-xl shadow-black/20">
-      <h2 className="text-lg font-bold text-white" data-testid="permission-denied-title">غير مصرح بالوصول</h2>
-      <p className="mt-2 text-sm text-slate-300" data-testid="permission-denied-description">
-        لا تملك الصلاحية لعرض هذه الصفحة. إذا كنت تعتقد أن هذا خطأ، تواصل مع مدير النظام.
-      </p>
-    </div>
-  );
 
   return (
     <div

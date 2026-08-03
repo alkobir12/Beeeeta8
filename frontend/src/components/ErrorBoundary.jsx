@@ -52,7 +52,11 @@ class ErrorBoundary extends React.Component {
             حصل تعارض مؤقت في ملفات الصفحة. اضغط إعادة التحميل للمتابعة.
           </p>
           <button onClick={() => {
-            try { sessionStorage.removeItem('chunk-reload-attempted'); } catch (e) {}
+            try {
+              sessionStorage.removeItem('chunk-reload-attempted');
+            } catch (error) {
+              console.warn('Unable to clear chunk reload flag', error);
+            }
             window.location.reload();
           }}>Reload</button>
         </div>

@@ -1,4 +1,3 @@
-/* eslint-disable */
 
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, Download, RefreshCw, Calendar, DollarSign, TrendingDown, AlertCircle, Loader2 } from 'lucide-react';
@@ -35,7 +34,6 @@ const IncomeStatement = () => {
     const handler = () => { if (workshopId) fetchData(); };
     window.addEventListener('finance:updated', handler);
     return () => window.removeEventListener('finance:updated', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {

@@ -132,7 +132,6 @@ const PartsInventory = () => {
     const handler = () => loadParts();
     window.addEventListener('finance:updated', handler);
     return () => window.removeEventListener('finance:updated', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

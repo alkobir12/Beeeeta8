@@ -259,7 +259,7 @@ export const PartsTransactionModal = ({
                       )}
                     </>
                   ) : (
-                    <p className="text-sm text-slate-300">هذا القسم يظهر فقط عند اختيار "بيع".</p>
+                    <p className="text-sm text-slate-300">هذا القسم يظهر فقط عند اختيار &quot;بيع&quot;.</p>
                   )}
                 </div>
               </div>

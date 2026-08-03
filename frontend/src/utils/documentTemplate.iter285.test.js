@@ -1,3 +1,4 @@
+/* global describe, test, expect */
 import { findUnresolvedTemplateVariables, renderDocumentTemplate } from './documentTemplate';
 
 describe('Iter285 CUSTOMER_NAME no-silent-fallback regression', () => {

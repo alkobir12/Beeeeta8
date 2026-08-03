@@ -599,19 +599,16 @@ export default function AIFinancial() {
     if (assistantOnlyMode) return;
     loadChatFromStorage();
     fetchAccounts();
-    // eslint-disable-next-line
   }, [assistantOnlyMode]);
 
   useEffect(() => {
     if (assistantOnlyMode) return;
     fetchVehicleIfNeeded();
-    // eslint-disable-next-line
   }, [vehicleId, assistantOnlyMode]);
 
   useEffect(() => {
     if (assistantOnlyMode) return;
     fetchCoreFinancials();
-    // eslint-disable-next-line
   }, [workshopId, timeRange, assistantOnlyMode]);
 
   // تحسين بسيط: فتح محادثة أبوفهد تلقائياً إذا لم يكن هناك تاريخ محادثة

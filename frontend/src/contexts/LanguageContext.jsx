@@ -39,7 +39,6 @@ export const LanguageProvider = ({ children }) => {
     return () => {
       i18n.off('languageChanged', handler);
     };
-    // eslint-disable-next-line
   }, []);
 
   // Handle language change

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -29,9 +29,22 @@ const InjectorDiagnostics = () => {
     pressure_bar: '',
     duration_us: '',
     return_qty_ml_min: '',
+    visual_inspection: 'pass',
+    leak_test: 'pass',
     technician: '',
     notes: ''
   });
+
+  const validationResult = useMemo(() => {
+    if (!resistanceResult && !vlResult) return null;
+    const valid = [resistanceResult, vlResult].filter(Boolean).every((item) => item.valid !== false);
+    return {
+      valid,
+      pressure_status: vlResult?.pressure_status || vlResult?.pressureStatus || (vlResult ? (vlResult.valid ? 'ضمن النطاق' : 'خارج النطاق') : 'لم يتم الفحص'),
+      duration_status: vlResult?.duration_status || vlResult?.durationStatus || (vlResult ? (vlResult.valid ? 'ضمن النطاق' : 'خارج النطاق') : 'لم يتم الفحص'),
+      return_quantity_status: vlResult?.return_quantity_status || vlResult?.returnQuantityStatus || (vlResult ? (vlResult.valid ? 'ضمن النطاق' : 'خارج النطاق') : 'لم يتم الفحص'),
+    };
+  }, [resistanceResult, vlResult]);
 
   useEffect(() => {
     fetchEngines();
@@ -110,6 +123,21 @@ const InjectorDiagnostics = () => {
     } finally {
       setValidating(false);
     }
+  };
+
+  const handleValidate = async () => {
+    if (!selectedEngine) {
+      toast({ title: 'خطأ', description: 'الرجاء اختيار المحرك', variant: 'destructive' });
+      return;
+    }
+    const tasks = [];
+    if (testData.resistance_ohm) tasks.push(handleValidateResistance());
+    if (testData.pressure_bar && testData.duration_us && testData.return_qty_ml_min) tasks.push(handleValidateVL());
+    if (!tasks.length) {
+      toast({ title: 'تنبيه', description: 'أدخل قراءة المقاومة أو قراءات VL Mode للتحقق', variant: 'destructive' });
+      return;
+    }
+    await Promise.all(tasks);
   };
 
   const handleSaveReport = async () => {
@@ -218,11 +246,11 @@ const InjectorDiagnostics = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>المقاومة (Ω)</Label>
-                    <Input type="number" className="apple-input" placeholder="مثال: 0.5" value={testData.resistance} onChange={e => setTestData({...testData, resistance: e.target.value})} />
+                    <Input type="number" className="apple-input" placeholder="مثال: 0.5" value={testData.resistance_ohm} onChange={e => setTestData({...testData, resistance_ohm: e.target.value})} />
                   </div>
                   <div>
                     <Label>ضغط الفتح (bar)</Label>
-                    <Input type="number" className="apple-input" placeholder="مثال: 1600" value={testData.opening_pressure} onChange={e => setTestData({...testData, opening_pressure: e.target.value})} />
+                    <Input type="number" className="apple-input" placeholder="مثال: 1600" value={testData.pressure_bar} onChange={e => setTestData({...testData, pressure_bar: e.target.value})} />
                   </div>
                 </div>
 
@@ -231,15 +259,15 @@ const InjectorDiagnostics = () => {
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <Label className="text-xs mb-1 block">الضغط (bar)</Label>
-                      <Input type="number" className="apple-input" value={testData.vl_pressure} onChange={e => setTestData({...testData, vl_pressure: e.target.value})} />
+                      <Input type="number" className="apple-input" value={testData.pressure_bar} onChange={e => setTestData({...testData, pressure_bar: e.target.value})} />
                     </div>
                     <div>
                       <Label className="text-xs mb-1 block">المدة (μs)</Label>
-                      <Input type="number" className="apple-input" value={testData.vl_duration} onChange={e => setTestData({...testData, vl_duration: e.target.value})} />
+                      <Input type="number" className="apple-input" value={testData.duration_us} onChange={e => setTestData({...testData, duration_us: e.target.value})} />
                     </div>
                     <div>
                       <Label className="text-xs mb-1 block">الإرجاع (ml/min)</Label>
-                      <Input type="number" className="apple-input" value={testData.vl_return} onChange={e => setTestData({...testData, vl_return: e.target.value})} />
+                      <Input type="number" className="apple-input" value={testData.return_qty_ml_min} onChange={e => setTestData({...testData, return_qty_ml_min: e.target.value})} />
                     </div>
                   </div>
                 </div>

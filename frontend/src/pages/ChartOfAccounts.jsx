@@ -90,7 +90,6 @@ export default function ChartOfAccounts() {
     const onFinUpdated = () => fetchAccounts();
     window.addEventListener('finance:updated', onFinUpdated);
     return () => window.removeEventListener('finance:updated', onFinUpdated);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAccounts = async () => {
@@ -912,7 +911,7 @@ function EditAccountModal({ account, allAccounts, onClose, onSave, isSubmitting,
       <div className="bg-gray-800 rounded-xl w-full max-w-md border border-gray-700" data-testid="edit-account-modal">
         <div className="p-6 border-b border-gray-700">
           <h2 className="text-xl font-bold text-white" data-testid="edit-account-modal-title">
-            تعديل الحساب "{account?.name_ar || account?.name}"
+            تعديل الحساب &quot;{account?.name_ar || account?.name}&quot;
           </h2>
         </div>
 

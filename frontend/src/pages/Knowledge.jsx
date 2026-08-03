@@ -49,7 +49,9 @@ const Knowledge = () => {
       const res = await fetch(`${API_URL}/ai/kb/search-docs?query=${encodeURIComponent(searchQuery || '')}`);
       const data = await res.json();
       setDocs(data.results || []);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('فشل تحميل مستندات المعرفة', e);
+    }
   };
 
   const fetchMedia = async () => {
@@ -57,7 +59,9 @@ const Knowledge = () => {
       const res = await fetch(`${API_URL}/media/list`);
       const data = await res.json();
       setMedia(data.items || []);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('فشل تحميل الوسائط', e);
+    }
   };
 
   useEffect(() => { fetchDocs(); }, []);
@@ -101,7 +105,9 @@ const Knowledge = () => {
       const res = await fetch(`${API_URL}/ai/kb/electrical/search?query=${encodeURIComponent(elecQuery)}`);
       const data = await res.json();
       setElecResults(data.results || []);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('فشل بحث المعرفة الكهربائية', e);
+    }
   };
 
   const doElecQA = async () => {

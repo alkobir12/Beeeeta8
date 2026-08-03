@@ -1,3 +1,4 @@
+/* global describe, test, expect, jest */
 jest.mock('html2canvas', () => jest.fn(() => Promise.resolve({})));
 
 jest.mock('jspdf', () => {

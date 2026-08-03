@@ -38,7 +38,7 @@ const OutboundMessagesTab = () => {
     }
   };
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []);
 
   const grouped = useMemo(() => Object.keys(docTypes).reduce((acc, key) => {
     acc[key] = templates.filter((tpl) => tpl.doc_type === key);
