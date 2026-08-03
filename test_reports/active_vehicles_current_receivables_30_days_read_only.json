@@ -1,0 +1,616 @@
+{
+  "generated_at": "2026-08-03T21:48:37.568926+00:00",
+  "mode": "READ_ONLY",
+  "read_only": true,
+  "scope": {
+    "timezone": "Asia/Riyadh",
+    "start": "2026-07-05T00:00:00+03:00",
+    "end": "2026-08-04T23:59:59.999999+03:00",
+    "active_vehicle_rule": "status not in delivered/archived/cancelled; NULL status treated as active because it appears in current active dashboard data",
+    "source_of_truth": "active vehicle -> current visit -> current services/customer-charged parts -> confirmed payments"
+  },
+  "mutation_guard": {
+    "before_counts": {
+      "vehicles": 194,
+      "vehicle_visits": 178,
+      "operations": 49,
+      "journal_entries": 6
+    },
+    "after_counts": {
+      "vehicles": 194,
+      "vehicle_visits": 178,
+      "operations": 49,
+      "journal_entries": 6
+    },
+    "unchanged": true
+  },
+  "summary": {
+    "active_vehicle_count": 15,
+    "active_vehicle_status_counts": {
+      "NULL": 7,
+      "ready": 4,
+      "diagnosis": 3,
+      "تشخيص": 1
+    },
+    "vehicles_paid_count": 1,
+    "vehicles_with_valid_receivables_count": 7,
+    "total_valid_receivables": 6805.0,
+    "total_valid_receivables_missing_financial_links": 6805.0,
+    "total_paid_items_wrongly_shown_as_receivables": 0.0,
+    "total_duplicate_confirmed": 0.0,
+    "total_duplicate_suspected": 600.0,
+    "total_unapplied_confirmed_payments": 0.0,
+    "manual_review_count": 3,
+    "historical_excluded_amount_for_active_vehicles": 2350.0
+  },
+  "rows": [
+    {
+      "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "customer": "ابو فهد",
+      "vehicle": "متسوبيشي L200 غماره 2010",
+      "plate": "ا ق ل 222",
+      "visit_id": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+      "visit_date": "2026-08-02",
+      "visit_status": "in_progress",
+      "services_current": [],
+      "parts_current": [],
+      "current_items_total": 0.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 5.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [],
+      "missing_financial_links": [],
+      "operation_ids": [],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "historical_excluded",
+      "receivable_link_classification": "historical_excluded",
+      "final_judgment": "لا توجد بنود حالية مؤهلة داخل النطاق"
+    },
+    {
+      "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+      "customer": "خالد القبيشي",
+      "vehicle": "تويوتا جيب 2009",
+      "plate": "ا ع ط 3550",
+      "visit_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+      "visit_date": "2026-08-02",
+      "visit_status": "in_progress",
+      "services_current": [
+        "تركيب فلتر هوا وفلتر ديزل ×1 = 31.00"
+      ],
+      "parts_current": [
+        "فلتر ديزل ×1 = 119.00",
+        "فلتر هواء ×1 = 152.00"
+      ],
+      "current_items_total": 302.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 302.0,
+      "displayed_receivable": 302.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [
+        "فلتر ديزل ×1 = 119.00",
+        "فلتر هواء ×1 = 152.00",
+        "تركيب فلتر هوا وفلتر ديزل ×1 = 31.00"
+      ],
+      "missing_financial_links": [
+        "قيد إيراد/بيع مفقود",
+        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+      ],
+      "operation_ids": [
+        "1d40d657-f682-40a5-b404-4bea38757a12"
+      ],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "valid_receivable_missing_financial_links",
+      "receivable_link_classification": "valid_receivable_missing_financial_links",
+      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+    },
+    {
+      "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+      "customer": "فيصل الجفير",
+      "vehicle": "متسوبيشي L200  غمارتين 2018",
+      "plate": "ب ر ب 82023",
+      "visit_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+      "visit_date": "2026-08-02",
+      "visit_status": "in_progress",
+      "services_current": [],
+      "parts_current": [],
+      "current_items_total": 0.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [],
+      "missing_financial_links": [],
+      "operation_ids": [],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "historical_excluded",
+      "receivable_link_classification": "historical_excluded",
+      "final_judgment": "لا توجد بنود حالية مؤهلة داخل النطاق"
+    },
+    {
+      "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "customer": "ابراهيم صالح",
+      "vehicle": "متسوبيشي L200 2021",
+      "plate": "ب ر ق 4806",
+      "visit_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+      "visit_date": "2026-07-27",
+      "visit_status": "in_progress",
+      "services_current": [
+        "فك وتركيب راس مع فك صدر المكينه ×1 = 1,000.00"
+      ],
+      "parts_current": [
+        "الراكضي ×1 = 175.00",
+        "كراسي تيمن مع مسامير وعصافير ×1 = 800.00"
+      ],
+      "current_items_total": 1975.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 1975.0,
+      "displayed_receivable": 1975.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [
+        "الراكضي ×1 = 175.00",
+        "كراسي تيمن مع مسامير وعصافير ×1 = 800.00",
+        "فك وتركيب راس مع فك صدر المكينه ×1 = 1,000.00"
+      ],
+      "missing_financial_links": [
+        "قيد إيراد/بيع مفقود",
+        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+      ],
+      "operation_ids": [
+        "6484969a-7714-43f8-b0b9-782c915b8abc"
+      ],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "valid_receivable_missing_financial_links",
+      "receivable_link_classification": "valid_receivable_missing_financial_links",
+      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+    },
+    {
+      "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+      "customer": "خالد عماش الحربي",
+      "vehicle": "تويوتتا هايلكس 2001",
+      "plate": "ا ح ق 9342",
+      "visit_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+      "visit_date": "2026-07-26",
+      "visit_status": "in_progress",
+      "services_current": [
+        "توضيب هاياكس  قديم ×1 = 2,001.00",
+        "غسيل مكينة+معجون ديركو +ماء مقطر ×1 = 120.00"
+      ],
+      "parts_current": [
+        "الحميدان التركي ×1 = 1,869.00",
+        "الحميدان التركي ×1 = 299.00",
+        "الدريويش ×1 = 200.00",
+        "القرعاوي ×1 = 450.00",
+        "القرعاوي ×1 = 364.00",
+        "مخرطه ×1 = 300.00",
+        "مخرطه ×1 = 1,100.00",
+        "المزيد ×1 = 136.00",
+        "ابو ستة كهربائي ×1 = 300.00",
+        "زيت مكينة بالتر ×1 = 80.00",
+        "صوفة طرمبة ديزل ×1 = 50.00",
+        "القرعاوي ×1 = 51.00",
+        "مخرطه ×1 = 300.00",
+        "ابو ستة كهربائي ×1 = 200.00",
+        "سطحة ×1 = 180.00"
+      ],
+      "current_items_total": 8000.0,
+      "confirmed_payments": [
+        "3,000.00 (bank, 2026-07-29)",
+        "5,000.00 (bank, 2026-08-02)"
+      ],
+      "confirmed_payments_total": 8000.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [],
+      "missing_financial_links": [
+        "دفعة مؤكدة/مدخلة في notes تحتاج ربط خلفي: pay-1785309866589",
+        "دفعة مؤكدة/مدخلة في notes تحتاج ربط خلفي: pay-1785676543850",
+        "قيد دفعة مذكور في notes وغير موجود حالياً: f4a335b3-29a2-440e-bdad-a818abdbf3a0"
+      ],
+      "operation_ids": [
+        "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e"
+      ],
+      "journal_entry_ids": [
+        "f8dff8a6-4499-40c7-a0e2-4a6dfcb4d5bd",
+        "b6463c85-06f1-494a-9c53-12460922b686",
+        "1be58802-a8ef-4231-9857-dd6b6d59d1e2"
+      ],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [
+        {
+          "signature": "مخرطه | 1 | 300.00 | 300.00",
+          "count": 2,
+          "amount": 600.0,
+          "item_ids": [
+            "item-73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e-7",
+            "item-73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e-14"
+          ]
+        }
+      ],
+      "classification": "paid",
+      "receivable_link_classification": "paid",
+      "final_judgment": "البنود الحالية مغطاة بالكامل بدفعات مؤكدة"
+    },
+    {
+      "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "customer": "سلطان الشاص",
+      "vehicle": "مستوبيشي L200",
+      "plate": "ب ح ن 6923",
+      "visit_id": "b48c0850-1453-4740-9639-1a99687fda67",
+      "visit_date": "2026-07-23",
+      "visit_status": "in_progress",
+      "services_current": [
+        "تبديل كلتش ×1 = 300.00"
+      ],
+      "parts_current": [],
+      "current_items_total": 300.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 300.0,
+      "displayed_receivable": 300.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [
+        "تبديل كلتش ×1 = 300.00"
+      ],
+      "missing_financial_links": [
+        "قيد إيراد/بيع مفقود",
+        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+      ],
+      "operation_ids": [
+        "b48c0850-1453-4740-9639-1a99687fda67"
+      ],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "valid_receivable_missing_financial_links",
+      "receivable_link_classification": "valid_receivable_missing_financial_links",
+      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+    },
+    {
+      "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+      "customer": "فهد الطريسي",
+      "vehicle": "تويوتا جيب 2015",
+      "plate": "ح ل ص 5745",
+      "visit_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+      "visit_date": "2026-07-13",
+      "visit_status": "in_progress",
+      "services_current": [
+        "اصلح ضفيره وصلاح كمبيوتر بخاخات وتنضيف التانكي ×1 = 1,800.00"
+      ],
+      "parts_current": [
+        "القرعاوي ×1 = 143.00",
+        "كتاوت ×1 = 143.00",
+        "القرعاوي ×1 = 1,947.00",
+        "ساسكو ×1 = 150.00",
+        "الموسى ×1 = 195.00"
+      ],
+      "current_items_total": 4378.0,
+      "confirmed_payments": [
+        "1,950.00 (bank, 2026-07-14)"
+      ],
+      "confirmed_payments_total": 1950.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 2428.0,
+      "displayed_receivable": 2428.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [
+        "القرعاوي ×1 = 143.00",
+        "كتاوت ×1 = 143.00",
+        "القرعاوي ×1 = 1,947.00",
+        "اصلح ضفيره وصلاح كمبيوتر بخاخات وتنضيف التانكي ×1 = 1,800.00",
+        "ساسكو ×1 = 150.00",
+        "الموسى ×1 = 195.00"
+      ],
+      "missing_financial_links": [
+        "operation_id مفقود للزيارة",
+        "قيد إيراد/بيع مفقود",
+        "قيد دفعة مذكور في notes وغير موجود حالياً: f6611322-da47-45c4-8bce-7a40909696ac",
+        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+      ],
+      "operation_ids": [],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "partially_paid",
+      "receivable_link_classification": "valid_receivable_missing_financial_links",
+      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+    },
+    {
+      "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "customer": "فارس عوض",
+      "vehicle": "تويوتا جيب ديزل 2006",
+      "plate": "ح ق م 5520",
+      "visit_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+      "visit_date": "2026-07-12",
+      "visit_status": "in_progress",
+      "services_current": [
+        "توضيب المكينة ×1 = 2,500.00"
+      ],
+      "parts_current": [],
+      "current_items_total": 2500.0,
+      "confirmed_payments": [
+        "2,000.00 (cash, 2026-07-15)"
+      ],
+      "confirmed_payments_total": 2000.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 500.0,
+      "displayed_receivable": 500.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [
+        "توضيب المكينة ×1 = 2,500.00"
+      ],
+      "missing_financial_links": [
+        "قيد إيراد/بيع مفقود",
+        "قيد دفعة مذكور في notes وغير موجود حالياً: 1828fc4c-156a-4af5-9451-3b906ba220ac",
+        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+      ],
+      "operation_ids": [
+        "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+      ],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "partially_paid",
+      "receivable_link_classification": "valid_receivable_missing_financial_links",
+      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+    },
+    {
+      "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "customer": "عبد الكريم الشايعي",
+      "vehicle": "تويوتا شاص 2004",
+      "plate": "ا ص ص 7293",
+      "visit_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+      "visit_date": "2026-07-05",
+      "visit_status": "in_progress",
+      "services_current": [
+        "فك الجير ×1 = 800.00"
+      ],
+      "parts_current": [],
+      "current_items_total": 800.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 800.0,
+      "displayed_receivable": 800.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [
+        "فك الجير ×1 = 800.00"
+      ],
+      "missing_financial_links": [
+        "قيد إيراد/بيع مفقود",
+        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+      ],
+      "operation_ids": [
+        "72ccd3b0-f63b-4efc-957a-30c92aa163cf"
+      ],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "valid_receivable_missing_financial_links",
+      "receivable_link_classification": "valid_receivable_missing_financial_links",
+      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+    },
+    {
+      "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "customer": "ابو ركان عبدالله",
+      "vehicle": "تويوتا جيب 2019",
+      "plate": "د ط ص 5787",
+      "visit_id": "77a3d80a-70be-4274-b646-b9aff8b80e55",
+      "visit_date": "2026-07-12",
+      "visit_status": "in_progress",
+      "services_current": [],
+      "parts_current": [],
+      "current_items_total": 0.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [],
+      "missing_financial_links": [],
+      "operation_ids": [],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "historical_excluded",
+      "receivable_link_classification": "historical_excluded",
+      "final_judgment": "لا توجد بنود حالية مؤهلة داخل النطاق"
+    },
+    {
+      "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "customer": "عاصم التويجري",
+      "vehicle": "اوسوزو ونيت 2011",
+      "plate": "ا ل و 7121",
+      "visit_id": "—",
+      "visit_date": "—",
+      "visit_status": "—",
+      "services_current": [],
+      "parts_current": [],
+      "current_items_total": 0.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 150.0,
+      "difference_current_minus_correct": 150.0,
+      "file_only_items": [],
+      "missing_financial_links": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "historical_excluded",
+      "final_judgment": "مركبة نشطة لكن لا توجد زيارة داخل نطاق 2026-07-05 إلى 2026-08-04؛ أي رصيد ظاهر يعود لنطاق قديم مستبعد من هذا التقرير."
+    },
+    {
+      "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
+      "customer": "صالح  سليمان ابراهيم المهوس",
+      "vehicle": "تويوتا صالون 2021",
+      "plate": "ا ط ي  8204",
+      "visit_id": "—",
+      "visit_date": "—",
+      "visit_status": "—",
+      "services_current": [],
+      "parts_current": [],
+      "current_items_total": 0.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [],
+      "missing_financial_links": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "historical_excluded",
+      "final_judgment": "مركبة نشطة لكن لا توجد زيارة داخل نطاق 2026-07-05 إلى 2026-08-04؛ أي رصيد ظاهر يعود لنطاق قديم مستبعد من هذا التقرير."
+    },
+    {
+      "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "customer": "1046 ///صالح القصير",
+      "vehicle": "ايسوزو ونيت 2022",
+      "plate": "1046  /// ب ص ر 6431",
+      "visit_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+      "visit_date": "2026-07-06",
+      "visit_status": "in_progress",
+      "services_current": [
+        "فك وتركيب تربوا ايسوزو ×1 = 500.00"
+      ],
+      "parts_current": [],
+      "current_items_total": 500.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 500.0,
+      "displayed_receivable": 500.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [
+        "فك وتركيب تربوا ايسوزو ×1 = 500.00"
+      ],
+      "missing_financial_links": [
+        "قيد إيراد/بيع مفقود",
+        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+      ],
+      "operation_ids": [
+        "6973ed6f-8895-42cf-ad24-331832ebef96"
+      ],
+      "journal_entry_ids": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "valid_receivable_missing_financial_links",
+      "receivable_link_classification": "valid_receivable_missing_financial_links",
+      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+    },
+    {
+      "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "customer": "1036 /// ماجد الربعي",
+      "vehicle": "تويوتا هايلوكس 2012",
+      "plate": "0136///  ا ق ر 7756",
+      "visit_id": "—",
+      "visit_date": "—",
+      "visit_status": "—",
+      "services_current": [],
+      "parts_current": [],
+      "current_items_total": 0.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [],
+      "missing_financial_links": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "historical_excluded",
+      "final_judgment": "مركبة نشطة لكن لا توجد زيارة داخل نطاق 2026-07-05 إلى 2026-08-04؛ أي رصيد ظاهر يعود لنطاق قديم مستبعد من هذا التقرير."
+    },
+    {
+      "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+      "customer": "77  //محمد  فهدالعمر",
+      "vehicle": "ايسوزو ونيت 2008",
+      "plate": "ا ر ح 6912",
+      "visit_id": "—",
+      "visit_date": "—",
+      "visit_status": "—",
+      "services_current": [],
+      "parts_current": [],
+      "current_items_total": 0.0,
+      "confirmed_payments": [],
+      "confirmed_payments_total": 0.0,
+      "unapplied_confirmed_payments": 0.0,
+      "pending_payments_total": 0.0,
+      "correct_remaining": 0.0,
+      "displayed_receivable": 0.0,
+      "difference_current_minus_correct": 0.0,
+      "file_only_items": [],
+      "missing_financial_links": [],
+      "duplicate_confirmed": [],
+      "duplicate_suspected": [],
+      "classification": "historical_excluded",
+      "final_judgment": "مركبة نشطة لكن لا توجد زيارة داخل نطاق 2026-07-05 إلى 2026-08-04؛ أي رصيد ظاهر يعود لنطاق قديم مستبعد من هذا التقرير."
+    }
+  ],
+  "historical_excluded_rows": [
+    {
+      "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "visit_id": "5f3b0fd2-b225-407c-8c8d-d3e82c9a129a",
+      "visit_date": "2026-06-23",
+      "customer": "ابو ركان عبدالله",
+      "amount": 2350.0,
+      "reason": "historical_excluded"
+    }
+  ],
+  "manual_review": [
+    {
+      "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "visit_id": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+      "reason": "دفعات بانتظار التأكيد غير محسوبة",
+      "amount": 5.0
+    },
+    {
+      "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+      "visit_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+      "reason": "تكرار محتمل في بنود الزيارة",
+      "amount": 600.0
+    },
+    {
+      "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "reason": "رصيد ظاهر حالياً لكن لا توجد زيارة داخل نطاق آخر 30 يوماً المعتمد",
+      "amount": 150.0
+    }
+  ]
+}
