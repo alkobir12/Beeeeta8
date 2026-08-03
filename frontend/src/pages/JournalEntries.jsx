@@ -3,6 +3,7 @@ import { resolveBackendBase } from '../utils/backendBase';
 import SmartAccountSelect from '../components/SmartAccountSelect';
 import SmartPOSJournal from './SmartPOSJournal';
 import axios from 'axios';
+import { api } from '../services/api';
 import { hasPermission } from '../utils/permissions';
 import {
   BookOpen,
@@ -266,8 +267,8 @@ export default function JournalEntries() {
   const fetchJournalEntries = async (signal = undefined) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/finance/journal-entries?workshop_id=${WORKSHOP_ID}&limit=50`, { signal });
-      const data = await response.json();
+      const response = await api.get('/finance/journal-entries', { params: { workshop_id: WORKSHOP_ID, limit: 50 }, signal });
+      const data = response.data;
 
       if (data?.success) {
         const rawEntries = ensureArray(data?.data)
@@ -332,8 +333,8 @@ export default function JournalEntries() {
 
   const fetchWorkshopProfile = async (signal = undefined) => {
     try {
-      const response = await fetch(`${API_URL}/profile`, { signal });
-      const data = await response.json();
+      const response = await api.get('/profile', { signal });
+      const data = response.data;
       const normalizedProfile = (data?.success && data?.data)
         ? data.data
         : (data?.data || data || null);
@@ -349,8 +350,8 @@ export default function JournalEntries() {
 
   const fetchWorkshopSettings = async (signal = undefined) => {
     try {
-      const response = await fetch(`${API_URL}/settings`, { signal });
-      const data = await response.json();
+      const response = await api.get('/settings', { signal });
+      const data = response.data;
       if (data) {
         setWorkshopSettings(data);
       }
@@ -363,13 +364,13 @@ export default function JournalEntries() {
   const fetchChartOfAccounts = async (signal = undefined) => {
     try {
       const workshopId = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
-      const response = await fetch(`${API_URL}/finance/chart-of-accounts?workshop_id=${workshopId}`, { signal });
-      const data = await response.json();
+      const response = await api.get('/finance/chart-of-accounts', { params: { workshop_id: workshopId }, signal });
+      const data = response.data;
       if (data?.success && Array.isArray(data?.data)) {
         setCoaAccounts(data.data);
       } else {
-        const fallback = await fetch(`${API_URL}/accounts?workshop_id=${workshopId}`, { signal });
-        const fallbackData = await fallback.json();
+        const fallback = await api.get('/accounts', { params: { workshop_id: workshopId }, signal });
+        const fallbackData = fallback.data;
         const normalized = Array.isArray(fallbackData)
           ? fallbackData
           : (Array.isArray(fallbackData?.data) ? fallbackData.data : []);
@@ -380,8 +381,8 @@ export default function JournalEntries() {
       console.error('Failed to fetch chart of accounts:', e);
       try {
         const workshopId = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
-        const fallback = await fetch(`${API_URL}/accounts?workshop_id=${workshopId}`, { signal });
-        const fallbackData = await fallback.json();
+        const fallback = await api.get('/accounts', { params: { workshop_id: workshopId }, signal });
+        const fallbackData = fallback.data;
         const normalized = Array.isArray(fallbackData)
           ? fallbackData
           : (Array.isArray(fallbackData?.data) ? fallbackData.data : []);

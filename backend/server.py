@@ -431,6 +431,8 @@ def _credentialed_cors_origin(origin: Optional[str]) -> Optional[str]:
         return None
     if origin in allow_origins:
         return origin
+    if origin.endswith(".preview.emergentagent.com"):
+        return origin
     if "*" in allow_origins:
         return origin
     return None
