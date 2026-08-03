@@ -1,0 +1,63 @@
+{
+  "summary": "تم تنفيذ تدقيق Backend + Frontend بنمط read-only على الرابط العام. تحققنا من العدادات الأساسية الحقيقية، مسار الملخص المالي unified-v1 للمركبة المطلوبة، صلاحيات أحمد (403 للحذف)، ومسار dry_run للدفع بدون أي تغيير بيانات. أغلب الصفحات الرئيسية تعمل وتعرض محتوى فعلي، مع ملاحظة عطل تكامل في Journal Entries (فشل fetch من الواجهة) وملاحظة CORS على مسار login في بيئة preview.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "CORS في preview يعيد Access-Control-Allow-Origin='*' بدل origin الصريح ومع غياب Access-Control-Allow-Credentials، مخالف لشرط credentialed CORS في playbook.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "JournalEntries",
+        "issue": "الصفحة تفتح لكن تظهر أخطاء Console متكررة Failed to fetch عند جلب دفتر اليومية/الحسابات/الإعدادات/بيانات الورشة، ما يشير لتعطل تكامل جزئي للبيانات.",
+        "selector": "route=/accounting/journal-entries",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Browser fetch إلى المسارات المحذوفة",
+        "issue": "في اختبار المتصفح ظهرت حالة 502 لعدة مسارات محذوفة (/api/injectors/engines, /api/fault-knowledge, /api/moltbot/pages) بينما اختبار backend المباشر أعاد 404؛ هناك تعارض محتمل بطبقة edge/proxy.",
+        "affected_selectors": [
+          "fetch('/api/injectors/engines')",
+          "fetch('/api/fault-knowledge')",
+          "fetch('/api/moltbot/pages')"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter326_readonly_audit.py",
+    "/app/test_reports/pytest/iter326_backend.xml"
+  ],
+  "action_items": [
+    "إصلاح CORS لمسارات auth على preview edge بحيث يعيد origin صريح + Access-Control-Allow-Credentials=true.",
+    "التحقيق في سبب أخطاء Failed to fetch داخل صفحة Journal Entries (غالباً تضارب edge/proxy أو مسارات fetch/headers).",
+    "تأكيد سلوك طبقة edge للمسارات المحذوفة لتوحيد النتيجة مع backend (404 بدلاً من 502 من منظور المتصفح)."
+  ],
+  "critical_code_review_comments": [
+    "routes_finance.py يحتوي كود غير قابل للوصول بعد return داخل build_current_visit_ar_snapshot (dead code يجب تنظيفه).",
+    "يوجد تضارب/التباس في مسارات القوالب: /api/templates متعدد المصادر بينما الواجهة تعتمد /api/document-templates؛ يلزم توحيد العقدة API لتجنب سوء الفهم والاختبارات الخاطئة.",
+    "ملفات ضخمة جداً (VehicleDetails.jsx ~4682 سطر، routes_extended.py ~6093، routes_finance.py ~6124) تتجاوز حدود الصيانة وتزيد مخاطر regression."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter326_readonly_audit.py",
+    "/app/test_reports/iteration_326.json"
+  ],
+  "success_rate": {
+    "backend": "95.7% (22/23)",
+    "frontend": "90% (مع عطل تكامل واضح في Journal Entries)"
+  },
+  "seed_data_creation": "لم يتم إنشاء seed data ولم يتم حفظ/تأكيد أي دفعة فعلية. جميع اختبارات الدفع كانت dry_run أو فتح نموذج فقط دون حفظ.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "للـPlaywright: تسجيل الدخول عبر الفورم قد يفقد الجلسة بعد التنقل في هذه البيئة؛ الأسلوب الأكثر ثباتاً هو API login ثم حقن auth_token + session + user في localStorage وcookie قبل اختبار المسارات. العدادات المؤكدة: vehicles=194, customers=216, technicians=5, suppliers=57, parts=173, services=564, operations=11, journal_entries=6, templates=11 (/api/document-templates), users=2, invoices=442. المركبة f6590225-aef6-452b-af39-e0e42061fd81: engine unified-v1 وصيغة customer_total/remaining صحيحة، وزر إضافة دفعة ونموذج quick-payment ظاهران دون حفظ.",
+  "rca of the issue": "RCA-1 (CORS): الاختبار المباشر أثبت بقاء header بقيمة '*' لمسار login في preview، ما يرجّح إعادة كتابة headers من edge/proxy قبل وصول استجابة middleware النهائية. RCA-2 (Journal Entries fetch failures): الصفحة تُرندر shell لكن fetch لعدة مصادر يفشل من المتصفح، ما يشير إلى تعارض headers/cookies/edge routing أكثر من كونه انهيار React. RCA-3 (Removed APIs status mismatch): backend contract يعيد 404، لكن fetch من المتصفح أظهر 502 لبعض المسارات؛ هذا غالباً خلل طبقة وسيطة لا منطق التطبيق نفسه.",
+  "mocked_api": "NO MOCKED APIs used."
+}
