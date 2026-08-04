@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-08-04T16:32:59.454842+00:00",
+  "mode": "COMMIT",
+  "source": "fin_engine_align_v1",
+  "before_counts": {
+    "vehicles": 196,
+    "vehicle_visits": 180,
+    "journal_entries": 33
+  },
+  "after_counts": {
+    "vehicles": 196,
+    "vehicle_visits": 180,
+    "journal_entries": 33
+  },
+  "journal_entries_delta": 0,
+  "candidate_count": 0,
+  "total_ar_increase": 0.0,
+  "total_ar_decrease": 0.0,
+  "net_alignment_delta": 0.0,
+  "rows": []
+}

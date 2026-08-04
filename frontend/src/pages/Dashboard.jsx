@@ -314,7 +314,7 @@ const Dashboard = () => {
 
       const res = await axios.post(`${API_URL}/vehicles/dashboard/summaries`, {
         vehicle_ids: vehicleIds,
-      });
+      }, { timeout: 8000 });
       const summariesArray = res?.data?.summaries || [];
       const summariesMap = summariesArray.reduce((acc, summary) => {
         const key = String(summary?.vehicleId || '').trim();

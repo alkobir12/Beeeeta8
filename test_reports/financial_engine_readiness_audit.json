@@ -1,0 +1,270 @@
+{
+  "generated_at": "2026-08-04T16:39:20.066599+00:00",
+  "read_only": true,
+  "engine_version": "unified-v1",
+  "counts": {
+    "vehicles": 196,
+    "vehicle_visits": 180,
+    "operations": 55,
+    "journal_entries": 33,
+    "dashboard_active_vehicles": 14
+  },
+  "status_counts": {
+    "delivered": 181,
+    "diagnosis": 12,
+    "ready": 2,
+    "archived": 1
+  },
+  "totals": {
+    "vehicle_file_remaining_total": 13475.84,
+    "ar_customers_total": 13475.84,
+    "journal_ar_total_all_entries": 21363.84,
+    "journal_ar_total_with_vehicle_tags": 13475.84,
+    "difference_ar_customers_minus_vehicle_file": 0.0,
+    "difference_journal_vehicle_minus_file": 0.0
+  },
+  "mismatch_count": 0,
+  "abnormal_status_count": 0,
+  "abnormal_statuses": [],
+  "rows": [
+    {
+      "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "customer": "عاصم التويجري",
+      "plate": "ا ل و 7121",
+      "status": "diagnosis",
+      "visit_ids": [
+        "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0"
+      ],
+      "file_items_total": 150.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 150.0,
+      "journal_ar_balance": 150.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "customer": "1036 /// ماجد الربعي",
+      "plate": "0136///  ا ق ر 7756",
+      "status": "diagnosis",
+      "visit_ids": [
+        "ba89782c-65b1-4c4e-8fa7-30707379e2b2"
+      ],
+      "file_items_total": 100.0,
+      "confirmed_notes_paid": 100.0,
+      "pending_payments": 0.0,
+      "file_remaining": 0.0,
+      "journal_ar_balance": 0.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 2,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+      "customer": "77  //محمد  فهدالعمر",
+      "plate": "ا ر ح 6912",
+      "status": "ready",
+      "visit_ids": [
+        "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f"
+      ],
+      "file_items_total": 250.0,
+      "confirmed_notes_paid": 250.0,
+      "pending_payments": 0.0,
+      "file_remaining": 0.0,
+      "journal_ar_balance": 0.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 2,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "customer": "   1046 ///صالح القصير",
+      "plate": "   1046  /// ب ص ر 6431",
+      "status": "diagnosis",
+      "visit_ids": [
+        "6973ed6f-8895-42cf-ad24-331832ebef96"
+      ],
+      "file_items_total": 500.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 500.0,
+      "journal_ar_balance": 500.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "customer": "فارس عوض ",
+      "plate": "ح ق م 5520",
+      "status": "diagnosis",
+      "visit_ids": [
+        "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+      ],
+      "file_items_total": 9681.0,
+      "confirmed_notes_paid": 6000.0,
+      "pending_payments": 0.0,
+      "file_remaining": 3681.0,
+      "journal_ar_balance": 3681.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 2,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "customer": "عبد الكريم الشايعي ",
+      "plate": "ا ص ص 7293",
+      "status": "diagnosis",
+      "visit_ids": [
+        "72ccd3b0-f63b-4efc-957a-30c92aa163cf"
+      ],
+      "file_items_total": 800.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 800.0,
+      "journal_ar_balance": 800.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
+      "customer": "صالح  سليمان ابراهيم المهوس",
+      "plate": "ا ط ي  8204",
+      "status": "diagnosis",
+      "visit_ids": [
+        "2819677c-380c-4c97-b23e-e783a434a150"
+      ],
+      "file_items_total": 0.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 0.0,
+      "journal_ar_balance": 0.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 0,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+      "customer": "خالد القبيشي",
+      "plate": " ا ع ط 3550",
+      "status": "diagnosis",
+      "visit_ids": [
+        "1d40d657-f682-40a5-b404-4bea38757a12"
+      ],
+      "file_items_total": 302.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 302.0,
+      "journal_ar_balance": 302.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "customer": "ابراهيم صالح ",
+      "plate": "ب ر ق 4806",
+      "status": "ready",
+      "visit_ids": [
+        "6484969a-7714-43f8-b0b9-782c915b8abc"
+      ],
+      "file_items_total": 1975.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 1975.0,
+      "journal_ar_balance": 1975.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "customer": "ابو فهد ",
+      "plate": "ا ق ل 222",
+      "status": "diagnosis",
+      "visit_ids": [
+        "0fd379c7-8d78-4151-b32f-beeb32dae664"
+      ],
+      "file_items_total": 2500.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 2500.0,
+      "journal_ar_balance": 2500.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "customer": "سلطان الشاص",
+      "plate": "ب ح ن 6923",
+      "status": "diagnosis",
+      "visit_ids": [
+        "b48c0850-1453-4740-9639-1a99687fda67"
+      ],
+      "file_items_total": 300.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 300.0,
+      "journal_ar_balance": 300.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+      "customer": "شاص 2006",
+      "plate": "س ن د 635",
+      "status": "diagnosis",
+      "visit_ids": [
+        "f5813fbd-f4b4-4561-9f13-9893d1880cc8"
+      ],
+      "file_items_total": 800.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 800.0,
+      "journal_ar_balance": 800.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+      "customer": "فيصل الجفير",
+      "plate": "ب ر ب 82023",
+      "status": "diagnosis",
+      "visit_ids": [
+        "174f49a1-5482-43d5-b333-ede2743a7d79"
+      ],
+      "file_items_total": 2300.0,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 2300.0,
+      "journal_ar_balance": 2300.0,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    },
+    {
+      "vehicle_id": "8708bbd6-18be-4fb0-93a4-f9818b2b91ad",
+      "customer": "مد الله الثواتي",
+      "plate": "ا ب ق 5437",
+      "status": "diagnosis",
+      "visit_ids": [
+        "3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e"
+      ],
+      "file_items_total": 167.84,
+      "confirmed_notes_paid": 0.0,
+      "pending_payments": 0.0,
+      "file_remaining": 167.84,
+      "journal_ar_balance": 167.84,
+      "difference_journal_minus_file": 0.0,
+      "journal_entry_count": 1,
+      "classification": "matched"
+    }
+  ],
+  "mismatches": []
+}

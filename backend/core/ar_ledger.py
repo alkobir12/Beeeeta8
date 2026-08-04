@@ -8,11 +8,8 @@
 """
 from __future__ import annotations
 
-import os
 import re
 from typing import Any, Dict
-
-import httpx
 
 AR_ACCOUNT_CODES = {"005", "1103", "113"}
 CREDIT_METHODS = {"credit", "deferred", "اجل", "آجل", "ذمة", "ذمم"}
@@ -21,22 +18,17 @@ _PARTY_RE = re.compile(r"\[PARTY:([^\]]+)\]")
 
 
 async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
-    from core.tool_router import _int_headers
-    base = os.environ.get("INTERNAL_API_BASE") or os.getenv("BACKEND_INTERNAL_URL") or "http://localhost:8001"
-    async with httpx.AsyncClient(timeout=25, headers=_int_headers()) as client:
-        rj = await client.get(f"{base}/api/finance/journal-entries",
-                              params={"workshop_id": workshop_id, "limit": 1000})
-        entries = rj.json() if rj.status_code == 200 else []
-        ro = await client.get(f"{base}/api/operations", params={"limit": 1000})
-        ops = ro.json() if ro.status_code == 200 else []
-        rc = await client.get(f"{base}/api/customers")
-        customers = rc.json() if rc.status_code == 200 else []
-    if isinstance(entries, dict):
-        entries = entries.get("data") or entries.get("entries") or []
-    if isinstance(ops, dict):
-        ops = ops.get("data") or ops.get("items") or []
-    if not isinstance(customers, list):
-        customers = []
+    from financial_reconciliation import table_fetch_all
+    from supabase_service import SupabaseService
+
+    supa = SupabaseService()
+    if supa.mock_mode:
+        raise RuntimeError("AR ledger requires real database data")
+
+    entries = table_fetch_all(supa.client, "journal_entries")
+    entries = [row for row in entries if str(row.get("workshop_id") or workshop_id) == workshop_id]
+    ops = table_fetch_all(supa.client, "operations")
+    customers = table_fetch_all(supa.client, "customers")
 
     # 1) SSOT — رصيد الذمم من القيود
     ledger_total = 0.0
@@ -46,7 +38,8 @@ async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
         pm = _PARTY_RE.search(desc)
         party = (pm.group(1).strip() if pm else "") or str(e.get("party_label") or "").strip()
         for ln in (e.get("lines") or []):
-            if str(ln.get("code") or "") in AR_ACCOUNT_CODES:
+            code = str(ln.get("account") or ln.get("code") or ln.get("account_code") or "").strip()
+            if code in AR_ACCOUNT_CODES:
                 delta = float(ln.get("debit") or 0) - float(ln.get("credit") or 0)
                 ledger_total += delta
                 key = party or "غير منسوب"
@@ -78,6 +71,14 @@ async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
     stored_total = round(sum(s["balance"] for s in stored), 2)
     ledger_total = round(ledger_total, 2)
 
+    current_vehicle_ar_total = 0.0
+    try:
+        from core.unified_financial_engine import build_current_ar_snapshot
+        current_snapshot = build_current_ar_snapshot(supa.client, workshop_id=workshop_id)
+        current_vehicle_ar_total = round(float(current_snapshot.get("total_ar") or 0), 2)
+    except Exception:
+        current_vehicle_ar_total = 0.0
+
     # 4) 🕒 القيود المؤقتة للبيع الآجل (قاعدة المالك — موسومة حتى التحصيل)
     op_names = {str(o.get("id") or ""): (o.get("customerName") or o.get("customer_name")
                 or o.get("partnerName") or o.get("partner_name") or "") for o in ops}
@@ -100,6 +101,7 @@ async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
 
     return {
         "ssot": "journal_entries",
+        "current_vehicle_ar_total": current_vehicle_ar_total,
         "ledger_ar_total": ledger_total,
         "ledger_by_party": sorted(
             [{"party": k, "balance": round(v, 2)} for k, v in per_party.items() if abs(v) >= 0.01],

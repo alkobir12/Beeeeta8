@@ -293,18 +293,39 @@ def fetch_vehicle_summary(supabase_client: Any, vehicle_id: str, workshop_id: Op
 
 def build_current_ar_snapshot(supabase_client: Any, workshop_id: str, end_date: Optional[str] = None) -> Dict[str, Any]:
     vehicles = supabase_client.table("vehicles").select("*").execute().data or []
+    visits = supabase_client.table("vehicle_visits").select("id,vehicle_id,status,notes,entry_date,created_at").execute().data or []
+    operations = supabase_client.table("operations").select("id,vehicle_id,visit_id,total,payment_method").execute().data or []
+    journal_query = supabase_client.table("journal_entries").select("id,reference_id,source,total,lines,date,description,workshop_id")
+    if workshop_id:
+        journal_query = journal_query.eq("workshop_id", workshop_id)
+    journal_entries = journal_query.execute().data or []
+
+    visits_by_vehicle: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    operations_by_vehicle: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for visit in visits:
+        vehicle_id = str(visit.get("vehicle_id") or "").strip()
+        if vehicle_id:
+            visits_by_vehicle[vehicle_id].append(visit)
+    for operation in operations:
+        vehicle_id = str(operation.get("vehicle_id") or "").strip()
+        if vehicle_id:
+            operations_by_vehicle[vehicle_id].append(operation)
+
     rows = []
     customers: Dict[str, Dict[str, Any]] = {}
     totals = {"workshop_total": 0.0, "supplier_total": 0.0, "confirmed_paid": 0.0, "receivable": 0.0, "cash": 0.0, "pos": 0.0, "bank_transfer": 0.0}
     ledger_rows = []
     for vehicle in vehicles:
         status = str(vehicle.get("status") or "").strip().lower()
-        if status == "delivered":
+        if status in {"delivered", "archived", "cancelled", "canceled", "ملغي", "ملغى", "مؤرشف", "مسلم", "تم التسليم"}:
             continue
-        try:
-            summary = fetch_vehicle_summary(supabase_client, str(vehicle.get("id")), workshop_id)
-        except Exception:
-            continue
+        vehicle_id = str(vehicle.get("id") or "").strip()
+        summary = build_vehicle_summary(
+            vehicle,
+            visits_by_vehicle.get(vehicle_id, []),
+            operations_by_vehicle.get(vehicle_id, []),
+            journal_entries,
+        )
         receivable = safe_float(summary.get("display_remaining"))
         name = summary.get("customer_name") or "غير محدد"
         totals["workshop_total"] += safe_float(summary.get("total_workshop"))

@@ -52,21 +52,18 @@ export default function DebtFollowUp() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const withTimeout = (promise, fallback) => Promise.race([
+      const withTimeout = (promise, fallback, timeoutMs = 12000) => Promise.race([
         promise.catch(() => fallback),
-        new Promise((resolve) => setTimeout(() => resolve(fallback), 4000)),
+        new Promise((resolve) => setTimeout(() => resolve(fallback), timeoutMs)),
       ]);
       const fetchCurrentArCustomers = async () => {
-        const token = localStorage.getItem('auth_token') || '';
-        const base = window.location.origin;
         const asOf = new Date().toISOString().slice(0, 10);
-        const response = await fetch(`${base}/api/finance/ar/customers?workshop_id=${encodeURIComponent(workshopId)}&as_of=${asOf}&include_today=true`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        return api.get('/finance/ar/customers', {
+          params: { workshop_id: workshopId, as_of: asOf, include_today: true },
+          timeout: 8000,
         });
-        if (!response.ok) throw new Error(`AR request failed: ${response.status}`);
-        return { data: await response.json() };
       };
-      const arCustomersRes = await withTimeout(fetchCurrentArCustomers(), { data: { data: { customers: [] } } });
+      const arCustomersRes = await withTimeout(fetchCurrentArCustomers(), { data: { data: { customers: [] } } }, 12000);
 
       // 📒 L14-D6: طبقات SSOT للذمم (best-effort — لا يعطّل الصفحة)
       api.get('/finance/ar-ledger', { params: { workshop_id: workshopId } })
@@ -81,6 +78,18 @@ export default function DebtFollowUp() {
         return [];
       };
       const arCustomerRows = normalizeRows(arCustomersRes?.data?.data, 'customers');
+      const arPayload = arCustomersRes?.data?.data || {};
+      const arTotalFromEngine = Number(arPayload.total_ar || 0);
+      if (arTotalFromEngine > 0) {
+        setArLedger((current) => current || {
+          current_vehicle_ar_total: arTotalFromEngine,
+          ledger_ar_total: arTotalFromEngine,
+          pending_unjournalized_total: 0,
+          pending_unjournalized_ops: [],
+          stored_balances_total: 0,
+          reconciliation_gap: 0,
+        });
+      }
       const customersSource = arCustomerRows.length
         ? arCustomerRows.map((row, index) => ({
           id: row.id || row.customer_id || `ar-customer-${index}`,
@@ -110,8 +119,8 @@ export default function DebtFollowUp() {
         return current.length > 0 ? current : [];
       });
       Promise.all([
-        withTimeout(customerAPI.getAll({ workshop_id: workshopId }), { data: [] }),
-        withTimeout(supplierAPI.getAll({ workshop_id: workshopId }), { data: [] }),
+        withTimeout(customerAPI.getAll({ workshop_id: workshopId }), { data: [] }, 8000),
+        withTimeout(supplierAPI.getAll({ workshop_id: workshopId }), { data: [] }, 8000),
       ]).then(([customersRes, suppliersRes]) => {
         const fallbackCustomers = arCustomerRows.length ? [] : normalizeRows(customersRes?.data, 'customers').map((row) => ({ ...row, entityType: 'customer' }));
         const supplierRows = normalizeRows(suppliersRes?.data, 'suppliers').map((row) => ({ ...row, entityType: 'supplier' }));
@@ -163,13 +172,12 @@ export default function DebtFollowUp() {
 
   const hydrateCurrentAr = async () => {
     try {
-      const token = localStorage.getItem('auth_token') || '';
       const asOf = new Date().toISOString().slice(0, 10);
-      const response = await fetch(`${window.location.origin}/api/finance/ar/customers?workshop_id=${encodeURIComponent(workshopId)}&as_of=${asOf}&include_today=true`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      const response = await api.get('/finance/ar/customers', {
+        params: { workshop_id: workshopId, as_of: asOf, include_today: true },
+        timeout: 12000,
       });
-      if (!response.ok) return;
-      const payload = await response.json();
+      const payload = response?.data;
       const rows = Array.isArray(payload?.data?.customers) ? payload.data.customers : [];
       if (!rows.length) {
         const cached = readCurrentArCache();
@@ -486,16 +494,16 @@ export default function DebtFollowUp() {
         </button>
       </div>
 
-      {/* 📒 L14-D6: شريط مصدر الحقيقة (SSOT) — القيود مرجع، الأرصدة المخزنة للمصالحة */}
+      {/* 📒 شريط تثبيت المحرك المالي: الذمم الحالية من المحرك الموحد، والقيود للمطابقة */}
       {arLedger && (
         <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 p-3 text-xs sm:text-sm text-indigo-100 flex flex-wrap items-center gap-x-4 gap-y-1"
              data-testid="ar-ssot-banner">
-          <span className="font-bold">📒 مصدر الحقيقة (القيود):</span>
-          <span data-testid="ar-ssot-ledger-total">{fmt(arLedger.ledger_ar_total)} ر.س</span>
+          <span className="font-bold">📒 المحرك المالي الموحد:</span>
+          <span>الذمم الحالية: <b data-testid="ar-ssot-current-engine-total">{fmt(arLedger.current_vehicle_ar_total ?? arLedger.effective_ar)}</b> ر.س</span>
+          <span>· رصيد القيود الكلي: <b data-testid="ar-ssot-ledger-total">{fmt(arLedger.ledger_ar_total)}</b> ر.س</span>
           <span>· آجل غير مقيّد: <b data-testid="ar-ssot-pending-total">{fmt(arLedger.pending_unjournalized_total)}</b> ({(arLedger.pending_unjournalized_ops || []).length} عمليات)</span>
-          <span>· الفعلي (قيود + معلّق): <b>{fmt(arLedger.effective_ar)}</b></span>
-          <span>· الأرصدة المخزنة (المعروضة أدناه): <b data-testid="ar-ssot-stored-total">{fmt(arLedger.stored_balances_total)}</b></span>
-          <span className="text-amber-200">· فجوة قيد المصالحة: <b data-testid="ar-ssot-gap">{fmt(arLedger.reconciliation_gap)}</b> — بانتظار قرار المالك</span>
+          <span>· أرصدة قديمة للمراجعة: <b data-testid="ar-ssot-stored-total">{fmt(arLedger.stored_balances_total)}</b></span>
+          <span className="text-amber-200">· فجوة القديم مع القيود: <b data-testid="ar-ssot-gap">{fmt(arLedger.reconciliation_gap)}</b></span>
         </div>
       )}
 
