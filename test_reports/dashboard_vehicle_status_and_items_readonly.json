@@ -1,0 +1,355 @@
+{
+  "generated_at": "2026-08-04T18:01:23.157714+03:00",
+  "dashboard_count": 16,
+  "all_vehicles_count": 194,
+  "delivered_count": 178,
+  "dashboard_status_counts": {
+    "diagnosis": 4,
+    "NULL": 6,
+    "ready": 4,
+    "تشخيص": 1,
+    "archived": 1
+  },
+  "with_current_items_count": 10,
+  "without_current_items_count": 6,
+  "current_items_total": 22455.0,
+  "remaining_total": 10505.0,
+  "rows": [
+    {
+      "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "customer": "ابو فهد ",
+      "plate": "ا ق ل 222",
+      "status": "diagnosis",
+      "entry_date": "2026-08-02",
+      "latest_visit_id": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+      "latest_visit_date": "2026-08-02",
+      "scope_visit_ids": [
+        "0fd379c7-8d78-4151-b32f-beeb32dae664"
+      ],
+      "current_items_total": 2500.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 2500.0,
+      "items_sample": [
+        "توضيب=2,500.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+      "customer": "خالد القبيشي",
+      "plate": " ا ع ط 3550",
+      "status": "NULL",
+      "entry_date": "2026-08-02",
+      "latest_visit_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+      "latest_visit_date": "2026-08-02",
+      "scope_visit_ids": [
+        "1d40d657-f682-40a5-b404-4bea38757a12"
+      ],
+      "current_items_total": 302.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 302.0,
+      "items_sample": [
+        "فلتر ديزل=119.00",
+        "فلتر هواء=152.00",
+        "تركيب فلتر هوا وفلتر ديزل=31.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+      "customer": "فيصل الجفير",
+      "plate": "ب ر ب 82023",
+      "status": "NULL",
+      "entry_date": "2026-08-02",
+      "latest_visit_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+      "latest_visit_date": "2026-08-02",
+      "scope_visit_ids": [
+        "174f49a1-5482-43d5-b333-ede2743a7d79"
+      ],
+      "current_items_total": 1200.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 1200.0,
+      "items_sample": [
+        "فك وتركيب الراس =1,200.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "customer": "ابراهيم صالح ",
+      "plate": "ب ر ق 4806",
+      "status": "ready",
+      "entry_date": "2026-07-27",
+      "latest_visit_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+      "latest_visit_date": "2026-07-27",
+      "scope_visit_ids": [
+        "6484969a-7714-43f8-b0b9-782c915b8abc"
+      ],
+      "current_items_total": 1975.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 1975.0,
+      "items_sample": [
+        "الراكضي=175.00",
+        "كراسي تيمن مع مسامير وعصافير =800.00",
+        "فك وتركيب راس مع فك صدر المكينه =1,000.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
+      "customer": "خالد عماش الحربي",
+      "plate": "ا ح ق 9342",
+      "status": "ready",
+      "entry_date": "2026-07-26",
+      "latest_visit_id": "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e",
+      "latest_visit_date": "2026-07-26",
+      "scope_visit_ids": [
+        "73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e"
+      ],
+      "current_items_total": 8000.0,
+      "confirmed_paid": 8000.0,
+      "pending_payments": 0.0,
+      "remaining": 0.0,
+      "items_sample": [
+        "توضيب هاياكس  قديم=2,001.00",
+        "الحميدان التركي=1,869.00",
+        "الحميدان التركي=299.00",
+        "الدريويش=200.00",
+        "القرعاوي=450.00",
+        "القرعاوي=364.00",
+        "غسيل مكينة+معجون ديركو +ماء مقطر=120.00",
+        "مخرطه=300.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "customer": "سلطان الشاص",
+      "plate": "ب ح ن 6923",
+      "status": "تشخيص",
+      "entry_date": "2026-07-23",
+      "latest_visit_id": "b48c0850-1453-4740-9639-1a99687fda67",
+      "latest_visit_date": "2026-07-23",
+      "scope_visit_ids": [
+        "b48c0850-1453-4740-9639-1a99687fda67"
+      ],
+      "current_items_total": 300.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 300.0,
+      "items_sample": [
+        "تبديل كلتش=300.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+      "customer": "فهد الطريسي",
+      "plate": "ح ل ص 5745",
+      "status": "ready",
+      "entry_date": "2026-07-13",
+      "latest_visit_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+      "latest_visit_date": "2026-07-13",
+      "scope_visit_ids": [
+        "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14"
+      ],
+      "current_items_total": 4378.0,
+      "confirmed_paid": 1950.0,
+      "pending_payments": 0.0,
+      "remaining": 2428.0,
+      "items_sample": [
+        "القرعاوي=143.00",
+        "كتاوت=143.00",
+        "القرعاوي=1,947.00",
+        "اصلح ضفيره وصلاح كمبيوتر بخاخات وتنضيف التانكي =1,800.00",
+        "ساسكو=150.00",
+        "الموسى=195.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "customer": "فارس عوض ",
+      "plate": "ح ق م 5520",
+      "status": "NULL",
+      "entry_date": "2026-07-12",
+      "latest_visit_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+      "latest_visit_date": "2026-07-12",
+      "scope_visit_ids": [
+        "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+      ],
+      "current_items_total": 2500.0,
+      "confirmed_paid": 2000.0,
+      "pending_payments": 0.0,
+      "remaining": 500.0,
+      "items_sample": [
+        "توضيب المكينة=2,500.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "customer": "عبد الكريم الشايعي ",
+      "plate": "ا ص ص 7293",
+      "status": "NULL",
+      "entry_date": "2026-07-05",
+      "latest_visit_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+      "latest_visit_date": "2026-07-05",
+      "scope_visit_ids": [
+        "72ccd3b0-f63b-4efc-957a-30c92aa163cf"
+      ],
+      "current_items_total": 800.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 800.0,
+      "items_sample": [
+        "فك الجير =800.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "customer": "ابو ركان عبدالله ",
+      "plate": "د ط ص 5787",
+      "status": "diagnosis",
+      "entry_date": "2026-06-23",
+      "latest_visit_id": "77a3d80a-70be-4274-b646-b9aff8b80e55",
+      "latest_visit_date": "2026-07-12",
+      "scope_visit_ids": [],
+      "current_items_total": 0.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 0.0,
+      "items_sample": [],
+      "historical_excluded": [
+        {
+          "visit_id": "5f3b0fd2-b225-407c-8c8d-d3e82c9a129a",
+          "date": "2026-06-23",
+          "total": 2350.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "customer": "عاصم التويجري",
+      "plate": "ا ل و 7121",
+      "status": "NULL",
+      "entry_date": "2026-06-08",
+      "latest_visit_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+      "latest_visit_date": "2026-06-08",
+      "scope_visit_ids": [],
+      "current_items_total": 0.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 0.0,
+      "items_sample": [],
+      "historical_excluded": [
+        {
+          "visit_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+          "date": "2026-06-08",
+          "total": 150.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
+      "customer": "صالح  سليمان ابراهيم المهوس",
+      "plate": "ا ط ي  8204",
+      "status": "diagnosis",
+      "entry_date": "2026-05-11",
+      "latest_visit_id": "2819677c-380c-4c97-b23e-e783a434a150",
+      "latest_visit_date": "2026-05-11",
+      "scope_visit_ids": [],
+      "current_items_total": 0.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 0.0,
+      "items_sample": [],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+      "customer": "1059 ///بنقالي عناية ميزان",
+      "plate": "1059 /// ا ر م 9460",
+      "status": "archived",
+      "entry_date": "2026-05-10",
+      "latest_visit_id": "c2677678-827b-4959-90b6-e914ca4ff82a",
+      "latest_visit_date": "2026-05-22",
+      "scope_visit_ids": [],
+      "current_items_total": 0.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 0.0,
+      "items_sample": [],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "customer": "   1046 ///صالح القصير",
+      "plate": "   1046  /// ب ص ر 6431",
+      "status": "diagnosis",
+      "entry_date": "2026-04-23",
+      "latest_visit_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+      "latest_visit_date": "2026-07-06",
+      "scope_visit_ids": [
+        "6973ed6f-8895-42cf-ad24-331832ebef96"
+      ],
+      "current_items_total": 500.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 500.0,
+      "items_sample": [
+        "فك وتركيب تربوا ايسوزو=500.00"
+      ],
+      "historical_excluded": []
+    },
+    {
+      "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "customer": "1036 /// ماجد الربعي",
+      "plate": "0136///  ا ق ر 7756",
+      "status": "NULL",
+      "entry_date": "2026-04-15",
+      "latest_visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+      "latest_visit_date": "2026-04-15",
+      "scope_visit_ids": [],
+      "current_items_total": 0.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 0.0,
+      "items_sample": [],
+      "historical_excluded": [
+        {
+          "visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+          "date": "2026-04-15",
+          "total": 100.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+      "customer": "77  //محمد  فهدالعمر",
+      "plate": "ا ر ح 6912",
+      "status": "ready",
+      "entry_date": "2026-04-06",
+      "latest_visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+      "latest_visit_date": "2026-04-06",
+      "scope_visit_ids": [],
+      "current_items_total": 0.0,
+      "confirmed_paid": 0.0,
+      "pending_payments": 0.0,
+      "remaining": 0.0,
+      "items_sample": [],
+      "historical_excluded": [
+        {
+          "visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+          "date": "2026-04-06",
+          "total": 250.0
+        }
+      ]
+    }
+  ]
+}
