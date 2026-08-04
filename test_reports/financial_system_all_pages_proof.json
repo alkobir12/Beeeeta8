@@ -1,0 +1,128 @@
+{
+  "generated_at": "2026-08-04T17:13:34.016419+00:00",
+  "backend": "https://ar-ledger-ssot.preview.emergentagent.com",
+  "sample_vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+  "expected_total": 13475.84,
+  "readiness_totals": {
+    "vehicle_file_remaining_total": 13475.84,
+    "ar_customers_total": 13475.84,
+    "journal_ar_total_all_entries": 21363.84,
+    "journal_ar_total_with_vehicle_tags": 13475.84,
+    "difference_ar_customers_minus_vehicle_file": 0.0,
+    "difference_journal_vehicle_minus_file": 0.0
+  },
+  "readiness_counts": {
+    "vehicles": 196,
+    "vehicle_visits": 180,
+    "operations": 55,
+    "journal_entries": 33,
+    "dashboard_active_vehicles": 14
+  },
+  "checks_summary": {
+    "ar_customers_total": null,
+    "ar_ledger_ending": null,
+    "ar_layers_current": null,
+    "vehicle_remaining_sample": null
+  },
+  "pass_conditions": {
+    "login_ok": true,
+    "readiness_zero_mismatch": true,
+    "ar_customers_matches_file": false,
+    "ar_ledger_matches_file": false,
+    "ar_layers_current_matches_file": false,
+    "vehicle_summary_ok": false,
+    "dashboard_summaries_ok": false,
+    "operations_ok": true,
+    "journal_entries_ok": true,
+    "customers_ok": false
+  },
+  "overall_pass": false,
+  "checks": {
+    "ar_customers": {
+      "status": 200,
+      "elapsed_seconds": 0.18,
+      "payload": {
+        "success": false,
+        "error": "{'message': 'JSON could not be generated', 'code': 401, 'hint': 'Refer to full message for details', 'details': 'b\\'{\"message\":\"Unregistered API key\",\"hint\":\"Double check the provided API key as it is not registered for this project.\"}\\''}",
+        "data": {
+          "customers": []
+        }
+      }
+    },
+    "ar_ledger": {
+      "status": 200,
+      "elapsed_seconds": 0.1,
+      "payload": {
+        "success": false,
+        "error": "{'message': 'JSON could not be generated', 'code': 401, 'hint': 'Refer to full message for details', 'details': 'b\\'{\"message\":\"Unregistered API key\",\"hint\":\"Double check the provided API key as it is not registered for this project.\"}\\''}",
+        "data": {
+          "rows": []
+        }
+      }
+    },
+    "ar_layers": {
+      "status": 500,
+      "elapsed_seconds": 0.12,
+      "payload": {
+        "raw": "Internal Server Error"
+      }
+    },
+    "vehicle_financial_summary": {
+      "status": 500,
+      "elapsed_seconds": 0.11,
+      "payload": {
+        "detail": "{'message': 'JSON could not be generated', 'code': 401, 'hint': 'Refer to full message for details', 'details': 'b\\'{\"message\":\"Unregistered API key\",\"hint\":\"Double check the provided API key as it is not registered for this project.\"}\\''}"
+      }
+    },
+    "dashboard_summaries": {
+      "status": 500,
+      "elapsed_seconds": 0.16,
+      "payload": {
+        "detail": "{'message': 'JSON could not be generated', 'code': 401, 'hint': 'Refer to full message for details', 'details': 'b\\'{\"message\":\"Unregistered API key\",\"hint\":\"Double check the provided API key as it is not registered for this project.\"}\\''}"
+      }
+    },
+    "operations": {
+      "status": 200,
+      "elapsed_seconds": 0.13,
+      "payload": []
+    },
+    "journal_entries": {
+      "status": 200,
+      "elapsed_seconds": 0.1,
+      "payload": {
+        "success": true,
+        "data": [
+          {
+            "id": "entry-001",
+            "date": "2025-01-20",
+            "description": "قيد بيع خدمة صيانة",
+            "lines": [
+              {
+                "account": "1103",
+                "account_name": "ذمم مدينة",
+                "debit": 5000,
+                "credit": 0
+              },
+              {
+                "account": "411",
+                "account_name": "إيرادات خدمات",
+                "debit": 0,
+                "credit": 5000
+              }
+            ],
+            "total": 5000,
+            "source": "demo"
+          }
+        ],
+        "total": 1
+      }
+    },
+    "customers": {
+      "status": 500,
+      "elapsed_seconds": 0.1,
+      "payload": {
+        "detail": "{'message': 'JSON could not be generated', 'code': 401, 'hint': 'Refer to full message for details', 'details': 'b\\'{\"message\":\"Unregistered API key\",\"hint\":\"Double check the provided API key as it is not registered for this project.\"}\\''}"
+      }
+    }
+  }
+}
