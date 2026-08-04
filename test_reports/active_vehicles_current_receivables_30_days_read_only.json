@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T21:48:37.568926+00:00",
+  "generated_at": "2026-08-04T13:44:43.177558+00:00",
   "mode": "READ_ONLY",
   "read_only": true,
   "scope": {
@@ -14,13 +14,13 @@
       "vehicles": 194,
       "vehicle_visits": 178,
       "operations": 49,
-      "journal_entries": 6
+      "journal_entries": 13
     },
     "after_counts": {
       "vehicles": 194,
       "vehicle_visits": 178,
       "operations": 49,
-      "journal_entries": 6
+      "journal_entries": 13
     },
     "unchanged": true
   },
@@ -35,7 +35,7 @@
     "vehicles_paid_count": 1,
     "vehicles_with_valid_receivables_count": 7,
     "total_valid_receivables": 6805.0,
-    "total_valid_receivables_missing_financial_links": 6805.0,
+    "total_valid_receivables_missing_financial_links": 2928.0,
     "total_paid_items_wrongly_shown_as_receivables": 0.0,
     "total_duplicate_confirmed": 0.0,
     "total_duplicate_suspected": 600.0,
@@ -95,24 +95,19 @@
       "correct_remaining": 302.0,
       "displayed_receivable": 302.0,
       "difference_current_minus_correct": 0.0,
-      "file_only_items": [
-        "فلتر ديزل ×1 = 119.00",
-        "فلتر هواء ×1 = 152.00",
-        "تركيب فلتر هوا وفلتر ديزل ×1 = 31.00"
-      ],
-      "missing_financial_links": [
-        "قيد إيراد/بيع مفقود",
-        "قيد ذمة مدينة AR مفقود أو غير مثبت"
-      ],
+      "file_only_items": [],
+      "missing_financial_links": [],
       "operation_ids": [
         "1d40d657-f682-40a5-b404-4bea38757a12"
       ],
-      "journal_entry_ids": [],
+      "journal_entry_ids": [
+        "2933cb91-682e-4844-8913-37ba6c48140b"
+      ],
       "duplicate_confirmed": [],
       "duplicate_suspected": [],
-      "classification": "valid_receivable_missing_financial_links",
-      "receivable_link_classification": "valid_receivable_missing_financial_links",
-      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+      "classification": "valid_receivable",
+      "receivable_link_classification": "valid_receivable",
+      "final_judgment": "ذمة صحيحة مستحقة وروابطها المالية الأساسية موجودة"
     },
     {
       "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
@@ -165,24 +160,19 @@
       "correct_remaining": 1975.0,
       "displayed_receivable": 1975.0,
       "difference_current_minus_correct": 0.0,
-      "file_only_items": [
-        "الراكضي ×1 = 175.00",
-        "كراسي تيمن مع مسامير وعصافير ×1 = 800.00",
-        "فك وتركيب راس مع فك صدر المكينه ×1 = 1,000.00"
-      ],
-      "missing_financial_links": [
-        "قيد إيراد/بيع مفقود",
-        "قيد ذمة مدينة AR مفقود أو غير مثبت"
-      ],
+      "file_only_items": [],
+      "missing_financial_links": [],
       "operation_ids": [
         "6484969a-7714-43f8-b0b9-782c915b8abc"
       ],
-      "journal_entry_ids": [],
+      "journal_entry_ids": [
+        "6e010906-442f-41e1-ae0d-dae98bf5b094"
+      ],
       "duplicate_confirmed": [],
       "duplicate_suspected": [],
-      "classification": "valid_receivable_missing_financial_links",
-      "receivable_link_classification": "valid_receivable_missing_financial_links",
-      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+      "classification": "valid_receivable",
+      "receivable_link_classification": "valid_receivable",
+      "final_judgment": "ذمة صحيحة مستحقة وروابطها المالية الأساسية موجودة"
     },
     {
       "vehicle_id": "a717c745-3d53-43d0-b235-ef90a794311f",
@@ -274,22 +264,19 @@
       "correct_remaining": 300.0,
       "displayed_receivable": 300.0,
       "difference_current_minus_correct": 0.0,
-      "file_only_items": [
-        "تبديل كلتش ×1 = 300.00"
-      ],
-      "missing_financial_links": [
-        "قيد إيراد/بيع مفقود",
-        "قيد ذمة مدينة AR مفقود أو غير مثبت"
-      ],
+      "file_only_items": [],
+      "missing_financial_links": [],
       "operation_ids": [
         "b48c0850-1453-4740-9639-1a99687fda67"
       ],
-      "journal_entry_ids": [],
+      "journal_entry_ids": [
+        "b31a49f4-02ba-4a0b-9dc5-fa06796c8614"
+      ],
       "duplicate_confirmed": [],
       "duplicate_suspected": [],
-      "classification": "valid_receivable_missing_financial_links",
-      "receivable_link_classification": "valid_receivable_missing_financial_links",
-      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+      "classification": "valid_receivable",
+      "receivable_link_classification": "valid_receivable",
+      "final_judgment": "ذمة صحيحة مستحقة وروابطها المالية الأساسية موجودة"
     },
     {
       "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
@@ -329,12 +316,12 @@
       ],
       "missing_financial_links": [
         "operation_id مفقود للزيارة",
-        "قيد إيراد/بيع مفقود",
-        "قيد دفعة مذكور في notes وغير موجود حالياً: f6611322-da47-45c4-8bce-7a40909696ac",
-        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+        "قيد دفعة مذكور في notes وغير موجود حالياً: f6611322-da47-45c4-8bce-7a40909696ac"
       ],
       "operation_ids": [],
-      "journal_entry_ids": [],
+      "journal_entry_ids": [
+        "e3ef28ca-459a-423d-a7d6-c03e51be5e5a"
+      ],
       "duplicate_confirmed": [],
       "duplicate_suspected": [],
       "classification": "partially_paid",
@@ -363,18 +350,16 @@
       "correct_remaining": 500.0,
       "displayed_receivable": 500.0,
       "difference_current_minus_correct": 0.0,
-      "file_only_items": [
-        "توضيب المكينة ×1 = 2,500.00"
-      ],
+      "file_only_items": [],
       "missing_financial_links": [
-        "قيد إيراد/بيع مفقود",
-        "قيد دفعة مذكور في notes وغير موجود حالياً: 1828fc4c-156a-4af5-9451-3b906ba220ac",
-        "قيد ذمة مدينة AR مفقود أو غير مثبت"
+        "قيد دفعة مذكور في notes وغير موجود حالياً: 1828fc4c-156a-4af5-9451-3b906ba220ac"
       ],
       "operation_ids": [
         "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
       ],
-      "journal_entry_ids": [],
+      "journal_entry_ids": [
+        "e90e9a39-19ff-4d94-b33b-b6be613530e0"
+      ],
       "duplicate_confirmed": [],
       "duplicate_suspected": [],
       "classification": "partially_paid",
@@ -401,22 +386,19 @@
       "correct_remaining": 800.0,
       "displayed_receivable": 800.0,
       "difference_current_minus_correct": 0.0,
-      "file_only_items": [
-        "فك الجير ×1 = 800.00"
-      ],
-      "missing_financial_links": [
-        "قيد إيراد/بيع مفقود",
-        "قيد ذمة مدينة AR مفقود أو غير مثبت"
-      ],
+      "file_only_items": [],
+      "missing_financial_links": [],
       "operation_ids": [
         "72ccd3b0-f63b-4efc-957a-30c92aa163cf"
       ],
-      "journal_entry_ids": [],
+      "journal_entry_ids": [
+        "8fc103c0-25f4-4d17-9e90-4037ae9c00ee"
+      ],
       "duplicate_confirmed": [],
       "duplicate_suspected": [],
-      "classification": "valid_receivable_missing_financial_links",
-      "receivable_link_classification": "valid_receivable_missing_financial_links",
-      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+      "classification": "valid_receivable",
+      "receivable_link_classification": "valid_receivable",
+      "final_judgment": "ذمة صحيحة مستحقة وروابطها المالية الأساسية موجودة"
     },
     {
       "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
@@ -516,22 +498,19 @@
       "correct_remaining": 500.0,
       "displayed_receivable": 500.0,
       "difference_current_minus_correct": 0.0,
-      "file_only_items": [
-        "فك وتركيب تربوا ايسوزو ×1 = 500.00"
-      ],
-      "missing_financial_links": [
-        "قيد إيراد/بيع مفقود",
-        "قيد ذمة مدينة AR مفقود أو غير مثبت"
-      ],
+      "file_only_items": [],
+      "missing_financial_links": [],
       "operation_ids": [
         "6973ed6f-8895-42cf-ad24-331832ebef96"
       ],
-      "journal_entry_ids": [],
+      "journal_entry_ids": [
+        "a31b2a3a-1cea-426a-a173-d02af15f6d62"
+      ],
       "duplicate_confirmed": [],
       "duplicate_suspected": [],
-      "classification": "valid_receivable_missing_financial_links",
-      "receivable_link_classification": "valid_receivable_missing_financial_links",
-      "final_judgment": "ذمة صحيحة مستحقة لكن روابطها المالية ناقصة/محذوفة"
+      "classification": "valid_receivable",
+      "receivable_link_classification": "valid_receivable",
+      "final_judgment": "ذمة صحيحة مستحقة وروابطها المالية الأساسية موجودة"
     },
     {
       "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",

@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-08-04T13:45:16.474047+00:00",
+  "mode": "COMMIT",
+  "source": "active_vehicle_ar_repair",
+  "before_counts": {
+    "vehicles": 194,
+    "vehicle_visits": 178,
+    "operations": 49,
+    "journal_entries": 13
+  },
+  "after_counts": {
+    "vehicles": 194,
+    "vehicle_visits": 178,
+    "operations": 49,
+    "journal_entries": 13
+  },
+  "journal_entries_delta": 0,
+  "candidate_count": 7,
+  "rows": [
+    {
+      "visit_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+      "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+      "customer": "خالد القبيشي",
+      "amount": 302.0,
+      "status": "skipped_existing_repair"
+    },
+    {
+      "visit_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+      "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "customer": "ابراهيم صالح",
+      "amount": 1975.0,
+      "status": "skipped_existing_repair"
+    },
+    {
+      "visit_id": "b48c0850-1453-4740-9639-1a99687fda67",
+      "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "customer": "سلطان الشاص",
+      "amount": 300.0,
+      "status": "skipped_existing_repair"
+    },
+    {
+      "visit_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+      "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+      "customer": "فهد الطريسي",
+      "amount": 2428.0,
+      "status": "skipped_existing_repair"
+    },
+    {
+      "visit_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+      "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "customer": "فارس عوض",
+      "amount": 500.0,
+      "status": "skipped_existing_repair"
+    },
+    {
+      "visit_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+      "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "customer": "عبد الكريم الشايعي",
+      "amount": 800.0,
+      "status": "skipped_existing_repair"
+    },
+    {
+      "visit_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+      "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "customer": "1046 ///صالح القصير",
+      "amount": 500.0,
+      "status": "skipped_existing_repair"
+    }
+  ],
+  "total_considered": 6805.0,
+  "total_posted_or_planned": 0.0
+}

@@ -1,0 +1,193 @@
+{
+  "generated_at": "2026-08-04T13:46:17.332888+00:00",
+  "source": "active_vehicle_ar_repair",
+  "journal_entries_total": 13,
+  "repair_count": 7,
+  "repair_total": 6805.0,
+  "all_balanced": true,
+  "items": [
+    {
+      "id": "2933cb91-682e-4844-8913-37ba6c48140b",
+      "reference_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+      "total": 302.0,
+      "balanced": true,
+      "description": "[إصلاح روابط ذمم المركبات النشطة] خالد القبيشي / ا ع ط 3550 [VISIT:1d40d657-f682-40a5-b404-4bea38757a12] [VEHICLE:f6590225-aef6-452b-af39-e0e42061fd81]",
+      "lines": [
+        {
+          "debit": 302.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 31.0,
+          "account": "026",
+          "description": null,
+          "account_name": "إيرادات خدمات ميكانيكية"
+        },
+        {
+          "debit": 0.0,
+          "credit": 271.0,
+          "account": "041",
+          "description": null,
+          "account_name": "ايراد قطع الورشه"
+        }
+      ]
+    },
+    {
+      "id": "6e010906-442f-41e1-ae0d-dae98bf5b094",
+      "reference_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+      "total": 1975.0,
+      "balanced": true,
+      "description": "[إصلاح روابط ذمم المركبات النشطة] ابراهيم صالح / ب ر ق 4806 [VISIT:6484969a-7714-43f8-b0b9-782c915b8abc] [VEHICLE:a57b698d-752d-43bf-be66-41a0337de9eb]",
+      "lines": [
+        {
+          "debit": 1975.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 1000.0,
+          "account": "027",
+          "description": null,
+          "account_name": "إيرادات إصلاح محركات"
+        },
+        {
+          "debit": 0.0,
+          "credit": 975.0,
+          "account": "041",
+          "description": null,
+          "account_name": "ايراد قطع الورشه"
+        }
+      ]
+    },
+    {
+      "id": "b31a49f4-02ba-4a0b-9dc5-fa06796c8614",
+      "reference_id": "b48c0850-1453-4740-9639-1a99687fda67",
+      "total": 300.0,
+      "balanced": true,
+      "description": "[إصلاح روابط ذمم المركبات النشطة] سلطان الشاص / ب ح ن 6923 [VISIT:b48c0850-1453-4740-9639-1a99687fda67] [VEHICLE:c02cc9c7-6ff5-4fc7-9414-b15787fa9000]",
+      "lines": [
+        {
+          "debit": 300.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 300.0,
+          "account": "026",
+          "description": null,
+          "account_name": "إيرادات خدمات ميكانيكية"
+        }
+      ]
+    },
+    {
+      "id": "e3ef28ca-459a-423d-a7d6-c03e51be5e5a",
+      "reference_id": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14",
+      "total": 2428.0,
+      "balanced": true,
+      "description": "[إصلاح روابط ذمم المركبات النشطة] فهد الطريسي / ح ل ص 5745 [VISIT:3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14] [VEHICLE:d5376421-bd6e-420e-8585-ba36c3314082]",
+      "lines": [
+        {
+          "debit": 2428.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 998.26,
+          "account": "026",
+          "description": null,
+          "account_name": "إيرادات خدمات ميكانيكية"
+        },
+        {
+          "debit": 0.0,
+          "credit": 1429.74,
+          "account": "041",
+          "description": null,
+          "account_name": "ايراد قطع الورشه"
+        }
+      ]
+    },
+    {
+      "id": "e90e9a39-19ff-4d94-b33b-b6be613530e0",
+      "reference_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+      "total": 500.0,
+      "balanced": true,
+      "description": "[إصلاح روابط ذمم المركبات النشطة] فارس عوض / ح ق م 5520 [VISIT:2635ecf1-fd3b-4fe2-9629-f658f9a2c26d] [VEHICLE:b9fe95f6-e4c3-4466-b853-c0103dc75929]",
+      "lines": [
+        {
+          "debit": 500.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 500.0,
+          "account": "027",
+          "description": null,
+          "account_name": "إيرادات إصلاح محركات"
+        }
+      ]
+    },
+    {
+      "id": "8fc103c0-25f4-4d17-9e90-4037ae9c00ee",
+      "reference_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+      "total": 800.0,
+      "balanced": true,
+      "description": "[إصلاح روابط ذمم المركبات النشطة] عبد الكريم الشايعي / ا ص ص 7293 [VISIT:72ccd3b0-f63b-4efc-957a-30c92aa163cf] [VEHICLE:c5bfe993-c45a-4412-b196-be1cdd310c40]",
+      "lines": [
+        {
+          "debit": 800.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 800.0,
+          "account": "026",
+          "description": null,
+          "account_name": "إيرادات خدمات ميكانيكية"
+        }
+      ]
+    },
+    {
+      "id": "a31b2a3a-1cea-426a-a173-d02af15f6d62",
+      "reference_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+      "total": 500.0,
+      "balanced": true,
+      "description": "[إصلاح روابط ذمم المركبات النشطة] 1046 ///صالح القصير / 1046  /// ب ص ر 6431 [VISIT:6973ed6f-8895-42cf-ad24-331832ebef96] [VEHICLE:c92405eb-2097-4f42-aa3e-ccd455d9812f]",
+      "lines": [
+        {
+          "debit": 500.0,
+          "credit": 0.0,
+          "account": "005",
+          "description": null,
+          "account_name": "العملاء (ذمم مدينة)"
+        },
+        {
+          "debit": 0.0,
+          "credit": 500.0,
+          "account": "027",
+          "description": null,
+          "account_name": "إيرادات إصلاح محركات"
+        }
+      ]
+    }
+  ],
+  "idempotency_verified": "re-running commit produced journal_entries_delta=0"
+}
