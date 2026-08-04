@@ -10,6 +10,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { resolveBackendBase } from '../utils/backendBase';
 import { hasPermission } from '../utils/permissions';
 
+const HIDDEN_DASHBOARD_STATUSES = new Set(['delivered', 'archived', 'cancelled', 'canceled']);
+
+const normalizeVehicleStatusForDashboard = (status) => {
+  const rawStatus = String(status || '').trim();
+  if (!rawStatus || rawStatus === 'تشخيص') return 'diagnosis';
+  return rawStatus;
+};
+
 const Dashboard = () => {
   const { t, i18n } = useTranslation();
   const { themeName } = useTheme();
@@ -140,7 +148,11 @@ const Dashboard = () => {
       }
 
       if (isMountedRef.current) {
-        setVehicles(nextVehicles);
+        setVehicles(nextVehicles.map((vehicle) => ({
+          ...vehicle,
+          rawStatus: vehicle.rawStatus || vehicle.status,
+          status: normalizeVehicleStatusForDashboard(vehicle.status),
+        })));
         setTechnicians(nextTechnicians);
       }
 
@@ -334,7 +346,7 @@ const Dashboard = () => {
   }, [loadVehicleSummaries]);
 
   const dashboardVehicles = useMemo(
-    () => vehicles.filter((vehicle) => vehicle.status !== 'delivered'),
+    () => vehicles.filter((vehicle) => !HIDDEN_DASHBOARD_STATUSES.has(normalizeVehicleStatusForDashboard(vehicle.status))),
     [vehicles]
   );
 

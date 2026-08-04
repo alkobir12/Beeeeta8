@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-08-04T15:46:11.179458+00:00",
+  "historical_restore": {
+    "source": "hist_vehicle_ar_repair",
+    "count": 3,
+    "total": 500.0,
+    "all_balanced": true,
+    "idempotency": "re-run produced journal_entries_delta=0",
+    "items": [
+      {
+        "journal_id": "1a721f64-e481-4152-a0ae-d9d450d065d8",
+        "visit_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+        "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+        "total": 150.0,
+        "balanced": true,
+        "description": "[استرجاع بنود تاريخية من ملف المركبة] عاصم التويجري / ا ل و 7121 [VISIT:ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0] [VEHICLE:0ee51492-8405-4235-8c63-4ca01b6bccc8]"
+      },
+      {
+        "journal_id": "ca256e8e-1000-4dd8-ab36-556a11b42bcb",
+        "visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+        "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+        "total": 250.0,
+        "balanced": true,
+        "description": "[استرجاع بنود تاريخية من ملف المركبة] 77  //محمد  فهدالعمر / ا ر ح 6912 [VISIT:4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f] [VEHICLE:bea27237-7274-4fe2-84b3-8106740645d7]"
+      },
+      {
+        "journal_id": "24af080f-13bd-403b-9439-add38d3e3eaf",
+        "visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+        "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+        "total": 100.0,
+        "balanced": true,
+        "description": "[استرجاع بنود تاريخية من ملف المركبة] 1036 /// ماجد الربعي / 0136///  ا ق ر 7756 [VISIT:ba89782c-65b1-4c4e-8fa7-30707379e2b2] [VEHICLE:6a8ace60-5ed7-48dd-bfd1-7d47d408f706]"
+      }
+    ]
+  },
+  "status_fix": {
+    "updated_count_first_commit": 9,
+    "current_status_counts": {
+      "delivered": 181,
+      "diagnosis": 12,
+      "ready": 2,
+      "archived": 1
+    },
+    "updated_rows": [
+      {
+        "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+        "customer": "عاصم التويجري",
+        "plate": "ا ل و 7121",
+        "old": "NULL",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+        "customer": "1036 /// ماجد الربعي",
+        "plate": "0136///  ا ق ر 7756",
+        "old": "NULL",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+        "customer": "فارس عوض",
+        "plate": "ح ق م 5520",
+        "old": "NULL",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+        "customer": "عبد الكريم الشايعي",
+        "plate": "ا ص ص 7293",
+        "old": "NULL",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+        "customer": "سلطان الشاص",
+        "plate": "ب ح ن 6923",
+        "old": "تشخيص",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+        "customer": "فيصل الجفير",
+        "plate": "ب ر ب 82023",
+        "old": "NULL",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "8708bbd6-18be-4fb0-93a4-f9818b2b91ad",
+        "customer": "مد الله الثواتي",
+        "plate": "ا ب ق 5437",
+        "old": "NULL",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+        "customer": "خالد القبيشي",
+        "plate": "ا ع ط 3550",
+        "old": "NULL",
+        "new": "diagnosis"
+      },
+      {
+        "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+        "customer": "شاص 2006",
+        "plate": "س ن د 635",
+        "old": "NULL",
+        "new": "diagnosis"
+      }
+    ],
+    "remaining_abnormal": [
+      {
+        "vehicle_id": "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+        "customer": "1059 ///بنقالي عناية ميزان",
+        "plate": "1059 /// ا ر م 9460",
+        "status": "archived",
+        "note": "ليست NULL وليست عربية؛ حالة أرشيف صحيحة، وتم إصلاح الواجهة لاستبعادها من اللوحة."
+      }
+    ]
+  }
+}

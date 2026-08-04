@@ -1,0 +1,4441 @@
+{
+  "generated_at": "2026-08-04T15:44:44.784944+00:00",
+  "mode": "COMMIT",
+  "source": "hist_vehicle_ar_repair",
+  "before_counts": {
+    "vehicles": 196,
+    "vehicle_visits": 180,
+    "journal_entries": 26
+  },
+  "after_counts": {
+    "vehicles": 196,
+    "vehicle_visits": 180,
+    "journal_entries": 26
+  },
+  "journal_entries_delta": 0,
+  "posted_or_planned_total": 0.0,
+  "rows": [
+    {
+      "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "visit_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+      "customer": "عاصم التويجري",
+      "plate": "ا ل و 7121",
+      "status": "diagnosis",
+      "visit_date": "2026-06-08",
+      "amount": 150.0,
+      "items": [
+        {
+          "id": "item-ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0-0",
+          "itemType": "service",
+          "name": "تركيب حساس طرمبة ديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ],
+      "status_result": "skipped_existing_journal"
+    },
+    {
+      "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+      "customer": "1036 /// ماجد الربعي",
+      "plate": "0136///  ا ق ر 7756",
+      "status": "diagnosis",
+      "visit_date": "2026-04-15",
+      "amount": 100.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب ماسورة تربوا",
+          "quantity": 1,
+          "price": 100,
+          "billingType": "workshop"
+        }
+      ],
+      "status_result": "skipped_existing_journal"
+    },
+    {
+      "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+      "visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+      "customer": "77  //محمد  فهدالعمر",
+      "plate": "ا ر ح 6912",
+      "status": "ready",
+      "visit_date": "2026-04-06",
+      "amount": 250.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل ماسورة ديزل",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "part",
+          "name": "ماسورة ديزل",
+          "quantity": 2,
+          "price": 100,
+          "billingType": "supplier"
+        }
+      ],
+      "status_result": "skipped_existing_journal"
+    }
+  ],
+  "excluded_delivered": [
+    {
+      "vehicle_id": "1aee4a12-ad13-4bfa-bb41-300ec2c4da61",
+      "visit_id": "8e3ec491-7c51-47f7-87d6-683746b4a13d",
+      "customer": "محمد علي الحربي ",
+      "plate": "ح م م 6233",
+      "status": "delivered",
+      "visit_date": "2026-03-26",
+      "amount": 4500.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب 8س ديزل",
+          "quantity": 1,
+          "price": 2000,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "supplier",
+          "name": "المخرطه",
+          "quantity": 1,
+          "price": 2190,
+          "manualPartyEntry": false,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "صوفة  عمود        القرعاوي",
+          "quantity": 1,
+          "price": 35,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "service",
+          "name": "غسيل مكينة+معجون ديركو",
+          "quantity": 1,
+          "price": 141,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "part",
+          "name": "زيت مكينة بالتر",
+          "quantity": 1,
+          "price": 134,
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "4fa84fca-daef-476f-8a2a-d071a215e886",
+      "visit_id": "77e3369b-724c-4478-8539-b3193f6fd3b4",
+      "customer": "محمد الجهني  ابو خالد",
+      "plate": "ن ح ر   717",
+      "status": "delivered",
+      "visit_date": "2026-02-12",
+      "amount": 4500.0,
+      "items": [
+        {
+          "id": "item-77e3369b-724c-4478-8539-b3193f6fd3b4-0",
+          "itemType": "service",
+          "name": "توضيب مكينه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 4500,
+          "discount": 0,
+          "total": 4500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "4fa84fca-daef-476f-8a2a-d071a215e886",
+      "visit_id": "1b0be2f1-4240-469d-92d9-e2e61812cfcb",
+      "customer": "محمد الجهني  ابو خالد",
+      "plate": "ن ح ر   717",
+      "status": "delivered",
+      "visit_date": "2026-06-06",
+      "amount": 800.0,
+      "items": [
+        {
+          "id": "item-1b0be2f1-4240-469d-92d9-e2e61812cfcb-0",
+          "itemType": "service",
+          "name": "فك وتركيب التانكي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 400,
+          "discount": 0,
+          "total": 400,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-1b0be2f1-4240-469d-92d9-e2e61812cfcb-1",
+          "itemType": "service",
+          "name": "فك براد الديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 400,
+          "discount": 0,
+          "total": 400,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "d56a22e0-4486-4d1f-9071-90591efafa33",
+      "visit_id": "4a794bb3-86df-4ef4-a8b1-25ae4d397857",
+      "customer": "فهد نغيمش الحربي",
+      "plate": "ا ح ص 7327",
+      "status": "delivered",
+      "visit_date": "2026-02-12",
+      "amount": 2000.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب مكينة",
+          "quantity": 1,
+          "price": 2000,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "604576c6-90ab-421a-8000-bd81e9c56e29",
+      "visit_id": "4c1ee5de-8fb0-425e-a3cc-7d9174955428",
+      "customer": "علي اليحيى",
+      "plate": "ا ا د 506",
+      "status": "delivered",
+      "visit_date": "2026-02-10",
+      "amount": 890.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب طرمبة الماء",
+          "quantity": 1,
+          "price": 590
+        },
+        {
+          "itemType": "service",
+          "name": "فك وتركيب دينموا الشحن",
+          "quantity": 1,
+          "price": 300
+        }
+      ]
+    },
+    {
+      "vehicle_id": "b433407c-0172-4587-8ba2-2de2f24a4307",
+      "visit_id": "817430ba-f4ba-4ec1-8928-0fb965d67aae",
+      "customer": "ماجد الرشيدي",
+      "plate": "ا ص ط 6365",
+      "status": "delivered",
+      "visit_date": "2026-02-10",
+      "amount": 1700.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب مكينة",
+          "quantity": 1,
+          "price": 1700
+        }
+      ]
+    },
+    {
+      "vehicle_id": "945e9f2c-02f7-4883-960e-21a47bf33654",
+      "visit_id": "38478ae1-3f3a-4666-ad14-4477eb34583a",
+      "customer": "ابراهيم القبيشي",
+      "plate": "ب ق ه 7484",
+      "status": "delivered",
+      "visit_date": "2026-02-12",
+      "amount": 4000.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب مكينة",
+          "quantity": 1,
+          "price": 4000,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "44d8587d-5524-43ab-aa32-b4bb0de023dd",
+      "visit_id": "3a9fe0ce-e179-43f6-b555-fe2f593a3a9d",
+      "customer": "خالد الربيش ",
+      "plate": "ح ل ه 5177",
+      "status": "delivered",
+      "visit_date": "2026-02-10",
+      "amount": 4500.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب مكينة",
+          "quantity": 1,
+          "price": 4500,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "44d8587d-5524-43ab-aa32-b4bb0de023dd",
+      "visit_id": "ef6f0f88-eef6-4567-b89b-29fb495c9065",
+      "customer": "خالد الربيش ",
+      "plate": "ح ل ه 5177",
+      "status": "delivered",
+      "visit_date": "2026-07-04",
+      "amount": 1000.0,
+      "items": [
+        {
+          "id": "item-ef6f0f88-eef6-4567-b89b-29fb495c9065-0",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1000,
+          "discount": 0,
+          "total": 1000,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "680106d7-c9b5-43f6-9229-4df9f7f7a582",
+      "visit_id": "df718c5c-dcaf-400a-ace6-695ff4491ead",
+      "customer": "د خالد الراجح",
+      "plate": "ب ي ط 7538",
+      "status": "delivered",
+      "visit_date": "2026-02-08",
+      "amount": 3500.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب مكينة",
+          "quantity": 1,
+          "price": 3500
+        }
+      ]
+    },
+    {
+      "vehicle_id": "f0aacb00-839b-46ef-a9c2-21ba5515c723",
+      "visit_id": "bbdf0bdd-3324-4803-bd9f-ff3f0680390d",
+      "customer": "نايف المطيري البدائع ",
+      "plate": "ا ك ا 8218",
+      "status": "delivered",
+      "visit_date": "2026-02-15",
+      "amount": 350.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل طقم كلتش",
+          "quantity": 1,
+          "price": 350,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "00a8d7b2-40e3-4848-9201-c75996906220",
+      "visit_id": "3276012a-80fb-43d7-aac3-3bc1093ad31b",
+      "customer": "غلام باكستاني",
+      "plate": "ا ن ق 4011",
+      "status": "delivered",
+      "visit_date": "2026-02-21",
+      "amount": 100.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل طرمبة تحضير الديزل",
+          "quantity": 1,
+          "price": 100,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "cf10edb0-ef41-4d09-87ea-c62c52c5b86a",
+      "visit_id": "840b8a23-4fe3-4b97-b4b3-ddcd014acb68",
+      "customer": "فهد شليبيط المطيري",
+      "plate": "ب ا م 8263",
+      "status": "delivered",
+      "visit_date": "2026-02-12",
+      "amount": 2050.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب مكينة",
+          "quantity": 1,
+          "price": 2050,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "945244d1-5997-4052-84dd-d0ea02607f4e",
+      "visit_id": "3df2e7b7-0a44-41ae-ba3d-28d7a25f2810",
+      "customer": "ابو تميم ",
+      "plate": "اه د  6464",
+      "status": "delivered",
+      "visit_date": "2026-03-11",
+      "amount": 40.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلتر الديزل",
+          "quantity": 1,
+          "price": 40,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "f77ab3ea-5ea2-4cf6-8e89-1acfadef0098",
+      "visit_id": "473634cc-fc80-44c8-9714-1b2091d734a3",
+      "customer": "1009///محمد الشعيبي",
+      "plate": "ب ر ق 3019",
+      "status": "delivered",
+      "visit_date": "2026-03-11",
+      "amount": 600.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تنزيل القير وتبديل الدبل",
+          "quantity": 1,
+          "price": 600,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "2430aecb-6b36-4abc-9eb8-963faa3339cd",
+      "visit_id": "f441c5f2-9365-4fc5-928e-2182224b9311",
+      "customer": "ماجد العنزي ",
+      "plate": "كويت 15/55256",
+      "status": "delivered",
+      "visit_date": "2026-02-12",
+      "amount": 4300.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب المكينة",
+          "quantity": 1,
+          "price": 4300,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "54d13d80-c9a9-407b-9137-b42f9f6eb023",
+      "visit_id": "3dab92e3-3066-47f0-94b5-a484d34c2d07",
+      "customer": "ابو عبدالله العوفي",
+      "plate": "ب ع س 6247",
+      "status": "delivered",
+      "visit_date": "2026-03-12",
+      "amount": 1200.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "فك وتركيب راس هايلكس 2kd",
+          "quantity": 1,
+          "price": 1200,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c86260bc-8a43-4820-975f-2cbb5305ed1d",
+      "visit_id": "f395e31a-0b92-4781-92cc-5c02f5b0127f",
+      "customer": "ابو تركي العوفي ",
+      "plate": "ا ص د 8685",
+      "status": "delivered",
+      "visit_date": "2026-03-28",
+      "amount": 350.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب طقم كلتش",
+          "quantity": 1,
+          "price": 350,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "53c5755d-d5da-4b86-a49c-9654eb05ff58",
+      "visit_id": "5f9252eb-3329-4981-b946-0ada9e588f37",
+      "customer": "موسى الصقيري",
+      "plate": "ب س ب",
+      "status": "delivered",
+      "visit_date": "2026-06-07",
+      "amount": 80.0,
+      "items": [
+        {
+          "id": "item-5f9252eb-3329-4981-b946-0ada9e588f37-0",
+          "itemType": "service",
+          "name": "تبدل فلتر ديزل",
+          "details": "",
+          "quantity": 2,
+          "qty": 2,
+          "price": 40,
+          "discount": 0,
+          "total": 80,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "987c4fef-47ce-464e-a3e6-f5c4e1a7bdaa",
+      "visit_id": "2e371c2b-dca5-4884-8207-aa8d0b1147ad",
+      "customer": "996///راشد الربيعان ",
+      "plate": "ح م ص 1554",
+      "status": "delivered",
+      "visit_date": "2026-02-10",
+      "amount": 130.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تغيير خراطيم التبريد",
+          "quantity": 1,
+          "price": 130,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "e6d27a50-ba67-44ea-b728-1b23ebfa27e3",
+      "visit_id": "cf151787-1155-4f81-8312-ccb2e15f42a0",
+      "customer": "موسسة الزومان",
+      "plate": "ا ه ص 5954",
+      "status": "delivered",
+      "visit_date": "2026-03-26",
+      "amount": 1900.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب",
+          "quantity": 1,
+          "price": 1900,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "020dcc0a-5ebf-4900-b837-388e33d3b915",
+      "visit_id": "a93a70b8-ad73-4477-b63d-2c2b7dd4c00c",
+      "customer": "ابو احمد الدبيخي",
+      "plate": "د ك ه 1736",
+      "status": "delivered",
+      "visit_date": "2026-02-11",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلتر ديزل",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "d394b77e-52fa-42e0-ab24-28539304b141",
+      "visit_id": "f4f34aa0-d651-4b96-a3d7-41cabf37e5b9",
+      "customer": "زياد الحربي",
+      "plate": "ب د ل 2282",
+      "status": "delivered",
+      "visit_date": "2026-03-11",
+      "amount": 300.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبدل فلتر ديزل ",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "service",
+          "name": "تركيب خراطيش تربو ا   2",
+          "quantity": 1,
+          "price": 250,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "3f4d770d-73d3-43e8-b4ea-4ca50219fe65",
+      "visit_id": "33e2870f-f74c-4738-bf23-9b377112c90f",
+      "customer": "ابو عبدالله ",
+      "plate": "ا ب و  1266",
+      "status": "delivered",
+      "visit_date": "2026-02-08",
+      "amount": 100.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "سير تيمن هايلكس",
+          "quantity": 1,
+          "price": 100
+        }
+      ]
+    },
+    {
+      "vehicle_id": "67b3bb9a-ee06-45ef-a071-94711c25db5f",
+      "visit_id": "3acd2af5-989d-405e-b656-23d972dbfcab",
+      "customer": "عبد العزيز العتيبي",
+      "plate": "ب س ص 1230",
+      "status": "delivered",
+      "visit_date": "2026-02-19",
+      "amount": 4000.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب",
+          "quantity": 1,
+          "price": 4000,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "f58df376-b5aa-4c10-bfe0-fd38aa55b186",
+      "visit_id": "62e31d3a-06d8-4e3f-94dc-5d43632dcac9",
+      "customer": "عميل نقدي",
+      "plate": " ا  ر  س  7576",
+      "status": "delivered",
+      "visit_date": "2026-02-22",
+      "amount": 150.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "اصلاح سلف",
+          "quantity": 1,
+          "price": 150,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "efd4ef26-2b6a-44bc-9b1b-7030ec8492f1",
+      "visit_id": "6c4693aa-9de6-4ddd-88b5-318b1f1ff0ba",
+      "customer": "عبدالله الذياب",
+      "plate": "ا د ق 7737",
+      "status": "delivered",
+      "visit_date": "2026-02-07",
+      "amount": 50.0,
+      "items": [
+        {
+          "id": "1770453323491-54a4c475889a28",
+          "itemType": "service",
+          "name": "تبديل ماسورة ديزل 3",
+          "quantity": 1,
+          "price": 50
+        }
+      ]
+    },
+    {
+      "vehicle_id": "f3422cc1-dd9c-4e69-8205-0aa50b3795a1",
+      "visit_id": "104c0779-88f8-475e-b167-a5fc71bcce6e",
+      "customer": "سيف حمدان المنصوري",
+      "plate": "قطر 278675",
+      "status": "delivered",
+      "visit_date": "2026-02-08",
+      "amount": 90.0,
+      "items": [
+        {
+          "itemType": "part",
+          "name": "فلتر زيت",
+          "quantity": 2,
+          "price": 45
+        }
+      ]
+    },
+    {
+      "vehicle_id": "8c99b2ba-cfb2-4e75-af18-2a45d29a3a16",
+      "visit_id": "b666d607-dfde-46e4-b221-0dab4111d0bc",
+      "customer": "1041///  اسامه السوداني ",
+      "plate": "1041  ///  ب ط ع  1676",
+      "status": "delivered",
+      "visit_date": "2026-04-19",
+      "amount": 400.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب طقم كلتش",
+          "quantity": 1,
+          "price": 400,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c61c7020-daf9-4a59-9a86-22ae2a9a12fd",
+      "visit_id": "43a736a3-efa0-41cf-be96-b1ca30256b6c",
+      "customer": "ابو فيصل",
+      "plate": "ا ب ق 9252",
+      "status": "delivered",
+      "visit_date": "2026-02-07",
+      "amount": 400.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب طرمبة دريكسون",
+          "quantity": 1,
+          "price": 250
+        },
+        {
+          "itemType": "service",
+          "name": "فك وتركيب اديتر مع البلف",
+          "quantity": 1,
+          "price": 100
+        },
+        {
+          "itemType": "service",
+          "name": "تغيير مروحة رديتر",
+          "quantity": 1,
+          "price": 50
+        }
+      ]
+    },
+    {
+      "vehicle_id": "1193191b-4e40-450b-a604-dcf80305b2ee",
+      "visit_id": "769bbfcc-60ea-4e0c-a7cf-2e210f708d0a",
+      "customer": "محمد فارس العنزي ",
+      "plate": "ب د ن 6971",
+      "status": "delivered",
+      "visit_date": "2026-03-26",
+      "amount": 2000.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "فك وتركيب راس مكينة هايلوكس",
+          "quantity": 1,
+          "price": 2000,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c7e77f22-3338-48f0-b696-a3f7fc5f252a",
+      "visit_id": "f1fe3d41-7013-4ad4-a4b7-4053a9eb7cf5",
+      "customer": "عبدالعزيز الرشيد ",
+      "plate": "بدون لوحات",
+      "status": "delivered",
+      "visit_date": "2026-02-12",
+      "amount": 20254.5,
+      "items": [
+        {
+          "itemType": "supplier",
+          "name": "النهدي",
+          "quantity": 1,
+          "price": 13680,
+          "billingType": "supplier",
+          "manualPartyEntry": true
+        },
+        {
+          "itemType": "supplier",
+          "name": "الدرويش",
+          "quantity": 1,
+          "price": 220,
+          "billingType": "supplier",
+          "manualPartyEntry": false
+        },
+        {
+          "itemType": "supplier",
+          "name": "مخرطه",
+          "quantity": 1,
+          "price": 1710,
+          "billingType": "supplier",
+          "manualPartyEntry": false
+        },
+        {
+          "itemType": "service",
+          "name": "توضيب مكينة 6 سلندر ديزل",
+          "quantity": 1,
+          "price": 2500,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "supplier",
+          "name": "العبدالرحيم",
+          "quantity": 1,
+          "price": 1650,
+          "billingType": "supplier",
+          "manualPartyEntry": false
+        },
+        {
+          "itemType": "part",
+          "name": "زيت مكينة بالتر",
+          "quantity": 10,
+          "price": 14.45,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "supplier",
+          "name": "عطيه سلف",
+          "quantity": 1,
+          "price": 350,
+          "billingType": "supplier",
+          "manualPartyEntry": true
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c80b56b3-ca07-4840-86b4-7687dd560c07",
+      "visit_id": "0aff7cd4-16f5-48af-a4e1-4e22b6cf608a",
+      "customer": "جاويد المخرطة ",
+      "plate": "ب ر م 9827",
+      "status": "delivered",
+      "visit_date": "2026-03-26",
+      "amount": 4000.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب ساص 8س ديزل 2020",
+          "quantity": 1,
+          "price": 4000,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "ca81024e-195b-464e-9671-0f532aad1545",
+      "visit_id": "c09dba75-105d-4e63-b9e6-fc4c021e8260",
+      "customer": "997///محمد شعبان",
+      "plate": "ب ح ر 7042",
+      "status": "delivered",
+      "visit_date": "2026-02-10",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل سيرمكينة",
+          "quantity": 1,
+          "price": 50
+        }
+      ]
+    },
+    {
+      "vehicle_id": "8edf695c-60e8-4d65-b83d-9de0595e64f2",
+      "visit_id": "feb09cfe-b7d7-4b35-8f1d-648e037b6083",
+      "customer": "نايف الحربي",
+      "plate": "ب ن ه 3533",
+      "status": "delivered",
+      "visit_date": "2026-02-10",
+      "amount": 2000.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "فك وتركيب تربوا يسار",
+          "quantity": 1,
+          "price": 1000
+        },
+        {
+          "itemType": "part",
+          "name": "دينمو تيربو يسار",
+          "quantity": 1,
+          "price": 1000
+        }
+      ]
+    },
+    {
+      "vehicle_id": "fe9f4e57-8522-492b-8878-c5d1a8fa107c",
+      "visit_id": "ad51bb5a-faff-4973-995e-b3110edab2db",
+      "customer": "928///ابو احمد الدبيخي                                                                                                                                                                                                                                    ",
+      "plate": "د ك هـ 1736",
+      "status": "delivered",
+      "visit_date": "2026-03-28",
+      "amount": 200.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "صيانة عامة",
+          "quantity": 1,
+          "price": 200,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "fe9f4e57-8522-492b-8878-c5d1a8fa107c",
+      "visit_id": "c841307c-1fb6-452d-beef-9f4a0d6f5959",
+      "customer": "928///ابو احمد الدبيخي                                                                                                                                                                                                                                    ",
+      "plate": "د ك هـ 1736",
+      "status": "delivered",
+      "visit_date": "2026-04-18",
+      "amount": 300.0,
+      "items": [
+        {
+          "itemType": "part",
+          "name": "ماسورة  تربوا مع الشغل",
+          "quantity": 1,
+          "price": 300,
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "75ab383a-b52d-42b2-85f2-2174c1b4f28f",
+      "visit_id": "724a3b53-a0dc-4f5f-a8cf-df4cce4ac23b",
+      "customer": "ابراهيم العمر",
+      "plate": "ا ب ل 6352",
+      "status": "delivered",
+      "visit_date": "2026-02-19",
+      "amount": 150.0,
+      "items": [
+        {
+          "id": "item-724a3b53-a0dc-4f5f-a8cf-df4cce4ac23b-0",
+          "itemType": "service",
+          "name": "تبديل كوع ماء ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "59108515-b840-46dc-97d6-83673a05ea49",
+      "visit_id": "bcd4ccf2-7521-4d3a-8242-4a8649676fc4",
+      "customer": "احمد الجمعه",
+      "plate": "ب ص ن 2140",
+      "status": "delivered",
+      "visit_date": "2026-03-29",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلتر ديزل",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "1b9b4214-7078-415a-91c3-2eecaf072f21",
+      "visit_id": "61c2778a-b15b-40ee-9d65-417de38e88a9",
+      "customer": "صالح اللحيدان ",
+      "plate": "ب ح و 7172",
+      "status": "delivered",
+      "visit_date": "2026-04-01",
+      "amount": 150.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب حساس تربو",
+          "quantity": 1,
+          "price": 150,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "a076e2cb-a2f4-4fd7-aff9-301da9432e18",
+      "visit_id": "c33792fc-8fb8-4739-98e8-f98d345e3c6b",
+      "customer": "زياد الشمشم",
+      "plate": "ص ط د442",
+      "status": "delivered",
+      "visit_date": "2026-04-06",
+      "amount": 500.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تنظيف مسالك الديزل",
+          "quantity": 1,
+          "price": 500,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "4897cb98-373d-4de7-a4db-c56c010ad22d",
+      "visit_id": "ebef6628-8748-4e38-a616-3ad7d3e868a5",
+      "customer": "1035 //فهد السحيم",
+      "plate": "1035//  ا ط ق 7818",
+      "status": "delivered",
+      "visit_date": "2026-04-11",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلتر الديزل",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "d6986b4e-9f3c-4ebb-9bdb-465b32b24991",
+      "visit_id": "8b9bfdb5-a23a-41ac-8c27-31604326bdc1",
+      "customer": "احمد الخضيري",
+      "plate": "د  ن ن 9597",
+      "status": "delivered",
+      "visit_date": "2026-04-06",
+      "amount": 100.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلاتر ديزل",
+          "quantity": 2,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "8fd74916-748f-44fd-a293-d70adb4c9fc4",
+      "visit_id": "af30e8e6-a833-4932-bb09-2253922dbd31",
+      "customer": "1038 ///عبد الاله الزارع ",
+      "plate": "1038 ///د س ا 9935",
+      "status": "delivered",
+      "visit_date": "2026-04-16",
+      "amount": 175.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب     اتوماتيك مروحة",
+          "quantity": 1,
+          "price": 175,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "67787800-50d1-4184-a26d-f1ba8db3fcf8",
+      "visit_id": "6f733df9-1d6a-402f-95d1-e70a44509af6",
+      "customer": "1051 /// عبدالرحمن العمرو",
+      "plate": " 1052  // ا س ص 1977",
+      "status": "delivered",
+      "visit_date": "2026-04-29",
+      "amount": 1300.0,
+      "items": [
+        {
+          "name": "صيانة",
+          "itemType": "service",
+          "price": 700,
+          "total": 700,
+          "quantity": 1,
+          "billingType": "workshop"
+        },
+        {
+          "name": "فك وتركيب بخاخات مع تنضيف تانكي الديزل",
+          "description": "فك وتركيب بخاخات مع تنضيف تانكي الديزل",
+          "quantity": 1.0,
+          "price": 600.0,
+          "total": 600.0,
+          "itemType": "service",
+          "paymentStatus": "paid",
+          "operationId": "d7e011b1-0894-4b11-90b2-d303649cc6d4",
+          "operationNumber": null,
+          "source": "operation",
+          "createdAt": "2026-05-26T15:21:49.152588"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "f4c4a5bc-de9d-4871-b36a-5fe264f73fc5",
+      "visit_id": "35d5cbc6-859f-4324-a0dd-8bcc8c10c825",
+      "customer": "1030// 24  عبدالرحمن محمد المطيري",
+      "plate": "ب ع د 7586",
+      "status": "delivered",
+      "visit_date": "2026-04-08",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلتر ديزل",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "2753cb77-df07-4326-8794-af7667e1ccc6",
+      "visit_id": "ed5a4ef8-44c9-42b1-a4f8-51861d33a8cc",
+      "customer": "سعود الحربي",
+      "plate": "ا ع ن 8041",
+      "status": "delivered",
+      "visit_date": "2026-04-07",
+      "amount": 3157.0,
+      "items": [
+        {
+          "itemType": "supplier",
+          "name": "عبدالرحيم",
+          "quantity": 1,
+          "price": 1400,
+          "manualPartyEntry": false,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "service",
+          "name": "فك وتركيب طقم كلتش",
+          "quantity": 1,
+          "price": 350,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "service",
+          "name": "فك تركيب البخاخات",
+          "quantity": 1,
+          "price": 300,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "supplier",
+          "name": "ميزان",
+          "quantity": 1,
+          "price": 400,
+          "manualPartyEntry": false,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "service",
+          "name": "فك وتركيب قاعدة تربو",
+          "quantity": 1,
+          "price": 350,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "supplier",
+          "name": "شركة القرعاوي",
+          "quantity": 1,
+          "price": 357,
+          "manualPartyEntry": false,
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "2753cb77-df07-4326-8794-af7667e1ccc6",
+      "visit_id": "be3d5f11-4dff-476c-9fa3-b3d860481463",
+      "customer": "سعود الحربي",
+      "plate": "ا ع ن 8041",
+      "status": "delivered",
+      "visit_date": "2026-04-15",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب ماسورة تربو",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "f56b68c9-d9c5-4c64-ac7a-e2842faa1812",
+      "visit_id": "72078883-6db5-4631-8f72-cf308b4b9fc3",
+      "customer": "فهد المحيميد ",
+      "plate": "ا ر د  7975",
+      "status": "delivered",
+      "visit_date": "2026-04-07",
+      "amount": 2250.0,
+      "items": [
+        {
+          "itemType": "supplier",
+          "name": "عبدالرحيم",
+          "quantity": 1,
+          "price": 1750,
+          "manualPartyEntry": false,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "service",
+          "name": "صيانة طرمبة ديزل",
+          "quantity": 1,
+          "price": 500,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "d5423ffa-1220-40cf-ac57-b7aea236334f",
+      "visit_id": "b1ef779c-4560-4464-94d7-1433be21a1e0",
+      "customer": "738//ابو  الحسن التميمي",
+      "plate": "ا ل ع 9074",
+      "status": "delivered",
+      "visit_date": "2026-04-06",
+      "amount": 250.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تصليح تهريب زيت",
+          "quantity": 1,
+          "price": 250,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "2d155e40-7273-428a-a4ef-153ee3ee75de",
+      "visit_id": "0297c2ca-0452-4089-86fc-e0d2d2530085",
+      "customer": "صالح البشر",
+      "plate": "1019///د ن هـ4334",
+      "status": "delivered",
+      "visit_date": "2026-03-29",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلتر ديزل",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "5b1843a1-d934-4f09-bd82-f150786397ef",
+      "visit_id": "fd598837-6a9c-49d3-a047-9ca90f38f197",
+      "customer": "نايف المقحم",
+      "plate": "ر ح ن 6278",
+      "status": "delivered",
+      "visit_date": "2026-03-28",
+      "amount": 6500.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب 8س ديزل",
+          "quantity": 1,
+          "price": 3817,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "part",
+          "name": "حساس حره +فلتر هواء",
+          "quantity": 1,
+          "price": 243,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "supplier",
+          "name": "مخرطة العوفي",
+          "quantity": 1,
+          "price": 940,
+          "manualPartyEntry": true,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "supplier",
+          "name": "الدريويش",
+          "quantity": 1,
+          "price": 180,
+          "manualPartyEntry": true,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "الورشة  قاعدة مروحة",
+          "quantity": 1,
+          "price": 520,
+          "manualPartyEntry": true,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "معجو ن +غسيل +ماء اديتر         الورشة",
+          "quantity": 1,
+          "price": 170,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "صوفة طرمبة ديزل 8س",
+          "quantity": 1,
+          "price": 30,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "ليات تربوا صغير وكبير",
+          "quantity": 1,
+          "price": 450,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "فحمة كلتش الورشة",
+          "quantity": 1,
+          "price": 150,
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "5b1843a1-d934-4f09-bd82-f150786397ef",
+      "visit_id": "2dd3dbae-6cc9-46b6-b72d-f76364cc36f7",
+      "customer": "نايف المقحم",
+      "plate": "ر ح ن 6278",
+      "status": "delivered",
+      "visit_date": "2026-04-20",
+      "amount": 3250.0,
+      "items": [
+        {
+          "itemType": "supplier",
+          "name": "عبدالرحيم  صيانة بخاخات",
+          "quantity": 7,
+          "price": 350,
+          "manualPartyEntry": true,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "التشليح  بخاخ 1",
+          "quantity": 1,
+          "price": 800,
+          "manualPartyEntry": false,
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "5b1843a1-d934-4f09-bd82-f150786397ef",
+      "visit_id": "5efaadae-f771-4910-a520-448b383891e8",
+      "customer": "نايف المقحم",
+      "plate": "ر ح ن 6278",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 2500.0,
+      "items": [
+        {
+          "id": "item-5efaadae-f771-4910-a520-448b383891e8-0",
+          "itemType": "part",
+          "name": "جرم بخاخ",
+          "details": "",
+          "quantity": 2,
+          "qty": 2,
+          "price": 1250,
+          "discount": 0,
+          "total": 2500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "94bb8ac0-6b4b-4ad4-97eb-b8a9f55d26ff",
+      "visit_id": "fa41f653-cb79-451c-9d25-f2a701f6a619",
+      "customer": "ابو نايف الفايزي",
+      "plate": "د س هـ 7673",
+      "status": "delivered",
+      "visit_date": "2026-03-30",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل فلتر ديزل",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "b1496211-233e-49b7-9f82-bd0ad7b44f84",
+      "visit_id": "e3e8bbbc-5793-4db1-90a7-6a0c6fe01dbc",
+      "customer": "عبد الرحمن الراشد ",
+      "plate": "ا ب ط 7516",
+      "status": "delivered",
+      "visit_date": "2026-06-06",
+      "amount": 300.0,
+      "items": [
+        {
+          "id": "item-e3e8bbbc-5793-4db1-90a7-6a0c6fe01dbc-0",
+          "itemType": "service",
+          "name": "تبدل فلتر ديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-e3e8bbbc-5793-4db1-90a7-6a0c6fe01dbc-1",
+          "itemType": "service",
+          "name": "تبديل فلتر زيت",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 100,
+          "discount": 0,
+          "total": 100,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-e3e8bbbc-5793-4db1-90a7-6a0c6fe01dbc-2",
+          "itemType": "service",
+          "name": "تبديل وجه غطاء البلوف",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+      "visit_id": "2fa1bd0a-9b77-43da-8944-9680a3671f94",
+      "customer": "1062 ///ملحمة قويصرة  ",
+      "plate": "ا ك ل 3820",
+      "status": "delivered",
+      "visit_date": "2026-05-12",
+      "amount": 2900.0,
+      "items": [
+        {
+          "id": "item-2fa1bd0a-9b77-43da-8944-9680a3671f94-0",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 300,
+          "discount": 0,
+          "total": 300,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-2fa1bd0a-9b77-43da-8944-9680a3671f94-1",
+          "itemType": "service",
+          "name": "فك وتركيب تربوا",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 277,
+          "discount": 0,
+          "total": 277,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-2fa1bd0a-9b77-43da-8944-9680a3671f94-2",
+          "itemType": "service",
+          "name": "تبديل حساس",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-2fa1bd0a-9b77-43da-8944-9680a3671f94-3",
+          "itemType": "service",
+          "name": "تركيب صليبات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 250,
+          "discount": 0,
+          "total": 250,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-2fa1bd0a-9b77-43da-8944-9680a3671f94-4",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 573,
+          "discount": 0,
+          "total": 573,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-2fa1bd0a-9b77-43da-8944-9680a3671f94-5",
+          "itemType": "supplier",
+          "name": "الصقعبي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1450,
+          "discount": 0,
+          "total": 1450,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "235cb00f-facb-46aa-a4eb-8db039ec21ee",
+      "visit_id": "822ca57a-2cd2-4b2f-84c6-f5001170ce73",
+      "customer": "1062 ///ملحمة قويصرة  ",
+      "plate": "ا ك ل 3820",
+      "status": "delivered",
+      "visit_date": "2026-06-08",
+      "amount": 1000.0,
+      "items": [
+        {
+          "id": "item-822ca57a-2cd2-4b2f-84c6-f5001170ce73-0",
+          "itemType": "part",
+          "name": "مصطره بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1000,
+          "discount": 0,
+          "total": 1000,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "b8f1b52d-d626-4fe1-b811-3a97561859fa",
+      "visit_id": "e7d670fe-809e-44ec-aefb-604ebc4fdb92",
+      "customer": "محمد سالم الرشيدي ",
+      "plate": "ا ا م 9757",
+      "status": "delivered",
+      "visit_date": "2026-03-29",
+      "amount": 4031.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب",
+          "quantity": 1,
+          "price": 2000,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "supplier",
+          "name": "عمل مخرطة",
+          "quantity": 1,
+          "price": 1550,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "supplier",
+          "name": "تصييخ اديتر",
+          "quantity": 1,
+          "price": 230,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "ساعة حرارة+معجون وغسيل وماء اديتر +وليات وزيت دركسون",
+          "quantity": 1,
+          "price": 251,
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "073d6ec7-53f7-4f64-b251-e4cf75cd6356",
+      "visit_id": "e83a015b-1579-4138-b5ed-84bb6b380763",
+      "customer": "1043  /// مجاهد العبدالله                                                                                                                                   ",
+      "plate": "1043  ///  ب س ك 6549",
+      "status": "delivered",
+      "visit_date": "2026-04-21",
+      "amount": 700.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "فك مكينة هايلكوس",
+          "quantity": 1,
+          "price": 700,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "2d72f1fa-1a31-4fe0-8a4d-b0734d092d87",
+      "visit_id": "1fdad395-0930-4637-8c93-a748f1c8505e",
+      "customer": "1026//سليمان الظويهر",
+      "plate": "ب د ل 2099",
+      "status": "delivered",
+      "visit_date": "2026-04-05",
+      "amount": 350.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب تربوا",
+          "quantity": 1,
+          "price": 350,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "8cac2ba9-ce30-4042-9fbf-fcb3186177b4",
+      "visit_id": "87a7e860-d0b0-45ea-a854-1278a4fbfb23",
+      "customer": "1040  /// خضير الخضيري",
+      "plate": "1040 /// د ل ك 5248",
+      "status": "delivered",
+      "visit_date": "2026-04-18",
+      "amount": 450.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تنزيل التانكي وفلتر ديزل",
+          "quantity": 1,
+          "price": 450,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "32b67a06-e631-4121-94ac-7f1ef6e44645",
+      "visit_id": "668bed7b-935f-4cc0-9a15-324d4ba9506d",
+      "customer": "1037  ا///اياس حمود العقيلي",
+      "plate": "1037  ///ا ع ن 6730",
+      "status": "delivered",
+      "visit_date": "2026-04-16",
+      "amount": 50.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب تماتيك مروحة",
+          "quantity": 1,
+          "price": 50,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c3a4ef72-7297-4a48-8a7c-f0aa8286fafa",
+      "visit_id": "e6ddc1a6-d6c8-439c-8313-cef7c2f99061",
+      "customer": "1033//ابو سلمان الخضير",
+      "plate": "1033 /// ح هـ ك 7853",
+      "status": "delivered",
+      "visit_date": "2026-04-11",
+      "amount": 400.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل كرتير مكينة وقير",
+          "quantity": 1,
+          "price": 400,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "4c001084-143b-4861-855c-ad2f6024ff01",
+      "visit_id": "f963a219-7625-4550-8d33-4cceb7dc09f9",
+      "customer": "228/// خالد جعفر",
+      "plate": "228  ///ات ب ل 9230",
+      "status": "delivered",
+      "visit_date": "2026-04-14",
+      "amount": 150.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "صيانة عامة",
+          "quantity": 1,
+          "price": 150,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "21d93583-1ccf-40b6-9821-64c8b414e9b7",
+      "visit_id": "4f907bf3-10a6-4d43-97c2-cd7d5cad22f8",
+      "customer": "77  //محمد  فهدالعمر",
+      "plate": "ا ص هـ  8843",
+      "status": "delivered",
+      "visit_date": "2026-04-06",
+      "amount": 750.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "صيانة طرمبة ديزل",
+          "quantity": 1,
+          "price": 600,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "part",
+          "name": "صوفة صدر",
+          "quantity": 1,
+          "price": 30,
+          "billingType": "supplier"
+        },
+        {
+          "itemType": "part",
+          "name": "ساعة زيت",
+          "quantity": 1,
+          "price": 120,
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "bb1b011b-b913-46d7-a0b9-6fa5e1dc6363",
+      "visit_id": "5d3ef6e1-8ef7-4e0b-a249-70472ed68269",
+      "customer": "عبد العزيز الحسين",
+      "plate": "1023/// ي ر ك 106",
+      "status": "delivered",
+      "visit_date": "2026-04-01",
+      "amount": 100.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تبديل سير وشداد",
+          "quantity": 1,
+          "price": 100,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "7fa6e695-5dce-48e2-a4de-4268724f3c07",
+      "visit_id": "0b080234-11ae-42c4-8bac-79395b4f53c2",
+      "customer": "سالم حسين ",
+      "plate": "ا هـ ك 4818",
+      "status": "delivered",
+      "visit_date": "2026-06-06",
+      "amount": 600.0,
+      "items": [
+        {
+          "id": "item-0b080234-11ae-42c4-8bac-79395b4f53c2-0",
+          "itemType": "service",
+          "name": "وزن طرمة ديزل مع تركيب فلترديز وفلتر هواء معقيمة الفلاتر",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 600,
+          "discount": 0,
+          "total": 600,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "bd714910-1e07-40b4-b4e7-5c6cc98a6d1d",
+      "visit_id": "0dd49396-8748-4276-8272-2fc5ec70ff09",
+      "customer": "سلطان الصالح",
+      "plate": "ب ص ر 303",
+      "status": "delivered",
+      "visit_date": "2026-05-13",
+      "amount": 285.0,
+      "items": [
+        {
+          "id": "item-0dd49396-8748-4276-8272-2fc5ec70ff09-0",
+          "itemType": "service",
+          "name": "تبديل فلتر ديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-0dd49396-8748-4276-8272-2fc5ec70ff09-1",
+          "itemType": "service",
+          "name": "تبديل بلف الحراره",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "name": "⚡ بيع فوري",
+          "description": "⚡ بيع فوري",
+          "quantity": 1.0,
+          "price": 85.0,
+          "total": 85.0,
+          "itemType": "service",
+          "paymentStatus": "paid",
+          "operationId": "d7fefd8b-bf85-4034-834c-786545118611",
+          "operationNumber": null,
+          "source": "operation",
+          "createdAt": "2026-05-14T19:49:08.502203"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "8fd4db19-2135-4b12-938b-82eb981d3dd8",
+      "visit_id": "ecee7051-f5dc-4eb5-9dc9-1737128d42b2",
+      "customer": "ابو ابراهيم العريني",
+      "plate": "ب ا ل 7680",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 1500.0,
+      "items": [
+        {
+          "id": "item-ecee7051-f5dc-4eb5-9dc9-1737128d42b2-0",
+          "itemType": "service",
+          "name": "فك وتركيب راس المكينه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1500,
+          "discount": 0,
+          "total": 1500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "082fd44a-1da4-4783-ad18-652c545ca826",
+      "visit_id": "c33b7e01-3b69-4e02-aff9-a26cc9e42fb4",
+      "customer": "عبد الرحمن فالح الحربي",
+      "plate": "1067 /// د ا ق 3849",
+      "status": "delivered",
+      "visit_date": "2026-05-16",
+      "amount": 150.0,
+      "items": [
+        {
+          "id": "item-c33b7e01-3b69-4e02-aff9-a26cc9e42fb4-0",
+          "itemType": "service",
+          "name": "تبديل ذراع دودة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "bd4f8cdf-9363-4723-b6f9-32c2651e9e48",
+      "visit_id": "03df6db9-94cd-4e80-8ef5-80f69f571df2",
+      "customer": "1064 /// سلطان العليان",
+      "plate": "س ط ق 900",
+      "status": "delivered",
+      "visit_date": "2026-05-12",
+      "amount": 2000.0,
+      "items": [
+        {
+          "id": "item-03df6db9-94cd-4e80-8ef5-80f69f571df2-0",
+          "itemType": "service",
+          "name": "تبديل وجه تربوات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2000,
+          "discount": 0,
+          "total": 2000,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "40739271-f126-4f37-bbf1-0e8c984309cf",
+      "visit_id": "64277504-b070-4509-895e-9467fc37061f",
+      "customer": "1061 ///ابو علي عطاف  الغماس ",
+      "plate": "ب س س  7341",
+      "status": "delivered",
+      "visit_date": "2026-05-12",
+      "amount": 50.0,
+      "items": [
+        {
+          "id": "item-64277504-b070-4509-895e-9467fc37061f-0",
+          "itemType": "service",
+          "name": "تبديل سير تيمن",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "2d79f3e9-0bf4-426d-ae65-6501b916a890",
+      "visit_id": "15b9dfb5-0366-41cd-bc0a-4b024ff301b0",
+      "customer": "عمر الخضيري",
+      "plate": " د ص س 7509",
+      "status": "delivered",
+      "visit_date": "2026-06-29",
+      "amount": 2417.0,
+      "items": [
+        {
+          "id": "item-15b9dfb5-0366-41cd-bc0a-4b024ff301b0-0",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 35,
+          "discount": 0,
+          "total": 35,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-15b9dfb5-0366-41cd-bc0a-4b024ff301b0-1",
+          "itemType": "supplier",
+          "name": "الدريويش",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 230,
+          "discount": 0,
+          "total": 230,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-15b9dfb5-0366-41cd-bc0a-4b024ff301b0-2",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 579,
+          "discount": 0,
+          "total": 579,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-15b9dfb5-0366-41cd-bc0a-4b024ff301b0-3",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1069,
+          "discount": 0,
+          "total": 1069,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-15b9dfb5-0366-41cd-bc0a-4b024ff301b0-4",
+          "itemType": "service",
+          "name": "غسيل مكينة+معجون ديركو +ماء مقطر",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-15b9dfb5-0366-41cd-bc0a-4b024ff301b0-5",
+          "itemType": "part",
+          "name": "زيت جير 5لتر",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 93,
+          "discount": 0,
+          "total": 93,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-15b9dfb5-0366-41cd-bc0a-4b024ff301b0-6",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 261,
+          "discount": 0,
+          "total": 261,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "4e348c0f-996f-4d18-aeaf-eb212c8d68b1",
+      "visit_id": "e2f71e35-df55-48d8-a9fe-56deae2034c3",
+      "customer": "سلطان عبدالرحمن المحيميد",
+      "plate": "د ط س6269",
+      "status": "delivered",
+      "visit_date": "2026-05-26",
+      "amount": 200.0,
+      "items": [
+        {
+          "id": "item-e2f71e35-df55-48d8-a9fe-56deae2034c3-0",
+          "itemType": "service",
+          "name": "تغيير زيت القير الأوتوماتيك",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 200,
+          "discount": 0,
+          "total": 200,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "9a359734-02bb-460c-92d3-c43306a682c8",
+      "visit_id": "1df378ed-0724-4f31-9882-4dc28c92137b",
+      "customer": "78 //ابو بندر الراشد",
+      "plate": "78 //  ب  هـ م 4519",
+      "status": "delivered",
+      "visit_date": "2026-05-12",
+      "amount": 500.0,
+      "items": [
+        {
+          "id": "item-1df378ed-0724-4f31-9882-4dc28c92137b-0",
+          "itemType": "service",
+          "name": "تركيب مساعدات ةمقصات  صوف مسمامير توازن",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 500,
+          "discount": 0,
+          "total": 500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "6f17d9b6-1683-45fd-919e-8897aca46600",
+      "visit_id": "ef0a3030-d377-4a96-ba7f-acf302cf3ad4",
+      "customer": "1059  /// عطية (فهد الشعيبي)",
+      "plate": "1062 /// ب ع ا 9069",
+      "status": "delivered",
+      "visit_date": "2026-05-12",
+      "amount": 3000.0,
+      "items": [
+        {
+          "id": "item-ef0a3030-d377-4a96-ba7f-acf302cf3ad4-1",
+          "itemType": "supplier",
+          "name": "شركة القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1267,
+          "discount": 0,
+          "total": 1267,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-ef0a3030-d377-4a96-ba7f-acf302cf3ad4-2",
+          "itemType": "supplier",
+          "name": "أبو خالد الكبير",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 130,
+          "discount": 0,
+          "total": 130,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-ef0a3030-d377-4a96-ba7f-acf302cf3ad4-3",
+          "itemType": "supplier",
+          "name": "أبو خالد الكبير",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 80,
+          "discount": 0,
+          "total": 80,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-ef0a3030-d377-4a96-ba7f-acf302cf3ad4-3",
+          "itemType": "service",
+          "name": "أتركيب جنازير تيمن كامل ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1523,
+          "discount": 0,
+          "total": 1523,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "27fe3a2a-f3ac-443e-8c93-461c0046af63",
+      "visit_id": "20cc3c86-2b08-4244-9a4b-8519f8196add",
+      "customer": "صالح المحيميمد ",
+      "plate": "1065 /// ح د ط  7811",
+      "status": "delivered",
+      "visit_date": "2026-05-16",
+      "amount": 3070.0,
+      "items": [
+        {
+          "id": "item-20cc3c86-2b08-4244-9a4b-8519f8196add-0",
+          "itemType": "service",
+          "name": "توضيب                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   توضيب مكية                                                                 ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 3069,
+          "discount": 0,
+          "total": 3069,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "name": "سيفون زيت",
+          "description": "سيفون زيت",
+          "quantity": 1.0,
+          "price": 1.0,
+          "total": 1.0,
+          "itemType": "part",
+          "paymentStatus": "paid",
+          "operationId": "c05a7bc1-43e0-46c7-9ef7-d1a4c441a2ae",
+          "operationNumber": null,
+          "source": "operation",
+          "createdAt": "2026-05-20T16:39:40.813097"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "e7561ca4-3b54-4a87-b725-4728821890a6",
+      "visit_id": "c4665cba-667e-4cca-b0a5-ec4a32728fdc",
+      "customer": "المحيميد",
+      "plate": "س د ى777",
+      "status": "delivered",
+      "visit_date": "2026-05-21",
+      "amount": 50.0,
+      "items": [
+        {
+          "id": "item-c4665cba-667e-4cca-b0a5-ec4a32728fdc-0",
+          "itemType": "service",
+          "name": "تركيب سير المكينه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "249e187d-436c-428d-b41b-11c18657eb59",
+      "visit_id": "29dddda3-f860-42a5-a2c2-3587a26484e3",
+      "customer": "ابو زامل ",
+      "plate": "ا ط ل209",
+      "status": "delivered",
+      "visit_date": "2026-05-20",
+      "amount": 2400.0,
+      "items": [
+        {
+          "id": "item-29dddda3-f860-42a5-a2c2-3587a26484e3-0",
+          "itemType": "service",
+          "name": "بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 950,
+          "discount": 0,
+          "total": 950,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-29dddda3-f860-42a5-a2c2-3587a26484e3-1",
+          "itemType": "part",
+          "name": "ربلات ثلاجه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 179,
+          "discount": 0,
+          "total": 179,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29dddda3-f860-42a5-a2c2-3587a26484e3-2",
+          "itemType": "supplier",
+          "name": "شركة القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 58,
+          "discount": 0,
+          "total": 58,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29dddda3-f860-42a5-a2c2-3587a26484e3-3",
+          "itemType": "service",
+          "name": "شغل الثلاجه وتركيب ربلات ووردات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 313,
+          "discount": 0,
+          "total": 313,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-29dddda3-f860-42a5-a2c2-3587a26484e3-4",
+          "itemType": "part",
+          "name": "ودات مسامير الثلاجه مع البخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 100,
+          "discount": 0,
+          "total": 100,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29dddda3-f860-42a5-a2c2-3587a26484e3-5",
+          "itemType": "part",
+          "name": "طرمبة الهواء",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 600,
+          "discount": 0,
+          "total": 600,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29dddda3-f860-42a5-a2c2-3587a26484e3-6",
+          "itemType": "service",
+          "name": "تركيب طرمبة الهواء",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 200,
+          "discount": 0,
+          "total": 200,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "a361c8d6-fef2-42e7-b8a2-c7e62b7e0719",
+      "visit_id": "89c6429e-51da-4eb3-9f77-f95490023f59",
+      "customer": "ابراهيم ابو الخيل",
+      "plate": "ب د ن 6102",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 50.0,
+      "items": [
+        {
+          "id": "item-89c6429e-51da-4eb3-9f77-f95490023f59-0",
+          "itemType": "service",
+          "name": "تبدل فلتر ديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c706c640-5742-4003-acae-38293be15cbd",
+      "visit_id": "40d2d861-6bba-45f2-80b6-f842ceb4f28c",
+      "customer": "حيايل هايلكس ",
+      "plate": "د ر م 333",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 50.0,
+      "items": [
+        {
+          "id": "item-40d2d861-6bba-45f2-80b6-f842ceb4f28c-0",
+          "itemType": "service",
+          "name": "اصلح بلف  هواء التربو",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "4d67d32d-d767-4fb8-9b75-5bbdb1f52e47",
+      "visit_id": "4c96e77e-11da-445c-9578-0c4668711b52",
+      "customer": "عبدالعزيز الموسى",
+      "plate": "ا و و 7451",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 350.0,
+      "items": [
+        {
+          "id": "item-4c96e77e-11da-445c-9578-0c4668711b52-0",
+          "itemType": "service",
+          "name": "فك وتركيب التانكي ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 325,
+          "discount": 0,
+          "total": 325,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-4c96e77e-11da-445c-9578-0c4668711b52-1",
+          "itemType": "part",
+          "name": "فلتر ديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 25,
+          "discount": 0,
+          "total": 25,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "48b72a27-2a5b-47d0-8664-ba5e7f62bb06",
+      "visit_id": "b876921c-d554-4ade-944e-b20760883fd9",
+      "customer": "حسام التويجري",
+      "plate": "ا س ر 7033",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 500.0,
+      "items": [
+        {
+          "id": "item-b876921c-d554-4ade-944e-b20760883fd9-0",
+          "itemType": "service",
+          "name": "تركيب طقم كلتش",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 500,
+          "discount": 0,
+          "total": 500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "09249139-7bb6-40cb-8a7f-c971fba30162",
+      "visit_id": "52e779ff-10c4-4081-a531-f032cb284678",
+      "customer": "1066 ///وليد بخيت",
+      "plate": "ا ص ح 2760",
+      "status": "delivered",
+      "visit_date": "2026-05-16",
+      "amount": 100.0,
+      "items": [
+        {
+          "id": "item-52e779ff-10c4-4081-a531-f032cb284678-0",
+          "itemType": "service",
+          "name": "تركيب علبة كلتش فوق",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 100,
+          "discount": 0,
+          "total": 100,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "edaeb39c-5f09-46c1-9250-6f097adeaba2",
+      "visit_id": "2878d14b-2cf0-455e-ab5a-7d8253c909a4",
+      "customer": "ابو ياسر الحزيمي",
+      "plate": "بدون لوحه",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 250.0,
+      "items": [
+        {
+          "id": "item-2878d14b-2cf0-455e-ab5a-7d8253c909a4-0",
+          "itemType": "service",
+          "name": "فك وتركيب  كلتش",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 250,
+          "discount": 0,
+          "total": 250,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "ddc21487-a04e-467f-b31e-f238c255d4a6",
+      "visit_id": "41642e27-4c69-432e-ae8f-49e1bef0013e",
+      "customer": "ابو حمود التويجري",
+      "plate": "ب ح ط8455",
+      "status": "delivered",
+      "visit_date": "2026-05-24",
+      "amount": 350.0,
+      "items": [
+        {
+          "id": "item-41642e27-4c69-432e-ae8f-49e1bef0013e-0",
+          "itemType": "service",
+          "name": "فك وتركيب خرطوش تربوا",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 60,
+          "discount": 0,
+          "total": 60,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-41642e27-4c69-432e-ae8f-49e1bef0013e-1",
+          "itemType": "supplier",
+          "name": "الراكضي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 290,
+          "discount": 0,
+          "total": 290,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "0fdea03e-3440-4e87-8eb5-36ef2e02edd4",
+      "visit_id": "3c8d81bb-0b0a-4d66-ae13-8c5f0c07ef09",
+      "customer": "ابو سلطان يوسف",
+      "plate": "ا ط ك 6977",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 600.0,
+      "items": [
+        {
+          "id": "item-3c8d81bb-0b0a-4d66-ae13-8c5f0c07ef09-0",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات مع تنضيف تانكي الديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 600,
+          "discount": 0,
+          "total": 600,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "53720208-1b25-4764-abd0-bd18fad57a0d",
+      "visit_id": "32fe2aea-c4a4-4edd-8481-303d50d38a6e",
+      "customer": "ابراهيم العجلان",
+      "plate": "ب ط ل 311",
+      "status": "delivered",
+      "visit_date": "2026-05-25",
+      "amount": 2500.0,
+      "items": [
+        {
+          "id": "item-32fe2aea-c4a4-4edd-8481-303d50d38a6e-0",
+          "itemType": "service",
+          "name": "توضيب مكينة 6 سلندر ديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2400,
+          "discount": 0,
+          "total": 2400,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-32fe2aea-c4a4-4edd-8481-303d50d38a6e-1",
+          "itemType": "service",
+          "name": "غسيل مكينة+معجون ديركو",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 100,
+          "discount": 0,
+          "total": 100,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "523ae499-35e2-4200-a0b7-90dbc2f2759a",
+      "visit_id": "bc68b514-14f7-483a-820c-12dbaae784c0",
+      "customer": "ابو عبد الرحمن ",
+      "plate": "ب د ح 5165",
+      "status": "delivered",
+      "visit_date": "2026-05-26",
+      "amount": 260.0,
+      "items": [
+        {
+          "id": "item-bc68b514-14f7-483a-820c-12dbaae784c0-0",
+          "itemType": "service",
+          "name": "فك وتركيب خرطوش تربوا مع بلف التربو مع فلتر الديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 260,
+          "discount": 0,
+          "total": 260,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "5287aa8d-2969-48ed-bc5e-2ca0f97a03a3",
+      "visit_id": "99970dc5-5e16-481f-a925-65cce2d374f7",
+      "customer": "1060 /// ابو ياسر الزويد",
+      "plate": "1060 ///  ب ص م  7782",
+      "status": "delivered",
+      "visit_date": "2026-05-13",
+      "amount": 2300.0,
+      "items": [
+        {
+          "id": "item-99970dc5-5e16-481f-a925-65cce2d374f7-0",
+          "itemType": "service",
+          "name": "توضيب  مكينة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2300,
+          "discount": 0,
+          "total": 2300,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "9d68a7a1-1c89-46cb-8b1e-f0cb02cde1ff",
+      "visit_id": "59a6ffa4-63cf-45cf-a177-1a0043d321c2",
+      "customer": "عاصم النصيان",
+      "plate": "ع م م 919",
+      "status": "delivered",
+      "visit_date": "2026-05-31",
+      "amount": 100.0,
+      "items": [
+        {
+          "id": "item-59a6ffa4-63cf-45cf-a177-1a0043d321c2-0",
+          "itemType": "service",
+          "name": "تنظيف حساس الشكمان",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 100,
+          "discount": 0,
+          "total": 100,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "9d4ed9a0-b722-497b-b3c1-c60aaa79441c",
+      "visit_id": "ce09e011-0241-4f74-a930-824e538142bb",
+      "customer": "محمد العمر ",
+      "plate": "ا ي ح 8162",
+      "status": "delivered",
+      "visit_date": "2026-04-08",
+      "amount": 2000.0,
+      "items": [
+        {
+          "id": "item-ce09e011-0241-4f74-a930-824e538142bb-0",
+          "itemType": "service",
+          "name": "فك وتركيب  مكينة 2GR",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2000,
+          "discount": 0,
+          "total": 2000,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c6948aef-0fa8-4c30-9746-458810072050",
+      "visit_id": "21bed64f-b1d6-4534-b229-69b33f73556f",
+      "customer": "ابراهيم النغيمشي",
+      "plate": "ر ى ى 550",
+      "status": "delivered",
+      "visit_date": "2026-06-01",
+      "amount": 390.0,
+      "items": [
+        {
+          "id": "item-21bed64f-b1d6-4534-b229-69b33f73556f-0",
+          "itemType": "service",
+          "name": "تركيب طقم كلتش",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 390,
+          "discount": 0,
+          "total": 390,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "50c37caa-3329-4c00-a625-54a68837c662",
+      "visit_id": "fec01d72-3827-4d0e-9ba5-cb853acccfb5",
+      "customer": "عاصم المحيميد",
+      "plate": "ب د ب 4462",
+      "status": "delivered",
+      "visit_date": "2026-06-02",
+      "amount": 300.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "طرمبة ماء 4ja1",
+          "quantity": 1,
+          "price": 300,
+          "total": 300,
+          "qty": 1,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "f0946eb4-13be-4eca-8128-c6b1832601b8",
+      "visit_id": "d22b42a7-055a-4a2e-967d-91fb43bc8f58",
+      "customer": "ابو صهيب الاردني",
+      "plate": "ا ك ك 5997",
+      "status": "delivered",
+      "visit_date": "2026-06-03",
+      "amount": 1580.0,
+      "items": [
+        {
+          "id": "item-d22b42a7-055a-4a2e-967d-91fb43bc8f58-0",
+          "itemType": "service",
+          "name": "فك وتركيب مكينه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1580,
+          "discount": 0,
+          "total": 1580,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "031ab312-cb34-4232-85e1-65c428b7cd36",
+      "visit_id": "1a0f9a63-e158-49af-af14-e682b9ff3dbd",
+      "customer": "عمر عبد العزيزالجعيثن",
+      "plate": "ب د س 9123",
+      "status": "delivered",
+      "visit_date": "2026-06-03",
+      "amount": 400.0,
+      "items": [
+        {
+          "id": "item-1a0f9a63-e158-49af-af14-e682b9ff3dbd-0",
+          "itemType": "service",
+          "name": "فك وتركيب تربوا",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 400,
+          "discount": 0,
+          "total": 400,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "031ab312-cb34-4232-85e1-65c428b7cd36",
+      "visit_id": "7ec953e2-8661-466f-89e7-f1c5a2589146",
+      "customer": "عمر عبد العزيزالجعيثن",
+      "plate": "ب د س 9123",
+      "status": "delivered",
+      "visit_date": "2026-06-20",
+      "amount": 400.0,
+      "items": [
+        {
+          "id": "item-7ec953e2-8661-466f-89e7-f1c5a2589146-0",
+          "itemType": "service",
+          "name": "فك وتركيب تربو ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 400,
+          "discount": 0,
+          "total": 400,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "a1ce134c-2ea2-4309-94c4-be77b7091853",
+      "visit_id": "c8336959-3486-4a4c-a891-de1f3aaf4c14",
+      "customer": "عبد العزيز الخضر ",
+      "plate": "ق ى ا 663",
+      "status": "delivered",
+      "visit_date": "2026-06-02",
+      "amount": 100.0,
+      "items": [
+        {
+          "id": "item-c8336959-3486-4a4c-a891-de1f3aaf4c14-0",
+          "itemType": "service",
+          "name": "تبدل فلتر ديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-c8336959-3486-4a4c-a891-de1f3aaf4c14-1",
+          "itemType": "service",
+          "name": "تركيب سير المكينه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "6566f6d6-032c-45ba-ae99-c9f4373e38be",
+      "visit_id": "11c8df2e-b2ad-4ace-8b8d-9cc70cf0ebff",
+      "customer": "عبد العزيز الوابل",
+      "plate": "ا ن س 3348",
+      "status": "delivered",
+      "visit_date": "2026-06-11",
+      "amount": 1600.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "توضيب سوزوا 4ja1",
+          "quantity": 1,
+          "price": 1600,
+          "total": 1600,
+          "qty": 1,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "2dff4689-054a-483d-9e82-41a743b7001b",
+      "visit_id": "c0d34b81-4193-446f-b678-c6943dc32beb",
+      "customer": "ابو مصري",
+      "plate": "ب ق د 4410",
+      "status": "delivered",
+      "visit_date": "2026-06-02",
+      "amount": 780.0,
+      "items": [
+        {
+          "id": "item-c0d34b81-4193-446f-b678-c6943dc32beb-0",
+          "itemType": "service",
+          "name": "فك وتركيب التانكي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 430,
+          "discount": 0,
+          "total": 430,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-c0d34b81-4193-446f-b678-c6943dc32beb-1",
+          "itemType": "service",
+          "name": "تبديل فلتر الديزل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 50,
+          "discount": 0,
+          "total": 50,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-c0d34b81-4193-446f-b678-c6943dc32beb-2",
+          "itemType": "service",
+          "name": "تغيير فحمات الفرامل",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 100,
+          "discount": 0,
+          "total": 100,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-c0d34b81-4193-446f-b678-c6943dc32beb-3",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 200,
+          "discount": 0,
+          "total": 200,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "044cc8a7-d809-463f-9868-93c5f6e09816",
+      "visit_id": "d484c9d3-4444-47d5-817a-452ce9f4fa96",
+      "customer": "علي السيد",
+      "plate": "ا ك ا 7324",
+      "status": "delivered",
+      "visit_date": "2026-06-03",
+      "amount": 650.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "فك وتركيب طرمبة الديزل",
+          "quantity": 1,
+          "price": 350,
+          "total": 350,
+          "qty": 1,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "service",
+          "name": "فك وتركيب التانكي",
+          "quantity": 1,
+          "price": 300,
+          "total": 300,
+          "qty": 1,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "41df3535-6637-4998-8ca6-7c467a58427e",
+      "visit_id": "03752a46-4a39-499f-a818-64ec1aa7616d",
+      "customer": "ابو عبدالعزيز المشيطي",
+      "plate": "ا م ب 2533",
+      "status": "delivered",
+      "visit_date": "2026-06-06",
+      "amount": 500.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تركيب كلتش",
+          "quantity": 1,
+          "price": 400,
+          "total": 400,
+          "qty": 1,
+          "billingType": "workshop"
+        },
+        {
+          "itemType": "service",
+          "name": "تبدل فلتر ديزل",
+          "quantity": 2,
+          "price": 50,
+          "total": 100,
+          "qty": 2,
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "62514f6c-6d2b-43b8-87b6-5099c756318e",
+      "visit_id": "040b41c7-f8dc-4087-b110-d3b088fceb66",
+      "customer": "شركة مصنع اعذاق للصناعه",
+      "plate": "ب ب ك 7689",
+      "status": "delivered",
+      "visit_date": "2026-06-09",
+      "amount": 500.0,
+      "items": [
+        {
+          "id": "item-040b41c7-f8dc-4087-b110-d3b088fceb66-0",
+          "itemType": "service",
+          "name": "تركيب طرمبة ماء وصيانة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 500,
+          "discount": 0,
+          "total": 500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "62514f6c-6d2b-43b8-87b6-5099c756318e",
+      "visit_id": "fd04da2a-86d6-4b81-97e6-3f15b556c678",
+      "customer": "شركة مصنع اعذاق للصناعه",
+      "plate": "ب ب ك 7689",
+      "status": "delivered",
+      "visit_date": "2026-06-11",
+      "amount": 40.0,
+      "items": [
+        {
+          "id": "item-fd04da2a-86d6-4b81-97e6-3f15b556c678-0",
+          "itemType": "service",
+          "name": "تركيب فحمات قدام 2",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 40,
+          "discount": 0,
+          "total": 40,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "ce2e776e-d750-4e34-b20a-ef21f49cad63",
+      "visit_id": "5f3b0fd2-b225-407c-8c8d-d3e82c9a129a",
+      "customer": "ابو ركان عبدالله ",
+      "plate": "د ط ص 5787",
+      "status": "delivered",
+      "visit_date": "2026-06-23",
+      "amount": 2350.0,
+      "items": [
+        {
+          "id": "item-5f3b0fd2-b225-407c-8c8d-d3e82c9a129a-0",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1500,
+          "discount": 0,
+          "total": 1500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-5f3b0fd2-b225-407c-8c8d-d3e82c9a129a-1",
+          "itemType": "service",
+          "name": "فك صدر المكينه وتعديل عمود تيمن",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 600,
+          "discount": 0,
+          "total": 600,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-5f3b0fd2-b225-407c-8c8d-d3e82c9a129a-2",
+          "itemType": "service",
+          "name": "تبديل زيت الجير ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 250,
+          "discount": 0,
+          "total": 250,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "b3d99135-3986-47c6-bfb4-11721d8b5f55",
+      "visit_id": "da69a9c2-11a6-4c66-9f41-c62dbb4121e0",
+      "customer": "ابو علي الشعيبي",
+      "plate": "ح هـ هـ 7754",
+      "status": "delivered",
+      "visit_date": "2026-06-08",
+      "amount": 150.0,
+      "items": [
+        {
+          "id": "item-da69a9c2-11a6-4c66-9f41-c62dbb4121e0-0",
+          "itemType": "service",
+          "name": "تبديل فحمات امامي وخلفي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "b769bb31-6e3a-4804-b3e5-b33a70b83b37",
+      "visit_id": "4365e611-25e1-4110-9960-041179885004",
+      "customer": "حزام سعود المطيري",
+      "plate": "ا ط ا 9935",
+      "status": "delivered",
+      "visit_date": "2026-05-23",
+      "amount": 2300.0,
+      "items": [
+        {
+          "id": "item-4365e611-25e1-4110-9960-041179885004-0",
+          "itemType": "service",
+          "name": "توضيب المكينة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2300,
+          "discount": 0,
+          "total": 2300,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "ea9b7f54-ba95-4b74-882a-b5b4a91c4da5",
+      "visit_id": "8e81052c-82a9-4c28-b061-0774537b2e20",
+      "customer": "محمد ابو الخير",
+      "plate": "ر ح ب 7854",
+      "status": "delivered",
+      "visit_date": "2026-06-17",
+      "amount": 150.0,
+      "items": [
+        {
+          "id": "item-8e81052c-82a9-4c28-b061-0774537b2e20-0",
+          "itemType": "service",
+          "name": "صيانة شاملة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "83ca03df-4a80-4918-b28d-b4c6dbb7bbf3",
+      "visit_id": "b8df4807-e5ad-4537-bef6-a28c67c9b23f",
+      "customer": "مد الله الثواتي",
+      "plate": "ا ل ق 6161",
+      "status": "delivered",
+      "visit_date": "2026-06-11",
+      "amount": 500.0,
+      "items": [
+        {
+          "id": "item-b8df4807-e5ad-4537-bef6-a28c67c9b23f-0",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 200,
+          "discount": 0,
+          "total": 200,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-b8df4807-e5ad-4537-bef6-a28c67c9b23f-1",
+          "itemType": "service",
+          "name": "فك براد ترربو ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 300,
+          "discount": 0,
+          "total": 300,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "e00544bd-184a-4388-95bd-125fed165127",
+      "visit_id": "868893fa-83b0-47b0-8ec9-b6abbcdc6ecd",
+      "customer": "ابو ماجد الدخيل الله ",
+      "plate": "د ل ح 4662",
+      "status": "delivered",
+      "visit_date": "2026-06-27",
+      "amount": 2450.0,
+      "items": [
+        {
+          "id": "item-868893fa-83b0-47b0-8ec9-b6abbcdc6ecd-0",
+          "itemType": "service",
+          "name": "تبديل راس المكينه ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2450,
+          "discount": 0,
+          "total": 2450,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "e00544bd-184a-4388-95bd-125fed165127",
+      "visit_id": "27fac848-d7f1-451a-b7f3-ae96c84e5f91",
+      "customer": "ابو ماجد الدخيل الله ",
+      "plate": "د ل ح 4662",
+      "status": "delivered",
+      "visit_date": "2026-06-17",
+      "amount": 150.0,
+      "items": [
+        {
+          "id": "item-27fac848-d7f1-451a-b7f3-ae96c84e5f91-0",
+          "itemType": "service",
+          "name": "الغاء مكيف حار ",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 150,
+          "discount": 0,
+          "total": 150,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "a7103b1d-39d0-41e8-a692-ed22d25c0a57",
+      "visit_id": "5f4f40f0-93c5-4041-83f7-12286b5c7867",
+      "customer": "ذياب سليمان الذياب",
+      "plate": "ب ك ع 5140",
+      "status": "delivered",
+      "visit_date": "2026-06-11",
+      "amount": 500.0,
+      "items": [
+        {
+          "id": "item-5f4f40f0-93c5-4041-83f7-12286b5c7867-0",
+          "itemType": "service",
+          "name": "فك وتركيب  كلتش",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 500,
+          "discount": 0,
+          "total": 500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "68a8de57-3925-4cde-91d8-37cad51e28b3",
+      "visit_id": "22fd6e87-4c90-403c-bf54-0fc17898bde7",
+      "customer": "علي عبد العزيز العازمي",
+      "plate": "ب س ع 7389",
+      "status": "delivered",
+      "visit_date": "2026-06-17",
+      "amount": 2140.0,
+      "items": [
+        {
+          "id": "item-22fd6e87-4c90-403c-bf54-0fc17898bde7-0",
+          "itemType": "service",
+          "name": "توضيب  مكينة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2140,
+          "discount": 0,
+          "total": 2140,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "5c8321ff-f29c-4f55-960f-5647b3f35294",
+      "visit_id": "4971413f-1fa6-4e95-970a-b60499404e46",
+      "customer": "ب س ص 1968",
+      "plate": "ب س ص 1968",
+      "status": "delivered",
+      "visit_date": "2026-06-08",
+      "amount": 2500.0,
+      "items": [
+        {
+          "id": "item-4971413f-1fa6-4e95-970a-b60499404e46-0",
+          "itemType": "service",
+          "name": "توضيب",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2500,
+          "discount": 0,
+          "total": 2500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "e9b04c22-b0df-4866-959d-a0ee1f5e7ed6",
+      "visit_id": "6a1f5892-3586-4595-ab85-29a74676cde0",
+      "customer": "عبد العزيز اللافي",
+      "plate": "ا ص ل 3898",
+      "status": "delivered",
+      "visit_date": "2026-06-16",
+      "amount": 500.0,
+      "items": [
+        {
+          "id": "item-6a1f5892-3586-4595-ab85-29a74676cde0-0",
+          "itemType": "service",
+          "name": "برمجه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 500,
+          "discount": 0,
+          "total": 500,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "a1391141-e312-4cb7-9e37-9a94759e73a1",
+      "visit_id": "78740d04-4c93-473a-be4c-987b7ebb8101",
+      "customer": "الريان",
+      "plate": "ب ا ر 7880",
+      "status": "delivered",
+      "visit_date": "2026-06-21",
+      "amount": 250.0,
+      "items": [
+        {
+          "id": "item-78740d04-4c93-473a-be4c-987b7ebb8101-0",
+          "itemType": "service",
+          "name": "تبديل طرمبة ماء",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 250,
+          "discount": 0,
+          "total": 250,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "378e91b2-9153-4480-bb17-c2b27edf632d",
+      "visit_id": "2364622f-a324-4584-92fd-516fbc612310",
+      "customer": "ابراهيم مقعد الحربي ",
+      "plate": "ب ب ط 5732",
+      "status": "delivered",
+      "visit_date": "2026-06-21",
+      "amount": 350.0,
+      "items": [
+        {
+          "id": "item-2364622f-a324-4584-92fd-516fbc612310-0",
+          "itemType": "service",
+          "name": "صيانه عامه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 350,
+          "discount": 0,
+          "total": 350,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "17b1a4eb-cee6-4f6c-830d-b3381a2c03ee",
+      "visit_id": "107ffdb8-4160-4ea2-9d3b-c4c5a1d08c6b",
+      "customer": "الريف الثلاثي للحوم",
+      "plate": "ب ص ح 3952",
+      "status": "delivered",
+      "visit_date": "2026-06-27",
+      "amount": 400.0,
+      "items": [
+        {
+          "id": "item-107ffdb8-4160-4ea2-9d3b-c4c5a1d08c6b-0",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 400,
+          "discount": 0,
+          "total": 400,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "d8d23ceb-bc73-4d2f-a1a4-5918a51ac634",
+      "visit_id": "9aa2e773-59e1-4d69-a0d6-a892e890ee1e",
+      "customer": "ابو تركي الرويضان ",
+      "plate": "ح ن ط 8712",
+      "status": "delivered",
+      "visit_date": "2026-06-17",
+      "amount": 3700.0,
+      "items": [
+        {
+          "id": "item-9aa2e773-59e1-4d69-a0d6-a892e890ee1e-0",
+          "itemType": "service",
+          "name": "توضيب المكينة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 3700,
+          "discount": 0,
+          "total": 3700,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "930acc71-7e2f-41c5-a273-5fa21386fd46",
+      "visit_id": "0d0e0e1c-4dc6-4036-90a0-dcf6fa66c9f0",
+      "customer": "ياسر الزيد",
+      "plate": "ا ط م 2370",
+      "status": "delivered",
+      "visit_date": "2026-07-01",
+      "amount": 200.0,
+      "items": [
+        {
+          "id": "item-0d0e0e1c-4dc6-4036-90a0-dcf6fa66c9f0-0",
+          "itemType": "service",
+          "name": "صيانه عامه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 200,
+          "discount": 0,
+          "total": 200,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "85b7178f-ab3c-4831-8279-87d2ec7cbe76",
+      "visit_id": "c82dbb6a-7d78-4d37-bcb7-a5d9913e1dd7",
+      "customer": "عبد الله الخطيب",
+      "plate": "ب ب ر 1760",
+      "status": "delivered",
+      "visit_date": "2026-07-01",
+      "amount": 200.0,
+      "items": [
+        {
+          "id": "item-c82dbb6a-7d78-4d37-bcb7-a5d9913e1dd7-0",
+          "itemType": "service",
+          "name": "فك وتركيب بخاخات",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 200,
+          "discount": 0,
+          "total": 200,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "406ff62b-2a86-4e57-a08e-60e01acce345",
+      "visit_id": "526a3935-7343-46f8-bde1-eac92003037a",
+      "customer": "زبن البدراني",
+      "plate": "ا س ص 2919",
+      "status": "delivered",
+      "visit_date": "2026-06-17",
+      "amount": 2000.0,
+      "items": [
+        {
+          "id": "item-526a3935-7343-46f8-bde1-eac92003037a-0",
+          "itemType": "service",
+          "name": "توضيب مكينة",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2000,
+          "discount": 0,
+          "total": 2000,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "55df7179-74a9-45ed-8b01-1125dddfb8e6",
+      "visit_id": "33e1066e-0a1e-46e3-870a-bcb2e3b62059",
+      "customer": "عبد العزيز العريني",
+      "plate": "د ب د 4069",
+      "status": "delivered",
+      "visit_date": "2026-06-21",
+      "amount": 2200.0,
+      "items": [
+        {
+          "id": "item-33e1066e-0a1e-46e3-870a-bcb2e3b62059-0",
+          "itemType": "service",
+          "name": "وتوضيب",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2200,
+          "discount": 0,
+          "total": 2200,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "e4deb6b5-6f6e-4d98-99df-4ba9e4f2858a",
+      "visit_id": "394407bd-8006-433d-992f-67b54db0a318",
+      "customer": "خالد السلمان",
+      "plate": "ا م ل 5203",
+      "status": "delivered",
+      "visit_date": "2026-07-01",
+      "amount": 1479.0,
+      "items": [
+        {
+          "id": "item-394407bd-8006-433d-992f-67b54db0a318-1",
+          "itemType": "supplier",
+          "name": "مؤسسة التويجري التجاريه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1075,
+          "discount": 0,
+          "total": 1075,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-394407bd-8006-433d-992f-67b54db0a318-2",
+          "itemType": "supplier",
+          "name": "شركة علامة الجزيره التجاريه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 104,
+          "discount": 0,
+          "total": 104,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-394407bd-8006-433d-992f-67b54db0a318-2",
+          "itemType": "service",
+          "name": "صيانه عامه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 300,
+          "discount": 0,
+          "total": 300,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c6dc5b23-b27d-43fa-820c-c34a576286a3",
+      "visit_id": "2a7ff792-4f4f-4c7a-aa8f-d752304efd82",
+      "customer": "غانم المحيميد ",
+      "plate": "ا ك ا 6884",
+      "status": "delivered",
+      "visit_date": "2026-06-16",
+      "amount": 1747.0,
+      "items": [
+        {
+          "id": "item-2a7ff792-4f4f-4c7a-aa8f-d752304efd82-0",
+          "itemType": "service",
+          "name": "صيانه عامه",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 350,
+          "discount": 0,
+          "total": 350,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-2a7ff792-4f4f-4c7a-aa8f-d752304efd82-1",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 763,
+          "discount": 0,
+          "total": 763,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-2a7ff792-4f4f-4c7a-aa8f-d752304efd82-2",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 534,
+          "discount": 0,
+          "total": 534,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-2a7ff792-4f4f-4c7a-aa8f-d752304efd82-3",
+          "itemType": "supplier",
+          "name": "الدريويش",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 100,
+          "discount": 0,
+          "total": 100,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "48fa8789-f6ad-4ab6-870c-23c84da8f36e",
+      "visit_id": "29b88c69-15a8-4c74-a20e-0aa9399fb90d",
+      "customer": "يوسف عبد الرحمن الكبير",
+      "plate": "ا ق ر 8825",
+      "status": "delivered",
+      "visit_date": "2026-06-21",
+      "amount": 8474.0,
+      "items": [
+        {
+          "id": "item-29b88c69-15a8-4c74-a20e-0aa9399fb90d-0",
+          "itemType": "service",
+          "name": "توضيب                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   توضيب مكية",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 2000,
+          "discount": 0,
+          "total": 2000,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        },
+        {
+          "id": "item-29b88c69-15a8-4c74-a20e-0aa9399fb90d-1",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 4046,
+          "discount": 0,
+          "total": 4046,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29b88c69-15a8-4c74-a20e-0aa9399fb90d-2",
+          "itemType": "supplier",
+          "name": "القرعاوي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 722,
+          "discount": 0,
+          "total": 722,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29b88c69-15a8-4c74-a20e-0aa9399fb90d-3",
+          "itemType": "supplier",
+          "name": "مخرطة العوفي",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 1170,
+          "discount": 0,
+          "total": 1170,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29b88c69-15a8-4c74-a20e-0aa9399fb90d-4",
+          "itemType": "part",
+          "name": "سبايك ثابتمتحرك 10",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 416,
+          "discount": 0,
+          "total": 416,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "supplier"
+        },
+        {
+          "id": "item-29b88c69-15a8-4c74-a20e-0aa9399fb90d-5",
+          "itemType": "service",
+          "name": "غسيل ومعجون",
+          "details": "",
+          "quantity": 1,
+          "qty": 1,
+          "price": 120,
+          "discount": 0,
+          "total": 120,
+          "_priceQtyMismatch": false,
+          "taxRate": 0,
+          "taxAmount": 0,
+          "unit": "",
+          "supplierName": "",
+          "customerName": "",
+          "source_testid": "",
+          "sku": "",
+          "billingType": "workshop"
+        }
+      ]
+    },
+    {
+      "vehicle_id": "5d3c165e-cfa3-4046-8613-d8f6b2e59459",
+      "visit_id": "532c84f0-4fa7-45e2-a11d-8720ae63aadf",
+      "customer": "سليمان السويلمي",
+      "plate": "د هـ ع  1007",
+      "status": "delivered",
+      "visit_date": "2026-04-12",
+      "amount": 550.0,
+      "items": [
+        {
+          "itemType": "service",
+          "name": "تصليح تهريب زيت",
+          "quantity": 1,
+          "price": 550,
+          "billingType": "workshop"
+        }
+      ]
+    }
+  ]
+}

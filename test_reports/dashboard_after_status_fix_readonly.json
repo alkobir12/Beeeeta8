@@ -1,0 +1,221 @@
+{
+  "generated_at": "2026-08-04T18:45:25.387258+03:00",
+  "vehicle_count": 196,
+  "delivered_count": 181,
+  "archived_count": 1,
+  "dashboard_count_after_fix": 14,
+  "dashboard_status_counts_after_fix": {
+    "diagnosis": 12,
+    "ready": 2
+  },
+  "with_items": 10,
+  "without_items": 4,
+  "current_items_total": 19325.84,
+  "historical_in_dashboard_total": 500.0,
+  "rows": [
+    {
+      "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+      "customer": "عاصم التويجري",
+      "plate": "ا ل و 7121",
+      "status": "diagnosis",
+      "current_items_total": 0.0,
+      "historical_total": 150.0,
+      "samples": [
+        {
+          "visit_id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+          "date": "2026-06-08",
+          "amount": 150.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+      "customer": "1036 /// ماجد الربعي",
+      "plate": "0136///  ا ق ر 7756",
+      "status": "diagnosis",
+      "current_items_total": 0.0,
+      "historical_total": 100.0,
+      "samples": [
+        {
+          "visit_id": "ba89782c-65b1-4c4e-8fa7-30707379e2b2",
+          "date": "2026-04-15",
+          "amount": 100.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+      "customer": "77  //محمد  فهدالعمر",
+      "plate": "ا ر ح 6912",
+      "status": "ready",
+      "current_items_total": 0.0,
+      "historical_total": 250.0,
+      "samples": [
+        {
+          "visit_id": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f",
+          "date": "2026-04-06",
+          "amount": 250.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+      "customer": "   1046 ///صالح القصير",
+      "plate": "   1046  /// ب ص ر 6431",
+      "status": "diagnosis",
+      "current_items_total": 500.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "6973ed6f-8895-42cf-ad24-331832ebef96",
+          "date": "2026-07-06",
+          "amount": 500.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+      "customer": "فارس عوض ",
+      "plate": "ح ق م 5520",
+      "status": "diagnosis",
+      "current_items_total": 9681.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d",
+          "date": "2026-07-12",
+          "amount": 9681.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+      "customer": "عبد الكريم الشايعي ",
+      "plate": "ا ص ص 7293",
+      "status": "diagnosis",
+      "current_items_total": 800.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "72ccd3b0-f63b-4efc-957a-30c92aa163cf",
+          "date": "2026-07-05",
+          "amount": 800.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
+      "customer": "صالح  سليمان ابراهيم المهوس",
+      "plate": "ا ط ي  8204",
+      "status": "diagnosis",
+      "current_items_total": 0.0,
+      "historical_total": 0.0,
+      "samples": []
+    },
+    {
+      "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+      "customer": "خالد القبيشي",
+      "plate": " ا ع ط 3550",
+      "status": "diagnosis",
+      "current_items_total": 302.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "1d40d657-f682-40a5-b404-4bea38757a12",
+          "date": "2026-08-02",
+          "amount": 302.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+      "customer": "ابراهيم صالح ",
+      "plate": "ب ر ق 4806",
+      "status": "ready",
+      "current_items_total": 1975.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "6484969a-7714-43f8-b0b9-782c915b8abc",
+          "date": "2026-07-27",
+          "amount": 1975.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+      "customer": "ابو فهد ",
+      "plate": "ا ق ل 222",
+      "status": "diagnosis",
+      "current_items_total": 2500.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+          "date": "2026-08-02",
+          "amount": 2500.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+      "customer": "سلطان الشاص",
+      "plate": "ب ح ن 6923",
+      "status": "diagnosis",
+      "current_items_total": 300.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "b48c0850-1453-4740-9639-1a99687fda67",
+          "date": "2026-07-23",
+          "amount": 300.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+      "customer": "شاص 2006",
+      "plate": "س ن د 635",
+      "status": "diagnosis",
+      "current_items_total": 800.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "f5813fbd-f4b4-4561-9f13-9893d1880cc8",
+          "date": "2026-08-04",
+          "amount": 800.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+      "customer": "فيصل الجفير",
+      "plate": "ب ر ب 82023",
+      "status": "diagnosis",
+      "current_items_total": 2300.0,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+          "date": "2026-08-02",
+          "amount": 2300.0
+        }
+      ]
+    },
+    {
+      "vehicle_id": "8708bbd6-18be-4fb0-93a4-f9818b2b91ad",
+      "customer": "مد الله الثواتي",
+      "plate": "ا ب ق 5437",
+      "status": "diagnosis",
+      "current_items_total": 167.84,
+      "historical_total": 0.0,
+      "samples": [
+        {
+          "visit_id": "3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e",
+          "date": "2026-08-04",
+          "amount": 167.84
+        }
+      ]
+    }
+  ]
+}

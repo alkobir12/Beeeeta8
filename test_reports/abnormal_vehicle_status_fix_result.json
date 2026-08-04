@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-08-04T15:44:46.653407+00:00",
+  "mode": "COMMIT",
+  "before_status_counts": {
+    "delivered": 181,
+    "diagnosis": 12,
+    "ready": 2,
+    "archived": 1
+  },
+  "after_status_counts": {
+    "delivered": 181,
+    "diagnosis": 12,
+    "ready": 2,
+    "archived": 1
+  },
+  "updated_count": 0,
+  "rows": [],
+  "archived_rows": [
+    {
+      "vehicle_id": "9004d4bd-ed82-4e0d-afa4-fd62e6e3d8fa",
+      "customer": "1059 ///بنقالي عناية ميزان",
+      "plate": "1059 /// ا ر م 9460",
+      "status": "archived",
+      "note": "حالة أرشيف صحيحة كبيانات، والخطأ كان ظهورها في لوحة التحكم إذا لم تستبعد الواجهة archived."
+    }
+  ]
+}
