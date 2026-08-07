@@ -468,30 +468,83 @@ const Dashboard = () => {
 
   return (
     <div 
-      className={`max-w-7xl mx-auto min-h-screen px-1 sm:px-4 py-4 ${isRTL ? 'rtl' : 'ltr'}`} 
+      className={`dashboard-mobile-first max-w-7xl mx-auto min-h-screen px-3 sm:px-4 py-3 sm:py-4 ${isRTL ? 'rtl' : 'ltr'}`} 
       dir={isRTL ? 'rtl' : 'ltr'}
       style={{ background: styles.bg }}
     >
+        <style>{`
+          .dashboard-mobile-first {
+            font-family: Tajawal, Cairo, system-ui, sans-serif;
+            overflow-x: hidden;
+          }
+          .dashboard-mobile-first :not(.font-mono) {
+            letter-spacing: 0 !important;
+          }
+          .dashboard-mobile-first .hide-scrollbar {
+            scrollbar-width: none;
+          }
+          .dashboard-mobile-first .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .dashboard-mobile-first .dashboard-stat-card,
+          .dashboard-mobile-first .vehicle-card {
+            position: relative;
+            border-radius: 22px;
+            padding: 14px;
+            min-width: 0;
+            will-change: transform, box-shadow;
+          }
+          .dashboard-mobile-first .dashboard-stat-card {
+            min-height: 142px;
+            cursor: pointer;
+          }
+          .dashboard-mobile-first .vehicle-card {
+            cursor: pointer;
+            touch-action: manipulation;
+          }
+          @media (max-width: 640px) {
+            .dashboard-mobile-first .dashboard-stat-card {
+              min-height: 132px;
+              padding: 12px;
+            }
+            .dashboard-mobile-first .vehicle-card {
+              min-height: auto !important;
+              height: auto !important;
+              max-height: none !important;
+              padding: 14px !important;
+            }
+            .dashboard-mobile-first .vehicle-plate-pill {
+              max-width: 100%;
+              justify-content: center;
+            }
+            .dashboard-mobile-first .vehicle-plate-pill .font-mono {
+              letter-spacing: 0.04em !important;
+              overflow-wrap: anywhere;
+            }
+          }
+        `}</style>
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
+        <div className="sticky top-0 z-30 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 sm:py-0 mb-3 sm:mb-8 backdrop-blur-xl sm:static sm:backdrop-blur-0" style={{ background: isLight ? 'rgba(248,250,252,0.86)' : 'rgba(15,23,42,0.82)' }} data-testid="dashboard-mobile-header">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: styles.textPrimary }}>{t('dashboard.title')}</h1>
-            <p className="text-sm sm:text-base mt-1 flex items-center gap-2" style={{ color: styles.textSecondary }}>
+            <h1 className="text-2xl sm:text-3xl font-black leading-tight" style={{ color: styles.textPrimary }}>{t('dashboard.title')}</h1>
+            <p className="text-sm sm:text-base mt-1 flex items-center gap-2 leading-relaxed" style={{ color: styles.textSecondary }}>
               {t('dashboard.overview')}
               {isRefreshing && (
                 <RefreshCw size={14} className="animate-spin text-primary" />
               )}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={() => fetchData(false)}
-              className="p-2 rounded-lg transition-colors"
+              className="min-h-11 min-w-11 p-2 rounded-xl transition-[transform,background-color,box-shadow] duration-200 active:scale-95"
               style={{ 
                 backgroundColor: styles.cardBg,
                 border: `1px solid ${styles.cardBorder}`
               }}
               title={t('buttons.refresh')}
+              data-testid="dashboard-refresh-button"
             >
               <RefreshCw size={18} className={isRefreshing ? 'animate-spin text-blue-500' : ''} style={{ color: isRefreshing ? undefined : styles.textSecondary }} />
             </button>
@@ -502,22 +555,24 @@ const Dashboard = () => {
                 localStorage.setItem('language', newLang);
                 i18n.changeLanguage(newLang);
               }}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="min-h-11 px-4 py-2 rounded-xl text-sm font-bold transition-[transform,background-color] duration-200 active:scale-95"
               style={{ 
                 backgroundColor: isLight ? '#1e293b' : '#3b82f6',
                 color: '#ffffff'
               }}
+              data-testid="dashboard-language-toggle-button"
             >
               {i18n.language === 'ar' ? 'EN' : 'AR'}
             </button>
             {canCreateVehicle ? (
             <button 
               onClick={() => navigate('/new-vehicle')}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white transition-all"
+              className="min-h-11 flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-white transition-[transform,box-shadow,opacity] duration-200 active:scale-95"
               style={{ 
                 background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)'
               }}
+              data-testid="dashboard-new-vehicle-button"
             >
               <Plus size={18} />
               <span>{t('dashboard.newVehicle') || t('dashboard.new_vehicle')}</span>
@@ -525,9 +580,10 @@ const Dashboard = () => {
             ) : null}
           </div>
         </div>
+        </div>
 
         {/* Stats Grid - Responsive expandable widgets */}
-        <div className="dashboard-stats-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-8">
+        <div className="dashboard-stats-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-8" data-testid="dashboard-stats-grid">
           {/* إجمالي المركبات */}
           <div
             className="dash-widget-shell dashboard-stat-card"
@@ -535,12 +591,13 @@ const Dashboard = () => {
               backgroundColor: styles.cardBg, 
               border: `1px solid ${styles.cardBorder}`,
               maxHeight: expandedStatWidget === 'total' ? '320px' : '150px',
-              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease',
+              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, transform 0.2s ease',
               boxShadow: expandedStatWidget === 'total' 
                 ? '0 20px 50px rgba(0,0,0,0.15)' 
                 : '0 4px 12px rgba(0,0,0,0.05)'
             }}
             data-expanded={expandedStatWidget === 'total'}
+            data-testid="dashboard-stat-card-total"
             onClick={() => {
               setExpandedStatWidget(prev => prev === 'total' ? null : 'total');
               setFilterStatus('all');
@@ -605,12 +662,13 @@ const Dashboard = () => {
               backgroundColor: styles.cardBg, 
               border: `1px solid ${styles.cardBorder}`,
               maxHeight: expandedStatWidget === 'inProgress' ? '280px' : '150px',
-              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease',
+              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, transform 0.2s ease',
               boxShadow: expandedStatWidget === 'inProgress' 
                 ? '0 20px 50px rgba(0,0,0,0.15)' 
                 : '0 4px 12px rgba(0,0,0,0.05)'
             }}
             data-expanded={expandedStatWidget === 'inProgress'}
+            data-testid="dashboard-stat-card-in-progress"
             onClick={() => {
               setExpandedStatWidget(prev => prev === 'inProgress' ? null : 'inProgress');
               setFilterStatus('in_progress');
@@ -650,12 +708,13 @@ const Dashboard = () => {
               backgroundColor: styles.cardBg, 
               border: `1px solid ${styles.cardBorder}`,
               maxHeight: expandedStatWidget === 'ready' ? '280px' : '150px',
-              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease',
+              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, transform 0.2s ease',
               boxShadow: expandedStatWidget === 'ready' 
                 ? '0 20px 50px rgba(0,0,0,0.15)' 
                 : '0 4px 12px rgba(0,0,0,0.05)'
             }}
             data-expanded={expandedStatWidget === 'ready'}
+            data-testid="dashboard-stat-card-ready"
             onClick={() => {
               setExpandedStatWidget(prev => prev === 'ready' ? null : 'ready');
               setFilterStatus('ready');
@@ -695,12 +754,13 @@ const Dashboard = () => {
               backgroundColor: styles.cardBg, 
               border: `1px solid ${styles.cardBorder}`,
               maxHeight: expandedStatWidget === 'technicians' ? '280px' : '150px',
-              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease',
+              transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, transform 0.2s ease',
               boxShadow: expandedStatWidget === 'technicians' 
                 ? '0 20px 50px rgba(0,0,0,0.15)' 
                 : '0 4px 12px rgba(0,0,0,0.05)'
             }}
             data-expanded={expandedStatWidget === 'technicians'}
+            data-testid="dashboard-stat-card-technicians"
             onClick={() => {
               setExpandedStatWidget(prev => prev === 'technicians' ? null : 'technicians');
               navigate('/technicians');
@@ -736,11 +796,12 @@ const Dashboard = () => {
 
         {/* Search & Filter - Stack on mobile */}
         <div 
-          className="rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 space-y-3 sm:space-y-0 sm:flex sm:flex-row sm:gap-4 sm:items-center"
+          className="sticky top-[76px] sm:top-0 z-20 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 space-y-3 sm:space-y-0 sm:flex sm:flex-row sm:gap-4 sm:items-center backdrop-blur-xl"
           style={{ 
             backgroundColor: styles.cardBg,
             border: `1px solid ${styles.cardBorder}`
           }}
+          data-testid="dashboard-search-filter-bar"
         >
           <div className="relative flex-1 w-full">
             <Search className="absolute right-3 top-1/2 transform -translate-y-1/2" size={18} style={{ color: styles.textMuted }} />
@@ -749,7 +810,7 @@ const Dashboard = () => {
               placeholder="ابحث بالاسم، رقم الملف، العملية، اللوحة، الماركة أو الموديل"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pr-10 pl-4 py-2.5 rounded-xl text-sm sm:text-base transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full min-h-11 pr-10 pl-4 py-2.5 rounded-xl text-sm sm:text-base transition-[box-shadow,border-color,background-color] duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               style={{ 
                 backgroundColor: styles.inputBg,
                 border: `1px solid ${styles.inputBorder}`,
@@ -758,12 +819,12 @@ const Dashboard = () => {
               data-testid="dashboard-search-input"
             />
           </div>
-          <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1">
+          <div className="hide-scrollbar flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 -mx-1 px-1" data-testid="dashboard-status-filter-scroll">
             {['all', 'diagnosis', 'quotation', 'approved', 'repair', 'ready'].map((status) => (
               <button
                 key={`filter-${status}`}
                 onClick={() => setFilterStatus(status)}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                className={`min-h-10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-[transform,background-color,box-shadow] duration-200 active:scale-95 flex-shrink-0 ${
                   filterStatus === status 
                     ? 'bg-blue-600 text-white shadow-md' 
                     : ''
@@ -772,6 +833,7 @@ const Dashboard = () => {
                   backgroundColor: isLight ? '#f1f5f9' : '#334155',
                   color: styles.textSecondary
                 } : {}}
+                data-testid={`dashboard-filter-${status}-button`}
               >
                 {status === 'all' ? t('common.all') : getStatusConfigForVehicle(status).label}
               </button>
@@ -780,7 +842,7 @@ const Dashboard = () => {
         </div>
 
         {/* Vehicles Grid - 1 column mobile, 2 tablet, 3 desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 md:gap-6" data-testid="dashboard-vehicles-grid">
           {filteredVehicles.length === 0 ? (
             <div className="col-span-full py-12 text-center">
               <div 
@@ -814,11 +876,11 @@ const Dashboard = () => {
                       : '0 18px 50px rgba(15,23,42,0.10)',
                     backdropFilter: isGlassPurpleTheme ? 'blur(14px)' : undefined,
                     WebkitBackdropFilter: isGlassPurpleTheme ? 'blur(14px)' : undefined,
-                    height: expandedVehicleId === vehicle.id ? 'auto' : '260px',
-                    minHeight: '260px',
-                    maxHeight: expandedVehicleId === vehicle.id ? 'none' : '260px',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transform: expandedVehicleId === vehicle.id ? 'scale(1.02)' : 'scale(1)',
+                    height: 'auto',
+                    minHeight: expandedVehicleId === vehicle.id ? 'auto' : '260px',
+                    maxHeight: 'none',
+                    transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.2s ease',
+                    transform: 'translateY(0)',
                     overflow: 'hidden',
                   }}
                   data-expanded={expandedVehicleId === vehicle.id}
@@ -833,14 +895,14 @@ const Dashboard = () => {
                   data-testid={`dashboard-vehicle-card-${vehicle.id}`}
                 >
                   {/* النقاط الرأسية أعلى اليسار */}
-                  <div className="absolute top-5 left-5 flex flex-col gap-1 opacity-60">
+                  <div className="absolute top-5 left-5 hidden sm:flex flex-col gap-1 opacity-60">
                     <span className="w-1 h-1 rounded-full bg-gray-400" />
                     <span className="w-1 h-1 rounded-full bg-gray-400" />
                     <span className="w-1 h-1 rounded-full bg-gray-400" />
                   </div>
 
                   {/* شارة الحالة + ترويسة الكرت */}
-                  <div className="flex items-center justify-between mb-4 px-1 pt-1">
+                  <div className="flex items-center justify-between mb-4 px-1 pt-1 gap-2">
                     <div className="flex items-center gap-2 text-xs sm:text-sm">
                       <span className={`px-3 py-1 rounded-full border text-[11px] font-bold ${statusConfig?.color || 'bg-slate-100 text-slate-900 border-slate-300'}`}>
                         {statusConfig?.label || (vehicle.status || '-')}
@@ -854,7 +916,7 @@ const Dashboard = () => {
                         setSelectedVehicle(vehicle);
                         setShowQuickActions(true);
                       }}
-                      className="p-2 rounded-full hover:bg-gray-100/60 text-gray-400 flex-shrink-0"
+                      className="min-h-11 min-w-11 p-2 rounded-full hover:bg-gray-100/60 text-gray-500 flex-shrink-0 transition-[transform,background-color] duration-200 active:scale-95"
                       aria-label="Quick Actions"
                     >
                       <MoreVertical size={16} />
@@ -865,7 +927,7 @@ const Dashboard = () => {
                   <div className="mb-4 space-y-3">
                     {/* رقم اللوحة بشكل واضح في المنتصف */}
                     <div className="flex justify-center">
-                      <span className="vehicle-plate-pill inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white text-black text-base sm:text-lg font-extrabold border border-slate-300 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.35)]">
+                      <span className="vehicle-plate-pill inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-2xl bg-white text-black text-base sm:text-lg font-extrabold border border-slate-300 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.35)]">
                         <Car size={16} className="opacity-90 text-black" />
                         <span className="font-mono tracking-[0.35em] uppercase">
                           {vehicle.plateNumber || t('common.unknown')}
@@ -874,10 +936,10 @@ const Dashboard = () => {
                     </div>
 
                     {/* اسم المركبة + الموديل + حالة الاستعجال */}
-                    <div className="flex flex-col items-center justify-center gap-2 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 text-center min-w-0">
                       <div className="flex items-baseline gap-2 flex-wrap justify-center">
                         <span
-                          className="vehicle-title-main text-base sm:text-xl font-semibold tracking-tight"
+                          className="vehicle-title-main text-base sm:text-xl font-semibold tracking-normal leading-relaxed break-words"
                           style={{ color: vehicleText.primary }}
                         >
                           {vehicle.brand || ''} {vehicle.model || ''}
@@ -890,7 +952,7 @@ const Dashboard = () => {
                       </div>
                       {(vehicle.fileNumber || vehicle.file_number) && (
                         <span
-                          className="vehicle-file-number text-base sm:text-xl font-semibold tracking-tight"
+                          className="vehicle-file-number text-sm sm:text-lg font-black tracking-normal"
                           style={{ color: '#000000' }}
                           data-testid={`dashboard-vehicle-file-number-${vehicle.id}`}
                         >
@@ -912,8 +974,8 @@ const Dashboard = () => {
                   </div>
 
                   {/* صف الدخول / العميل - المنطقة الأساسية */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div className="flex items-center gap-2 min-w-0 rounded-2xl bg-slate-50/70 p-2 border border-slate-200/70">
                       <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
                         <Calendar size={15} className="text-blue-400" />
                       </div>
@@ -926,7 +988,7 @@ const Dashboard = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 rounded-2xl bg-slate-50/70 p-2 border border-slate-200/70">
                       <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
                         <User size={15} className="text-emerald-400" />
                       </div>
@@ -976,7 +1038,7 @@ const Dashboard = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="navigate-btn flex items-center justify-center w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all cursor-pointer border border-blue-500/30"
+                      <div className="navigate-btn flex items-center justify-center min-w-11 w-11 h-11 rounded-full bg-blue-500/20 text-blue-500 hover:bg-blue-500 hover:text-white transition-[transform,background-color,color] duration-200 active:scale-95 cursor-pointer border border-blue-500/30"
                         data-testid={`dashboard-open-vehicle-${vehicle.id}`}
                         onClick={(e) => {
                           e.stopPropagation();

@@ -85,7 +85,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
               <span data-testid="vehicle-financial-summary-customer-total-title">إجمالي العميل</span>
             </div>
             <div
-              className="mt-2 text-3xl sm:text-5xl font-black tabular-nums"
+              className="mt-2 text-3xl sm:text-5xl font-black tabular-nums leading-tight break-words"
               style={{ color: 'rgba(240,253,250,0.98)' }}
               data-testid="vehicle-financial-summary-customer-total-value"
             >
@@ -94,7 +94,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
             <div className="mt-2 text-xs" style={{ color: 'rgba(226,232,240,0.68)' }} data-testid="vehicle-financial-summary-customer-total-formula">
               إجمالي العميل = خدمات الورشة + القطع المحملة على العميل
             </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs" data-testid="vehicle-financial-summary-customer-total-breakdown">
+            <div className="mt-3 flex flex-wrap gap-2 text-xs leading-relaxed" data-testid="vehicle-financial-summary-customer-total-breakdown">
               <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(226,232,240,0.86)' }} data-testid="vehicle-financial-summary-service-chip">
                 خدمة: {formatMoney(serviceTotal)} ر.س
               </span>
@@ -103,11 +103,11 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap lg:flex-col gap-2 lg:min-w-[210px]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-col gap-2 lg:min-w-[210px]">
             <button
               type="button"
               onClick={() => setQuickPaymentOpen(true)}
-              className="rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
+              className="min-h-11 rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
               style={{ background: 'rgba(20,184,166,0.14)', border: '1px solid rgba(20,184,166,0.28)', color: 'rgba(153,246,228,0.95)' }}
               data-testid="vehicle-financial-summary-add-payment-button"
             >
@@ -116,7 +116,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
             <button
               type="button"
               onClick={() => onConfirmPayment?.()}
-              className="rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
+              className="min-h-11 rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
               style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.30)', color: 'rgba(187,247,208,0.95)' }}
               data-testid="vehicle-financial-summary-confirm-payment-button"
             >
@@ -125,7 +125,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
             <button
               type="button"
               onClick={() => onShowSource?.('display_total')}
-              className="rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
+              className="min-h-11 rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(148,163,184,0.22)', color: 'rgba(226,232,240,0.9)' }}
               data-testid="vehicle-financial-summary-details-sources-button"
             >
@@ -145,7 +145,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
               step="0.01"
               value={quickPayment.amount}
               onChange={(event) => setQuickPayment((prev) => ({ ...prev, amount: event.target.value }))}
-              className="rounded-xl px-3 py-2 text-xs outline-none"
+              className="min-h-11 rounded-xl px-3 py-2 text-sm sm:text-xs outline-none"
               style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(148,163,184,0.24)', color: 'rgba(240,253,250,0.96)' }}
               placeholder="قيمة الدفعة"
               data-testid="vehicle-financial-summary-quick-payment-amount-input"
@@ -153,7 +153,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
             <select
               value={quickPayment.method}
               onChange={(event) => setQuickPayment((prev) => ({ ...prev, method: event.target.value }))}
-              className="rounded-xl px-3 py-2 text-xs outline-none"
+              className="min-h-11 rounded-xl px-3 py-2 text-sm sm:text-xs outline-none"
               style={{ background: 'rgba(15,23,42,0.82)', border: '1px solid rgba(148,163,184,0.24)', color: 'rgba(240,253,250,0.96)' }}
               data-testid="vehicle-financial-summary-quick-payment-method-select"
             >
@@ -164,7 +164,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
             <button
               type="button"
               onClick={submitQuickPayment}
-              className="rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95 disabled:opacity-50"
+              className="min-h-11 rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95 disabled:opacity-50"
               style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.32)', color: 'rgba(153,246,228,0.96)' }}
               disabled={!Number.isFinite(Number(quickPayment.amount)) || Number(quickPayment.amount) <= 0}
               data-testid="vehicle-financial-summary-quick-payment-save-button"
@@ -174,7 +174,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
             <button
               type="button"
               onClick={() => setQuickPaymentOpen(false)}
-              className="rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95"
+              className="min-h-11 rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(148,163,184,0.20)', color: 'rgba(226,232,240,0.86)' }}
               data-testid="vehicle-financial-summary-quick-payment-cancel-button"
             >

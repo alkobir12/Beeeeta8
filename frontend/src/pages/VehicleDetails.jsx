@@ -473,7 +473,7 @@ const SortableBlock = ({ id, title, children }) => {
   return (
     <div ref={setNodeRef} style={style} data-testid={`layout-block-${id}`}>
       <div
-        className="liquid-surface"
+        className="liquid-surface mx-3 sm:mx-0 sticky top-2 z-30 sm:static backdrop-blur-xl"
         style={{
           borderRadius: 22,
           padding: 12,
@@ -1542,7 +1542,7 @@ const VisitCard = ({
 
   return (
     <div
-      className="dash-widget-shell"
+      className="dash-widget-shell visit-mobile-card"
       data-expanded={isExpanded ? 'true' : 'false'}
       data-testid={`visit-card-${visit.id}`}
       style={{
@@ -1557,7 +1557,7 @@ const VisitCard = ({
       <div
         role="button"
         tabIndex={0}
-        className="w-full text-right px-4 py-4 flex items-start justify-between gap-3"
+        className="w-full text-right px-3 sm:px-4 py-4 flex items-start justify-between gap-3 min-h-[72px] transition-[background-color] duration-200"
         onClick={() => setIsExpanded((v) => !v)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -1570,7 +1570,7 @@ const VisitCard = ({
       >
         <div className="flex items-start gap-3 min-w-0">
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            className="w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
               background:
                 status === 'in_progress'
@@ -1590,7 +1590,7 @@ const VisitCard = ({
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap leading-relaxed">
               <span
                 className="px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums"
                 style={{ background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.24)', color: 'rgba(3,105,161,0.95)' }}
@@ -1599,7 +1599,7 @@ const VisitCard = ({
                 زيارة {visitNumberLabel}
               </span>
               <div
-                className="text-sm font-extrabold tabular-nums"
+                className="text-sm sm:text-base font-extrabold tabular-nums"
                 style={{ color: 'rgba(15,23,42,0.95)' }}
                 data-testid={`visit-entry-date-${visit.id}`}
               >
@@ -1614,7 +1614,7 @@ const VisitCard = ({
               </span>
             </div>
 
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]" style={{ color: 'rgba(100,116,139,0.9)' }}>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] sm:text-xs leading-relaxed" style={{ color: 'rgba(100,116,139,0.9)' }}>
               <span data-testid={`visit-mileage-${visit.id}`}>
                 {mileage ? `${Number(mileage).toLocaleString()} كم` : 'بدون عداد'}
               </span>
@@ -1977,16 +1977,17 @@ const VisitCard = ({
 
           {/* Actions */}
           <div
-            className="flex flex-col sm:flex-row sm:flex-wrap justify-end gap-2 pt-3"
+            className={`${isEditing ? 'vehicle-mobile-sticky-actions ' : ''}flex flex-col sm:flex-row sm:flex-wrap justify-end gap-2 pt-3`}
             style={{ borderTop: '1px solid rgba(203,213,225,0.8)' }}
             onClick={(e) => e.stopPropagation()}
+            data-testid={`visit-actions-bar-${visit.id}`}
           >
             {isEditing ? (
               <>
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold"
+                  className="min-h-11 w-full sm:w-auto px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-[transform,background-color] duration-200 active:scale-95"
                   style={{
                     background: 'rgba(255,255,255,0.8)',
                     border: '1px solid rgba(203,213,225,0.8)',
@@ -2002,7 +2003,7 @@ const VisitCard = ({
                   type="button"
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="min-h-11 w-full sm:w-auto px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-[transform,background-color] duration-200 active:scale-95"
                   style={{
                     background: 'rgba(56,189,248,0.14)',
                     border: '1px solid rgba(56,189,248,0.28)',
@@ -2017,7 +2018,7 @@ const VisitCard = ({
                   type="button"
                   onClick={handleCloseVisit}
                   disabled={isSaving}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="min-h-11 w-full sm:w-auto px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-[transform,background-color] duration-200 active:scale-95"
                   style={{
                     background: 'rgba(16,185,129,0.14)',
                     border: '1px solid rgba(16,185,129,0.28)',
@@ -2032,7 +2033,7 @@ const VisitCard = ({
               <button
                 type="button"
                 onClick={handleReopen}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+                className="min-h-11 w-full sm:w-auto px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-[transform,background-color] duration-200 active:scale-95"
                 style={{
                   background: 'rgba(245,158,11,0.14)',
                   border: '1px solid rgba(245,158,11,0.28)',
@@ -3301,14 +3302,14 @@ const VehicleDetails = () => {
                 border: '1px solid rgba(203,213,225,0.8)',
               }}
             >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2" style={{ color: 'rgba(3,105,161,0.95)' }}>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2 min-w-0" style={{ color: 'rgba(3,105,161,0.95)' }}>
                     <Car size={18} />
-                    <h3 className="text-sm font-extrabold" style={{ color: 'rgba(15,23,42,0.95)' }}>
+                    <h3 className="text-sm font-extrabold whitespace-nowrap" style={{ color: 'rgba(15,23,42,0.95)' }}>
                       {t('vehicle_details.vehicle_info')}
                     </h3>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => setIsVehicleInfoCollapsed((v) => !v)}
                       className="px-3 py-1.5 rounded-xl text-xs"
@@ -3511,14 +3512,14 @@ const VehicleDetails = () => {
                 border: '1px solid rgba(203,213,225,0.8)',
               }}
             >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2" style={{ color: 'rgba(4,120,87,0.95)' }}>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2 min-w-0" style={{ color: 'rgba(4,120,87,0.95)' }}>
                     <User size={18} />
-                    <h3 className="text-sm font-extrabold" style={{ color: 'rgba(15,23,42,0.95)' }}>
+                    <h3 className="text-sm font-extrabold whitespace-nowrap" style={{ color: 'rgba(15,23,42,0.95)' }}>
                       {t('vehicle_details.customer_info')}
                     </h3>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => setIsCustomerInfoCollapsed((v) => !v)}
                       className="px-3 py-1.5 rounded-xl text-xs"
@@ -4202,8 +4203,46 @@ const VehicleDetails = () => {
   };
 
   return (
-    <div className="vehicle-details-page max-w-6xl mx-auto pb-20 space-y-6" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
+    <div className="vehicle-details-page mobile-first-vehicle w-full max-w-6xl mx-auto px-0 sm:px-4 pb-28 sm:pb-20 space-y-4 sm:space-y-6" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <style>{`
+        .mobile-first-vehicle {
+          font-family: Tajawal, Cairo, system-ui, sans-serif;
+          overflow-x: hidden;
+        }
+        .mobile-first-vehicle :not(.font-mono) {
+          letter-spacing: 0 !important;
+        }
+        .mobile-first-vehicle .liquid-surface,
+        .mobile-first-vehicle .dash-widget-shell {
+          max-width: 100%;
+        }
+        .mobile-first-vehicle button,
+        .mobile-first-vehicle a,
+        .mobile-first-vehicle input,
+        .mobile-first-vehicle select,
+        .mobile-first-vehicle textarea {
+          touch-action: manipulation;
+        }
+        @media (max-width: 640px) {
+          .mobile-first-vehicle .dash-widget-shell {
+            border-radius: 20px !important;
+          }
+          .mobile-first-vehicle table {
+            min-width: 640px;
+          }
+          .mobile-first-vehicle .vehicle-mobile-sticky-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 35;
+            margin-inline: -12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(203,213,225,0.85);
+            box-shadow: 0 -10px 30px rgba(15,23,42,0.08);
+          }
+        }
         /* Make native select/options readable (browser renders options in its own UI) */
         select { color: rgba(15,23,42,0.92); }
         option { color: #0f172a; }
@@ -4217,7 +4256,7 @@ const VehicleDetails = () => {
 
       {isArchiveSource && (
         <div
-          className="mx-4 sm:mx-0 rounded-2xl px-4 py-3"
+          className="mx-3 sm:mx-0 rounded-2xl px-4 py-3"
           style={{
             background: 'rgba(56,189,248,0.12)',
             border: '1px solid rgba(56,189,248,0.28)',
@@ -4244,11 +4283,11 @@ const VehicleDetails = () => {
         }}
         data-testid="vehicle-header"
       >
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 w-full sm:w-auto">
             <button
               onClick={() => navigate(isArchiveSource ? '/archive' : '/')}
-              className="p-2 rounded-xl transition-colors"
+              className="min-h-11 min-w-11 p-2 rounded-xl transition-[transform,background-color] duration-200 active:scale-95"
               style={{
                 background: 'rgba(255,255,255,0.8)',
                 border: '1px solid rgba(203,213,225,0.8)',
@@ -4259,16 +4298,16 @@ const VehicleDetails = () => {
               <ArrowRight size={22} />
             </button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 <h1
-                  className="text-xl sm:text-3xl font-extrabold"
+                  className="text-2xl sm:text-4xl font-black leading-tight tracking-normal"
                   style={{ color: 'rgba(15,23,42,0.95)' }}
                   data-testid="vehicle-plate-header"
                 >
                   {vehicle.plateNumber}
                 </h1>
                 <span
-                  className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold ${getStatusColor(vehicle.status)}`}
+                  className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold ${getStatusColor(vehicle.status)}`}
                   style={{ color: 'white' }}
                   data-testid="vehicle-status-badge"
                 >
@@ -4276,7 +4315,7 @@ const VehicleDetails = () => {
                 </span>
               </div>
               <p
-                className="mt-1 text-sm"
+                className="mt-1 text-sm sm:text-base leading-relaxed"
                 style={{ color: 'rgba(100,116,139,0.9)' }}
                 data-testid="vehicle-brand-model-header"
               >
@@ -4285,14 +4324,14 @@ const VehicleDetails = () => {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setPrintMenuOpen((open) => !open)}
                 aria-expanded={printMenuOpen}
                 aria-controls="vehicle-print-menu"
-                className="px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2"
+                className="min-h-11 w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-[transform,background-color] duration-200 active:scale-95"
                 style={{
                   background: 'rgba(255,255,255,0.8)',
                   border: '1px solid rgba(203,213,225,0.8)',
@@ -4387,7 +4426,7 @@ const VehicleDetails = () => {
 
       {/* Draggable Layout Blocks */}
       {layoutLoaded ? (
-        <div className="px-4 sm:px-0">
+        <div className="px-3 sm:px-0">
           <div className="hidden md:block text-[11px] mb-2" style={{ color: 'rgba(100,116,139,0.9)' }}>
             اسحب البلوكات من زر (⋮⋮) لترتيب الصفحة كما تريد — يتم الحفظ تلقائياً.
           </div>

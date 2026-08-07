@@ -1,6 +1,6 @@
 # FINANCIAL_SYSTEM_ALL_PAGES_PROOF
 
-- generated_at: `2026-08-07T21:36:28.930664+00:00`
+- generated_at: `2026-08-07T22:09:03.394524+00:00`
 - mode: إثبات قراءة/تحقق — لا يعدّل البيانات.
 - overall_pass: **True**
 
@@ -17,14 +17,14 @@
 
 | الصفحة | Endpoint مثبت | HTTP | الزمن | الدليل |
 |---|---|---:|---:|---|
-| متابعة الذمم والتحصيل | `/finance/ar/customers` | 200 | 2.58s | total_ar=13,475.84 |
-| دفتر الذمم | `/finance/ar/ledger` | 200 | 1.86s | ending=13,475.84 |
-| ملف المركبة | `/vehicles/{id}/financial-summary` | 200 | 1.28s | remaining=150.00 |
+| متابعة الذمم والتحصيل | `/finance/ar/customers` | 200 | 1.92s | total_ar=13,475.84 |
+| دفتر الذمم | `/finance/ar/ledger` | 200 | 1.89s | ending=13,475.84 |
+| ملف المركبة | `/vehicles/{id}/financial-summary` | 200 | 1.32s | remaining=150.00 |
 | لوحة التحكم | `/vehicles/dashboard/summaries` | 200 | 0.36s | sample vehicle OK |
-| العمليات | `/operations` | 200 | 1.93s | list OK |
-| دفتر اليومية | `/finance/journal-entries` | 200 | 1.71s | journal list OK |
-| صفحة العميل | `/customers` | 200 | 3.92s | customer list OK |
-| شريط طبقات المحرك | `/finance/ar-ledger` | 200 | 3.06s | current=13,475.84 |
+| العمليات | `/operations` | 200 | 1.98s | list OK |
+| دفتر اليومية | `/finance/journal-entries` | 200 | 1.74s | journal list OK |
+| صفحة العميل | `/customers` | 200 | 4.68s | customer list OK |
+| شريط طبقات المحرك | `/finance/ar-ledger` | 200 | 3.14s | current=13,475.84 |
 
 ## 3) شروط النجاح
 
