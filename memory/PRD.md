@@ -1,3 +1,10 @@
+## تحسين Mobile-First 2026-08-07 — لوحة التحكم وملف المركبة
+- تم تحسين `/app/frontend/src/pages/Dashboard.jsx` للموبايل أولاً: هيدر sticky، شريط بحث/فلترة sticky، أزرار لمس أكبر، بطاقات إحصائيات ومركبات مرنة بدون ارتفاع ثابت على الجوال، منع horizontal overflow، وإضافة/تحسين `data-testid` لعناصر حرجة مثل أزرار التحديث/اللغة/إضافة مركبة/الفلاتر/الشبكات.
+- تم تحسين `/app/frontend/src/pages/VehicleDetails.jsx`: هيدر ملف المركبة sticky على الجوال، padding ومسافات آمنة، بطاقات الزيارة أكثر قابلية للمس، أزرار الحفظ/الإلغاء sticky أسفل الشاشة عند تحرير الزيارة، إصلاح تباعد الحروف العربية داخل نطاق الصفحة، ومنع overflow للجداول والبطاقات.
+- تم تحسين `/app/frontend/src/components/VehicleFinancialSummary.jsx`: أزرار الملخص المالي أصبحت full-width/شبكية على الموبايل، مدخلات الدفعة السريعة بارتفاع لمس مناسب، وتنسيق القيمة الرئيسية أكثر أماناً على الشاشات الصغيرة.
+- التحقق الذاتي: ESLint ناجح للملفات الثلاثة، ولقطات Playwright على عرض 390px أكدت تحميل Dashboard وVehicleDetails بدون horizontal overflow وظهور الملخص المالي.
+- الاختبار المستقل iteration_328 ناجح: frontend 100% (6/6 flows)، لا أعطال UI/Integration/Design ضمن النطاق، لا توجد MOCKED APIs، وسكربت إثبات النظام المالي ما زال `overall_pass=true`. ملاحظة صيانة: `VehicleDetails.jsx` ما زال ضخماً ويحتاج refactor لاحقاً.
+
 ## تنفيذ P0 2026-08-07 — Financial Reset Engine بدل keep-debts-only
 - تم إنشاء محرك جديد `Financial Reset Engine` في `/app/backend/core/financial_reset_engine.py` مع endpoints: `GET /api/finance/reset/dry-run`, `POST /api/finance/reset/execute`, `GET /api/finance/reset/audit`، بصلاحية Admin فقط من السيرفر عبر RBAC/JWT وجدول المستخدمين.
 - تم تعطيل مسارات keep-debts-only القديمة بإرجاع HTTP 410 بدلاً من أي حذف مباشر: `/api/cleanup/keep-debts-only` و`/api/finance/reset-ops-journals-keep-debts`.
