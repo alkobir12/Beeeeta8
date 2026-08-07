@@ -1,3 +1,9 @@
+## P1 Refactor 2026-08-07 — تفكيك أولي لملف VehicleDetails
+- تم استخراج مكونات عرضية من `/app/frontend/src/pages/VehicleDetails.jsx` إلى `/app/frontend/src/components/vehicle-details/VehicleDetailsChrome.jsx`: الستايلات الخاصة بالصفحة، بانر تحرير الأرشيف، رأس ملف المركبة، قائمة الطباعة، اختيار زيارة الطباعة، مودال مصدر الرقم المالي، مودال التصوير، ومعاينة الصورة.
+- انخفض حجم `VehicleDetails.jsx` تقريباً من 4721 سطراً إلى 4393 سطراً مع الحفاظ على نفس الـ data-testid والسلوك. هذا تفكيك منخفض المخاطر كبداية، والملف ما زال يحتاج تقسيم إضافي لاحقاً.
+- التحقق: ESLint ناجح للملف الأصلي والمكوّن الجديد، وسكربت إثبات النظام المالي ما زال `overall_pass=true`.
+- الاختبار المستقل iteration_329 ناجح: frontend 100%، تحميل Dashboard وVehicleDetails على الجوال، ظهور header/print/financial summary/layout، فتح وإغلاق قائمة الطباعة، عدم وجود horizontal overflow، ولا توجد console runtime errors أو MOCKED APIs.
+
 ## تحسين Mobile-First 2026-08-07 — لوحة التحكم وملف المركبة
 - تم تحسين `/app/frontend/src/pages/Dashboard.jsx` للموبايل أولاً: هيدر sticky، شريط بحث/فلترة sticky، أزرار لمس أكبر، بطاقات إحصائيات ومركبات مرنة بدون ارتفاع ثابت على الجوال، منع horizontal overflow، وإضافة/تحسين `data-testid` لعناصر حرجة مثل أزرار التحديث/اللغة/إضافة مركبة/الفلاتر/الشبكات.
 - تم تحسين `/app/frontend/src/pages/VehicleDetails.jsx`: هيدر ملف المركبة sticky على الجوال، padding ومسافات آمنة، بطاقات الزيارة أكثر قابلية للمس، أزرار الحفظ/الإلغاء sticky أسفل الشاشة عند تحرير الزيارة، إصلاح تباعد الحروف العربية داخل نطاق الصفحة، ومنع overflow للجداول والبطاقات.
