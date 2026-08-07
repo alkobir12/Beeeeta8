@@ -6,6 +6,7 @@
 - تم تحديث المحرك المالي الموحد ليستبعد الزيارات المؤرشفة مالياً من الحسابات الحالية ويقرأ Opening Receivables كمصدر الفترة الجديدة، كما تم تحديث AR Ledger لاستبعاد `archived_financial_period` من الرصيد الحالي.
 - اختبار dry-run الحالي ناجح بدون أي تعديل بيانات: 14 مركبة نشطة، 11 ذمة، إجمالي الذمم قبل Reset **13,475.84** = Opening Receivables بعد Reset **13,475.84**، Needs Review = 0، قيود ستؤرشف = 33، عمليات ستؤرشف = 55. الزر القديم يرجع 410. المقارنة المالية بعد dry-run بقيت متطابقة والبيانات لم تتغير (`operations=55`, `journal_entries=33`, `vehicle_visits=180`).
 - اختبار الواجهة Playwright ناجح: تبويب الإعدادات يظهر، زر Dry-run يعمل، النتيجة تظهر كـ “جاهز للتنفيذ” وتعرض مبلغ 13,475.84. لم يتم الضغط على تنفيذ Reset الحقيقي.
+- اختبار مستقل عبر Testing Agent iteration_327 ناجح: backend 100% (4/4 pytest)، frontend critical flow 100%، legacy routes ترجع 410، execute خاطئ يرجع 409 بدون تغيير العدادات، `overall_pass=true`، وFrontend build ناجح. لا توجد MOCKED APIs ولا عيوب وظيفية ضمن نطاق P0.
 
 ## إثبات نهائي بعد تصحيح مفتاح Supabase 2026-08-07
 - تم تزويد مفتاح `service_role` JWT الصحيح لمشروع Supabase `kqjlyozhvwswooztccag`، وتحديث `backend/.env` ثم إعادة تشغيل backend. التحقق المباشر أصبح ناجحاً: `vehicles=196`, `vehicle_visits=180`, `operations=55`, `journal_entries=33` مع `mock_mode=false`.
