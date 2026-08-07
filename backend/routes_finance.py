@@ -5582,6 +5582,13 @@ async def reset_ops_journals_keep_debts_only(
     - حذف العمليات غير المرتبطة بالذمم
     - الإبقاء فقط على عمليات الذمم (credit / unpaid / payment_order)
     """
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "legacy_keep_debts_only_disabled",
+            "msg": "تم تعطيل reset-ops-journals-keep-debts القديم. استخدم محرك Financial Reset Engine الجديد.",
+        },
+    )
     if confirm != "KEEP_DEBTS_ONLY":
         return {
             "success": False,

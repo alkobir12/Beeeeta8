@@ -1,3 +1,18 @@
+## تنفيذ P0 2026-08-07 — Financial Reset Engine بدل keep-debts-only
+- تم إنشاء محرك جديد `Financial Reset Engine` في `/app/backend/core/financial_reset_engine.py` مع endpoints: `GET /api/finance/reset/dry-run`, `POST /api/finance/reset/execute`, `GET /api/finance/reset/audit`، بصلاحية Admin فقط من السيرفر عبر RBAC/JWT وجدول المستخدمين.
+- تم تعطيل مسارات keep-debts-only القديمة بإرجاع HTTP 410 بدلاً من أي حذف مباشر: `/api/cleanup/keep-debts-only` و`/api/finance/reset-ops-journals-keep-debts`.
+- تم نقل الواجهة إلى الإعدادات في تبويب **بدء مالي جديد** مع وصف واضح، زر Dry-run، ملخص الذمم، عبارة التأكيد `أؤكد بدء مالي جديد وترحيل الذمم`، ومنع التنفيذ إذا فشل equality check أو ظهرت Needs Review أو وُجد Reset سابق مكتمل.
+- منطق التنفيذ الجديد لا يستخدم Hard Delete: ينشئ Snapshot كامل، يعلّم القيود القديمة كمصدر `archived_financial_period`، يعلّم العمليات والزيارات كفترة مالية مؤرشفة، ثم ينشئ Opening Receivable واحد لكل ذمة صحيحة بمصدر `financial_reset_opening_receivable` مع `source_reset_id` ضمن الوصف و`source_vehicle_id` ضمن وسم VEHICLE.
+- تم تحديث المحرك المالي الموحد ليستبعد الزيارات المؤرشفة مالياً من الحسابات الحالية ويقرأ Opening Receivables كمصدر الفترة الجديدة، كما تم تحديث AR Ledger لاستبعاد `archived_financial_period` من الرصيد الحالي.
+- اختبار dry-run الحالي ناجح بدون أي تعديل بيانات: 14 مركبة نشطة، 11 ذمة، إجمالي الذمم قبل Reset **13,475.84** = Opening Receivables بعد Reset **13,475.84**، Needs Review = 0، قيود ستؤرشف = 33، عمليات ستؤرشف = 55. الزر القديم يرجع 410. المقارنة المالية بعد dry-run بقيت متطابقة والبيانات لم تتغير (`operations=55`, `journal_entries=33`, `vehicle_visits=180`).
+- اختبار الواجهة Playwright ناجح: تبويب الإعدادات يظهر، زر Dry-run يعمل، النتيجة تظهر كـ “جاهز للتنفيذ” وتعرض مبلغ 13,475.84. لم يتم الضغط على تنفيذ Reset الحقيقي.
+
+## إثبات نهائي بعد تصحيح مفتاح Supabase 2026-08-07
+- تم تزويد مفتاح `service_role` JWT الصحيح لمشروع Supabase `kqjlyozhvwswooztccag`، وتحديث `backend/.env` ثم إعادة تشغيل backend. التحقق المباشر أصبح ناجحاً: `vehicles=196`, `vehicle_visits=180`, `operations=55`, `journal_entries=33` مع `mock_mode=false`.
+- تمت إعادة تقارير الإثبات: `/app/memory/FINANCIAL_ENGINE_READINESS_AUDIT.md` و`/app/memory/FINANCIAL_SYSTEM_ALL_PAGES_PROOF.md`. النتيجة: `overall_pass=true` وكل شروط النجاح ناجحة.
+- الأرقام المثبتة حياً: ملف المركبة/المحرك الموحد = **13,475.84**، AR Customers = **13,475.84**، AR Ledger ending = **13,475.84**، طبقة المحرك الحالية = **13,475.84**، الفروقات = **0.00**، الحالات غير المعيارية = **0**.
+- اختبار Playwright لصفحة `/debts-followup` نجح بصرياً: تظهر صفحة متابعة الذمم، شريط "المحرك المالي الموحد"، الذمم الحالية **13,475.84 ر.س**، وعدد العملاء **11**.
+
 ## عائق إثبات حي 2026-08-04 — مفتاح Supabase مرفوض
 - عند طلب إثبات أن النظام المالي يعمل على كل الصفحات، تم تشغيل سكربت `/app/scripts/prove_financial_system_all_pages.py` لاختبار endpoints الحية والصفحات المالية، لكن الفحص فشل لأن اتصال Supabase الحالي يرفض مفتاح `SUPABASE_SERVICE_ROLE_KEY` الموجود في `backend/.env` برسالة `Unregistered API key`.
 - تم اختبار المفتاح مباشرة ضد مشروع Supabase `kqjlyozhvwswooztccag` بثلاث طرق (`apikey` فقط، `Bearer` فقط، وكلاهما)، والنتيجة: المفتاح غير مسجل لهذا المشروع. لذلك لا يجوز اعتبار النظام مثبتاً حياً حالياً رغم وجود تقرير مطابقة سابق.

@@ -87,6 +87,7 @@ from routes_ai_recommendations import router as ai_recommendations_router
 # Import Finance Routes
 from routes_finance import router as finance_router, set_db as set_db_finance, build_current_visit_ar_snapshot
 from routes_finance_bot import router as finance_bot_router
+from routes_financial_reset import router as financial_reset_router
 from routes_suppliers_extended import router as suppliers_ext_router
 from routes_stitch import router as stitch_router
 
@@ -663,6 +664,7 @@ app.include_router(parts_router)
 app.include_router(advanced_router)
 app.include_router(finance_router)
 app.include_router(finance_bot_router)
+app.include_router(financial_reset_router)
 app.include_router(suppliers_ext_router)
 from routes_smart_accounting import router as smart_accounting_router
 app.include_router(smart_accounting_router)

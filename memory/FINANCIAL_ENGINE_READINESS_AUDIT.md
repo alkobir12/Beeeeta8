@@ -1,6 +1,6 @@
 # FINANCIAL_ENGINE_READINESS_AUDIT
 
-- generated_at: `2026-08-04T16:39:20.066599+00:00`
+- generated_at: `2026-08-07T21:33:33.315700+00:00`
 - mode: **READ ONLY** — مقارنة فقط بدون تعديل بيانات.
 - engine_version: `unified-v1`
 

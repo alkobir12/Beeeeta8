@@ -2758,6 +2758,13 @@ async def delete_all_operations(request: Request):
 @router.delete("/cleanup/keep-debts-only")
 async def cleanup_keep_debts_only(request: Request, confirm: str = Query(...)):
     """Delete journal entries + non-debt operations, keep debt operations only."""
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "legacy_keep_debts_only_disabled",
+            "msg": "تم تعطيل زر keep-debts-only القديم. استخدم Financial Reset Engine: /api/finance/reset/dry-run ثم /api/finance/reset/execute.",
+        },
+    )
     if confirm != "KEEP_DEBTS_ONLY":
         raise HTTPException(status_code=400, detail="confirm=KEEP_DEBTS_ONLY مطلوب")
 

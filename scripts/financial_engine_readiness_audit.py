@@ -24,6 +24,7 @@ AR_CODES = {"005", "1103", "113"}
 SALE_SOURCES = {"active_vehicle_ar_repair", "hist_vehicle_ar_repair", "operation", "visit_sale", "manual_receivable_repair"}
 PAYMENT_SOURCES = {"unified_visit_payment", "operation_payment", "payment", "visit_receipt_voucher", "operation_discount", "visit_discount"}
 HIDDEN_STATUSES = {"delivered", "archived", "cancelled", "canceled", "ملغي", "ملغى", "مؤرشف", "مسلم", "تم التسليم"}
+ARCHIVED_SOURCE = "archived_financial_period"
 
 
 def dec(value: Any) -> Decimal:
@@ -113,6 +114,8 @@ def main() -> None:
     journal_delta_by_visit: Dict[str, Decimal] = defaultdict(lambda: Decimal("0.00"))
     journal_count_by_vehicle: Dict[str, int] = defaultdict(int)
     for entry in journals:
+        if text(entry.get("source")) == ARCHIVED_SOURCE:
+            continue
         delta = journal_ar_delta(entry)
         if abs(delta) < Decimal("0.01"):
             continue
@@ -180,7 +183,7 @@ def main() -> None:
 
     total_file_remaining = sum((dec(row["file_remaining"]) for row in rows), Decimal("0.00"))
     total_journal_vehicle = sum((dec(row["journal_ar_balance"]) for row in rows), Decimal("0.00"))
-    journal_ar_total = sum((journal_ar_delta(entry) for entry in journals), Decimal("0.00"))
+    journal_ar_total = sum((journal_ar_delta(entry) for entry in journals if text(entry.get("source")) != ARCHIVED_SOURCE), Decimal("0.00"))
     mismatches = [row for row in rows if row["classification"] != "matched"]
     result = {
         "generated_at": datetime.now(timezone.utc).isoformat(),

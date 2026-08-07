@@ -165,6 +165,7 @@ def build_vehicle_summary(
     operations: List[Dict[str, Any]],
     journal_entries: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
+    vehicle_id = str(vehicle.get("id") or "").strip()
     ops_by_visit: Dict[str, List[str]] = defaultdict(list)
     for op in operations or []:
         visit_id = str(op.get("visit_id") or op.get("visitId") or "").strip()
@@ -173,8 +174,18 @@ def build_vehicle_summary(
             ops_by_visit[visit_id].append(op_id)
 
     journal_by_ref: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    opening_receivable_total = 0.0
     for entry in journal_entries or []:
         source = str(entry.get("source") or "").strip().lower()
+        if source == "archived_financial_period":
+            continue
+        if source == "financial_reset_opening_receivable":
+            desc = str(entry.get("description") or "")
+            match_vehicle = re.search(r"\[VEHICLE:([^\]]+)\]", desc, re.I)
+            tagged_vehicle_id = match_vehicle.group(1).strip() if match_vehicle else ""
+            if tagged_vehicle_id and tagged_vehicle_id == vehicle_id:
+                opening_receivable_total += safe_float(entry.get("total"))
+            continue
         if source not in {"operation_payment", "payment", "supplier_balance_payment", "unified_visit_payment"}:
             continue
         ref = str(entry.get("reference_id") or "").strip()
@@ -190,6 +201,9 @@ def build_vehicle_summary(
     visit_rows = []
 
     for visit in visits or []:
+        parsed_notes_for_archive_check = parse_notes(visit.get("notes"))
+        if parsed_notes_for_archive_check.get("financial_reset_archived") or parsed_notes_for_archive_check.get("archived_financial_period"):
+            continue
         visit_id = str(visit.get("id") or "").strip()
         totals = visit_note_totals(visit.get("notes"))
         refs = {visit_id, *ops_by_visit.get(visit_id, [])}
@@ -234,6 +248,9 @@ def build_vehicle_summary(
             "pending_payment_total": round2(totals["pending_payment_total"]),
         })
 
+    if opening_receivable_total > 0:
+        total_workshop += opening_receivable_total
+
     customer_total = total_workshop + total_parts
     applied_paid = min(total_confirmed, customer_total)
     remaining = max(customer_total - applied_paid, 0.0)
@@ -248,6 +265,7 @@ def build_vehicle_summary(
         "customer_phone": vehicle.get("customer_phone") or vehicle.get("customerPhone") or "",
         "plate_number": vehicle.get("plate_number") or vehicle.get("plateNumber") or "",
         "total_workshop": round2(total_workshop),
+        "opening_receivable_total": round2(opening_receivable_total),
         "total_suppliers": round2(total_parts),
         "supplier_archive_total": round2(total_parts),
         "supplier_cost_total": round2(total_parts),

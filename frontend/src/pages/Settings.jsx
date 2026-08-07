@@ -19,7 +19,10 @@ import {
   Settings as SettingsIcon,
   Users as UsersIcon,
   Upload,
-  User
+  User,
+  RotateCcw,
+  ShieldAlert,
+  FileWarning
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import useStitch from '../hooks/useStitch';
@@ -29,6 +32,7 @@ import WorkshopProfile from './WorkshopProfile';
 import UsersManagement from './UsersManagement';
 import SettingsImportBlock from '../components/settings/SettingsImportBlock';
 import SecuritySettings from '../components/SecuritySettings';
+import { api } from '../services/api';
 
 const API_URL = (
   process.env.NODE_ENV === 'production'
@@ -57,6 +61,7 @@ const Settings = () => {
     { id: 'profile', label: 'الملف الشخصي', icon: User, testid: 'settings-tab-profile' },
     { id: 'users', label: 'المستخدمون', icon: UsersIcon, testid: 'settings-tab-users' },
     { id: 'import', label: 'استيراد البيانات', icon: Upload, testid: 'settings-tab-import' },
+    { id: 'financial-reset', label: 'بدء مالي جديد', icon: RotateCcw, testid: 'settings-tab-financial-reset' },
   ];
 
   const [loading, setLoading] = useState(true);
@@ -83,6 +88,10 @@ const Settings = () => {
   });
   const [stitchHistory, setStitchHistory] = useState([]);
   const [showStitchCode, setShowStitchCode] = useState(false);
+  const [resetDryRun, setResetDryRun] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState('');
+  const resetConfirmationText = 'أؤكد بدء مالي جديد وترحيل الذمم';
   const themeRequestRef = useRef(0);
   const stitchSuggestions = [
     {
@@ -350,6 +359,45 @@ const Settings = () => {
     );
   };
 
+  const runFinancialResetDryRun = async () => {
+    setResetLoading(true);
+    try {
+      const response = await api.get('/finance/reset/dry-run', {
+        params: { workshop_id: 'finmodule-sync' },
+        timeout: 20000,
+      });
+      const payload = response?.data?.data;
+      setResetDryRun(payload);
+      setResetConfirmation('');
+      toast({ title: 'تم إنشاء Dry-run', description: payload?.can_execute ? 'الفحص ناجح ويمكن المتابعة بعد التأكيد.' : 'الفحص يحتاج مراجعة قبل التنفيذ.' });
+    } catch (error) {
+      const message = error?.response?.data?.detail?.msg || error?.response?.data?.detail || error.message;
+      toast({ title: 'فشل Dry-run', description: String(message), variant: 'destructive' });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const executeFinancialReset = async () => {
+    if (!resetDryRun?.generated_at || resetConfirmation !== resetConfirmationText) return;
+    setResetLoading(true);
+    try {
+      const response = await api.post('/finance/reset/execute', {
+        workshop_id: 'finmodule-sync',
+        dry_run_token: resetDryRun.generated_at,
+        confirmation_text: resetConfirmation,
+      }, { timeout: 60000 });
+      toast({ title: 'تم بدء مالي جديد', description: `Reset ID: ${response?.data?.data?.reset_id || 'تم التنفيذ'}` });
+      setResetDryRun(null);
+      setResetConfirmation('');
+    } catch (error) {
+      const message = error?.response?.data?.detail?.msg || error?.response?.data?.detail || error.message;
+      toast({ title: 'تم إيقاف التنفيذ', description: String(message), variant: 'destructive' });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div 
       className={`max-w-4xl mx-auto pb-20 ${isRTL ? 'rtl' : 'ltr'}`} 
@@ -430,6 +478,106 @@ const Settings = () => {
             ارفع ملفات CSV أو XLSX للعملاء أو الخدمات أو قطع الغيار. سيتم التحقق من البيانات قبل الإدراج.
           </p>
           <SettingsImportBlock />
+        </div>
+      ) : null}
+
+      {activeTab === 'financial-reset' ? (
+        <div data-testid="settings-panel-financial-reset" className="space-y-5">
+          <div className="rounded-2xl border p-5" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}>
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-amber-500/15 p-3 text-amber-300">
+                <ShieldAlert size={24} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>بدء مالي جديد</h2>
+                <p className="text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>
+                  إعادة ضبط الحركة المالية والبدء من نقطة نظيفة مع الاحتفاظ بالذمم المستحقة فقط، مع حفظ Snapshot كامل وأرشفة الحركة المالية القديمة بدون Hard Delete.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <button
+              type="button"
+              onClick={runFinancialResetDryRun}
+              disabled={resetLoading}
+              data-testid="financial-reset-dry-run-button"
+              className="rounded-2xl border p-4 text-right transition-all hover:translate-y-[-1px] disabled:opacity-50"
+              style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+            >
+              <FileWarning size={22} className="mb-2 text-cyan-300" />
+              <div className="font-black">تشغيل Dry-run</div>
+              <div className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>يعرض ما سيحدث بدون تعديل بيانات.</div>
+            </button>
+            <div className="rounded-2xl border p-4 md:col-span-2" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }} data-testid="financial-reset-guard-card">
+              <div className="font-bold mb-2" style={{ color: 'var(--text-primary)' }}>حماية التنفيذ</div>
+              <ul className="list-disc space-y-1 pr-5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <li>Admin فقط من السيرفر.</li>
+                <li>Snapshot كامل قبل أي تغيير.</li>
+                <li>BLOCK إذا اختلف إجمالي الذمم عن Opening Receivables.</li>
+                <li>منع تكرار نفس عملية Reset وإنشاء Opening Balance مرتين.</li>
+              </ul>
+            </div>
+          </div>
+
+          {resetDryRun ? (
+            <div className="rounded-2xl border p-5 space-y-4" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }} data-testid="financial-reset-dry-run-result">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>نتيجة Dry-run</h3>
+                <span className={`rounded-full px-3 py-1 text-xs font-black ${resetDryRun.can_execute ? 'bg-emerald-500/20 text-emerald-200' : 'bg-red-500/20 text-red-200'}`} data-testid="financial-reset-can-execute-badge">
+                  {resetDryRun.can_execute ? 'جاهز للتنفيذ' : 'محظور حتى المراجعة'}
+                </span>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['المركبات النشطة', resetDryRun.summary?.active_vehicle_count],
+                  ['مركبات عليها ذمم', resetDryRun.summary?.vehicles_with_receivables],
+                  ['إجمالي الذمم قبل Reset', `${Number(resetDryRun.summary?.total_receivables_before_reset || 0).toLocaleString()} ر.س`],
+                  ['Opening Receivables بعد Reset', `${Number(resetDryRun.summary?.total_opening_receivables_after_reset || 0).toLocaleString()} ر.س`],
+                  ['مركبات رصيدها صفر', resetDryRun.summary?.vehicles_zero_balance],
+                  ['Needs Review', resetDryRun.needs_review?.length || 0],
+                  ['قيود ستؤرشف', resetDryRun.summary?.journal_entries_to_archive],
+                  ['عمليات ستؤرشف', resetDryRun.summary?.operations_to_archive],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-color)' }} data-testid={`financial-reset-summary-${label.replace(/\s+/g, '-')}`}>
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+                    <div className="mt-1 text-lg font-black" style={{ color: 'var(--text-primary)' }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {!resetDryRun.can_execute ? (
+                <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100" data-testid="financial-reset-blocked-reasons">
+                  أسباب الإيقاف: {(resetDryRun.blocked_reasons || []).join('، ') || 'غير محدد'}
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
+                <label className="block text-sm font-bold" style={{ color: 'var(--text-primary)' }}>عبارة التأكيد</label>
+                <input
+                  value={resetConfirmation}
+                  onChange={(event) => setResetConfirmation(event.target.value)}
+                  data-testid="financial-reset-confirmation-input"
+                  className="w-full rounded-xl border bg-transparent p-3 text-sm outline-none"
+                  style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                  placeholder={resetConfirmationText}
+                />
+                <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>اكتب بالضبط: {resetConfirmationText}</div>
+              </div>
+
+              <button
+                type="button"
+                onClick={executeFinancialReset}
+                disabled={resetLoading || !resetDryRun.can_execute || resetConfirmation !== resetConfirmationText}
+                data-testid="financial-reset-execute-button"
+                className="w-full rounded-2xl bg-red-600 px-4 py-3 font-black text-white transition-all hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                تنفيذ بدء مالي جديد
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

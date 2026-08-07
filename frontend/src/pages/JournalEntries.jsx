@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { resolveBackendBase } from '../utils/backendBase';
 import SmartAccountSelect from '../components/SmartAccountSelect';
 import SmartPOSJournal from './SmartPOSJournal';
@@ -92,23 +93,6 @@ const getSourceLabel = (source = '') => {
   return normalized ? normalized : 'غير محدد';
 };
 
-const getAuditHeaders = () => {
-  try {
-    const session = JSON.parse(localStorage.getItem('session') || '{}');
-    return {
-      'Content-Type': 'application/json',
-      'x-user-role': String(session?.role || '').toLowerCase(),
-      'x-user-id': String(session?.id || session?.userId || session?.name || 'manager').trim() || 'manager',
-    };
-  } catch {
-    return {
-      'Content-Type': 'application/json',
-      'x-user-role': '',
-      'x-user-id': 'manager',
-    };
-  }
-};
-
 const sanitizeEntryText = (value = '') => {
   if (!value) return '';
   return String(value)
@@ -179,6 +163,7 @@ const ensureObject = (value) => (value && typeof value === 'object' ? value : nu
 // Chart of Accounts (loaded from API)
 
 export default function JournalEntries() {
+  const navigate = useNavigate();
   const themeName = 'dark';
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -194,7 +179,6 @@ export default function JournalEntries() {
   const [partyEditorLabel, setPartyEditorLabel] = useState('');
   const [partyEditorType, setPartyEditorType] = useState('open');
   const [partyEditorSaving, setPartyEditorSaving] = useState(false);
-  const [resetKeepDebtsLoading, setResetKeepDebtsLoading] = useState(false);
   const [coaAccounts, setCoaAccounts] = useState([]);
   const [viewMode, setViewMode] = useState(() => {
     try { return localStorage.getItem('journal.viewMode') || 'pos'; } catch (e) { return 'pos'; }
@@ -432,48 +416,6 @@ export default function JournalEntries() {
     }
   };
 
-  const handleResetToDebtsOnly = async () => {
-    const firstConfirm = window.confirm(
-      '⚠️ تحذير: سيتم حذف كل القيود اليومية وكل العمليات غير المرتبطة بالذمم.\n\nسيتم الإبقاء فقط على عمليات الذمم (الآجل/أوامر السداد).\n\nهل تريد المتابعة؟'
-    );
-    if (!firstConfirm) return;
-
-    const finalConfirm = window.prompt('اكتب "ذمم فقط" للتأكيد النهائي:', '');
-    if (finalConfirm !== 'ذمم فقط') {
-      alert('تم إلغاء العملية');
-      return;
-    }
-
-    try {
-      setResetKeepDebtsLoading(true);
-      const response = await fetch(
-        `${API_URL}/cleanup/keep-debts-only?confirm=KEEP_DEBTS_ONLY`,
-        { method: 'DELETE', headers: getAuditHeaders() }
-      );
-      const data = await response.json();
-
-      if (!data?.success) {
-        alert(data?.message || 'تعذر تنفيذ التنظيف');
-        return;
-      }
-
-      const payload = data?.data || {};
-      alert(
-        '✅ تم تنفيذ الحذف بنجاح\n\n' +
-        `• العمليات المحذوفة: ${payload.operations_deleted || 0}\n` +
-        `• عمليات الذمم المتبقية: ${payload.operations_kept || 0}\n` +
-        `• القيود المحذوفة: ${payload.journal_entries_deleted || 0}`
-      );
-
-      await fetchJournalEntries();
-    } catch (error) {
-      console.error('Error resetting financial data to debts-only:', error);
-      alert('حدث خطأ أثناء تنفيذ العملية');
-    } finally {
-      setResetKeepDebtsLoading(false);
-    }
-  };
-
   const handleQuickEditParty = (entry) => {
     setPartyEditorEntry(entry);
     setPartyEditorLabel(entry?.party_label || 'مفتوح');
@@ -659,18 +601,17 @@ export default function JournalEntries() {
           <div className="flex gap-2">
             {canDeleteJournal ? (
             <button
-              onClick={handleResetToDebtsOnly}
-              disabled={resetKeepDebtsLoading}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white transition-all disabled:opacity-60"
+              onClick={() => navigate('/settings?tab=financial-reset')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white transition-all"
               style={{
-                background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                boxShadow: '0 4px 14px rgba(220, 38, 38, 0.28)'
+                background: 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)',
+                boxShadow: '0 4px 14px rgba(15, 118, 110, 0.24)'
               }}
-              data-testid="journal-reset-keep-debts-button"
-              title="حذف القيود والعمليات غير المرتبطة بالذمم"
+              data-testid="journal-open-financial-reset-settings-button"
+              title="فتح إعدادات بدء مالي جديد"
             >
-              <Trash2 size={17} />
-              <span>{resetKeepDebtsLoading ? 'جارِ الحذف...' : 'حذف الكل مع إبقاء الذمم'}</span>
+              <RefreshCw size={17} />
+              <span>بدء مالي جديد من الإعدادات</span>
             </button>
             ) : null}
 

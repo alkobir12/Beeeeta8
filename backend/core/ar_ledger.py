@@ -34,6 +34,8 @@ async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
     ledger_total = 0.0
     per_party: Dict[str, float] = {}
     for e in entries:
+        if str(e.get("source") or "").strip().lower() == "archived_financial_period":
+            continue
         desc = str(e.get("description") or "")
         pm = _PARTY_RE.search(desc)
         party = (pm.group(1).strip() if pm else "") or str(e.get("party_label") or "").strip()
@@ -49,6 +51,8 @@ async def summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
     refs = {str(e.get("reference_id") or "").strip() for e in entries}
     pending = []
     for op in ops:
+        if str(op.get("type") or "").strip().lower() == "archived_financial_period":
+            continue
         m = str(op.get("paymentMethod") or "").strip().lower()
         ps = str(op.get("paymentStatus") or "").strip().lower()
         if m not in CREDIT_METHODS and ps not in UNPAID_STATUSES:
