@@ -1,0 +1,38 @@
+{
+  "summary": "Completed Katrina approval regression, mobile UI smoke, and existing financial regressions on public preview URL. Backend regressions (iter331 + decimal PRD) passed; Katrina static Jest passed; mobile drawer smoke at 320/390/430 passed with no horizontal overflow.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter331_p0_unification_regression.py",
+    "/app/backend/tests/test_decimal_prd_v1_1.py",
+    "/app/frontend/src/components/assistant/__tests__/katrina-control-center-static.test.js",
+    "/app/test_reports/pytest/iter333_iter331_backend.xml",
+    "/app/test_reports/pytest/iter333_decimal_prd.xml"
+  ],
+  "action_items": [
+    "No functional blocker found in this scope; keep these regressions as required release gates.",
+    "If UI card-level approval provenance must be re-verified live, create non-financial pending drafts in a safe sandbox and rerun UI card checks."
+  ],
+  "critical_code_review_comments": [
+    "backend/core/action_runtime.py is 1800+ lines and exceeds maintainability guidance (>700 lines); split by domain (draft lifecycle, approvals, commit adapters, provenance helpers) to reduce regression risk."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_333.json"
+  ],
+  "success_rate": {
+    "backend": "100% (78/78)",
+    "frontend": "100% (Jest 2/2 + mobile smoke 3/3 widths)"
+  },
+  "seed_data_creation": "No seed/business financial data created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Public URL used from frontend/.env. Manager credentials loaded from /app/memory/test_credentials.md. Runtime approvals are currently empty for pending items in this environment, so provenance card field validation was confirmed statically in ControlCenterTab + static Jest and via empty-state/live drawer smoke.",
+  "rca of the issue": "No app defect reproduced in requested scope. One initial decimal test invocation failed due missing PYTHONPATH in runner command, then passed with PYTHONPATH=/app/backend (test harness invocation issue, not product bug)."
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, X, Send, Sparkles, AlertTriangle, Settings, Trash2, Mic, Volume2, VolumeX, Copy, Check } from 'lucide-react';
+import { Bot, X, Send, Sparkles, AlertTriangle, Settings, Trash2, Mic, Volume2, VolumeX, Copy, Check, ShieldAlert, FileSearch, History } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLocation } from 'react-router-dom';
@@ -116,8 +116,12 @@ export const UnifiedAssistantDrawer = () => {
   useEffect(() => {
     if (!open) return;
     const fetchCount = () => {
-      axios.get(`${process.env.REACT_APP_BACKEND_URL || ''}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 } })
-        .then(({ data }) => setControlCount((data?.data || []).length))
+      const apiBase = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_BACKEND_URL || '');
+      let token = '';
+      try { token = localStorage.getItem('auth_token') || localStorage.getItem('token') || ''; } catch (e) { token = ''; }
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      axios.get(`${apiBase}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 }, headers })
+        .then(({ data }) => setControlCount((data?.data || []).filter((a) => a?.source_classification !== 'TEST_ARTIFACT').length))
         .catch(() => {});
     };
     fetchCount();
@@ -188,6 +192,12 @@ export const UnifiedAssistantDrawer = () => {
   const criticalCount = (alerts || []).filter((a) => a.severity === 'critical').length;
   const agentMeta = activeAgent ? AGENT_LABELS[activeAgent] : null;
   const isMobile = useIsMobile();
+  const tabs = useMemo(() => ([
+    { id: 'approvals', label: 'يحتاج قرارك', icon: ShieldAlert, badge: controlCount, testid: 'assistant-tab-approvals' },
+    { id: 'findings', label: 'اكتشفته كاترينا', icon: FileSearch, testid: 'assistant-tab-findings' },
+    { id: 'executions', label: 'تم بواسطة كاترينا', icon: History, testid: 'assistant-tab-executions' },
+    { id: 'chat', label: 'المحادثة', icon: Bot, testid: 'assistant-tab-chat' },
+  ]), [controlCount]);
 
   // Helper: dispatch a "tool" action chip → re-trigger the assistant with the tool's intent.
   const handleCardAction = async (action, card) => {
@@ -314,10 +324,10 @@ export const UnifiedAssistantDrawer = () => {
       data-testid="unified-assistant-drawer"
       className={
         isMobile
-          ? 'fixed bottom-0 inset-x-0 z-[80] w-full bg-white dark:bg-zinc-950 rounded-t-[32px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.18)] border-t border-zinc-200/60 dark:border-zinc-800 flex flex-col overflow-hidden animate-kodee-sheet'
+          ? 'fixed bottom-0 inset-x-0 mx-auto z-[80] w-full max-w-[480px] bg-white dark:bg-zinc-950 rounded-t-[28px] shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.18)] border-t border-zinc-200/60 dark:border-zinc-800 flex flex-col overflow-hidden animate-kodee-sheet'
           : 'fixed bottom-6 right-6 z-[80] w-[420px] h-[680px] max-h-[calc(100vh-64px)] bg-white dark:bg-zinc-950 rounded-[24px] shadow-[0_20px_60px_-15px_rgba(124,58,237,0.25)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] border border-zinc-200/60 dark:border-zinc-800 flex flex-col overflow-hidden animate-kodee-pop'
       }
-      style={isMobile ? { height: '88vh', maxHeight: '88vh', paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}
+      style={isMobile ? { height: '90dvh', maxHeight: '90dvh', paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}
       dir="rtl"
     >
       {/* Mobile drag handle — tap to close */}
@@ -365,7 +375,7 @@ export const UnifiedAssistantDrawer = () => {
             <button
               data-testid="assistant-voice-toggle"
               onClick={() => setVoiceEnabled(!voiceEnabled)}
-              className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${voiceEnabled ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600'}`}
+              className={`${isMobile ? 'h-12 w-12' : 'h-8 w-8'} rounded-lg flex items-center justify-center transition-colors ${voiceEnabled ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600'}`}
               title={voiceEnabled ? 'إيقاف نطق الردود' : 'تفعيل نطق الردود'}
             >
               {voiceEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
@@ -374,7 +384,7 @@ export const UnifiedAssistantDrawer = () => {
           <button
             data-testid="assistant-settings-btn"
             onClick={() => setShowSettings(!showSettings)}
-            className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${showSettings ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600'}`}
+            className={`${isMobile ? 'h-12 w-12' : 'h-8 w-8'} rounded-lg flex items-center justify-center transition-colors ${showSettings ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300' : 'text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600'}`}
             title="إعدادات"
           >
             <Settings size={15} />
@@ -382,7 +392,7 @@ export const UnifiedAssistantDrawer = () => {
           <button
             data-testid="assistant-close-btn"
             onClick={() => setOpen(false)}
-            className={`rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors ${isMobile ? 'h-10 w-10' : 'h-8 w-8'}`}
+            className={`rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors ${isMobile ? 'h-12 w-12' : 'h-8 w-8'}`}
             title="إغلاق"
           >
             <X size={isMobile ? 20 : 16} />
@@ -390,36 +400,35 @@ export const UnifiedAssistantDrawer = () => {
         </div>
       </div>
 
-      {/* 🗂️ Tabs — segmented control (Kodee style) */}
-      <div className="px-4 pt-3" data-testid="assistant-tabs">
-        <div className="flex p-1 bg-zinc-100/90 dark:bg-zinc-900/90 rounded-xl">
-          <button
-            data-testid="assistant-tab-chat"
-            onClick={() => setTab('chat')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 ${
-              tab === 'chat'
-                ? 'bg-white dark:bg-zinc-800 text-violet-700 dark:text-violet-300 shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
-          >
-            💬 المحادثة
-          </button>
-          <button
-            data-testid="assistant-tab-control"
-            onClick={() => setTab('control')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 ${
-              tab === 'control'
-                ? 'bg-white dark:bg-zinc-800 text-violet-700 dark:text-violet-300 shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
-          >
-            🛡️ مركز التحكم
-            {controlCount > 0 && (
-              <span data-testid="assistant-control-badge" className="h-5 min-w-[20px] rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center px-1 font-bold">
-                {controlCount}
-              </span>
-            )}
-          </button>
+      {/* 🗂️ Katrina Control Center Tabs — mobile-first */}
+      <div className="px-3 pt-2" data-testid="assistant-tabs">
+        <div className="flex gap-1 overflow-x-auto p-1 bg-zinc-100/90 dark:bg-zinc-900/90 rounded-2xl no-scrollbar">
+          {tabs.map((item) => {
+            const Icon = item.icon;
+            const selected = tab === item.id;
+            return (
+              <button
+                key={item.id}
+                data-testid={item.testid}
+                onClick={() => setTab(item.id)}
+                className={`min-h-[48px] min-w-[78px] flex-1 flex flex-col items-center justify-center gap-1 px-2 rounded-xl text-[10px] font-black transition-all duration-200 ${
+                  selected
+                    ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                }`}
+              >
+                <span className="relative inline-flex">
+                  <Icon size={15} />
+                  {item.badge > 0 && (
+                    <span data-testid="assistant-control-badge" className="absolute -top-2 -left-2 h-5 min-w-[20px] rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center px-1 font-bold">
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
+                <span className="leading-tight whitespace-nowrap">{item.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -491,9 +500,9 @@ export const UnifiedAssistantDrawer = () => {
         </div>
       )}
 
-      {tab === 'control' ? (
-        <div className="flex-1 overflow-y-auto scroll-smooth" data-testid="assistant-control-panel">
-          <ControlCenterTab onCountChange={setControlCount} />
+      {tab !== 'chat' ? (
+        <div className="flex-1 min-h-0 overflow-hidden scroll-smooth" data-testid="assistant-control-panel">
+          <ControlCenterTab mode={tab} onCountChange={setControlCount} />
         </div>
       ) : (
       <>

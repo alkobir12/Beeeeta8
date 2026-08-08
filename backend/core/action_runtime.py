@@ -1736,10 +1736,21 @@ def list_approvals(status: Optional[str] = None, limit: int = 50) -> List[Dict[s
             enriched.append({
                 **a,
                 "action": draft.get("action"),
+                "action_type": draft.get("action_type") or draft.get("action"),
                 "payload": draft.get("payload") or {},
+                "validated_payload": draft.get("validated_payload") or draft.get("payload") or {},
                 "proposer": draft.get("proposer"),
+                "requested_by": draft.get("requested_by") or draft.get("proposer") or a.get("requester"),
+                "requested_at": draft.get("requested_at") or draft.get("created_at") or a.get("created_at"),
                 "session_id": draft.get("session_id"),
                 "draft_status": draft.get("status"),
+                "trace_id": draft.get("trace_id"),
+                "original_input": draft.get("original_input"),
+                "entry_channel": draft.get("entry_channel"),
+                "risk_level": draft.get("risk_level"),
+                "record_kind": draft.get("record_kind"),
+                "source_classification": draft.get("source_classification"),
+                "source_record": draft.get("source_record"),
             })
         return enriched
 
@@ -1759,6 +1770,11 @@ def list_executions(status: Optional[str] = None, limit: int = 50) -> List[Dict[
                 **ex,
                 "action": draft.get("action") or ex.get("action"),
                 "proposer": draft.get("proposer"),
+                "requested_by": draft.get("requested_by") or draft.get("proposer"),
+                "entry_channel": draft.get("entry_channel"),
+                "source_classification": draft.get("source_classification"),
+                "trace_id": draft.get("trace_id"),
+                "payload": draft.get("payload") or {},
             })
         return enriched
 
