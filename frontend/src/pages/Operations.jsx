@@ -359,7 +359,6 @@ const Operations = () => {
   const [activeOperationsTab, setActiveOperationsTab] = useState('workshop');
   const [operationsSearchQuery, setOperationsSearchQuery] = useState('');
   const [fallbackOperations, setFallbackOperations] = useState([]);
-  const operationsBootstrapStartedRef = useRef(false);
   const [rakanPage, setRakanPage] = useState(1);
   const [workshopPage, setWorkshopPage] = useState(1);
   const [creditReminderDays, setCreditReminderDays] = useState(() => {
@@ -554,26 +553,6 @@ const Operations = () => {
     initialData: cachedOperations.length ? cachedOperations : undefined,
     placeholderData: cachedOperations.length ? cachedOperations : undefined,
   });
-
-  if (typeof window !== 'undefined' && !fallbackOperations.length && !cachedOperations.length && !operationsBootstrapStartedRef.current) {
-    operationsBootstrapStartedRef.current = true;
-    const params = new URLSearchParams({ limit: '200' });
-    if (vehicleIdFromUrl) params.set('vehicle_id', vehicleIdFromUrl);
-    fetchApiJson(`/operations?${params.toString()}`)
-      .then((data) => {
-        if (!Array.isArray(data)) return;
-        setFallbackOperations(data);
-        try {
-          localStorage.setItem(operationsCacheKey, JSON.stringify(data));
-          localStorage.setItem(operationsCacheUpdatedAtKey, new Date().toISOString());
-        } catch (e) {
-          // ignore cache write errors
-        }
-      })
-      .catch(() => {
-        operationsBootstrapStartedRef.current = false;
-      });
-  }
 
   useEffect(() => {
     let mounted = true;

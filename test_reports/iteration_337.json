@@ -1,0 +1,58 @@
+{
+  "summary": "Third retest completed. Backend iter331 P0 regression and OperationCard V5 static test pass, but authenticated live Operations UI on preview still renders 0 V5 cards because same-origin /api requests are repeatedly aborted in browser automation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Operations page live card list",
+        "issue": "Authenticated mobile run still shows `operations-active-tab-count` = `0 عملية` and no `[data-testid^='operation-card-v5-main-']` cards; first-card toggle/menu/detail checks are blocked.",
+        "selector": "[data-testid^='operation-card-v5-main-']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Login -> /operations data load on preview",
+        "issue": "Browser log shows repeated `net::ERR_ABORTED` on same-origin APIs including `/api/operations?limit=200` and `/api/accounts`, resulting in empty operations UI despite backend endpoint being healthy.",
+        "affected_selectors": [
+          "[data-testid='operations-active-tab-count']",
+          "[data-testid='operations-active-tab-grid']",
+          "[data-testid^='operation-card-v5-main-']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter331_p0_unification_regression.py",
+    "/app/backend/tests/test_iter335_operations_preview_probe.py",
+    "/app/frontend/src/components/__tests__/operation-card-v5-static.test.js",
+    "/app/test_reports/pytest/iter337_iter331_backend.xml",
+    "/app/test_reports/pytest/iter337_operations_probe.xml",
+    "/root/.emergent/automation_output/20260808_150050/console_20260808_150050.log"
+  ],
+  "action_items": [
+    "Investigate preview-edge/browser network abort source for same-origin `/api/*` calls during authenticated Operations load.",
+    "After abort issue is fixed, rerun required live checks: first-card additional info toggle, full-details toggle (customer items/supplier items/payment history/accounting treatment), more-actions menu actions, and collection button presence/state.",
+    "Keep payment safety constraint: inspect collection button only, do not execute settlement/payment in retest."
+  ],
+  "critical_code_review_comments": [
+    "`/app/frontend/src/pages/Operations.jsx` remains very large and mixes many concerns (data loading, filtering, forms, rendering), increasing regression risk and making runtime fetch failures harder to isolate quickly.",
+    "Render-time fallback loop appears removed as expected, but live behavior remains blocked by browser-level API aborts outside card component logic."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_337.json"
+  ],
+  "success_rate": {
+    "backend": "100% (iter331: 20/20, operations probe: 1/1)",
+    "frontend": "55% (login + static V5 + mobile overflow passed; live V5 card interactions blocked by zero rendered cards)"
+  },
+  "seed_data_creation": "No seed/business data created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Used public URL from frontend/.env and manager credentials from /app/memory/test_credentials.md. Reproduced zero-cards state again at mobile widths. Overflow checks at 320/390/430 show no horizontal overflow. Console log confirms repeated same-origin API aborts (`/api/operations`, `/api/accounts`, and others), while backend probe test confirms `/api/operations` returns non-empty array.",
+  "rca of the issue": "Repro: login as manager -> open /operations -> `operations-active-tab-count` stays `0 عملية` and no V5 cards render. Browser automation log consistently records `net::ERR_ABORTED` for same-origin `/api/*` requests. Backend regression and direct operations probe pass, so issue likely lies in preview browser/edge request lifecycle rather than OperationCard V5 JSX or backend business logic."
+}
