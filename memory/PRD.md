@@ -1,3 +1,11 @@
+## P1 2026-08-08 — OperationCard Mobile V5
+- تم تطبيق مرجع تصميم كرت العملية V5 على `frontend/src/components/OperationCard.jsx` بدون أي تعديل في `AccountingEngine` أو منطق مالي. الكرت أصبح mobile-first ويعرض داخل البطاقة: العميل/الجهة، المركبة/اللوحة، الإجمالي، وسوم الدفع/الحالة/النوع، المدفوع، المتبقي، إيراد الورشة، ومشتريات الموردين المرتبطة.
+- تم نقل الأوامر إلى النمط الجديد: زر ظاهر أساسي `تحصيل`، وقائمة `•••` للأوامر الأخرى مثل تعديل/طباعة/ملف المركبة/حذف حسب الصلاحيات والـcallbacks الموجودة. تمت إضافة data-testid لكل المعلومات والأزرار المؤثرة.
+- التفاصيل أصبحت داخل collapsible sections: معلومات إضافية، عرض كامل التفاصيل، بنود العميل، مشتريات الموردين، سجل التحصيل، المعالجة المحاسبية، والسجل. تم توضيح أن مشتريات الموردين مستقلة عن ذمة العميل ولا تدخل في المتبقي.
+- تم تقوية `Operations.jsx` لتقليل طلبات `/api/operations` المتكررة أثناء render، واستخدام fetch helper بــ Bearer Authorization وsame-origin `/api` عند الإمكان لتخفيف مشاكل preview-edge، بدون تغيير أي endpoint أو Business Logic.
+- التحقق الذاتي: lint ناجح لـ `OperationCard.jsx` و`Operations.jsx`، Jest static `operation-card-v5-static.test.js` = 2/2 passed، Katrina static = 2/2 passed، backend `iter331` = 20/20 passed. screenshots ذاتية عند 320/390/430 تؤكد ظهور V5 cards (count=14) وعدم وجود overflow.
+- التحقق المستقل: Testing Agent iterations 334–338 أكد backend/static/mobile-overflow PASS، لكن live card interaction بقي محجوباً في بيئة Playwright العامة بسبب `net::ERR_ABORTED` على same-origin `/api/*` في preview edge رغم أن probe backend `/api/operations` يرجع بيانات غير فارغة. هذا ليس تعديل مالي ولا MOCK؛ المتبقي هو طبقة preview-edge/browser automation وليست فشل JSX مثبت.
+
 ## P1 2026-08-08 — Katrina Control Center UI + Approval Provenance
 - تم تنفيذ Katrina bottom sheet mobile-first بحد أقصى `480px` وارتفاع `90dvh` ودعم safe-area، مع أربع تبويبات: `يحتاج قرارك`, `اكتشفته كاترينا`, `تم بواسطة كاترينا`, `المحادثة`، وأهداف لمس 48px للتبويبات وأزرار الاعتماد/الرفض.
 - بطاقات الاعتماد تعرض حقول provenance المطلوبة: نوع العملية، المبلغ المشروط بوجود provenance، العميل/الجهة، المركبة، منشئ الطلب، وقت الطلب، قناة الإدخال، طريقة الدفع، المصدر/المرجع، البيان، والأثر المالي المتوقع. TEST_ARTIFACT يظهر كمسار غير قابل للتنفيذ، وexisting-record actions تعرض مصدر السجل/فتح العملية الأصلية، بينما new-record actions تعرض draft provenance دون اشتراط سجل PostgreSQL سابق.
