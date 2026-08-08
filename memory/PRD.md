@@ -1,3 +1,9 @@
+## P1 Refactor 2026-08-08 — استخراج بطاقات المركبة والعميل
+- تم استخراج بطاقتي معلومات المركبة والعميل من `VehicleDetails.jsx` إلى مكوّن مستقل جديد: `/app/frontend/src/components/vehicle-details/VehicleCustomerInfoCards.jsx`، ويحتوي على `VehicleInfoCard`, `CustomerInfoCard`, و`VehicleCustomerInfoCards`.
+- تم الحفاظ على نفس وظائف الفتح/الإخفاء والتحرير وحقول الإدخال وأزرار الحفظ و`data-testid` الأساسية، بدون تعديل منطق الحفظ أو البيانات.
+- حجم `VehicleDetails.jsx` أصبح تقريباً **4021** سطراً بعد أن كان 4393 بعد التفكيك السابق، مع إزالة تكرار `data-testid="vehicle-info-block"`.
+- التحقق: ESLint ناجح للملف والمكوّن الجديد. الاختبار المستقل iteration_330 ناجح: تسجيل الدخول، تحميل ملف المركبة، ظهور بطاقتي المركبة/العميل، اختبار collapse/open، اختبار edit toggles وظهور المدخلات بدون حفظ، لا horizontal overflow، لا console runtime errors، وسكربت الإثبات المالي `overall_pass=true`. لا توجد MOCKED APIs.
+
 ## P1 Refactor 2026-08-07 — تفكيك أولي لملف VehicleDetails
 - تم استخراج مكونات عرضية من `/app/frontend/src/pages/VehicleDetails.jsx` إلى `/app/frontend/src/components/vehicle-details/VehicleDetailsChrome.jsx`: الستايلات الخاصة بالصفحة، بانر تحرير الأرشيف، رأس ملف المركبة، قائمة الطباعة، اختيار زيارة الطباعة، مودال مصدر الرقم المالي، مودال التصوير، ومعاينة الصورة.
 - انخفض حجم `VehicleDetails.jsx` تقريباً من 4721 سطراً إلى 4393 سطراً مع الحفاظ على نفس الـ data-testid والسلوك. هذا تفكيك منخفض المخاطر كبداية، والملف ما زال يحتاج تقسيم إضافي لاحقاً.

@@ -3300,7 +3300,7 @@ const VehicleDetails = () => {
     switch (blockId) {
       case 'vehicle_info':
         return (
-          <div className="space-y-3" data-testid="vehicle-info-block">
+          <div className="space-y-3" data-testid="vehicle-info-section">
             <VehicleCustomerInfoCards
               t={t}
               vehicle={vehicle}
