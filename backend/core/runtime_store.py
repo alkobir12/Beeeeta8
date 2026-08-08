@@ -32,6 +32,28 @@ EXECUTIONS = "assistant_executions"
 AUDIT = "assistant_audit_log"
 
 
+def _environment_suffix() -> str:
+    env = str(os.environ.get("APP_ENV") or os.environ.get("ENVIRONMENT") or os.environ.get("NODE_ENV") or "production").strip().lower()
+    if env in {"test", "testing", "pytest"}:
+        return "_test"
+    if env in {"stage", "staging"}:
+        return "_staging"
+    return ""
+
+
+def _is_test_artifact(doc: Any) -> bool:
+    if not isinstance(doc, dict):
+        return False
+    marker = f"{doc.get('source_classification') or ''} {doc.get('action') or ''} {doc.get('payload') or ''} {doc.get('reason') or ''}".upper()
+    return any(token in marker for token in ("TEST_ARTIFACT", "TEST_ITER", "ITER280", "ITER331", "TESTQA"))
+
+
+def _collection_name(base: str, doc: Any = None) -> str:
+    if _is_test_artifact(doc):
+        return f"{base}_test"
+    return f"{base}{_environment_suffix()}"
+
+
 def _database():
     global _client, _db
     if _db is not None:
@@ -44,9 +66,10 @@ def _database():
         name = os.environ["DB_NAME"]
         _client = MongoClient(uri, serverSelectionTimeoutMS=3000)
         db = _client[name]
-        db[DRAFTS].create_index("id", unique=True)
-        db[APPROVALS].create_index("id", unique=True)
-        db[EXECUTIONS].create_index("id", unique=True)
+        for suffix in {"", "_test", "_staging", _environment_suffix()}:
+            db[f"{DRAFTS}{suffix}"].create_index("id", unique=True)
+            db[f"{APPROVALS}{suffix}"].create_index("id", unique=True)
+            db[f"{EXECUTIONS}{suffix}"].create_index("id", unique=True)
         _db = db
         return _db
 
@@ -73,7 +96,7 @@ def _upsert(coll: str, doc: Any) -> None:
     if not is_enabled() or not isinstance(doc, dict) or "id" not in doc:
         return
     try:
-        _database()[coll].replace_one({"id": doc["id"]}, _clean(doc), upsert=True)
+        _database()[_collection_name(coll, doc)].replace_one({"id": doc["id"]}, _clean(doc), upsert=True)
     except Exception as e:
         _log.warning("%s upsert failed: %s", coll, redact(str(e), max_len=80))
 
@@ -94,7 +117,7 @@ def append_audit(row: Dict[str, Any]) -> None:
     if not is_enabled():
         return
     try:
-        _database()[AUDIT].insert_one(dict(row))  # نسخة كي لا يُحقن _id في كائن الذاكرة
+        _database()[_collection_name(AUDIT, row)].insert_one(dict(row))  # نسخة كي لا يُحقن _id في كائن الذاكرة
     except Exception as e:
         _log.warning("audit append failed: %s", redact(str(e), max_len=80))
 
@@ -105,13 +128,17 @@ def hydrate(state: Dict[str, Any]) -> None:
         return
     try:
         db = _database()
-        for d in db[DRAFTS].find({}, {"_id": 0}):
+        drafts_coll = _collection_name(DRAFTS)
+        approvals_coll = _collection_name(APPROVALS)
+        executions_coll = _collection_name(EXECUTIONS)
+        audit_coll = _collection_name(AUDIT)
+        for d in db[drafts_coll].find({}, {"_id": 0}):
             state["drafts"][d["id"]] = d
-        for a in db[APPROVALS].find({}, {"_id": 0}):
+        for a in db[approvals_coll].find({}, {"_id": 0}):
             state["approvals"][a["id"]] = a
-        for e in db[EXECUTIONS].find({}, {"_id": 0}):
+        for e in db[executions_coll].find({}, {"_id": 0}):
             state["executions"][e["id"]] = e
-        for row in db[AUDIT].find({}, {"_id": 0}).sort("ts", 1).limit(500):
+        for row in db[audit_coll].find({}, {"_id": 0}).sort("ts", 1).limit(500):
             state["audit"].append(row)
         _log.info("runtime hydrated: %d drafts, %d approvals, %d executions",
                   len(state["drafts"]), len(state["approvals"]), len(state["executions"]))
@@ -124,7 +151,7 @@ def clear_all() -> None:  # pragma: no cover — للاختبارات فقط
         return
     try:
         db = _database()
-        for c in (DRAFTS, APPROVALS, EXECUTIONS, AUDIT):
-            db[c].delete_many({})
+        for base in (DRAFTS, APPROVALS, EXECUTIONS, AUDIT):
+            db[_collection_name(base)].delete_many({})
     except Exception as e:
         _log.warning("clear_all failed: %s", redact(str(e), max_len=80))

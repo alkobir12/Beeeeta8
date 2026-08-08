@@ -1,7 +1,6 @@
 import { assertTemplateComplete } from './documentTemplate';
 
 const standalonePrintCss = `
-  <style id="standalone-print-css">
     @page { size: A4 portrait; margin: 10mm; }
     button, .pbtn, [data-testid="quick-print-output-actions"], [data-testid="document-shell-header"], .doc-shell-header, .doc-editor, .doc-preview-toolbar { display: none !important; }
     @media print {
@@ -11,7 +10,6 @@ const standalonePrintCss = `
       tbody tr, .diag, .sbox { break-inside: avoid !important; page-break-inside: avoid !important; }
       thead { display: table-header-group !important; }
     }
-  </style>
 `;
 
 export const toStandalonePrintHtml = (htmlContent = '', title = 'مستند') => {
@@ -35,7 +33,10 @@ export const toStandalonePrintHtml = (htmlContent = '', title = 'مستند') =>
   titleNode.textContent = title;
   if (!titleNode.parentNode) doc.head.appendChild(titleNode);
   if (!doc.getElementById('standalone-print-css')) {
-    doc.head.insertAdjacentHTML('beforeend', standalonePrintCss);
+    const styleNode = doc.createElement('style');
+    styleNode.id = 'standalone-print-css';
+    styleNode.textContent = standalonePrintCss;
+    doc.head.appendChild(styleNode);
   }
   doc.documentElement.setAttribute('lang', 'ar');
   doc.documentElement.setAttribute('dir', 'rtl');

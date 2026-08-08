@@ -867,9 +867,14 @@ def request_approval(*, draft_id: str, requester: Optional[str] = None) -> Dict[
         STATE["approvals"][approval_id] = {
             "id": approval_id,
             "draft_id": draft_id,
+            "approval_id": approval_id,
+            "action_type": draft.get("action"),
             "requester": requester or draft.get("proposer") or "anonymous",
             "status": "pending",
             "created_at": time.time(),
+            "source_classification": draft.get("source_classification"),
+            "entry_channel": draft.get("entry_channel"),
+            "risk_level": draft.get("risk_level"),
         }
         draft["status"] = "pending_approval"
         draft["last_approval_id"] = approval_id

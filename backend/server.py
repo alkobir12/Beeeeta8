@@ -1165,23 +1165,16 @@ async def save_vehicle_parts_and_create_journal(
             "reference_id": operation_id
         }
         
-        # حفظ القيد
-        # حفظ في Supabase
-        if DB_PROVIDER == "supabase":
-            try:
-                from core import accounting_engine
-                accounting_engine.post_entry(journal_entry)
-                print("✅ Journal entry saved to Supabase")
-            except Exception as e:
-                print(f"Failed to save journal entry to Supabase: {e}")
-        
-        # حفظ في MongoDB إذا كان متاحاً
-        if db:
-            try:
-                await db.journal_entries.insert_one(journal_entry)
-                print("✅ Journal entry saved to MongoDB")
-            except Exception as e:
-                print(f"Failed to save journal entry to MongoDB: {e}")
+        # حفظ القيد عبر AccountingEngine فقط — لا كتابة مباشرة إلى journal_entries.
+        try:
+            from core import accounting_engine
+            posted = accounting_engine.post_entry(journal_entry, fallback=False)
+            if not posted:
+                raise RuntimeError("accounting_engine_rejected_entry")
+            print("✅ Journal entry posted via AccountingEngine")
+        except Exception as e:
+            print(f"Failed to post journal entry via AccountingEngine: {e}")
+            raise HTTPException(status_code=500, detail="journal_post_failed") from e
         
         # 5. إنشاء فاتورة مفتوحة أو تحديث الموجودة
         invoice_id = None

@@ -6,7 +6,7 @@ import re
 
 def _sync_visit_journal(supa_service, visit_id: str, op_data: dict, cash_paid: float, total_discount: float, payment_method: str):
     """قيد تلقائي للبيع الآجل + قيود تحصيل — idempotent لكل زيارة (reference_id = visit_id)."""
-    from routes_extended import (
+    from core.operation_journal_adapter import (
         _build_operation_journal_entry,
         _safe_insert_journal_entry,
         _sem_code,

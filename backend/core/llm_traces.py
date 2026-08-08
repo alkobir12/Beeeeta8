@@ -19,24 +19,42 @@ from core.log_utils import get_logger, redact
 _log = get_logger("core.llm_traces")
 
 _client = None
-_col = None
+_cols = {}
 
 _FIELD_CAP = 60000  # حد أقصى لكل حقل نصي — يكفي للفحص الآلي الحرفي
 
 
-def _collection():
-    global _client, _col
-    if _col is not None:
-        return _col
+def _environment_suffix() -> str:
+    env = str(os.environ.get("APP_ENV") or os.environ.get("ENVIRONMENT") or os.environ.get("NODE_ENV") or "production").strip().lower()
+    if env in {"test", "testing", "pytest"}:
+        return "_test"
+    if env in {"stage", "staging"}:
+        return "_staging"
+    return ""
+
+
+def _is_test_trace(doc: Optional[Dict[str, Any]]) -> bool:
+    marker = str((doc or {}).get("user_message") or "") + " " + str((doc or {}).get("executed") or "")
+    marker = marker.upper()
+    return any(token in marker for token in ("TEST_ARTIFACT", "TEST_ITER", "ITER280", "ITER331", "TESTQA"))
+
+
+def _collection(doc: Optional[Dict[str, Any]] = None):
+    global _client
+    suffix = "_test" if _is_test_trace(doc) else _environment_suffix()
+    name = f"llm_traces{suffix}"
+    if name in _cols:
+        return _cols[name]
     try:
         from pymongo import MongoClient
-        _client = MongoClient(os.environ["MONGO_URL"], serverSelectionTimeoutMS=3000)
-        col = _client[os.environ["DB_NAME"]]["llm_traces"]
+        if _client is None:
+            _client = MongoClient(os.environ["MONGO_URL"], serverSelectionTimeoutMS=3000)
+        col = _client[os.environ["DB_NAME"]][name]
         col.create_index("trace_id", unique=True)
         col.create_index([("session_id", 1), ("ts", -1)])
         col.create_index([("ts", -1)])
-        _col = col
-        return _col
+        _cols[name] = col
+        return col
     except Exception as e:
         _log.warning("llm_traces mongo unavailable: %s", redact(str(e), max_len=120))
         return None
@@ -154,7 +172,7 @@ def finish_trace(*, session_id: Optional[str] = None, final_response: Optional[s
         tr["executed"] = {k: _safe(v) if isinstance(v, str) else v
                           for k, v in executed.items()}
     tr["error"] = _safe(error) if error else None
-    col = _collection()
+    col = _collection(tr)
     if col is not None:
         try:
             col.insert_one(dict(tr))

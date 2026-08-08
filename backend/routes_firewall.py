@@ -286,8 +286,9 @@ async def firewall_dismiss(
 ):
     """تجاهل تنبيه (مع expiry اختياري)."""
     try:
-        from server import db
+        from core.mongo_provider import get_mongo_db
         from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+        db = get_mongo_db()
         body = payload or {}
         hours = int(body.get("expires_in_hours") or 24)
         expires_at = (_dt.now(_tz.utc) + _td(hours=hours)).isoformat()
@@ -317,8 +318,9 @@ async def firewall_resolve(
 ):
     """تعليم كمحلول (يخزّن في collection مختلف للسجل الدائم)."""
     try:
-        from server import db
+        from core.mongo_provider import get_mongo_db
         from datetime import datetime as _dt, timezone as _tz
+        db = get_mongo_db()
         body = payload or {}
         await db.firewall_resolved_alerts.insert_one({
             "alert_id": alert_id,
@@ -380,9 +382,17 @@ async def firewall_auto_fix(
         if fix_type == "delete_orphan_journal":
             journal_id = fix.get("journal_id") or (alert.get("evidence") or {}).get("journal_id")
             if dry_run:
-                return {"success": True, "dry_run": True, "would_delete": journal_id}
-            supa.client.table("journal_entries").delete().eq("id", journal_id).execute()
-            return {"success": True, "action_taken": "deleted_orphan_journal", "journal_id": journal_id}
+                return {"success": True, "dry_run": True, "would_reverse": journal_id}
+            from core import accounting_engine
+            reverse_result = accounting_engine.reverse_entry(
+                journal_id=journal_id,
+                reason="firewall_auto_fix_orphan_journal",
+                actor={"user_id": "firewall", "role": "system"},
+                workshop_id=workshop_id or "finmodule-sync",
+            )
+            if not reverse_result.get("reversed"):
+                raise HTTPException(status_code=409, detail=reverse_result)
+            return {"success": True, "action_taken": "reversed_orphan_journal", "journal_id": journal_id, "result": reverse_result}
 
         elif fix_type == "balancing_adjustment":
             journal_id = (alert.get("evidence") or {}).get("journal_id")
@@ -410,7 +420,9 @@ async def firewall_auto_fix(
                 "created_at": _dt.now(_tz.utc).isoformat(),
             }
             from core import accounting_engine
-            _res = accounting_engine.post_entry(entry)
+            _res = accounting_engine.post_entry(entry, fallback=False)
+            if not _res:
+                raise HTTPException(status_code=500, detail="accounting_engine_rejected_firewall_adjustment")
             _jid = (_res[0].get("id") if _res else entry["id"])
             return {"success": True, "action_taken": "created_balancing_adjustment", "journal_entry_id": _jid}
 

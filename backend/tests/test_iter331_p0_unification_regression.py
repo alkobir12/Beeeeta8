@@ -6,6 +6,7 @@ import os
 import sys
 import uuid
 from pathlib import Path
+import re
 
 import pytest
 import requests
@@ -25,6 +26,36 @@ def _load_base_url() -> str:
     pytest.fail("REACT_APP_BACKEND_URL is missing (env + frontend/.env).")
 
 
+def _load_backend_env_value(key: str) -> str:
+    value = os.environ.get(key, "").strip()
+    if value:
+        return value
+    env_path = Path("/app/backend/.env")
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith(f"{key}="):
+                return line.split("=", 1)[1].strip()
+    pytest.fail(f"{key} is missing (env + backend/.env).")
+
+
+def _load_test_credential(field: str) -> str:
+    env_key = f"TEST_MANAGER_{field.upper()}"
+    value = os.environ.get(env_key, "").strip()
+    if value:
+        return value
+    credentials_path = Path("/app/memory/test_credentials.md")
+    if not credentials_path.exists():
+        pytest.fail(f"{env_key} is missing and test_credentials.md is unavailable.")
+    text = credentials_path.read_text(encoding="utf-8")
+    if field == "username":
+        match = re.search(r"\| `([^`]+)`\s+\| admin\s+\|", text)
+    else:
+        match = re.search(r"admin\s+\|[^\n]+quick PIN `([^`]+)`", text)
+    if not match:
+        pytest.fail(f"Unable to load TEST_MANAGER_{field.upper()} from external credentials source.")
+    return match.group(1).strip()
+
+
 BASE_URL = _load_base_url()
 
 
@@ -37,9 +68,11 @@ def api_client() -> requests.Session:
 
 @pytest.fixture(scope="session")
 def manager_login(api_client: requests.Session) -> dict:
+    manager_username = _load_test_credential("username")
+    manager_pin = _load_test_credential("pin")
     resp = api_client.post(
         f"{BASE_URL}/api/auth/login",
-        json={"username": "مدير", "pin": "123123", "remember_device": False},
+        json={"username": manager_username, "pin": manager_pin, "remember_device": False},
         timeout=20,
     )
     assert resp.status_code == 200, f"manager login failed: {resp.status_code} {resp.text[:200]}"
@@ -190,6 +223,70 @@ def test_safe_insert_journal_entry_has_no_direct_fallback_insert():
     assert "accounting_engine.post_entry(entry, fallback=False)" in fn
     assert "journal_entries\").insert" not in fn
     assert "no direct journal fallback" in fn
+
+
+def test_backend_import_graph_has_no_confirmed_cycles():
+    visit_sync_src = Path("/app/backend/visit_sync.py").read_text(encoding="utf-8")
+    firewall_src = Path("/app/backend/routes_firewall.py").read_text(encoding="utf-8")
+    assert "from routes_extended import" not in visit_sync_src
+    assert "import routes_extended" not in visit_sync_src
+    assert "from core.operation_journal_adapter import" in visit_sync_src
+    assert "from server import db" not in firewall_src
+    assert "from core.mongo_provider import get_mongo_db" in firewall_src
+
+
+def test_no_direct_journal_entries_write_outside_accounting_engine():
+    violations = []
+    for path in Path("/app/backend").rglob("*.py"):
+        if any(part in {"tests", "uploads", "__pycache__", "scripts"} for part in path.parts):
+            continue
+        if str(path) == "/app/backend/core/accounting_engine.py":
+            continue
+        src = path.read_text(encoding="utf-8", errors="ignore")
+        for line_no, line in enumerate(src.splitlines(), 1):
+            if "journal_entries" not in line:
+                continue
+            if any(token in line for token in (".insert(", ".delete(", ".upsert(", ".delete_many(", "insert_one(")):
+                violations.append(f"{path}:{line_no}:{line.strip()}")
+    assert not violations, "direct journal_entries write/delete bypasses found: " + " | ".join(violations[:10])
+
+
+def test_legacy_financial_fallbacks_are_disabled_or_explicit():
+    routes_ext = Path("/app/backend/routes_extended.py").read_text(encoding="utf-8")
+    routes_finance = Path("/app/backend/routes_finance.py").read_text(encoding="utf-8")
+    visit_sync = Path("/app/backend/visit_sync.py").read_text(encoding="utf-8")
+    action_runtime = Path("/app/backend/core/action_runtime.py").read_text(encoding="utf-8")
+
+    assert "legacy_keep_debts_only_disabled" in routes_ext
+    assert "legacy_reset_all_data_disabled" in routes_finance
+    assert "journal_post_failed" in routes_ext
+    assert "visit_accrual_mismatch_requires_review" in visit_sync
+    assert "primary_db_unavailable" in action_runtime
+    assert "DB_WRITE_FAILED_NO_STAGING" in action_runtime
+
+
+def test_print_document_does_not_use_insert_adjacent_html():
+    src = Path("/app/frontend/src/utils/printDocument.js").read_text(encoding="utf-8")
+    assert "insertAdjacentHTML" not in src
+    assert "styleNode.textContent = standalonePrintCss" in src
+
+
+def test_iter331_has_no_hardcoded_manager_secret():
+    src = Path(__file__).read_text(encoding="utf-8")
+    assert "TEST_MANAGER_" in src
+    assert "_load_test_credential" in src
+    assert ("123" + "123") not in src
+
+
+def test_assistant_runtime_collections_are_environment_isolated():
+    if "/app/backend" not in sys.path:
+        sys.path.append("/app/backend")
+    from core import runtime_store, llm_traces
+
+    test_doc = {"id": "x", "source_classification": "TEST_ARTIFACT", "payload": {"description": "ITER331"}}
+    assert runtime_store._collection_name(runtime_store.DRAFTS, test_doc) == "assistant_drafts_test"
+    assert runtime_store._collection_name(runtime_store.APPROVALS, test_doc) == "assistant_approvals_test"
+    assert llm_traces._is_test_trace({"user_message": "ITER331 trace"}) is True
 
 
 def test_create_draft_persists_required_provenance_fields():

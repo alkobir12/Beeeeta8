@@ -2610,12 +2610,18 @@ async def delete_operation(op_id: str, request: Request):
         if provider == "supabase":
             supa = SupabaseService()
 
-            # 1) delete linked journal entries first (any source) by reference_id
+            # 1) reverse linked journal entries first (No Hard Delete)
             try:
-                supa.client.table("journal_entries").delete().eq("reference_id", op_id).execute()
+                from core import accounting_engine
+                reverse_result = accounting_engine.reverse_entry(
+                    reference_id=op_id,
+                    reason="operation_delete_requested",
+                    actor={"user_id": "routes_extended.delete_operation"},
+                )
+                if reverse_result.get("error") and reverse_result.get("error") != "original_not_found":
+                    raise HTTPException(status_code=409, detail=reverse_result)
             except Exception as e:
-                # If schema doesn't have reference_id, ignore to avoid breaking delete operation
-                print(f"Cascade journal delete skipped/failed: {e}")
+                raise HTTPException(status_code=409, detail={"error": "journal_reverse_failed", "detail": str(e)}) from e
 
             # 2) delete operation
             supa.operations_delete(op_id)
@@ -2794,10 +2800,7 @@ async def cleanup_keep_debts_only(request: Request, confirm: str = Query(...)):
                 print(f"Cleanup journal fetch failed: {journal_read_error}")
 
             for journal_id in journal_ids:
-                try:
-                    supa.client.table("journal_entries").delete().eq("id", journal_id).execute()
-                except Exception as je_del_error:
-                    print(f"Cleanup journal delete failed for {journal_id}: {je_del_error}")
+                raise HTTPException(status_code=410, detail="legacy_cleanup_disabled_no_direct_journal_delete")
 
             result["operations_kept"] = len(keep_ids)
             result["operations_deleted"] = len(delete_ids)
@@ -2846,11 +2849,10 @@ async def cleanup_keep_debts_only(request: Request, confirm: str = Query(...)):
 
         if delete_ids:
             await db.operations.delete_many({"id": {"$in": delete_ids}})
-        je_result = await db.journal_entries.delete_many({})
+        raise HTTPException(status_code=410, detail="legacy_cleanup_disabled_no_direct_journal_delete")
 
         result["operations_kept"] = len(keep_ids)
         result["operations_deleted"] = len(delete_ids)
-        result["journal_entries_deleted"] = je_result.deleted_count
         audit_event = record_bulk_delete_event(
             action="cleanup_keep_debts_only",
             source_endpoint="/api/cleanup/keep-debts-only",
@@ -3265,11 +3267,7 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
         except Exception:
             pass
 
-        # Cleanup legacy rows that might have been inserted without workshop_id (fallback insert)
-        try:
-            supa.client.table("journal_entries").delete().is_("workshop_id", "null").execute()
-        except Exception:
-            pass
+        # P0: no direct cleanup/delete for legacy journal rows; accounting fixes must use AccountingEngine.reverse().
 
         # 🕒 قاعدة القيد المؤقت للبيع الآجل: بعد التحصيل يُحدَّث وسم القيد الأساسي
         try:
@@ -5116,9 +5114,15 @@ async def unified_confirm_visit_payment(request: Request, visit_id: str, payload
             supa.client.table("vehicle_visits").update({"notes": serialize_notes(parsed)}).eq("id", visit_id).execute()
         except Exception as update_error:
             try:
-                supa.client.table("journal_entries").delete().eq("id", journal_id).execute()
-            except Exception as cleanup_error:
-                print(f"unified payment cleanup failed: {cleanup_error}")
+                from core import accounting_engine
+                accounting_engine.reverse_entry(
+                    journal_id=journal_id,
+                    reason="vehicle_payment_notes_update_failed",
+                    actor={"user_id": actor.name or actor.id, "role": actor.role},
+                    workshop_id=workshop_id,
+                )
+            except Exception as reverse_error:
+                print(f"unified payment reverse compensation failed: {reverse_error}")
             raise update_error
 
         summary = fetch_vehicle_summary(supa.client, vehicle_id, workshop_id)
@@ -5560,11 +5564,18 @@ async def delete_visit(visit_id: str):
 
             supa = SupabaseService()
 
-            # Delete related operations first
+            # Reverse related journals first (No Hard Delete)
             try:
-                supa.client.table("journal_entries").delete().eq("reference_id", visit_id).execute()
+                from core import accounting_engine
+                reverse_result = accounting_engine.reverse_entry(
+                    reference_id=visit_id,
+                    reason="visit_delete_requested",
+                    actor={"user_id": "routes_extended.delete_visit"},
+                )
+                if reverse_result.get("error") and reverse_result.get("error") != "original_not_found":
+                    raise HTTPException(status_code=409, detail=reverse_result)
             except Exception as je:
-                print(f"Cascade journal delete skipped/failed: {je}")
+                raise HTTPException(status_code=409, detail={"error": "visit_journal_reverse_failed", "detail": str(je)}) from je
             try:
                 supa.client.table("operations").delete().eq("visit_id", visit_id).execute()
             except Exception:

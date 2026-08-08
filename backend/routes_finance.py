@@ -3600,7 +3600,7 @@ async def update_journal_entry(
 @router.delete("/journal-entries/{entry_id}")
 async def delete_journal_entry(entry_id: str, workshop_id: str = Query(...)):
     """
-    حذف قيد محاسبي يدوي من Supabase
+    عكس قيد محاسبي يدوي عبر AccountingEngine — لا حذف مباشر.
     """
     try:
         if not supabase:
@@ -3631,11 +3631,23 @@ async def delete_journal_entry(entry_id: str, workshop_id: str = Query(...)):
                     "message": "لم يتم العثور على القيد المطلوب",
                 }
 
-        # حذف القيد
-        supabase.table("journal_entries").delete().eq("id", entry_id).execute()
+        from core import accounting_engine
+        reverse_result = accounting_engine.reverse_entry(
+            journal_id=entry_id,
+            reason="manual_journal_delete_request",
+            actor={"user_id": "routes_finance.delete_journal_entry"},
+            workshop_id=workshop_id,
+        )
+        if not reverse_result.get("reversed"):
+            return {
+                "success": False,
+                "error": reverse_result.get("error") or "reverse_failed",
+                "message": "فشل عكس القيد المحاسبي عبر المحرك الموحد",
+                "details": reverse_result,
+            }
 
         invalidate_finance_caches()
-        return {"success": True, "message": "تم حذف القيد المحاسبي بنجاح"}
+        return {"success": True, "message": "تم عكس القيد المحاسبي بنجاح", "data": reverse_result}
 
     except Exception as e:
         print(f"Error in delete_journal_entry: {str(e)}")
@@ -5400,6 +5412,13 @@ async def reset_all_financial_data(
     حذف جميع البيانات المالية والعمليات للبدء من الصفر
     يحذف: Chart of Accounts، Operations، Journal Entries، Invoices
     """
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "legacy_reset_all_data_disabled",
+            "msg": "تم تعطيل reset-all-data القديم. استخدم Financial Reset Engine فقط.",
+        },
+    )
     if confirm != "DELETE_ALL":
         return {
             "success": False,
@@ -5445,26 +5464,7 @@ async def reset_all_financial_data(
             except Exception as e:
                 print(f"Supabase chart_of_accounts deletion skipped/failed: {e}")
 
-            # القيود المحاسبية
-            try:
-                je_del = (
-                    supabase.table("journal_entries")
-                    .delete()
-                    .eq("workshop_id", workshop_id)
-                    .execute()
-                )
-                je_count = len(je_del.data) if je_del.data else 0
-                deleted_counts["journal_entries"] = je_count
-                print(f"✅ Deleted {je_count} journal entries (scoped) from Supabase")
-            except Exception as e:
-                print(f"Supabase journal_entries deletion error: {e}")
-
-            # تنظيف legacy rows بدون workshop_id (إن وُجدت)
-            try:
-                supabase.table("journal_entries").delete().is_("workshop_id", "null").execute()
-                print("✅ Deleted legacy journal entries with NULL workshop_id")
-            except Exception as e:
-                print(f"Legacy NULL workshop_id delete skipped: {e}")
+            raise HTTPException(status_code=410, detail="legacy_reset_all_data_disabled_no_journal_delete")
 
 
             # الفواتير
@@ -5494,9 +5494,7 @@ async def reset_all_financial_data(
                 coa_result = await finance_db.chart_of_accounts.delete_many({})
                 deleted_counts["chart_of_accounts"] = coa_result.deleted_count
                 
-                # حذف Journal Entries
-                je_result = await finance_db.journal_entries.delete_many({})
-                deleted_counts["journal_entries"] = je_result.deleted_count
+                raise HTTPException(status_code=410, detail="legacy_reset_all_data_disabled_no_journal_delete")
                 
                 print(f"✅ MongoDB: Deleted {deleted_counts}")
             except Exception as e:
@@ -5507,7 +5505,7 @@ async def reset_all_financial_data(
             try:
                 await db.operations.delete_many({})
                 await db.chart_of_accounts.delete_many({})
-                await db.journal_entries.delete_many({})
+                raise HTTPException(status_code=410, detail="legacy_reset_all_data_disabled_no_journal_delete")
                 print("✅ Main DB: Deleted all financial data")
             except Exception as e:
                 print(f"Main DB deletion error: {e}")
@@ -5712,10 +5710,7 @@ async def reset_ops_journals_keep_debts_only(
                     chunk = je_ids[idx: idx + 200]
                     if not chunk:
                         continue
-                    try:
-                        supabase.table("journal_entries").delete().in_("id", chunk).execute()
-                    except Exception as delete_err:
-                        print(f"Failed deleting journal chunk: {delete_err}")
+                    raise HTTPException(status_code=410, detail="legacy_keep_debts_only_disabled_no_journal_delete")
                 result["journal_entries_deleted"] = len(je_ids)
             except Exception as je_err:
                 print(f"Journal cleanup failed: {je_err}")
@@ -5745,17 +5740,9 @@ async def reset_ops_journals_keep_debts_only(
             if delete_ids:
                 await finance_db.operations.delete_many({"id": {"$in": delete_ids}})
 
-            je_result = await finance_db.journal_entries.delete_many({
-                "$or": [
-                    {"workshop_id": workshop_id},
-                    {"workshop_id": {"$exists": False}},
-                    {"workshop_id": None},
-                    {"workshop_id": ""},
-                ]
-            })
+            raise HTTPException(status_code=410, detail="legacy_keep_debts_only_disabled_no_journal_delete")
             result["operations_kept"] += len(keep_ids)
             result["operations_deleted"] += len(delete_ids)
-            result["journal_entries_deleted"] += je_result.deleted_count
 
         if db is not None and db is not finance_db:
             operations = await db.operations.find({
@@ -5778,17 +5765,9 @@ async def reset_ops_journals_keep_debts_only(
                     delete_ids.append(op_id)
             if delete_ids:
                 await db.operations.delete_many({"id": {"$in": delete_ids}})
-            je_result = await db.journal_entries.delete_many({
-                "$or": [
-                    {"workshop_id": workshop_id},
-                    {"workshop_id": {"$exists": False}},
-                    {"workshop_id": None},
-                    {"workshop_id": ""},
-                ]
-            })
+            raise HTTPException(status_code=410, detail="legacy_keep_debts_only_disabled_no_journal_delete")
             result["operations_kept"] += len(keep_ids)
             result["operations_deleted"] += len(delete_ids)
-            result["journal_entries_deleted"] += je_result.deleted_count
 
         return {
             "success": True,
