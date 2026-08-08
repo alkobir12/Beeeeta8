@@ -37,6 +37,14 @@ const buildAuthHeaders = () => {
 };
 const fetchApiJson = async (pathWithQuery) => {
   const options = { cache: 'no-store', credentials: 'include', headers: buildAuthHeaders() };
+  const canUseSameOrigin = typeof window !== 'undefined' && (() => {
+    try { return new URL(API_URL, window.location.origin).origin === window.location.origin; } catch (e) { return false; }
+  })();
+  if (canUseSameOrigin) {
+    const res = await fetch(`/api${pathWithQuery}`, options);
+    if (!res.ok) throw new Error(`relative-api-fetch-${res.status}`);
+    return res.json();
+  }
   try {
     const res = await fetch(`${API_URL}${pathWithQuery}`, options);
     if (!res.ok) throw new Error(`api-fetch-${res.status}`);
