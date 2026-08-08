@@ -1,0 +1,41 @@
+{
+  "summary": "Backend-only regression completed for P0 unification/provenance guards and key live APIs on public preview URL. Executed 14 pytest checks (auth, approvals, financial APIs, static guard assertions) with all passing.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/auth/login (OPTIONS via preview edge)",
+        "issue": "Public edge preflight responds with Access-Control-Allow-Origin='*' and no Access-Control-Allow-Credentials, while backend code is configured for explicit credentialed origins."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter331_p0_unification_regression.py",
+    "/app/test_reports/pytest/iter331_backend.xml"
+  ],
+  "action_items": [
+    "If strict cross-site preflight behavior is required externally, align preview edge CORS normalization with backend credentialed CORS contract.",
+    "Keep using /app/backend/tests/test_iter331_p0_unification_regression.py as regression coverage for P0 provenance/guard fixes."
+  ],
+  "critical_code_review_comments": [
+    "Code-level guards requested in scope are present: no direct journal fallback in routes_extended._safe_insert_journal_entry, provenance fields persisted in create_draft, AI_SUGGESTION/TEST_ARTIFACT financial approval block enforced, visit accrual mismatch raises explicit error, and supplier balance payment blocks when suppliers table is unavailable."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter331_p0_unification_regression.py",
+    "/app/test_reports/iteration_331.json"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14)",
+    "frontend": "N/A (backend-only scope)"
+  },
+  "seed_data_creation": "No seed/business data created. Lockout check used random non-existing identifier only.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Validated manager login (مدير/123123), approval 410 artifact state for approval_id=e64a52362b6c, unified-v1 vehicle summary contract, AR customers with as_of+workshop_id, and all requested static guard checks. JUnit: /app/test_reports/pytest/iter331_backend.xml.",
+  "rca of the issue": "Observed CORS discrepancy is at preview edge layer (wildcard preflight headers), not backend route implementation: backend/server.py still enforces credentialed origin reflection and allow_credentials=True."
+}

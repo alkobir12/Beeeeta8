@@ -42,12 +42,55 @@ _log = get_logger("routes.runtime")
 router = APIRouter(prefix="/api/runtime", tags=["runtime"])
 
 
+def _require_source_record_for_existing_action(draft: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    action = str((draft or {}).get("action") or "")
+    payload = dict((draft or {}).get("payload") or {})
+    checks = {
+        "payment": ("customers", payload.get("customer_id") or payload.get("customerId")),
+        "reverse": ("journal_entries", payload.get("journal_id") or payload.get("journalId") or payload.get("reference_id") or payload.get("referenceId")),
+        "delete_operation": ("operations", payload.get("operation_id") or payload.get("operationId") or payload.get("id")),
+        "external_operation_payment": ("operations", payload.get("_operation_id") or payload.get("operation_id") or payload.get("operationId")),
+        "update_customer": ("customers", payload.get("customer_id") or payload.get("customerId") or payload.get("id")),
+        "delete_customer": ("customers", payload.get("customer_id") or payload.get("customerId") or payload.get("id")),
+        "update_vehicle": ("vehicles", payload.get("vehicle_id") or payload.get("vehicleId") or payload.get("id")),
+        "delete_vehicle": ("vehicles", payload.get("vehicle_id") or payload.get("vehicleId") or payload.get("id")),
+        "update_visit": ("vehicle_visits", payload.get("visit_id") or payload.get("visitId") or payload.get("id")),
+    }
+    if action == "close_visits":
+        target = payload.get("vehicle_id") or payload.get("vehicleId") or payload.get("visit_id") or payload.get("visitId")
+        table = "vehicles" if (payload.get("vehicle_id") or payload.get("vehicleId")) else "vehicle_visits"
+        checks[action] = (table, target)
+    if action not in checks:
+        return None
+    table, record_id = checks[action]
+    if not record_id:
+        return {"error": "source_record_required", "action": action, "table": table}
+    try:
+        from supabase_service import SupabaseService
+        client = SupabaseService().client
+        q = client.table(table).select("id").limit(1)
+        if action == "reverse" and table == "journal_entries" and not (payload.get("journal_id") or payload.get("journalId")):
+            q = q.eq("reference_id", str(record_id))
+        else:
+            q = q.eq("id", str(record_id))
+        rows = q.execute().data or []
+        if not rows:
+            return {"error": "source_record_not_found", "action": action, "table": table, "source_record": str(record_id)}
+        draft["source_record"] = {"table": table, "id": str(record_id), "verified": True}
+        return None
+    except Exception as exc:
+        return {"error": "source_record_check_failed", "action": action, "table": table, "detail": str(exc)[:160]}
+
+
 def _hide_test_runtime_rows(rows):
     return [r for r in (rows or []) if "TEST_SAFE_" not in str(r) and "TEST_ACCOUNTANT_" not in str(r) and "TEST_ITER" not in str(r)]
 
 
 async def _commit_approved_draft(draft_id: str, request: Request, committer: str):
     draft = action_runtime.get_draft(draft_id) or {}
+    source_error = _require_source_record_for_existing_action(draft)
+    if source_error:
+        return source_error
     external_action = draft.get("action")
     if external_action == "external_operation":
         from routes_extended import create_operation
@@ -100,6 +143,8 @@ async def runtime_create_draft(request: Request, payload: Dict[str, Any] = Body(
         proposer=actor.name or actor.id or payload.get("proposer"),
         session_id=payload.get("session_id"),
         trace_id=payload.get("trace_id"),
+        original_input=payload.get("original_input") or payload.get("text"),
+        entry_channel=payload.get("entry_channel") or "runtime_manual",
     )
     return {"success": True, "data": draft}
 

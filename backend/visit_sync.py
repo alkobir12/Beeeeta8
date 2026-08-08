@@ -77,17 +77,9 @@ def _sync_visit_journal(supa_service, visit_id: str, op_data: dict, cash_paid: f
     else:
         prev_total = round(sum(float(e.get("total") or 0) for e in accrual_rows), 2)
         if abs(prev_total - round(total, 2)) > 0.009:
-            for e in accrual_rows:
-                try:
-                    client.table("journal_entries").delete().eq("id", e.get("id")).execute()
-                except Exception:
-                    pass
-            _post_accrual()
-            existing = (
-                client.table("journal_entries").select("id,total,source,lines")
-                .eq("reference_id", visit_id).execute().data or []
+            raise RuntimeError(
+                f"visit_accrual_mismatch_requires_review:{visit_id}:existing={prev_total}:new={round(total, 2)}"
             )
-            accrual_rows = [e for e in existing if str(e.get("source") or "") == "operation"]
 
     # ⛔ قيد التحصيل فقط إن كان قيد البيع مديناً بالذمم (بيع آجل) — وبسقف مدين الذمم
     ar_debit = _ar_debit_of(accrual_rows)
@@ -299,6 +291,7 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
                 _sync_visit_journal(supa_service, visit_id, op_data, total_paid, total_discount, payment_method)
             except Exception as je_error:
                 print(f"⚠️ Visit journal sync failed for {visit_id}: {je_error}")
+                raise
             # 🧹 إبطال كاش الحسابات المالية فوراً حتى تعكس الصفحات الأرقام الجديدة
             try:
                 import perf_cache
@@ -349,4 +342,5 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
 
     except Exception as e:
         print(f"⚠️ Failed to sync visit to operation: {e}")
+        raise
 

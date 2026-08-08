@@ -49,7 +49,13 @@ def _request_actor_name(request: Optional[Request]) -> str:
 
 def _external_approval_response(*, action: str, payload: Dict[str, Any], proposer: str) -> JSONResponse:
     from core import action_runtime
-    draft = action_runtime.create_draft(action=action, payload=payload, proposer=proposer)
+    draft = action_runtime.create_draft(
+        action=action,
+        payload=payload,
+        proposer=proposer,
+        original_input=payload.get("notes") or payload.get("description"),
+        entry_channel="system_page",
+    )
     approval = action_runtime.request_approval(draft_id=draft["id"], requester=proposer)
     return JSONResponse(
         status_code=202,
@@ -1803,47 +1809,13 @@ def _safe_insert_journal_entry(supa: SupabaseService, entry: Dict[str, Any]):
     # 🏦 المسار المركزي: كل القيود تمرّ عبر AccountingEngine (توازن + منع تكرار + تدقيق)
     try:
         from core import accounting_engine
-        return accounting_engine.post_entry(entry)
+        result = accounting_engine.post_entry(entry, fallback=False)
+        if not result:
+            raise RuntimeError("accounting_engine_rejected_entry")
+        return result
     except Exception as error:
-        print(f"AccountingEngine post_entry failed, fallback direct insert: {error}")
-    payload = dict(entry)
-    try:
-        return supa.client.table("journal_entries").insert(payload).execute().data
-    except Exception as error:
-        print(f"Journal entry insert failed, retry adaptive fields: {error}")
-        retry_payload = dict(payload)
-        for _ in range(12):
-            match = re.search(r"Could not find the '([^']+)' column", str(error))
-            if not match:
-                break
-            missing_field = match.group(1)
-            if missing_field not in retry_payload:
-                break
-            retry_payload.pop(missing_field, None)
-            try:
-                return supa.client.table("journal_entries").insert(retry_payload).execute().data
-            except Exception as retry_error:
-                error = retry_error
-
-        basic = {
-            k: entry.get(k)
-            for k in [
-                "id",
-                "workshop_id",
-                "date",
-                "description",
-                "lines",
-                "total",
-                "source",
-                "transaction_type",
-                "reference_id",
-            ]
-        }
-        try:
-            return supa.client.table("journal_entries").insert(basic).execute().data
-        except Exception as error2:
-            print(f"Journal entry insert failed: {error2}")
-            return None
+        print(f"AccountingEngine post_entry failed; no direct journal fallback: {error}")
+        raise
 @router.get("/operations")
 async def list_operations(
     workshop_id: Optional[str] = None,
@@ -3780,6 +3752,10 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
                 _invalidate_finance_caches_safe()
             except Exception as je_error:
                 print(f"Failed to create journal entry for operation: {je_error}")
+                raise HTTPException(status_code=500, detail={
+                    "error": "journal_post_failed",
+                    "msg": "تعذّر ترحيل القيد عبر المحرك المحاسبي؛ لم يتم اعتبار العملية مكتملة مالياً.",
+                })
             await _append_operation_to_visit(payload, op, provider, db, visit_data)
             _invalidate_ops_caches()
             return op

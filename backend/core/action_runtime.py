@@ -79,6 +79,12 @@ FINANCIAL_ACTIONS = {
     "invoice", "payment", "expense", "reverse", "purchase",
     "external_operation", "external_operation_payment",
 }
+EXISTING_RECORD_ACTIONS = {
+    "payment", "reverse", "close_visits", "delete_operation",
+    "delete_customer", "delete_vehicle", "update_customer", "update_vehicle", "update_visit",
+    "external_operation_payment",
+}
+NEW_RECORD_ACTIONS = {"invoice", "expense", "purchase", "customer", "vehicle", "visit", "supplier", "external_operation"}
 DRAFT_STATUSES = {"draft", "pending_approval", "approved", "committed", "rolled_back", "rejected"}
 
 
@@ -91,6 +97,34 @@ def _is_automated_actor(value: Optional[str]) -> bool:
     return actor.startswith("auto:") or actor.startswith("bot_") or actor in {
         "system", "policy", "anonymous", "auto", "test", "tester",
     }
+
+
+def _classify_draft_source(*, action: str, payload: Dict[str, Any], proposer: Optional[str], original_input: Optional[str] = None) -> str:
+    marker = f"{action} {original_input or ''} {payload}".upper()
+    if any(token in marker for token in ("TEST_ITER", "ITER280", "TEST_SAFE_", "TEST_ACCOUNTANT_", "TESTQA", "ITER325", "ITER326", "ITER327")):
+        return "TEST_ARTIFACT"
+    actor = str(proposer or "").strip().lower()
+    if _is_automated_actor(actor) or actor in {"auto:llm", "llm", "ai"}:
+        return "AI_SUGGESTION"
+    if actor.startswith("system") or actor.startswith("cron"):
+        return "SYSTEM_DRAFT"
+    return "USER_DRAFT"
+
+
+def _risk_level(action: str) -> str:
+    if action in FINANCIAL_ACTIONS or action.startswith("delete_") or action in {"close_visits"}:
+        return "high"
+    if action.startswith("update_"):
+        return "medium"
+    return "low"
+
+
+def _action_record_kind(action: str) -> str:
+    if action in EXISTING_RECORD_ACTIONS:
+        return "EXISTING_RECORD_ACTION"
+    if action in NEW_RECORD_ACTIONS:
+        return "NEW_RECORD_ACTION"
+    return "UNKNOWN_ACTION_KIND"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -238,8 +272,8 @@ def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
                 return created
         except Exception as e:
             _log.exception("supabase customers insert failed: %s", redact(str(e), max_len=120))
-            # Fall through to staging so the draft still completes
-            _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
+            _audit("DB_WRITE_FAILED_NO_STAGING", table=table, reason=redact(str(e), max_len=80))
+            raise RuntimeError("primary_db_write_failed:customers") from e
 
     # ── Real Supabase write for vehicles ──
     if client and table == "vehicles":
@@ -253,7 +287,8 @@ def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
                 return created
         except Exception as e:
             _log.exception("supabase vehicles insert failed: %s", redact(str(e), max_len=120))
-            _audit("DB_WRITE_FALLBACK_STAGING", table=table, reason=redact(str(e), max_len=80))
+            _audit("DB_WRITE_FAILED_NO_STAGING", table=table, reason=redact(str(e), max_len=80))
+            raise RuntimeError("primary_db_write_failed:vehicles") from e
 
     # ── Visits → write to the EXISTING vehicle_visits table (integrates with
     #    vehicle details & financial reports). Falls back to staging if we
@@ -307,7 +342,12 @@ def upsert_entity(table: str, data: Dict[str, Any]) -> Dict[str, Any]:
                     _audit("DB_WRITE_SUPABASE", table="vehicle_visits", entity_id=created.get("id"))
                     return created
         except Exception as e:
-            _audit("DB_WRITE_FALLBACK_STAGING", table="vehicle_visits", reason=redact(str(e), max_len=100))
+            _audit("DB_WRITE_FAILED_NO_STAGING", table="vehicle_visits", reason=redact(str(e), max_len=100))
+            raise RuntimeError("primary_db_write_failed:vehicle_visits") from e
+
+    if table in {"customers", "vehicles", "visits"}:
+        _audit("DB_WRITE_FAILED_NO_PRIMARY", table=table)
+        raise RuntimeError(f"primary_db_unavailable:{table}")
 
     # ── Staging fallback (DB-unavailable) ──
     eid = data.get("id") or uuid.uuid4().hex
@@ -738,6 +778,8 @@ def create_draft(
     session_id: Optional[str] = None,
     draft_id: Optional[str] = None,
     trace_id: Optional[str] = None,
+    original_input: Optional[str] = None,
+    entry_channel: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Register a draft in the runtime. Returns the stored draft record.
 
@@ -771,18 +813,36 @@ def create_draft(
                         executed={"draft_id": did})
             except Exception:
                 tid = None
+        created_at = time.time()
+        source_classification = _classify_draft_source(
+            action=action,
+            payload=payload,
+            proposer=proposer,
+            original_input=original_input,
+        )
         draft = {
             "id": did,
+            "draft_id": did,
             "action": action,
+            "action_type": action,
             "payload": payload,
+            "validated_payload": payload,
             "status": "draft",
             "proposer": proposer or "anonymous",
+            "requested_by": proposer or "anonymous",
             "session_id": session_id,
             "trace_id": tid,
-            "created_at": time.time(),
+            "created_at": created_at,
+            "requested_at": created_at,
+            "original_input": original_input,
+            "entry_channel": entry_channel or ("katrina" if session_id else "runtime"),
+            "risk_level": _risk_level(action),
+            "record_kind": _action_record_kind(action),
+            "source_classification": source_classification,
         }
         STATE["drafts"][did] = draft
-        _audit("DRAFT_CREATED", draft_id=did, action=action, proposer=draft["proposer"])
+        _audit("DRAFT_CREATED", draft_id=did, action=action, proposer=draft["proposer"],
+               source_classification=source_classification, record_kind=draft["record_kind"])
         return draft
 
 
@@ -830,6 +890,21 @@ def approve(*, approval_id: str, approver: Optional[str] = None, override_code: 
             return {"error": "draft_not_found"}
         approver_user = approver or "anonymous"
 
+        if draft.get("action") in FINANCIAL_ACTIONS and draft.get("source_classification") in {"AI_SUGGESTION", "TEST_ARTIFACT"}:
+            if not draft.get("converted_by"):
+                _audit(
+                    "APPROVAL_REJECTED_PROVENANCE",
+                    approval_id=approval_id,
+                    draft_id=draft.get("id"),
+                    approver=approver_user,
+                    source_classification=draft.get("source_classification"),
+                )
+                return {
+                    "error": "provenance_conversion_required",
+                    "msg": "لا يمكن تنفيذ مسودة مالية من AI_SUGGESTION أو TEST_ARTIFACT قبل تحويلها صراحةً إلى USER_DRAFT موثق.",
+                    "source_classification": draft.get("source_classification"),
+                }
+
         if _is_automated_actor(approver_user):
             _audit("APPROVAL_REJECTED_AUTOMATION", approval_id=approval_id, approver=approver_user)
             return {
@@ -876,6 +951,13 @@ def reject_approval(*, approval_id: str, approver: Optional[str] = None, reason:
         if approval["status"] != "pending":
             return {"error": "invalid_state", "current": approval["status"]}
         draft = STATE["drafts"].get(approval["draft_id"])
+        if draft and not draft.get("source_classification"):
+            draft["source_classification"] = _classify_draft_source(
+                action=draft.get("action"),
+                payload=draft.get("payload") or {},
+                proposer=draft.get("proposer"),
+                original_input=draft.get("original_input"),
+            )
         approval["status"] = "rejected"
         approval["approver"] = approver or "anonymous"
         approval["reason"] = reason[:200]

@@ -213,6 +213,12 @@ async def supplier_balance_payment(payload: Dict[str, Any] = Body(...)):
         suppliers_table_available = False
         print(f"supplier_balance_payment: suppliers table unavailable ({e})")
 
+    if not suppliers_table_available:
+        raise HTTPException(
+            status_code=503,
+            detail="جدول الموردين غير متاح؛ تم إيقاف سداد المورد لمنع نجاح مالي دون سجل مورد حقيقي",
+        )
+
     sup_name = supplier.get("name") or supplier_name_payload or f"مورد {supplier_id[:8]}"
     credit_bal = float(supplier.get("credit_balance") or 0)
 
@@ -237,21 +243,23 @@ async def supplier_balance_payment(payload: Dict[str, Any] = Body(...)):
         "reference_id": operation_id or None,
     }
     from core import accounting_engine
-    accounting_engine.post_entry(entry)
+    inserted = accounting_engine.post_entry(entry, fallback=False)
+    if not inserted:
+        raise HTTPException(
+            status_code=500,
+            detail="تعذّر ترحيل قيد سداد المورد عبر المحرك المحاسبي",
+        )
 
     # تحديث رصيد المورد إن كان جدول الموردين متاحاً
-    if suppliers_table_available:
-        new_credit = max(0, credit_bal - amount)
-        supabase.table("suppliers").update({"credit_balance": new_credit}).eq("id", supplier_id).execute()
-    else:
-        new_credit = max(0, credit_bal - amount)
+    new_credit = max(0, credit_bal - amount)
+    supabase.table("suppliers").update({"credit_balance": new_credit}).eq("id", supplier_id).execute()
 
     invalidate_finance_caches()
     return {
         "success":          True,
         "journal_entry_id": entry["id"],
         "new_credit_balance": new_credit,
-        "balance_tracking_skipped": not suppliers_table_available,
+        "balance_tracking_skipped": False,
         "message": f"تم سداد {amount:,.2f} ر.س من رصيد المورد. الرصيد الجديد: {new_credit:,.2f} ر.س",
     }
 

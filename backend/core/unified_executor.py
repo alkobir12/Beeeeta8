@@ -166,6 +166,8 @@ async def execute_text(
         proposer=proposer,
         session_id=session_id,
         auto_approver=auto_approver,
+        original_input=text,
+        entry_channel="katrina",
     )
 
 
@@ -629,6 +631,8 @@ async def execute_action(
     proposer: Optional[str] = None,
     session_id: Optional[str] = None,
     auto_approver: Optional[str] = None,
+    original_input: Optional[str] = None,
+    entry_channel: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Drive a pre-parsed Action through the runtime + policy gates."""
 
@@ -684,6 +688,8 @@ async def execute_action(
         payload=action.payload,
         proposer=proposer_id,
         session_id=session_id,
+        original_input=original_input,
+        entry_channel=entry_channel or "katrina",
     )
 
     # 5) Risky → manual approval gate (+ 🕵️ مدقق المسودات قبل الاعتماد)
