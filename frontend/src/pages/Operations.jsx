@@ -36,7 +36,7 @@ const buildAuthHeaders = () => {
   }
 };
 const fetchApiJson = async (pathWithQuery) => {
-  const options = { cache: 'no-store', credentials: 'include', headers: buildAuthHeaders() };
+  const options = { cache: 'no-store', credentials: 'omit', headers: buildAuthHeaders() };
   const canUseSameOrigin = typeof window !== 'undefined' && (() => {
     try { return new URL(API_URL, window.location.origin).origin === window.location.origin; } catch (e) { return false; }
   })();
