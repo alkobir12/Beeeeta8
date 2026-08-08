@@ -27,6 +27,29 @@ import { RecentOperationsWidget } from '../components/assistant/RecentOperations
 
 const API_URL = `${resolveBackendBase()}/api`;
 const OPERATIONS_PAGE_SIZE = 15;
+const buildAuthHeaders = () => {
+  try {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch (e) {
+    return {};
+  }
+};
+const fetchApiJson = async (pathWithQuery) => {
+  const options = { cache: 'no-store', credentials: 'include', headers: buildAuthHeaders() };
+  try {
+    const res = await fetch(`${API_URL}${pathWithQuery}`, options);
+    if (!res.ok) throw new Error(`api-fetch-${res.status}`);
+    return res.json();
+  } catch (error) {
+    if (typeof window !== 'undefined') {
+      const res = await fetch(`/api${pathWithQuery}`, options);
+      if (!res.ok) throw new Error(`relative-api-fetch-${res.status}`);
+      return res.json();
+    }
+    throw error;
+  }
+};
 const OPERATION_KIND_WORKSHOP = 'WORKSHOP_OPERATION';
 const OPERATION_KIND_VEHICLE = 'VEHICLE_OPERATION';
 // 🔥 OPERATION_KIND_RAKAN constant kept for backwards-compat only; not exposed in UI.
@@ -505,9 +528,7 @@ const Operations = () => {
     queryFn: async () => {
       const params = new URLSearchParams({ limit: '200' });
       if (vehicleIdFromUrl) params.set('vehicle_id', vehicleIdFromUrl);
-      const res = await fetch(`${API_URL}/operations?${params.toString()}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`operations-fetch-${res.status}`);
-      const data = await res.json();
+      const data = await fetchApiJson(`/operations?${params.toString()}`);
       if (Array.isArray(data)) {
         try {
           localStorage.setItem(operationsCacheKey, JSON.stringify(data));
@@ -530,8 +551,7 @@ const Operations = () => {
     operationsBootstrapStartedRef.current = true;
     const params = new URLSearchParams({ limit: '200' });
     if (vehicleIdFromUrl) params.set('vehicle_id', vehicleIdFromUrl);
-    fetch(`${API_URL}/operations?${params.toString()}`, { cache: 'no-store' })
-      .then((res) => res.json())
+    fetchApiJson(`/operations?${params.toString()}`)
       .then((data) => {
         if (!Array.isArray(data)) return;
         setFallbackOperations(data);
@@ -553,8 +573,7 @@ const Operations = () => {
       try {
         const params = new URLSearchParams({ limit: '200' });
         if (vehicleIdFromUrl) params.set('vehicle_id', vehicleIdFromUrl);
-        const res = await fetch(`${API_URL}/operations?${params.toString()}`, { cache: 'no-store' });
-        const data = await res.json();
+        const data = await fetchApiJson(`/operations?${params.toString()}`);
         if (!mounted || !Array.isArray(data)) return;
         setFallbackOperations(data);
         try {
@@ -918,8 +937,7 @@ const Operations = () => {
     try {
       const params = new URLSearchParams({ limit: '200' });
       if (vehicleIdFromUrl) params.set('vehicle_id', vehicleIdFromUrl);
-      const res = await fetch(`${API_URL}/operations?${params.toString()}`, { cache: 'no-store' });
-      const data = await res.json();
+      const data = await fetchApiJson(`/operations?${params.toString()}`);
       if (!Array.isArray(data)) return;
       setFallbackOperations(data);
       try {
