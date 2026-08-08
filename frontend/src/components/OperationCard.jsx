@@ -459,6 +459,8 @@ export default function OperationCard({
 
   // 🔔 Integrity warning modal — toggled by clicking the ⚠️ pill
   const [showIntegrityModal, setShowIntegrityModal] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [showFullDetails, setShowFullDetails] = useState(false);
 
   const integrityWarnings = Array.isArray(integrityStatus?.warnings) ? integrityStatus.warnings : [];
   const hasIntegrityWarning = integrityWarnings.length > 0;
@@ -474,597 +476,208 @@ export default function OperationCard({
   // 🎨 cleaned-up notes for the new design (helper extracted above)
   const displayNotesClean = useMemo(() => cleanNotes(operation.notes), [operation.notes]);
 
+  const operationRef = operation.invoiceNumber || operation.reference || operation.id || '-';
+  const operationDateText = formatDateTime(operation.date || operation.op_date || operation.createdAt, isRTL);
+  const dueTagLabel = isCredit ? 'آجل' : paymentMethodLabel;
+  const settlementTagLabel = remainingBalance > 0.009 ? 'غير مسدد' : 'مسدد';
+  const linkOk = integrityStatus ? !hasIntegrityWarning : true;
+  const cardId = operation.id || operation.invoiceNumber || 'unknown';
+  const fullAmount = Number(operation.total || displayedWorkshopAmount || 0);
+
   return (
-    <div
-      className="group relative rounded-3xl border bg-white dark:bg-[#111111] hover:shadow-xl cursor-pointer"
-      style={{
-        borderColor: paymentBorder,
-        boxShadow: isExpanded
-          ? `0 22px 60px rgba(15,23,42,0.16), 0 0 0 1px ${paymentBorder}`
-          : '0 6px 20px rgba(15,23,42,0.08)',
-        transition: 'box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
-      data-expanded={isExpanded ? 'true' : 'false'}
-      onClick={() => setExpandedState(!isExpanded)}
+    <article
+      className="relative overflow-visible rounded-[24px] border border-zinc-200 bg-[#fbfbf8] text-zinc-950 shadow-[0_12px_30px_rgba(15,23,42,0.08)] transition-transform duration-200 hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
       dir={isRTL ? 'rtl' : 'ltr'}
-      data-testid={`operation-card-${operation.id || operation.invoiceNumber || 'unknown'}`}
+      data-testid={`operation-card-${cardId}`}
     >
-      {/* hover glow */}
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-gradient-to-br from-cyan-500/5 to-emerald-500/5 dark:from-cyan-500/10 dark:to-emerald-500/10" />
-
-      <div className="relative z-10 p-4 sm:p-5">
-        {/* ===== HEADER ===== */}
-        <OperationCardHeader
-          operationId={operation.id}
-          amount={displayedWorkshopAmount}
-          subLabel={`${isIncome ? 'إيراد الورشة' : (isPurchaseOperation ? 'مصروف الورشة' : 'حركة مالية')} • ${typeLabel}`}
-          paymentStatusLabel={paymentStatusLabel}
-          paymentStatusTone={isCredit ? 'amber' : 'emerald'}
-          hasPaymentStatus={hasPaymentStatus}
-          movementLabel={movementLabel}
-          movementSide={movementSide}
-          originLabel={originLabel}
-          invoiceNumber={operation.invoiceNumber}
-          integrityWarningsCount={integrityStatus && hasIntegrityWarning ? integrityWarnings.length : 0}
-          integrityWarnings={integrityWarnings}
-          integrityLabelMap={integrityLabelMap}
-          onIntegrityClick={() => setShowIntegrityModal(true)}
-        />
-
-        {/* ===== QUICK INFO GRID ===== */}
-        <OperationCardMeta
-          operationId={operation.id}
-          dateText={formatDateTime(operation.date || operation.op_date || operation.createdAt, isRTL)}
-          paymentMethodLabel={paymentMethodLabel}
-          vehicleDisplay={vehicleDisplay}
-          typeLabel={typeLabel}
-        />
-
-        {/* ===== Customer / Partner ===== */}
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/[0.03]" data-testid={`operation-card-partner-block-${operation.id}`}>
-          <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-500 mb-1">العميل / الطرف</p>
-          <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white" data-testid={`operation-card-partner-${operation.id}`}>
-            {customerDisplay}
-          </h2>
+      <section className="p-4 sm:p-5" data-testid={`operation-card-v5-main-${cardId}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-[19px] font-black leading-tight text-zinc-950 dark:text-white" data-testid={`operation-card-partner-${cardId}`}>
+              {customerDisplay}
+            </h2>
+            <div className="mt-1 line-clamp-2 text-[12px] font-bold leading-relaxed text-zinc-500 dark:text-zinc-400" data-testid={`operation-card-vehicle-summary-${cardId}`}>
+              {vehicleDisplay || 'عملية عامة'}
+            </div>
+          </div>
+          <div className="shrink-0 text-left" data-testid={`operation-card-total-${cardId}`}>
+            <strong className="block text-[23px] font-black tabular-nums text-zinc-950 dark:text-white">{Number(displayedWorkshopAmount || fullAmount).toLocaleString('en-US')}</strong>
+            <span className="text-[11px] font-black text-zinc-500 dark:text-zinc-400">ر.س</span>
+          </div>
         </div>
 
-        {/* ===== Accounting Entry Badge ===== */}
-        <AccountingBadge
-          operationId={operation.id}
-          journalEntryText={journalEntryText}
-          accountName={targetAccountName}
-          accountCode={accountCode}
-          accountClassLabel={accountClassLabel}
-        />
+        <div className="mt-3 flex flex-wrap gap-1.5" data-testid={`operation-card-tags-${cardId}`}>
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" data-testid={`operation-card-payment-method-tag-${cardId}`}>{dueTagLabel}</span>
+          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${remainingBalance > 0.009 ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200' : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'}`} data-testid={`operation-card-payment-status-tag-${cardId}`}>{settlementTagLabel}</span>
+          <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-black text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200" data-testid={`operation-card-type-tag-${cardId}`}>{typeLabel}</span>
+        </div>
 
-        {/* ===== Notes (clean) ===== */}
-        {displayNotesClean ? (
-          <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/5 dark:bg-white/[0.02]">
-            <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-500">وصف العملية</p>
-              <span className="text-[10px] text-slate-500 dark:text-zinc-500">{itemsSummary !== '-' ? `${(operation.items || []).length} بند` : ''}</span>
-            </div>
-            <p className="text-xs leading-6 text-slate-800 dark:text-zinc-200 break-words" data-testid={`operation-card-notes-${operation.id}`}>
-              {displayNotesClean}
-            </p>
+        <div className="mt-4 grid grid-cols-2 gap-2.5" data-testid={`operation-card-payment-summary-${cardId}`}>
+          <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/70">
+            <small className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400">المدفوع</small>
+            <strong className="mt-1 block text-[15px] font-black tabular-nums text-zinc-950 dark:text-white" data-testid={`operation-card-total-paid-${cardId}`}>{Number(totalPaid || 0).toLocaleString('en-US')} ر.س</strong>
           </div>
-        ) : null}
-
-        {/* ===== Payment Summary (when has payment) ===== */}
-        {hasPaymentStatus ? (
-          <div className="mt-3 grid grid-cols-2 gap-2.5" data-testid={`operation-card-payment-summary-${operation.id}`}>
-            <div className={`rounded-2xl border p-3 ${totalPaid > 0 ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-700/40 dark:bg-emerald-950/30' : 'border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-white/[0.03]'}`}>
-              <p className="text-[10px] text-slate-500 dark:text-zinc-500">المدفوع</p>
-              <h3 className="text-lg font-extrabold text-emerald-700 dark:text-emerald-300 tabular-nums">{totalPaid.toFixed(2)}</h3>
-            </div>
-            <div className={`rounded-2xl border p-3 ${remainingBalance > 0 ? 'border-rose-200 bg-rose-50 dark:border-rose-700/40 dark:bg-rose-950/30' : 'border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-white/[0.03]'}`}>
-              <p className="text-[10px] text-slate-500 dark:text-zinc-500">المتبقي</p>
-              <h3 className={`text-lg font-extrabold tabular-nums ${remainingBalance > 0 ? 'text-rose-700 dark:text-rose-300' : 'text-slate-700 dark:text-zinc-300'}`}>{remainingBalance.toFixed(2)}</h3>
-            </div>
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2.5 dark:border-rose-900 dark:bg-rose-950/25">
+            <small className="block text-[10px] font-black text-rose-700 dark:text-rose-300">المتبقي</small>
+            <strong className="mt-1 block text-[15px] font-black tabular-nums text-rose-800 dark:text-rose-200" data-testid={`operation-card-balance-${cardId}`}>{Number(remainingBalance || 0).toLocaleString('en-US')} ر.س</strong>
           </div>
-        ) : null}
+        </div>
 
-        {/* ===== Toggle details ===== */}
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 grid grid-cols-2 gap-2.5" data-testid={`operation-card-finance-split-${cardId}`}>
+          <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/70">
+            <small className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400">إيراد الورشة</small>
+            <strong className="mt-1 block text-[13px] font-black tabular-nums text-zinc-950 dark:text-white" data-testid={`operation-card-workshop-revenue-${cardId}`}>{Number(displayedWorkshopAmount || 0).toLocaleString('en-US')} ر.س</strong>
+          </div>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-900 dark:bg-amber-950/25">
+            <small className="block text-[10px] font-black text-amber-700 dark:text-amber-300">مشتريات مرتبطة</small>
+            <strong className="mt-1 block text-[13px] font-black tabular-nums text-amber-900 dark:text-amber-100" data-testid={`operation-card-supplier-total-${cardId}`}>{Number(supplierItemsTotal || 0).toLocaleString('en-US')} ر.س</strong>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-zinc-500 dark:text-zinc-400" data-testid={`operation-card-meta-line-${cardId}`}>
+          <span data-testid={`operation-card-visit-date-${cardId}`}>{formatVisitNumber(visitDisplay, visitDisplay)} · {operationDateText}</span>
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-            onClick={(e) => { stop(e); setExpandedState(!isExpanded); }}
-            data-testid={`operation-card-toggle-${operation.id}`}
+            onClick={(e) => { stop(e); if (hasIntegrityWarning) setShowIntegrityModal(true); }}
+            className={`min-h-[48px] rounded-full px-2.5 text-[11px] font-black ${linkOk ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}
+            data-testid={`operation-card-link-status-${cardId}`}
           >
-            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            <span>{t('common.details') || 'التفاصيل'}</span>
+            {linkOk ? '● الربط سليم' : `⚠ ${integrityWarnings.length} تنبيه`}
           </button>
         </div>
-      </div>
+      </section>
 
-      {isExpanded ? (
-        <div
-          className="relative z-10 px-4 pb-4 pt-1 border-t border-slate-200 dark:border-white/5"
-          data-testid={`operation-card-expanded-${operation.id}`}
-          onClick={stop}
+      <section className="border-t border-zinc-200 bg-white/65 dark:border-zinc-800 dark:bg-zinc-900/30" data-testid={`operation-card-quick-section-${cardId}`}>
+        <button
+          type="button"
+          className="flex min-h-[48px] w-full items-center justify-between px-4 text-[13px] font-black text-zinc-800 dark:text-zinc-100"
+          onClick={(e) => { stop(e); setExpandedState(!isExpanded); }}
+          data-testid={`operation-card-toggle-${cardId}`}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mb-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
-              <div className="text-[10px] text-slate-600 font-bold mb-1">{t('operations.customerName') || t('operations.partner_name') || 'العميل'}</div>
-              <div className="text-xs font-bold text-slate-950 break-words">{customerDisplay}</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
-              <div className="text-[10px] text-slate-600 font-bold mb-1">{t('operations.operationType') || 'نوع العملية'}</div>
-              <div className="text-xs font-bold text-slate-950 break-words">{typeLabel}</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
-              <div className="text-[10px] text-slate-600 font-bold mb-1">{t('operations.operationDateLabel') || t('operations.date') || 'التاريخ'}</div>
-              <div className="text-xs font-bold text-slate-950 break-words">{formatDateTime(operation.date || operation.op_date || operation.createdAt, isRTL)}</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5" data-testid={`operation-card-vehicle-expanded-${operation.id}`}>
-              <div className="text-[10px] text-slate-600 font-bold mb-1">المركبة</div>
-              <div className="text-xs font-bold text-slate-950 break-words">{vehicleDisplay}</div>
-            </div>
-            {integrityStatus ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5" data-testid={`operation-card-integrity-expanded-${operation.id}`}>
-                <div className="text-[10px] text-slate-600 font-bold mb-1">كشف الربط</div>
-                {!hasIntegrityWarning ? (
-                  <div className="text-xs font-bold text-emerald-800">سليم • مرتبط باليومية والزيارة</div>
-                ) : (
-                  <div className="space-y-1">
-                    {integrityWarnings.map((w, idx) => (
-                      <div key={`${operation.id}-integrity-warning-${idx}`} className="text-[11px] text-rose-800 font-semibold break-words" data-testid={`operation-card-integrity-warning-${operation.id}-${idx}`}>
-                        • {integrityLabelMap[w] || w}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
-              <div className="text-[10px] text-slate-600 font-bold mb-1">{t('operations.paymentMethod') || 'طريقة الدفع'}</div>
-              <div className="text-xs font-bold text-slate-950 break-words">{paymentMethodLabel}</div>
-            </div>
-            {hasPaymentStatus ? (
-              <>
-                <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5" data-testid={`operation-card-payment-status-expanded-${operation.id}`}>
-                  <div className="text-[10px] text-slate-600 font-bold mb-1">حالة السداد</div>
-                  <div className="text-xs font-bold text-slate-950 break-words">{paymentStatusLabel}</div>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5" data-testid={`operation-card-total-paid-expanded-${operation.id}`}>
-                  <div className="text-[10px] text-slate-600 font-bold mb-1">المدفوع</div>
-                  <div className="text-xs font-bold text-slate-950 break-words tabular-nums">{totalPaid.toFixed(2)}</div>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5" data-testid={`operation-card-balance-expanded-${operation.id}`}>
-                  <div className="text-[10px] text-slate-600 font-bold mb-1">المتبقي</div>
-                  <div className="text-xs font-bold text-slate-950 break-words tabular-nums">{remainingBalance.toFixed(2)}</div>
-                </div>
-              </>
-            ) : null}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
-              <div className="text-[10px] text-slate-600 font-bold mb-1">{t('operations.account') || 'الحساب'}</div>
-              <div className="text-xs font-bold text-slate-950 break-words">
-                {targetAccountName}
-              </div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5" data-testid={`operation-card-account-class-expanded-${operation.id}`}>
-              <div className="text-[10px] text-slate-600 font-bold mb-1">التصنيف المحاسبي</div>
-              <div className="text-xs font-bold text-slate-950 break-words">{accountClassLabel} {accountCode ? `(${accountCode})` : ''}</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5">
-              <div className="text-[10px] text-slate-600 font-bold mb-1">إيراد الورشة</div>
-              <div className="text-xs font-extrabold text-slate-950 tabular-nums">{Number(displayedWorkshopAmount).toFixed(2)} {t('common.currency') || ''}</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5" data-testid={`operation-card-supplier-total-${operation.id}`}>
-              <div className="text-[10px] text-slate-600 font-bold mb-1">إجمالي بنود الموردين</div>
-              <div className="text-xs font-extrabold text-slate-950 tabular-nums">{Number(supplierItemsTotal).toFixed(2)} {t('common.currency') || ''}</div>
-            </div>
-          </div>
+          <span>معلومات إضافية</span>
+          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
 
-          {editing ? (
-            <div className="mb-3 bg-sky-50 rounded-xl border border-sky-200 p-3 space-y-3" data-testid={`operation-card-edit-meta-${operation.id}`}>
-              <div className="text-xs font-bold text-sky-950">تعديل العميل/المورد والحساب</div>
+        {isExpanded ? (
+          <div className="space-y-3 px-4 pb-4" onClick={stop} data-testid={`operation-card-expanded-${cardId}`}>
+            <div className="grid grid-cols-1 gap-2 text-[12px]">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950" data-testid={`operation-card-reference-${cardId}`}><span className="font-bold text-zinc-500">مرجع العملية</span><strong className="font-mono text-zinc-900 dark:text-zinc-100 truncate">{operationRef}</strong></div>
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-950" data-testid={`operation-card-accounting-treatment-${cardId}`}><span className="font-bold text-zinc-500">المعالجة المحاسبية</span><strong className="text-zinc-900 dark:text-zinc-100">متوقعة عند الترحيل</strong></div>
+            </div>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-amber-900 dark:border-amber-900 dark:bg-amber-950/25 dark:text-amber-100" data-testid={`operation-card-supplier-note-${cardId}`}>
+              مشتريات الموردين مستقلة عن ذمة العميل ولا تدخل في إجمالي الخدمة أو الرصيد المتبقي.
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              className="flex min-h-[48px] w-full items-center justify-between rounded-2xl border border-zinc-200 bg-white px-3 text-[13px] font-black text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+              onClick={() => setShowFullDetails((prev) => !prev)}
+              data-testid={`operation-card-full-details-toggle-${cardId}`}
+            >
+              <span>عرض كامل التفاصيل</span>
+              {showFullDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+
+            {showFullDetails ? (
+              <div className="space-y-4" data-testid={`operation-card-full-details-${cardId}`}>
                 <div>
-                  <label className="text-[10px] text-slate-700 font-bold block mb-1">{isPurchaseOperation ? 'المورد' : 'العميل'}</label>
-                  <input
-                    list={`operation-card-party-list-${operation.id}`}
-                    className="apple-input h-9 text-xs"
-                    value={editMeta.partnerName || ''}
-                    onChange={(e) => {
-                      const nextName = e.target.value;
-                      const matched = (partyOptions || []).find((p) => (p?.name || '') === nextName);
-                      setEditMeta((prev) => ({
-                        ...prev,
-                        partnerName: nextName,
-                        partnerId: matched?.id || '',
-                      }));
-                    }}
-                    placeholder={isPurchaseOperation ? 'اختر أو اكتب اسم المورد' : 'اختر أو اكتب اسم العميل'}
-                    data-testid={`operation-card-edit-partner-${operation.id}`}
-                  />
-                  <datalist id={`operation-card-party-list-${operation.id}`}>
-                    {(partyOptions || []).map((p) => (
-                      <option key={p.id || p.name} value={p.name} />
-                    ))}
-                  </datalist>
+                  <div className="mb-2 text-[12px] font-black text-zinc-800 dark:text-zinc-100">بنود العميل</div>
+                  <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                    <table className="w-full text-[11px]" data-testid={`operation-card-customer-items-table-${cardId}`}>
+                      <thead className="bg-zinc-50 text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400"><tr><th className="p-2 text-right">البند</th><th className="p-2 text-right">الكمية</th><th className="p-2 text-right">السعر</th></tr></thead>
+                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        {workshopItems.length ? workshopItems.map((it, idx) => (
+                          <tr key={`${cardId}-workshop-${it.id || it.name || idx}`} data-testid={`operation-card-customer-item-${cardId}-${idx}`}><td className="p-2 font-bold">{it.name || it.description || '-'}</td><td className="p-2 tabular-nums">{Number(it.quantity || 1)}</td><td className="p-2 tabular-nums">{Number(it.price || 0).toLocaleString('en-US')}</td></tr>
+                        )) : <tr><td colSpan={3} className="p-3 text-center text-zinc-400">لا توجد بنود عميل</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-700 font-bold block mb-1">الحساب</label>
-                  <select
-                    className="apple-input h-9 text-xs"
-                    value={editMeta.accountCode || ''}
-                    onChange={(e) => {
-                      const code = e.target.value;
-                      const selected = (accounts || []).find((acc) => String(acc.code || acc.id || '') === code);
-                      setEditMeta((prev) => ({
-                        ...prev,
-                        accountCode: code,
-                        accountName: selected?.name || prev.accountName || '',
-                      }));
-                    }}
-                    data-testid={`operation-card-edit-account-${operation.id}`}
-                  >
-                    <option value="">اختر الحساب</option>
-                    {(accounts || []).map((acc) => {
-                      const code = String(acc.code || acc.id || '');
-                      return (
-                        <option key={`acc-${code}`} value={code}>
-                          {code} - {acc.name || acc.account_name || code}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  <div className="mb-2 text-[12px] font-black text-zinc-800 dark:text-zinc-100">مشتريات الموردين المرتبطة</div>
+                  <div className="overflow-hidden rounded-2xl border border-amber-200 dark:border-amber-900">
+                    <table className="w-full text-[11px]" data-testid={`operation-card-supplier-items-${cardId}`}>
+                      <thead className="bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200"><tr><th className="p-2 text-right">البند</th><th className="p-2 text-right">الكمية</th><th className="p-2 text-right">التكلفة</th></tr></thead>
+                      <tbody className="divide-y divide-amber-100 dark:divide-amber-900/60">
+                        {supplierItems.length ? supplierItems.map((it, idx) => (
+                          <tr key={`${cardId}-supplier-${it.id || it.name || idx}`} data-testid={`operation-card-supplier-item-${cardId}-${idx}`}><td className="p-2 font-bold">{it.name || it.description || '-'}</td><td className="p-2 tabular-nums">{Number(it.quantity || 1)}</td><td className="p-2 tabular-nums">{Number(it.lineTotal || 0).toLocaleString('en-US')}</td></tr>
+                        )) : <tr><td colSpan={3} className="p-3 text-center text-zinc-400">لا توجد بنود موردين</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-2 text-[11px] font-bold text-amber-800 dark:text-amber-200" data-testid={`operation-card-supplier-section-note-${cardId}`}>الإجمالي {Number(supplierItemsTotal || 0).toLocaleString('en-US')} ر.س — لا يدخل في ذمة العميل.</div>
                 </div>
-              </div>
-            </div>
-          ) : null}
 
-          <div className="mb-3 bg-blue-50 rounded-xl px-3 py-2.5 border border-blue-200" data-testid={`operation-card-journal-entry-box-${operation.id}`}>
-            <div className="text-[10px] text-blue-900 font-bold mb-1 flex items-center gap-1">
-              <Landmark size={12} />
-              <span>القيد المحاسبي</span>
-            </div>
-            <div className="text-xs text-slate-950 font-semibold whitespace-pre-wrap leading-relaxed">{journalEntryText}</div>
-          </div>
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950" data-testid={`operation-card-payment-history-${cardId}`}>
+                  <div className="text-[12px] font-black text-zinc-800 dark:text-zinc-100">سجل التحصيل</div>
+                  <div className="mt-1 flex items-center justify-between text-[12px]"><span className="font-bold text-zinc-500">{totalPaid > 0 ? 'إجمالي الدفعات المسجلة' : 'لا توجد دفعات مسجلة'}</span><strong className="tabular-nums">{totalPaid > 0 ? `${Number(totalPaid).toLocaleString('en-US')} ر.س` : '—'}</strong></div>
+                </div>
 
-          {operation.scope === 'vehicle' && operation.vehicleId ? (
-            <div className="mb-3 bg-sky-50 rounded-xl px-3 py-2.5 border border-sky-200" data-testid={`operation-card-vehicle-details-${operation.id}`}>
-              <div className="text-[10px] text-sky-900 font-bold mb-1">تفاصيل المركبة المرتبطة</div>
-              <div className="text-xs text-slate-950 font-semibold leading-relaxed whitespace-pre-wrap">
-                {vehicle
-                  ? `اللوحة: ${vehicle.plateNumber || vehicle.plate_number || operation.vehiclePlate || '-'} • ${vehicle.brand || operation.vehicleBrand || '-'} ${vehicle.model || operation.vehicleModel || ''} • العميل: ${vehicle.customerName || vehicle.ownerName || operation.customerName || '-'} • رقم الزيارة: ${formatVisitNumber(visitDisplay, visitDisplay)}`
-                  : `${vehicleDisplay} • رقم الزيارة: ${formatVisitNumber(visitDisplay, visitDisplay)}`}
-              </div>
-            </div>
-          ) : null}
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-sky-900 dark:border-sky-900 dark:bg-sky-950/25 dark:text-sky-100" data-testid={`operation-card-journal-entry-box-${cardId}`}>
+                  <strong>المعالجة المحاسبية</strong><br />{journalEntryText || 'لا تظهر كقيد مرحّل إلا بعد تأكيد المحرك المالي لعملية الترحيل.'}
+                </div>
 
-          {operation.notes ? (
-            <div className="mb-3 bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-200">
-              <div className="text-[10px] text-slate-600 font-bold mb-1">{t('common.notes') || 'ملاحظات'}</div>
-              <div className="text-xs text-slate-950 font-semibold whitespace-pre-wrap leading-relaxed">{operationNotesDisplay}</div>
-              {paymentReceiptUrl ? (
-                <a
-                  href={paymentReceiptUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-emerald-400/40 bg-emerald-500/15 px-2 py-1 text-[11px] text-emerald-200"
-                  data-testid={`operation-card-payment-receipt-link-${operation.id}`}
-                >
-                  <Link2 size={12} /> عرض إيصال السداد
-                </a>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-3 py-2.5 flex items-center justify-between border-b border-slate-200 bg-slate-50">
-              <div className="text-xs font-bold text-slate-950">{t('operations.items') || 'البنود'}</div>
-              <div className="text-[10px] text-slate-700 font-bold tabular-nums">
-                إيراد الورشة: {Number(displayedWorkshopAmount).toFixed(2)} {t('common.currency') || ''}
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="text-[10px] text-slate-700 bg-slate-50">
-                  <tr>
-                    <th className="p-2 text-right font-bold">{t('vehicle.itemName') || t('operations.itemName') || 'البند'}</th>
-                    <th className="p-2 text-right font-bold w-[95px]">{t('operations.qty') || t('vehicle.quantity') || 'الكمية'}</th>
-                    <th className="p-2 text-right font-bold w-[105px]">{t('common.price') || t('operations.price') || 'السعر'}</th>
-                    <th className="p-2 text-right font-bold w-[110px]">{t('common.total') || 'الإجمالي'}</th>
-                    {editing ? <th className="p-2 w-[60px]" /> : null}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {(itemsView || []).map((it, idx) => {
-                    const lineTotal = Number(it.quantity || 1) * Number(it.price || 0);
-                    return (
-                      <tr key={`${operation.id}-item-${idx}`}>
-                        <td className="p-2">
-                          {editing ? (
-                            <input
-                              className="apple-input h-8 text-xs"
-                              value={it.name || ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setItemsDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, name: v } : x)));
-                              }}
-                            />
-                          ) : (
-                            <div className="text-slate-950 font-semibold break-words">{it.name || it.description || '-'}</div>
-                          )}
-                        </td>
-                        <td className="p-2">
-                          {editing ? (
-                            <input
-                              type="number"
-                              className="apple-input h-8 text-xs"
-                              value={Number(it.quantity || 1)}
-                              onChange={(e) => {
-                                const v = Number(e.target.value) || 0;
-                                setItemsDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, quantity: v } : x)));
-                              }}
-                            />
-                          ) : (
-                            <div className="text-slate-900 font-semibold tabular-nums">{Number(it.quantity || 1)}</div>
-                          )}
-                        </td>
-                        <td className="p-2">
-                          {editing ? (
-                            <input
-                              type="number"
-                              className="apple-input h-8 text-xs"
-                              value={Number(it.price || 0)}
-                              onChange={(e) => {
-                                const v = Number(e.target.value) || 0;
-                                setItemsDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, price: v } : x)));
-                              }}
-                            />
-                          ) : (
-                            <div className="text-slate-900 font-semibold tabular-nums">{Number(it.price || 0).toFixed(2)}</div>
-                          )}
-                        </td>
-                        <td className="p-2">
-                          <div className="text-slate-950 tabular-nums font-bold">{Number(lineTotal).toFixed(2)}</div>
-                        </td>
-                        {editing ? (
-                          <td className="p-2">
-                            <button
-                              type="button"
-                              className="text-rose-200 hover:text-rose-100"
-                              onClick={() => setItemsDraft((prev) => prev.filter((_, i) => i !== idx))}
-                              title={t('common.delete') || 'حذف'}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        ) : null}
-                      </tr>
-                    );
-                  })}
-
-                  {(itemsView || []).length === 0 ? (
-                    <tr>
-                      <td colSpan={editing ? 5 : 4} className="p-3 text-center text-slate-600 font-semibold text-xs">
-                        {t('operations.noItems') || t('operations.no_items') || '-'}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-
-            {editing ? (
-              <div className="px-3 py-2 border-t border-slate-200 flex justify-end">
-                <button
-                  type="button"
-                  className="apple-button-secondary h-8 px-2.5 text-[11px]"
-                  onClick={() => setItemsDraft((prev) => ([...prev, { name: '', quantity: 1, price: 0 }]))}
-                  disabled={isSaving}
-                >
-                  {t('common.add') || 'إضافة'}
-                </button>
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950" data-testid={`operation-card-audit-line-${cardId}`}>
+                  <div className="text-[12px] font-black text-zinc-800 dark:text-zinc-100">السجل</div>
+                  <div className="mt-1 flex items-center justify-between text-[12px]"><span className="font-bold text-zinc-500">آخر تحديث</span><strong>{formatDateTime(operation.updatedAt || operation.updated_at || operation.createdAt || operation.date, isRTL)}</strong></div>
+                </div>
               </div>
             ) : null}
           </div>
-
-          <div className="mt-3 bg-amber-50 rounded-xl border border-amber-200 overflow-hidden" data-testid={`operation-card-supplier-items-${operation.id}`}>
-            <div className="px-3 py-2.5 flex items-center justify-between border-b border-amber-200">
-              <div className="text-xs font-bold text-amber-950">بنود الموردين (الاسم + السعر)</div>
-              <div className="text-[10px] text-amber-900 font-bold tabular-nums">
-                الإجمالي: {Number(supplierItemsTotal).toFixed(2)} {t('common.currency') || ''}
-              </div>
-            </div>
-
-            <div className="px-3 py-2.5 space-y-2">
-              {supplierItems.length === 0 ? (
-                <div className="text-xs text-slate-700 font-semibold" data-testid={`operation-card-supplier-items-empty-${operation.id}`}>
-                  لا توجد بنود موردين في هذه العملية.
-                </div>
-              ) : (
-                supplierItems.map((item, idx) => (
-                  <div key={`${operation.id}-supplier-item-${idx}`} className="flex items-center justify-between gap-2 text-xs" data-testid={`operation-card-supplier-item-${operation.id}-${idx}`}>
-                    <div className="text-slate-950 font-semibold break-words">
-                      {item.name || item.description || '-'}
-                    </div>
-                    <div className="text-amber-950 font-bold tabular-nums whitespace-nowrap">
-                      {Number(item.price || 0).toFixed(2)} × {Number(item.quantity || 1)} = {Number(item.lineTotal || 0).toFixed(2)} {t('common.currency') || ''}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
-      <div className="relative z-10 px-4 sm:px-5 pb-4" onClick={stop}>
-        {/* Primary CTA: Confirm credit payment (when applicable) */}
-        {canConfirmCreditPayment && typeof onConfirmCreditPayment === 'function' ? (
-          <button
-            type="button"
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:bg-emerald-600 active:scale-[0.99] transition-all"
-            onClick={() => onConfirmCreditPayment(operation)}
-            disabled={isSaving || isDeleting}
-            data-testid={`operation-card-confirm-credit-payment-${operation.id}`}
-          >
-            <CheckCircle2 size={16} />
-            {t('operations.confirm_credit_payment') || 'تأكيد سداد المبلغ المتبقي'}
-          </button>
         ) : null}
+      </section>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2" data-testid={`operation-card-actions-${operation.id}`}>
-          {!editing && canEditOperation ? (
-            <button
-              type="button"
-              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-              onClick={() => {
-                if (typeof onEditInForm === 'function') {
-                  onEditInForm(operation);
-                  return;
-                }
-                setExpandedState(true);
-                setEditing(true);
-              }}
-              disabled={isSaving || isDeleting}
-              data-testid={`operation-card-edit-${operation.id}`}
-            >
-              <Pencil size={12} />
-              {t('common.edit') || 'تعديل'}
-            </button>
-          ) : editing ? (
-            <>
-              <button
-                type="button"
-                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                onClick={async () => {
-                  const ok = await onUpdateItems(operation.id, itemsDraft, editMeta);
-                  if (ok) setEditing(false);
-                }}
-                disabled={isSaving}
-                data-testid={`operation-card-save-edit-${operation.id}`}
-              >
-                <Save size={12} />
-                {isSaving ? (t('common.loading') || '...') : (t('common.save') || 'حفظ')}
-              </button>
-              <button
-                type="button"
-                className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-                onClick={() => {
-                  setEditing(false);
-                  setItemsDraft(Array.isArray(operation.items) ? operation.items.map((it) => ({ ...it })) : []);
-                  setEditMeta({
-                    partnerName: operation.partnerName || operation.customerName || operation.supplierName || '',
-                    partnerId: operation.partnerId || operation.customerId || operation.supplierId || '',
-                    accountCode: operation.accountCode || operation.account || '',
-                    accountName: operation.accountName || operation.account_name || '',
-                  });
-                }}
-                disabled={isSaving}
-                data-testid={`operation-card-cancel-edit-${operation.id}`}
-              >
-                <X size={12} />
-                {t('common.cancel') || 'إلغاء'}
-              </button>
-            </>
-          ) : null}
-
-          <button
-            type="button"
-            className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-            onClick={() => onPrint(operation)}
-            disabled={isSaving || isDeleting}
-            data-testid={`operation-card-print-${operation.id}`}
-          >
-            <Printer size={12} />
-            {t('common.print') || 'طباعة'}
-          </button>
-
-          {operation.vehicleId ? (
-            <button
-              type="button"
-              className="flex flex-1 min-w-[90px] items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-200 dark:hover:bg-white/[0.06] transition-colors"
-              onClick={() => onViewVehicle(operation)}
-              disabled={isSaving || isDeleting}
-              data-testid={`operation-card-view-vehicle-${operation.id}`}
-            >
-              <Eye size={12} />
-              {t('common.view') || 'عرض'}
-            </button>
-          ) : null}
-
-          {canDeleteOperation ? (
-            <button
-              type="button"
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-700 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/60 transition-colors disabled:opacity-50 me-auto"
-              onClick={() => onDelete(operation)}
-              disabled={isDeleting}
-              title={t('common.delete') || 'حذف'}
-              data-testid={`operation-card-delete-${operation.id}`}
-            >
-              <Trash2 size={12} />
-              {isDeleting ? (t('common.loading') || '...') : (t('common.delete') || 'حذف')}
-            </button>
-          ) : null}
-        </div>
+      <div className="relative flex items-center gap-2 border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950" onClick={stop} data-testid={`operation-card-actions-${cardId}`}>
+        <button
+          type="button"
+          className="min-h-[48px] flex-1 rounded-2xl bg-zinc-950 px-4 text-sm font-black text-white shadow-sm transition active:scale-[0.99] disabled:opacity-40 dark:bg-white dark:text-zinc-950"
+          onClick={() => onConfirmCreditPayment && onConfirmCreditPayment(operation)}
+          disabled={!canConfirmCreditPayment || !onConfirmCreditPayment || isSaving || isDeleting}
+          data-testid={`operation-card-confirm-credit-payment-${cardId}`}
+        >
+          تحصيل
+        </button>
+        <button
+          type="button"
+          className="min-h-[48px] w-14 rounded-2xl border border-zinc-200 bg-zinc-50 text-lg font-black text-zinc-800 transition active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+          onClick={() => setShowMoreActions((prev) => !prev)}
+          data-testid={`operation-card-more-actions-${cardId}`}
+          aria-expanded={showMoreActions}
+        >
+          •••
+        </button>
+        {showMoreActions ? (
+          <div className="absolute bottom-[70px] left-3 z-20 w-[210px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950" data-testid={`operation-card-more-menu-${cardId}`}>
+            {canEditOperation ? <button type="button" className="flex min-h-[48px] w-full items-center gap-2 px-3 text-right text-[12px] font-black hover:bg-zinc-50 dark:hover:bg-zinc-900" onClick={() => { setShowMoreActions(false); if (typeof onEditInForm === 'function') onEditInForm(operation); else { setExpandedState(true); setEditing(true); } }} disabled={isSaving || isDeleting} data-testid={`operation-card-edit-${cardId}`}><Pencil size={14} /> تعديل</button> : null}
+            <button type="button" className="flex min-h-[48px] w-full items-center gap-2 px-3 text-right text-[12px] font-black hover:bg-zinc-50 dark:hover:bg-zinc-900" onClick={() => { setShowMoreActions(false); onPrint(operation); }} disabled={isSaving || isDeleting} data-testid={`operation-card-print-${cardId}`}><Printer size={14} /> طباعة</button>
+            {operation.vehicleId && typeof onViewVehicle === 'function' ? <button type="button" className="flex min-h-[48px] w-full items-center gap-2 px-3 text-right text-[12px] font-black hover:bg-zinc-50 dark:hover:bg-zinc-900" onClick={() => { setShowMoreActions(false); onViewVehicle(operation); }} disabled={isSaving || isDeleting} data-testid={`operation-card-view-vehicle-${cardId}`}><Car size={14} /> ملف المركبة</button> : null}
+            {canDeleteOperation ? <button type="button" className="flex min-h-[48px] w-full items-center gap-2 px-3 text-right text-[12px] font-black text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/30" onClick={() => { setShowMoreActions(false); onDelete(operation); }} disabled={isSaving || isDeleting} data-testid={`operation-card-delete-${cardId}`}><Trash2 size={14} /> حذف</button> : null}
+          </div>
+        ) : null}
       </div>
 
-      {/* ===== INTEGRITY WARNING MODAL ===== */}
-      {showIntegrityModal && hasIntegrityWarning ? (
+      {showIntegrityModal ? (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 px-3"
+          data-testid={`operation-card-integrity-modal-${cardId}`}
           onClick={(e) => { e.stopPropagation(); setShowIntegrityModal(false); }}
-          data-testid={`operation-card-integrity-modal-${operation.id}`}
         >
-          <div
-            className="w-full max-w-md rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-2xl border border-rose-200 dark:border-rose-900 p-5"
-            onClick={(e) => e.stopPropagation()}
-            dir={isRTL ? 'rtl' : 'ltr'}
-          >
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h3 className="text-lg font-extrabold text-rose-700 dark:text-rose-300 flex items-center gap-2">
-                <AlertTriangle size={20} />
-                تنبيهات الربط والسلامة
-              </h3>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setShowIntegrityModal(false); }}
-                className="rounded-lg p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                data-testid={`operation-card-integrity-modal-close-${operation.id}`}
-                aria-label="إغلاق"
-              >
-                <X size={18} />
-              </button>
+          <div className="w-full max-w-md rounded-3xl border border-rose-200 bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-rose-700 font-extrabold"><AlertTriangle size={18} /> تنبيهات ربط العملية</div>
+                <p className="mt-1 text-xs text-slate-600">هذه التنبيهات لا تغيّر الأرقام، لكنها تساعد على مراجعة مصدر العملية.</p>
+              </div>
+              <button type="button" className="h-12 w-12 rounded-full bg-slate-100 text-slate-700" onClick={() => setShowIntegrityModal(false)} data-testid={`operation-card-integrity-modal-close-${cardId}`}><X size={16} /></button>
             </div>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">
-              ⚠️ تم اكتشاف {integrityWarnings.length} مشكلة في ربط هذه العملية. يُنصح بمراجعتها أو تعديلها لضمان سلامة السجلات المحاسبية:
-            </p>
-            <ul className="space-y-2">
-              {integrityWarnings.map((w, idx) => (
-                <li
-                  key={`${operation.id}-modal-warning-${idx}`}
-                  className="flex items-start gap-2 rounded-lg border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30 px-3 py-2.5"
-                  data-testid={`operation-card-integrity-modal-warning-${operation.id}-${idx}`}
-                >
-                  <span className="text-rose-600 font-bold mt-0.5">•</span>
-                  <span className="text-sm font-semibold text-rose-900 dark:text-rose-200 break-words">
-                    {integrityLabelMap[w] || w}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setShowIntegrityModal(false); }}
-                className="rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 text-sm font-bold hover:opacity-90 transition-opacity"
-                data-testid={`operation-card-integrity-modal-ok-${operation.id}`}
-              >
-                فهمت
-              </button>
+            <div className="mt-4 space-y-2">
+              {integrityWarnings.map((warning, idx) => <div key={`${cardId}-integrity-modal-${idx}`} className="rounded-2xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-800" data-testid={`operation-card-integrity-modal-warning-${cardId}-${idx}`}>{integrityLabelMap[warning] || warning}</div>)}
             </div>
+            <button type="button" className="mt-4 min-h-[48px] w-full rounded-2xl bg-slate-950 text-sm font-black text-white" onClick={() => setShowIntegrityModal(false)} data-testid={`operation-card-integrity-modal-ok-${cardId}`}>حسناً</button>
           </div>
         </div>
       ) : null}
-
-    </div>
+    </article>
   );
 }
