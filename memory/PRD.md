@@ -1,3 +1,10 @@
+## P0 2026-08-08 — Existing Unification Completion Guards
+- تم اعتماد `backend/core/accounting_engine.py` كـ Accounting SSOT الحالي دون إنشاء أي Engine جديد، وتنفيذ Cleanup حول المسارات القديمة فقط: منع direct journal fallback في `_safe_insert_journal_entry`, منع نجاح visit sync عند فشل journal sync، ومنع staging committed عند فشل قاعدة البيانات الأساسية في Action Runtime.
+- تم تصحيح Provenance Rule لكاترينا: التفريق بين `EXISTING_RECORD_ACTION` و`NEW_RECORD_ACTION`، وتوثيق حقول المسودة (`draft_id`, `approval_id`, `action_type`, `requested_by`, `original_input`, `validated_payload`, `trace_id`, `entry_channel`, `risk_level`) وتصنيف المصدر (`USER_DRAFT`, `SYSTEM_DRAFT`, `AI_SUGGESTION`, `TEST_ARTIFACT`).
+- تم عزل أثر 410 كرابط اختبار فقط: `draft_id=2aaba37afc70`, `approval_id=e64a52362b6c`, `trace_id=tr-67d57b89933e`, التصنيف `TEST_ARTIFACT`, والأثر المالي `NONE`، وتم رفضه وإزالته من قائمة الاعتمادات المعلقة بعد audit.
+- تم تشديد مسار سداد الموردين: لا ينجح إذا جدول الموردين غير متاح، ولا يعتبر القيد مرسلاً إلا إذا نجح `AccountingEngine.post_entry(..., fallback=False)`.
+- التحقق: lint ناجح للملفات المعدلة، self-tests ناجحة (`/api/health`, ملخص المركبة `unified-v1`, AR Customers 13,475.84، و410 غير قابل للاعتماد)، واختبار مستقل `iteration_331` ناجح 100% backend (14/14). ملاحظة متبقية: CORS preflight في طبقة preview edge ما زال يطبع wildcard، بينما backend نفسه مضبوط على credentialed explicit origins.
+
 ## P1 Refactor 2026-08-08 — استخراج بطاقات المركبة والعميل
 - تم استخراج بطاقتي معلومات المركبة والعميل من `VehicleDetails.jsx` إلى مكوّن مستقل جديد: `/app/frontend/src/components/vehicle-details/VehicleCustomerInfoCards.jsx`، ويحتوي على `VehicleInfoCard`, `CustomerInfoCard`, و`VehicleCustomerInfoCards`.
 - تم الحفاظ على نفس وظائف الفتح/الإخفاء والتحرير وحقول الإدخال وأزرار الحفظ و`data-testid` الأساسية، بدون تعديل منطق الحفظ أو البيانات.
