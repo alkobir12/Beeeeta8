@@ -1,3 +1,10 @@
+## P1 2026-08-08 — Katrina Control Center UI + Approval Provenance
+- تم تنفيذ Katrina bottom sheet mobile-first بحد أقصى `480px` وارتفاع `90dvh` ودعم safe-area، مع أربع تبويبات: `يحتاج قرارك`, `اكتشفته كاترينا`, `تم بواسطة كاترينا`, `المحادثة`، وأهداف لمس 48px للتبويبات وأزرار الاعتماد/الرفض.
+- بطاقات الاعتماد تعرض حقول provenance المطلوبة: نوع العملية، المبلغ المشروط بوجود provenance، العميل/الجهة، المركبة، منشئ الطلب، وقت الطلب، قناة الإدخال، طريقة الدفع، المصدر/المرجع، البيان، والأثر المالي المتوقع. TEST_ARTIFACT يظهر كمسار غير قابل للتنفيذ، وexisting-record actions تعرض مصدر السجل/فتح العملية الأصلية، بينما new-record actions تعرض draft provenance دون اشتراط سجل PostgreSQL سابق.
+- لم يتم تعديل AccountingEngine أو إضافة منطق مالي لكاترينا؛ بقيت الحدود: `AccountingEngine = SSOT`, `UnifiedExecutor = orchestration`, `ActionRuntime = draft/approval/audit`. تم فقط إثراء API approvals/executions بحقوق provenance للعرض.
+- تم إصلاح جلب بيانات مركز كاترينا ليتعامل مع شكل response في Axios/fetch، مع fallback آمن لعرض approvals، واستخدام مسارات relative لتقليل مشاكل CORS في الواجهة.
+- التحقق: lint JS ناجح، Jest static `katrina-control-center-static.test.js` = 2/2 passed، backend `iter331` = 20/20، `decimal_prd_v1_1` = 58/58، Testing Agent `iteration_333` = backend 78/78 وfrontend mobile smoke 320/390/430 = PASS. لقطات 320/390/430 التُقطت ببيانات pending مؤقتة ثم تم رفضها/تنظيفها؛ لا توجد pending demo approvals متبقية.
+
 ## P0 2026-08-08 — Hardening Existing Unified Architecture PASS
 - Feature development frozen مؤقتاً وتم تنفيذ P0 فقط بدون إنشاء Engine جديد أو إعادة تصميم محاسبي. `backend/core/accounting_engine.py` بقي Accounting SSOT، وتم استخراج shared adapter فقط في `backend/core/operation_journal_adapter.py` لكسر دورة import بين `routes_extended.py` و`visit_sync.py` مع الحفاظ على نفس منطق بناء القيود.
 - تم إغلاق direct journal bypass: لا توجد `.insert/.delete/.upsert/delete_many/insert_one` على `journal_entries` خارج `core/accounting_engine.py` حسب فحص backend scan. الحذف القديم تحوّل إلى `AccountingEngine.reverse_entry()` أو تم تعطيل legacy reset endpoints بـ410.
