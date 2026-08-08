@@ -35,15 +35,46 @@ const buildAuthHeaders = () => {
     return {};
   }
 };
+const xhrApiJson = (pathWithQuery) => new Promise((resolve, reject) => {
+  if (typeof window === 'undefined') {
+    reject(new Error('xhr_unavailable'));
+    return;
+  }
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `/api${pathWithQuery}`, true);
+    xhr.withCredentials = false;
+    const headers = buildAuthHeaders();
+    Object.entries(headers).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText || 'null')); }
+        catch (e) { reject(e); }
+      } else {
+        reject(new Error(`xhr-api-${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('xhr_network_error'));
+    xhr.onabort = () => reject(new Error('xhr_aborted'));
+    xhr.send();
+  } catch (error) {
+    reject(error);
+  }
+});
 const fetchApiJson = async (pathWithQuery) => {
   const options = { cache: 'no-store', credentials: 'omit', headers: buildAuthHeaders() };
   const canUseSameOrigin = typeof window !== 'undefined' && (() => {
     try { return new URL(API_URL, window.location.origin).origin === window.location.origin; } catch (e) { return false; }
   })();
   if (canUseSameOrigin) {
-    const res = await fetch(`/api${pathWithQuery}`, options);
-    if (!res.ok) throw new Error(`relative-api-fetch-${res.status}`);
-    return res.json();
+    try {
+      const res = await fetch(`/api${pathWithQuery}`, options);
+      if (!res.ok) throw new Error(`relative-api-fetch-${res.status}`);
+      return res.json();
+    } catch (error) {
+      return xhrApiJson(pathWithQuery);
+    }
   }
   try {
     const res = await fetch(`${API_URL}${pathWithQuery}`, options);
@@ -51,9 +82,13 @@ const fetchApiJson = async (pathWithQuery) => {
     return res.json();
   } catch (error) {
     if (typeof window !== 'undefined') {
-      const res = await fetch(`/api${pathWithQuery}`, options);
-      if (!res.ok) throw new Error(`relative-api-fetch-${res.status}`);
-      return res.json();
+      try {
+        const res = await fetch(`/api${pathWithQuery}`, options);
+        if (!res.ok) throw new Error(`relative-api-fetch-${res.status}`);
+        return res.json();
+      } catch (relativeError) {
+        return xhrApiJson(pathWithQuery);
+      }
     }
     throw error;
   }
