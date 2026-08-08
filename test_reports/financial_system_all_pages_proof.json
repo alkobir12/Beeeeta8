@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-07T22:21:02.602331+00:00",
+  "generated_at": "2026-08-08T08:19:59.872799+00:00",
   "backend": "https://ar-ledger-ssot.preview.emergentagent.com",
   "sample_vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
   "expected_total": 13475.84,
@@ -40,7 +40,7 @@
   "checks": {
     "ar_customers": {
       "status": 200,
-      "elapsed_seconds": 1.82,
+      "elapsed_seconds": 1.78,
       "payload": {
         "success": true,
         "data": {
@@ -519,7 +519,7 @@
     },
     "ar_ledger": {
       "status": 200,
-      "elapsed_seconds": 1.83,
+      "elapsed_seconds": 1.79,
       "payload": {
         "success": true,
         "data": {
@@ -667,7 +667,7 @@
     },
     "ar_layers": {
       "status": 200,
-      "elapsed_seconds": 2.86,
+      "elapsed_seconds": 2.83,
       "payload": {
         "success": true,
         "data": {
@@ -744,7 +744,7 @@
     },
     "vehicle_financial_summary": {
       "status": 200,
-      "elapsed_seconds": 1.29,
+      "elapsed_seconds": 1.28,
       "payload": {
         "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
         "customer_name": "عاصم التويجري",
@@ -794,7 +794,7 @@
     },
     "dashboard_summaries": {
       "status": 200,
-      "elapsed_seconds": 0.38,
+      "elapsed_seconds": 0.35,
       "payload": {
         "summaries": [
           {
@@ -808,7 +808,7 @@
     },
     "operations": {
       "status": 200,
-      "elapsed_seconds": 2.0,
+      "elapsed_seconds": 1.96,
       "payload": [
         {
           "id": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
@@ -1725,7 +1725,7 @@
     },
     "journal_entries": {
       "status": 200,
-      "elapsed_seconds": 1.66,
+      "elapsed_seconds": 1.67,
       "payload": {
         "success": true,
         "data": [
@@ -2955,7 +2955,7 @@
     },
     "customers": {
       "status": 200,
-      "elapsed_seconds": 4.2,
+      "elapsed_seconds": 4.26,
       "payload": [
         {
           "id": "3dc233b6-6239-4d0c-90a5-67aee0ede9b7",
