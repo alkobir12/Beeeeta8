@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Calculator, CheckCircle2, CreditCard, FileSearch, Plus, Wallet } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 const formatMoney = (value) => {
   const n = Number(value || 0);
@@ -13,201 +12,175 @@ const formatMoney = (value) => {
   }
 };
 
-const MiniMetric = ({ title, value, tone = 'slate', testId }) => {
-  const tones = {
-    teal: { bg: 'rgba(20,184,166,0.11)', border: 'rgba(20,184,166,0.24)', text: 'rgba(153,246,228,0.96)' },
-    emerald: { bg: 'rgba(16,185,129,0.10)', border: 'rgba(16,185,129,0.22)', text: 'rgba(167,243,208,0.96)' },
-    rose: { bg: 'rgba(244,63,94,0.10)', border: 'rgba(244,63,94,0.22)', text: 'rgba(254,202,202,0.96)' },
-    amber: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)', text: 'rgba(253,230,138,0.96)' },
-    sky: { bg: 'rgba(56,189,248,0.10)', border: 'rgba(56,189,248,0.22)', text: 'rgba(186,230,253,0.96)' },
-    slate: { bg: 'rgba(255,255,255,0.06)', border: 'rgba(148,163,184,0.20)', text: 'rgba(226,232,240,0.92)' },
-  };
-  const c = tones[tone] || tones.slate;
-  return (
-    <div
-      className="dash-widget-shell"
-      style={{
-        background: `radial-gradient(circle at 12% 18%, ${c.bg}, transparent 55%), rgba(255,255,255,0.06)`,
-        border: `1px solid ${c.border}`,
-        boxShadow: '0 18px 60px rgba(2,6,23,0.45)',
-        padding: 14,
-      }}
-      data-testid={testId}
-    >
-      <div className="text-[11px] sm:text-xs font-semibold" style={{ color: 'rgba(226,232,240,0.72)' }} data-testid={`${testId}-title`}>
-        {title}
-      </div>
-      <div className="mt-2 text-xl sm:text-3xl font-black tabular-nums" style={{ color: c.text }} data-testid={`${testId}-value`}>
-        {formatMoney(value)} <span className="text-xs font-medium" style={{ color: 'rgba(226,232,240,0.65)' }}>ر.س</span>
-      </div>
-    </div>
-  );
+const cardStyles = {
+  wrap: { maxWidth: 430, margin: 'auto', direction: 'rtl' },
+  title: { color: '#344054', fontWeight: 800, fontSize: 19, margin: '0 5px 12px' },
+  card: { background: 'linear-gradient(180deg,#18263d,#142136)', borderRadius: 28, padding: 22, boxShadow: '0 18px 45px #1c294333', color: '#fff' },
+  cap: { fontSize: 12, color: '#9aa8ba' },
+  amount: { fontSize: 42, fontWeight: 850, margin: '5px 0 18px', lineHeight: 1.1 },
+  amountUnit: { fontSize: 14, color: '#aab5c4' },
+  rows: { borderTop: '1px solid #ffffff14', borderBottom: '1px solid #ffffff14' },
+  row: { display: 'flex', justifyContent: 'space-between', gap: 15, padding: '15px 2px', borderBottom: '1px solid #ffffff0e' },
+  rowLabel: { color: '#aeb9c8', fontSize: 13 },
+  rowValue: { fontSize: 15 },
+  paid: { display: 'flex', justifyContent: 'space-between', margin: '15px 0 0', padding: 14, borderRadius: 16, background: '#ffffff0a' },
+  paidLabel: { color: '#aeb9c8' },
+  actions: { display: 'grid', gap: 10, marginTop: 18 },
+  button: { minHeight: 55, borderRadius: 17, fontSize: 15, fontWeight: 800, cursor: 'pointer', transition: 'transform 160ms ease, opacity 160ms ease' },
+  pay: { background: '#1c3c4a', color: '#bdfaff', border: '1px solid #26cdd45c' },
+  finish: { background: '#1e493f', color: '#d9fff2', border: '1px solid #36d49a5c' },
+  details: { background: '#ffffff0a', color: '#eef2f7', border: '1px solid #ffffff1c' },
+  final: { background: '#fff', color: '#172033', borderRadius: 24, padding: 20, marginTop: 16, boxShadow: '0 14px 35px #1c294322' },
+  finalTitle: { fontSize: 18, margin: '0 0 5px', fontWeight: 800 },
+  finalText: { fontSize: 12, color: '#7b8493', margin: '0 0 16px' },
+  finalRow: { display: 'flex', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid #edf0f3', gap: 12 },
+  finalRowLabel: { color: '#7a8493' },
+  finalRowValue: { fontSize: 16 },
+  hint: { color: '#667085', fontSize: 11, lineHeight: 1.7, marginTop: 10 },
+  input: { width: '100%', height: 58, border: '1px solid #dce2e9', borderRadius: 15, padding: '0 14px', fontSize: 25, fontWeight: 800, margin: '10px 0', textAlign: 'right', outline: 'none' },
+  result: { background: '#f4f7fa', borderRadius: 15, padding: 14, margin: '8px 0 14px', display: 'flex', justifyContent: 'space-between', gap: 12 },
+  approve: { width: '100%', background: '#7c3aed', color: '#fff', border: 0 },
 };
 
-export default function VehicleFinancialSummary({ summary, onShowSource, onAddPayment, onConfirmPayment }) {
+export default function VehicleFinancialSummary({
+  summary,
+  vehicle,
+  onShowSource,
+  onAddPayment,
+  onFinalizeTotal,
+}) {
   const s = summary || {};
-  const serviceTotal = Number(s.total_workshop || 0);
+  const serviceTotal = Number(s.total_workshop ?? s.workshop_service_total ?? 0);
   const supplierPreview = Number(s.supplier_archive_total ?? s.parts_charge_total ?? s.total_suppliers ?? 0);
-  const hasFinalTotal = s.final_customer_total !== null && s.final_customer_total !== undefined && s.final_customer_total !== '';
-  const customerTotal = Number(hasFinalTotal ? s.final_customer_total : (s.current_customer_due ?? s.customer_total ?? s.total_items ?? s.total_amount ?? serviceTotal));
+  const itemsTotal = useMemo(() => serviceTotal + supplierPreview, [serviceTotal, supplierPreview]);
   const confirmedPaid = Number(s.confirmed_paid ?? s.total_paid ?? 0);
-  const appliedPaid = Number(s.applied_paid ?? Math.min(confirmedPaid, customerTotal));
-  const remaining = Number(s.display_remaining ?? s.balance ?? Math.max(customerTotal - appliedPaid, 0));
-  const customerCredit = Number(s.customer_credit ?? s.customer_advance_liability ?? Math.max(confirmedPaid - customerTotal, 0));
-  const pendingPayment = Number(s.pending_payment_total || 0);
-  const [quickPaymentOpen, setQuickPaymentOpen] = useState(false);
-  const [quickPayment, setQuickPayment] = useState({ amount: '', method: 'cash' });
+  const hasFinalTotal = s.final_customer_total !== null && s.final_customer_total !== undefined && s.final_customer_total !== '';
+  const currentFinalTotal = Number(hasFinalTotal ? s.final_customer_total : itemsTotal);
+  const [showFinal, setShowFinal] = useState(false);
+  const [finalTotalInput, setFinalTotalInput] = useState(String(currentFinalTotal || ''));
+  const [savingFinal, setSavingFinal] = useState(false);
 
-  const submitQuickPayment = () => {
-    const amount = Number(quickPayment.amount);
-    if (!Number.isFinite(amount) || amount <= 0) return;
-    onAddPayment?.({ amount, method: quickPayment.method || 'cash' });
-    setQuickPayment({ amount: '', method: quickPayment.method || 'cash' });
-    setQuickPaymentOpen(false);
+  useEffect(() => {
+    setFinalTotalInput(String(currentFinalTotal || ''));
+    setShowFinal(Boolean(hasFinalTotal || String(vehicle?.status || '').toLowerCase() === 'delivered'));
+  }, [currentFinalTotal, hasFinalTotal, vehicle?.status]);
+
+  const finalTotalValue = Number(finalTotalInput || 0);
+  const remaining = Math.max((Number.isFinite(finalTotalValue) ? finalTotalValue : 0) - confirmedPaid, 0);
+  const canApprove = Number.isFinite(finalTotalValue) && finalTotalValue >= 0 && !savingFinal;
+
+  const approveFinalTotal = async () => {
+    if (!canApprove) return;
+    try {
+      setSavingFinal(true);
+      await onFinalizeTotal?.({
+        finalCustomerTotal: finalTotalValue,
+        previousServiceTotal: serviceTotal,
+      });
+    } finally {
+      setSavingFinal(false);
+    }
   };
 
   return (
-    <div className="space-y-3" data-testid="vehicle-financial-summary-layout">
-      <div
-        className="dash-widget-shell overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(15,23,42,0.94), rgba(17,24,39,0.88)), radial-gradient(circle at 12% 18%, rgba(45,212,191,0.18), transparent 42%)',
-          border: '1px solid rgba(45,212,191,0.22)',
-          boxShadow: '0 18px 60px rgba(2,6,23,0.55)',
-          padding: 16,
-        }}
-        data-testid="vehicle-financial-summary-customer-total-card"
-      >
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'rgba(153,246,228,0.9)' }}>
-              <Calculator size={16} />
-              <span data-testid="vehicle-financial-summary-customer-total-title">{hasFinalTotal ? 'الإجمالي النهائي' : 'المستحق الحالي'}</span>
-            </div>
-            <div
-              className="mt-2 text-3xl sm:text-5xl font-black tabular-nums leading-tight break-words"
-              style={{ color: 'rgba(240,253,250,0.98)' }}
-              data-testid="vehicle-financial-summary-customer-total-value"
-            >
-              {formatMoney(customerTotal)} <span className="text-sm font-medium" style={{ color: 'rgba(226,232,240,0.68)' }}>ر.س</span>
-            </div>
-            <div className="mt-2 text-xs" style={{ color: 'rgba(226,232,240,0.68)' }} data-testid="vehicle-financial-summary-customer-total-formula">
-              {hasFinalTotal ? 'الإجمالي النهائي المعتمد عند التسليم' : 'المستحق الحالي = خدمات الورشة فقط'}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs leading-relaxed" data-testid="vehicle-financial-summary-customer-total-breakdown">
-              <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(226,232,240,0.86)' }} data-testid="vehicle-financial-summary-service-chip">
-                خدمات الورشة: {formatMoney(serviceTotal)} ر.س
-              </span>
-              <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(226,232,240,0.86)' }} data-testid="vehicle-financial-summary-parts-chip">
-                مشتريات الموردين للمعاينة: {formatMoney(supplierPreview)} ر.س
-              </span>
-              {hasFinalTotal && <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(20,184,166,0.12)', color: 'rgba(153,246,228,0.95)' }} data-testid="vehicle-financial-summary-finalized-chip">معتمد</span>}
-            </div>
+    <div style={cardStyles.wrap} data-testid="vehicle-financial-summary-layout">
+      <div style={cardStyles.title} data-testid="vehicle-financial-summary-title">الملخص المالي</div>
+      <div style={cardStyles.card} data-testid="vehicle-financial-summary-card">
+        <div style={cardStyles.cap} data-testid="vehicle-financial-summary-items-total-label">إجمالي البنود</div>
+        <div style={cardStyles.amount} data-testid="vehicle-financial-summary-items-total-value">
+          {formatMoney(itemsTotal)} <small style={cardStyles.amountUnit}>ر.س</small>
+        </div>
+
+        <div style={cardStyles.rows} data-testid="vehicle-financial-summary-breakdown-rows">
+          <div style={cardStyles.row} data-testid="vehicle-financial-summary-workshop-service-row">
+            <span style={cardStyles.rowLabel}>خدمات الورشة</span>
+            <b style={cardStyles.rowValue} data-testid="vehicle-financial-summary-workshop-service-value">{formatMoney(serviceTotal)} ر.س</b>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-col gap-2 lg:min-w-[210px]">
-            <button
-              type="button"
-              onClick={() => setQuickPaymentOpen(true)}
-              className="min-h-11 rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
-              style={{ background: 'rgba(20,184,166,0.14)', border: '1px solid rgba(20,184,166,0.28)', color: 'rgba(153,246,228,0.95)' }}
-              data-testid="vehicle-financial-summary-add-payment-button"
-            >
-              <Plus size={14} /> إضافة دفعة
-            </button>
-            <button
-              type="button"
-              onClick={() => onConfirmPayment?.()}
-              className="min-h-11 rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
-              style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.30)', color: 'rgba(187,247,208,0.95)' }}
-              data-testid="vehicle-financial-summary-confirm-payment-button"
-            >
-              <CheckCircle2 size={14} /> تأكيد السداد
-            </button>
-            <button
-              type="button"
-              onClick={() => onShowSource?.('display_total')}
-              className="min-h-11 rounded-xl px-4 py-2.5 text-xs font-bold inline-flex items-center justify-center gap-2 transition-transform active:scale-95"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(148,163,184,0.22)', color: 'rgba(226,232,240,0.9)' }}
-              data-testid="vehicle-financial-summary-details-sources-button"
-            >
-              <FileSearch size={14} /> عرض التفاصيل والمصادر
-            </button>
+          <div style={{ ...cardStyles.row, borderBottom: 0 }} data-testid="vehicle-financial-summary-supplier-preview-row">
+            <span style={cardStyles.rowLabel}>مشتريات الموردين</span>
+            <b style={cardStyles.rowValue} data-testid="vehicle-financial-summary-supplier-preview-value">{formatMoney(supplierPreview)} ر.س</b>
           </div>
         </div>
 
-        {quickPaymentOpen && (
-          <div
-            className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_auto] gap-2"
-            data-testid="vehicle-financial-summary-quick-payment-form"
+        <div style={cardStyles.paid} data-testid="vehicle-financial-summary-confirmed-paid-row">
+          <span style={cardStyles.paidLabel}>المدفوع المؤكد</span>
+          <b data-testid="vehicle-financial-summary-confirmed-paid-value">{formatMoney(confirmedPaid)} ر.س</b>
+        </div>
+
+        <div style={cardStyles.actions} data-testid="vehicle-financial-summary-actions">
+          <button
+            type="button"
+            style={{ ...cardStyles.button, ...cardStyles.pay }}
+            onClick={() => onAddPayment?.({ amount: '', method: 'cash' })}
+            data-testid="vehicle-financial-summary-add-payment-button"
           >
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={quickPayment.amount}
-              onChange={(event) => setQuickPayment((prev) => ({ ...prev, amount: event.target.value }))}
-              className="min-h-11 rounded-xl px-3 py-2 text-sm sm:text-xs outline-none"
-              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(148,163,184,0.24)', color: 'rgba(240,253,250,0.96)' }}
-              placeholder="قيمة الدفعة"
-              data-testid="vehicle-financial-summary-quick-payment-amount-input"
-            />
-            <select
-              value={quickPayment.method}
-              onChange={(event) => setQuickPayment((prev) => ({ ...prev, method: event.target.value }))}
-              className="min-h-11 rounded-xl px-3 py-2 text-sm sm:text-xs outline-none"
-              style={{ background: 'rgba(15,23,42,0.82)', border: '1px solid rgba(148,163,184,0.24)', color: 'rgba(240,253,250,0.96)' }}
-              data-testid="vehicle-financial-summary-quick-payment-method-select"
-            >
-              <option value="cash">نقد</option>
-              <option value="bank_transfer">تحويل/بنك</option>
-              <option value="pos">نقاط بيع</option>
-            </select>
-            <button
-              type="button"
-              onClick={submitQuickPayment}
-              className="min-h-11 rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95 disabled:opacity-50"
-              style={{ background: 'rgba(20,184,166,0.18)', border: '1px solid rgba(20,184,166,0.32)', color: 'rgba(153,246,228,0.96)' }}
-              disabled={!Number.isFinite(Number(quickPayment.amount)) || Number(quickPayment.amount) <= 0}
-              data-testid="vehicle-financial-summary-quick-payment-save-button"
-            >
-              حفظ وتأكيد الدفعة
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuickPaymentOpen(false)}
-              className="min-h-11 rounded-xl px-4 py-2 text-xs font-bold transition-transform active:scale-95"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(148,163,184,0.20)', color: 'rgba(226,232,240,0.86)' }}
-              data-testid="vehicle-financial-summary-quick-payment-cancel-button"
-            >
-              إلغاء
-            </button>
+            ＋ إضافة دفعة
+          </button>
+          <button
+            type="button"
+            style={{ ...cardStyles.button, ...cardStyles.finish }}
+            onClick={() => setShowFinal(true)}
+            data-testid="vehicle-financial-summary-finish-pricing-button"
+          >
+            ✓ إنهاء وتسعير المركبة
+          </button>
+          <button
+            type="button"
+            style={{ ...cardStyles.button, ...cardStyles.details }}
+            onClick={() => onShowSource?.('display_total')}
+            data-testid="vehicle-financial-summary-details-sources-button"
+          >
+            ▧ عرض التفاصيل والمصادر
+          </button>
+        </div>
+      </div>
+
+      {showFinal && (
+        <div style={cardStyles.final} data-testid="vehicle-financial-summary-final-settlement-panel">
+          <h2 style={cardStyles.finalTitle} data-testid="vehicle-financial-summary-final-title">التسوية النهائية</h2>
+          <p style={cardStyles.finalText} data-testid="vehicle-financial-summary-final-description">تظهر هذه المرحلة فقط عند إنهاء المركبة.</p>
+
+          <div style={cardStyles.finalRow} data-testid="vehicle-financial-summary-final-items-total-row">
+            <span style={cardStyles.finalRowLabel}>إجمالي البنود</span>
+            <strong style={cardStyles.finalRowValue} data-testid="vehicle-financial-summary-final-items-total-value">{formatMoney(itemsTotal)} ر.س</strong>
           </div>
-        )}
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3" data-testid="vehicle-financial-summary-core-grid">
-        <MiniMetric title="المدفوع المؤكد" value={confirmedPaid} tone="emerald" testId="vehicle-financial-summary-confirmed-paid" />
-        <MiniMetric title="المتبقي على العميل" value={remaining} tone={remaining > 0 ? 'rose' : 'teal'} testId="vehicle-financial-summary-customer-remaining" />
-      </div>
+          <label style={cardStyles.hint} htmlFor="vehicle-final-customer-total" data-testid="vehicle-financial-summary-final-input-label">الإجمالي النهائي للعميل</label>
+          <input
+            id="vehicle-final-customer-total"
+            type="number"
+            min="0"
+            step="0.01"
+            value={finalTotalInput}
+            onChange={(event) => setFinalTotalInput(event.target.value)}
+            style={cardStyles.input}
+            data-testid="vehicle-financial-summary-final-customer-total-input"
+          />
 
-      {(customerCredit > 0 || pendingPayment > 0) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3" data-testid="vehicle-financial-summary-conditional-grid">
-          {customerCredit > 0 && (
-            <MiniMetric title="رصيد العميل" value={customerCredit} tone="sky" testId="vehicle-financial-summary-customer-credit" />
-          )}
-          {pendingPayment > 0 && (
-            <MiniMetric title="دفعة بانتظار التأكيد" value={pendingPayment} tone="amber" testId="vehicle-financial-summary-pending-payment" />
-          )}
+          <div style={cardStyles.finalRow} data-testid="vehicle-financial-summary-final-paid-row">
+            <span style={cardStyles.finalRowLabel}>المدفوع المؤكد</span>
+            <strong style={cardStyles.finalRowValue} data-testid="vehicle-financial-summary-final-paid-value">{formatMoney(confirmedPaid)} ر.س</strong>
+          </div>
+
+          <div style={cardStyles.result} data-testid="vehicle-financial-summary-final-remaining-row">
+            <span>المتبقي على العميل</span>
+            <strong data-testid="vehicle-financial-summary-final-remaining-value">{formatMoney(remaining)} ر.س</strong>
+          </div>
+
+          <button
+            type="button"
+            style={{ ...cardStyles.button, ...cardStyles.approve, opacity: canApprove ? 1 : 0.6 }}
+            onClick={approveFinalTotal}
+            disabled={!canApprove}
+            data-testid="vehicle-financial-summary-approve-final-total-button"
+          >
+            {savingFinal ? 'جارٍ الاعتماد…' : 'اعتماد الإجمالي النهائي'}
+          </button>
+          <div style={cardStyles.hint} data-testid="vehicle-financial-summary-final-hint">
+            بعد الاعتماد يصبح الإجمالي النهائي هو أساس المتبقي والتحصيل عند التسليم.
+          </div>
         </div>
       )}
-
-      <div className="sr-only" data-testid="vehicle-financial-summary-applied-paid-value">
-        {formatMoney(appliedPaid)}
-      </div>
-      <div className="sr-only" data-testid="vehicle-financial-summary-audit-icon-label">
-        <CreditCard size={1} /> <Wallet size={1} />
-      </div>
     </div>
   );
 }

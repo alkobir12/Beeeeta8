@@ -2554,6 +2554,29 @@ const VehicleDetails = () => {
     }));
   }, [targetPaymentVisit, toast]);
 
+  const handleFinancialSummaryFinalizeTotal = useCallback(async ({ finalCustomerTotal, previousServiceTotal } = {}) => {
+    const finalValue = Number(finalCustomerTotal);
+    if (!Number.isFinite(finalValue) || finalValue < 0) {
+      toast({ title: 'تنبيه', description: 'الإجمالي النهائي غير صالح.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const payload = {
+        finalCustomerTotal: finalValue,
+        finalizationSource: 'vehicle_financial_summary_card',
+        previousServiceTotal: Number(previousServiceTotal || 0),
+      };
+      const updateRes = await vehicleAPI.update(id, payload);
+      if (updateRes?.data) setVehicle(updateRes.data);
+      const summaryRes = await vehicleFinanceAPI.summary(id);
+      setFinanceSummary(summaryRes.data);
+      toast({ title: 'تم الاعتماد', description: 'تم حفظ الإجمالي النهائي للعميل دون تغيير محرك المحاسبة.' });
+    } catch (error) {
+      toast({ title: 'تعذر الاعتماد', description: error?.response?.data?.detail || 'تحقق من المسار ثم حاول مرة أخرى.', variant: 'destructive' });
+      throw error;
+    }
+  }, [id, toast]);
+
   // Handler for when a visit is closed - shows WhatsApp notification at page level
   const handleVisitClosed = useCallback((notification) => {
     if (notification) {
@@ -3512,10 +3535,12 @@ const VehicleDetails = () => {
           >
             <VehicleFinancialSummary
               summary={effectiveFinanceSummary || {}}
+              vehicle={vehicle}
               t={t}
               onShowSource={openFinancialSource}
               onAddPayment={handleFinancialSummaryAddPayment}
               onConfirmPayment={handleFinancialSummaryConfirmPayment}
+              onFinalizeTotal={handleFinancialSummaryFinalizeTotal}
             />
 
             {/* supplier archive block removed - visible only in /suppliers page */}

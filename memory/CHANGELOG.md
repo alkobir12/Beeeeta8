@@ -4,6 +4,11 @@
 - أضيف اعتماد `final_customer_total` قبل التسليم، مع حفظ بيانات الاعتماد واستخدامه كأساس المتبقي بعد التسليم.
 - تحقق: lint نظيف، `pytest` ذاتي 25 passed / 7 skipped، تحقق backend مستقل 29 passed / 7 skipped، وواجهة الدخول ظهرت في smoke test.
 
+# 2026-08-10 — كرت الملخص المالي الجديد في ملف المركبة
+- تم استبدال `VehicleFinancialSummary` بتصميم مطابق لمرجع HTML المرفق، مع الحفاظ على نفس مصادر البيانات والمسارات.
+- أضيفت مرحلة التسوية النهائية داخل الكرت لاعتماد `final_customer_total` يدوياً عبر مسار تحديث المركبة الحالي.
+- تحقق: lint ناجح، build ناجح، وGET للملخص المالي أعاد 200. لم يتم تعديل AccountingEngine أو بيانات تاريخية.
+
 # CHANGELOG
 
 ## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions
