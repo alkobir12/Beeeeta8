@@ -59,6 +59,8 @@ export default function VehicleFinancialSummary({
   const [showFinal, setShowFinal] = useState(false);
   const [finalTotalInput, setFinalTotalInput] = useState(String(currentFinalTotal || ''));
   const [savingFinal, setSavingFinal] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [payment, setPayment] = useState({ amount: '', method: 'cash', reference: '' });
 
   useEffect(() => {
     setFinalTotalInput(String(currentFinalTotal || ''));
@@ -80,6 +82,18 @@ export default function VehicleFinancialSummary({
     } finally {
       setSavingFinal(false);
     }
+  };
+
+  const submitPayment = () => {
+    const amount = Number(payment.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    onAddPayment?.({
+      amount,
+      method: payment.method || 'cash',
+      reference: payment.reference || '',
+    });
+    setPayment({ amount: '', method: payment.method || 'cash', reference: '' });
+    setPaymentOpen(false);
   };
 
   return (
@@ -111,7 +125,7 @@ export default function VehicleFinancialSummary({
           <button
             type="button"
             style={{ ...cardStyles.button, ...cardStyles.pay }}
-            onClick={() => onAddPayment?.({ amount: '', method: 'cash' })}
+            onClick={() => setPaymentOpen((value) => !value)}
             data-testid="vehicle-financial-summary-add-payment-button"
           >
             ＋ إضافة دفعة
@@ -133,6 +147,61 @@ export default function VehicleFinancialSummary({
             ▧ عرض التفاصيل والمصادر
           </button>
         </div>
+
+        {paymentOpen && (
+          <div
+            style={{ display: 'grid', gap: 10, marginTop: 14, paddingTop: 14, borderTop: '1px solid #ffffff14' }}
+            data-testid="vehicle-financial-summary-payment-form"
+          >
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={payment.amount}
+              onChange={(event) => setPayment((prev) => ({ ...prev, amount: event.target.value }))}
+              placeholder="قيمة الدفعة"
+              style={{ height: 52, borderRadius: 15, border: '1px solid #ffffff24', background: '#ffffff0f', color: '#fff', padding: '0 14px', fontSize: 18, fontWeight: 800, textAlign: 'right', outline: 'none' }}
+              data-testid="vehicle-financial-summary-payment-amount-input"
+            />
+            <select
+              value={payment.method}
+              onChange={(event) => setPayment((prev) => ({ ...prev, method: event.target.value }))}
+              style={{ height: 52, borderRadius: 15, border: '1px solid #ffffff24', background: '#18263d', color: '#fff', padding: '0 14px', fontSize: 14, fontWeight: 800, outline: 'none' }}
+              data-testid="vehicle-financial-summary-payment-method-select"
+            >
+              <option value="cash">نقد</option>
+              <option value="bank_transfer">تحويل/بنك</option>
+              <option value="pos">نقاط بيع</option>
+            </select>
+            <input
+              type="text"
+              value={payment.reference}
+              onChange={(event) => setPayment((prev) => ({ ...prev, reference: event.target.value }))}
+              placeholder="مرجع اختياري"
+              style={{ height: 52, borderRadius: 15, border: '1px solid #ffffff24', background: '#ffffff0f', color: '#fff', padding: '0 14px', fontSize: 14, fontWeight: 700, textAlign: 'right', outline: 'none' }}
+              data-testid="vehicle-financial-summary-payment-reference-input"
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }} data-testid="vehicle-financial-summary-payment-form-actions">
+              <button
+                type="button"
+                style={{ ...cardStyles.button, minHeight: 50, background: '#26cdd424', color: '#bdfaff', border: '1px solid #26cdd45c', opacity: Number(payment.amount) > 0 ? 1 : 0.55 }}
+                onClick={submitPayment}
+                disabled={!(Number(payment.amount) > 0)}
+                data-testid="vehicle-financial-summary-payment-save-button"
+              >
+                حفظ الدفعة
+              </button>
+              <button
+                type="button"
+                style={{ ...cardStyles.button, minHeight: 50, background: '#ffffff0a', color: '#eef2f7', border: '1px solid #ffffff1c' }}
+                onClick={() => setPaymentOpen(false)}
+                data-testid="vehicle-financial-summary-payment-cancel-button"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showFinal && (
