@@ -1,0 +1,619 @@
+# Read-only Reconciliation — Current SSOT Effect
+
+Scope: 7 supplier policy mismatches + 3 non-supplier duplicate candidates. No delete/reverse/correcting entry/balance update/historical rewrite performed.
+
+Current-effect rule: delivered/archived vehicles are excluded from current AR and current income statement effect, even if historical journal entries still exist.
+
+- operations_reconciled: 10
+- ACTIVE_AR_MISMATCHES: 8
+- ACTIVE_REVENUE_MISMATCHES: 8
+- HISTORICAL_ONLY: 2
+- TRUE_DUPLICATE_POSTINGS: 0
+- UNRESOLVED: 3
+
+## Final Table
+
+| operation_id | issue_type | vehicle_status | expected_ar | current_ar | ar_difference | expected_revenue | current_revenue | revenue_difference | active_effect | classification | recommended_action |
+|---|---|---|---:|---:|---:|---:|---:|---:|---|---|---|
+| `1d40d657-f682-40a5-b404-4bea38757a12` | SUPPLIER_POLICY_MISMATCH | diagnosis | 31.00 | 302.00 | 271.00 | 31.00 | 302.00 | 271.00 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | REVERSE_LEGACY_ENTRY |
+| `73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e` | SUPPLIER_POLICY_MISMATCH | delivered | 2121.00 | 0.00 | 0.00 | 2121.00 | 0.00 | 0.00 | NO | HISTORICAL_ONLY | NO_ACTION |
+| `174f49a1-5482-43d5-b333-ede2743a7d79` | SUPPLIER_POLICY_MISMATCH | diagnosis | 1210.00 | 3510.00 | 2300.00 | 1210.00 | 3510.00 | 2300.00 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | REVERSE_LEGACY_ENTRY |
+| `3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e` | SUPPLIER_POLICY_MISMATCH | diagnosis | 0.00 | 167.84 | 167.84 | 0.00 | 167.84 | 167.84 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | REVERSE_LEGACY_ENTRY |
+| `2635ecf1-fd3b-4fe2-9629-f658f9a2c26d` | SUPPLIER_POLICY_MISMATCH | diagnosis | 2300.00 | 5981.00 | 3681.00 | 2300.00 | 5981.00 | 3681.00 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | REVERSE_LEGACY_ENTRY |
+| `3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14` | SUPPLIER_POLICY_MISMATCH | delivered | 1700.00 | 0.00 | 0.00 | 1700.00 | 0.00 | 0.00 | NO | HISTORICAL_ONLY | NO_ACTION |
+| `6484969a-7714-43f8-b0b9-782c915b8abc` | SUPPLIER_POLICY_MISMATCH | ready | 1000.00 | 1975.00 | 975.00 | 1000.00 | 1975.00 | 975.00 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | REVERSE_LEGACY_ENTRY |
+| `ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0` | NON_SUPPLIER_DUPLICATE_CANDIDATE | diagnosis | 150.00 | 300.00 | 150.00 | 150.00 | 300.00 | 150.00 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | NEEDS_MANUAL_REVIEW |
+| `0fd379c7-8d78-4151-b32f-beeb32dae664` | NON_SUPPLIER_DUPLICATE_CANDIDATE | diagnosis | 2500.00 | 5000.00 | 2500.00 | 2500.00 | 5000.00 | 2500.00 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | NEEDS_MANUAL_REVIEW |
+| `f5813fbd-f4b4-4561-9f13-9893d1880cc8` | NON_SUPPLIER_DUPLICATE_CANDIDATE | diagnosis | 800.00 | 1600.00 | 800.00 | 800.00 | 1600.00 | 800.00 | AR+REV | ACTIVE_ACCOUNTING_MISMATCH | NEEDS_MANUAL_REVIEW |
+
+## Operation Details
+
+### `1d40d657-f682-40a5-b404-4bea38757a12`
+- issue_type: **SUPPLIER_POLICY_MISMATCH**
+- customer: **خالد القبيشي**
+- vehicle: ** ا ع ط 3550**
+- vehicle_id: **f6590225-aef6-452b-af39-e0e42061fd81**
+- vehicle_status: **diagnosis**
+- visit_id: **1d40d657-f682-40a5-b404-4bea38757a12**
+- operation_date: **2026-08-02T21:05:08.412553+00:00**
+- workshop_service_total: **31.0**
+- supplier_archive_total: **271.0**
+- expected_customer_receivable: **31.0**
+- expected_revenue: **31.0**
+- expected_current_effect: **31.0**
+- raw_journal_receivable: **302.0**
+- raw_journal_revenue: **302.0**
+- current_ar_effect: **302.0**
+- current_revenue_effect: **302.0**
+- current_income_statement_effect: **302.0**
+- current_customer_balance_effect: **302.0**
+- ar_difference: **271.0**
+- revenue_difference: **271.0**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **REVERSE_LEGACY_ENTRY**
+- journal_entries:
+  - entry_id: `2933cb91-682e-4844-8913-37ba6c48140b`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: active_vehicle_ar_repair
+    - created_at: 2026-08-04T13:44:17.073735+00:00
+    - reference_id: 1d40d657-f682-40a5-b404-4bea38757a12
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: active_vehicle_ar_repair
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 302.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 31.0}, {'account': '041', 'account_name': 'ايراد قطع الورشه', 'amount': 271.0}]
+- supplier_items_sample:
+  - {'name': 'فلتر ديزل', 'total': 119.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'فلتر هواء', 'total': 152.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+
+### `73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e`
+- issue_type: **SUPPLIER_POLICY_MISMATCH**
+- customer: **خالد عماش الحربي**
+- vehicle: **ا ح ق 9342**
+- vehicle_id: **a717c745-3d53-43d0-b235-ef90a794311f**
+- vehicle_status: **delivered**
+- visit_id: **73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e**
+- operation_date: **2026-08-04T15:37:32.110767+00:00**
+- workshop_service_total: **2121.0**
+- supplier_archive_total: **5879.0**
+- expected_customer_receivable: **2121.0**
+- expected_revenue: **2121.0**
+- expected_current_effect: **0.0**
+- raw_journal_receivable: **0.0**
+- raw_journal_revenue: **2251.0**
+- current_ar_effect: **0.0**
+- current_revenue_effect: **0.0**
+- current_income_statement_effect: **0.0**
+- current_customer_balance_effect: **0.0**
+- ar_difference: **0.0**
+- revenue_difference: **0.0**
+- affects_current_ar: **NO**
+- affects_current_revenue: **NO**
+- affects_current_income_statement: **NO**
+- affects_current_customer_balance: **NO**
+- classification: **HISTORICAL_ONLY**
+- recommended_action: **NO_ACTION**
+- journal_entries:
+  - entry_id: `f8dff8a6-4499-40c7-a0e2-4a6dfcb4d5bd`
+    - classification: LEGACY_POLICY_MISMATCH
+    - accounting_identity: None
+    - origin/source: operation
+    - created_at: 2026-08-02T21:11:36.504992+00:00
+    - reference_id: 73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '004', 'account_name': 'البنك', 'amount': 2251.0}]
+    - credit_lines: [{'account': '027', 'account_name': 'إيرادات إصلاح محركات', 'amount': 2251.0}]
+  - entry_id: `b6463c85-06f1-494a-9c53-12460922b686`
+    - classification: UNKNOWN
+    - accounting_identity: None
+    - origin/source: ajel_supplier_purchase
+    - created_at: 2026-08-02T21:11:37.145585+00:00
+    - reference_id: 73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '035', 'account_name': 'مصروفات عامة وإدارية', 'amount': 300.0}]
+    - credit_lines: [{'account': '2101', 'account_name': 'مورد - مخرطه', 'amount': 300.0}]
+  - entry_id: `1be58802-a8ef-4231-9857-dd6b6d59d1e2`
+    - classification: UNKNOWN
+    - accounting_identity: None
+    - origin/source: ajel_supplier_purchase
+    - created_at: 2026-08-02T21:11:37.76365+00:00
+    - reference_id: 73ea8c01-e3b2-4c8c-9696-08f7cbcdf48e
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '035', 'account_name': 'مصروفات عامة وإدارية', 'amount': 1100.0}]
+    - credit_lines: [{'account': '2101', 'account_name': 'مورد - مخرطه', 'amount': 1100.0}]
+- supplier_items_sample:
+  - {'name': 'الحميدان التركي', 'total': 1869.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'الحميدان التركي', 'total': 299.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'الدريويش', 'total': 200.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'القرعاوي', 'total': 450.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'القرعاوي', 'total': 364.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'مخرطه', 'total': 300.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'مخرطه', 'total': 1100.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'المزيد', 'total': 136.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'ابو ستة كهربائي', 'total': 300.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'زيت مكينة بالتر', 'total': 80.0, 'itemType': 'part', 'billingType': 'supplier'}
+
+### `174f49a1-5482-43d5-b333-ede2743a7d79`
+- issue_type: **SUPPLIER_POLICY_MISMATCH**
+- customer: **فيصل الجفير**
+- vehicle: **ب ر ب 82023**
+- vehicle_id: **b885d618-a2fa-45df-b14f-0a9e9ff1b484**
+- vehicle_status: **diagnosis**
+- visit_id: **174f49a1-5482-43d5-b333-ede2743a7d79**
+- operation_date: **2026-08-04T15:02:54.927412+00:00**
+- workshop_service_total: **1210.0**
+- supplier_archive_total: **1090.0**
+- expected_customer_receivable: **1210.0**
+- expected_revenue: **1210.0**
+- expected_current_effect: **1210.0**
+- raw_journal_receivable: **3510.0**
+- raw_journal_revenue: **3510.0**
+- current_ar_effect: **3510.0**
+- current_revenue_effect: **3510.0**
+- current_income_statement_effect: **3510.0**
+- current_customer_balance_effect: **3510.0**
+- ar_difference: **2300.0**
+- revenue_difference: **2300.0**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **REVERSE_LEGACY_ENTRY**
+- journal_entries:
+  - entry_id: `e4333a1d-6785-4ebe-a381-b2b990dfd1b6`
+    - classification: CANONICAL_CURRENT
+    - accounting_identity: None
+    - origin/source: operation
+    - created_at: 2026-08-04T15:03:02.955216+00:00
+    - reference_id: 174f49a1-5482-43d5-b333-ede2743a7d79
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 1210.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 1210.0}]
+  - entry_id: `be4c4130-bd92-48d4-a497-113980ea755f`
+    - classification: UNKNOWN
+    - accounting_identity: None
+    - origin/source: ajel_supplier_purchase
+    - created_at: 2026-08-04T15:03:03.689919+00:00
+    - reference_id: 174f49a1-5482-43d5-b333-ede2743a7d79
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '035', 'account_name': 'مصروفات عامة وإدارية', 'amount': 420.0}]
+    - credit_lines: [{'account': '2101', 'account_name': 'مورد - مخرطة العوفي', 'amount': 420.0}]
+  - entry_id: `ea999c19-4bfc-4771-83f1-ebae1dae70c9`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: fin_engine_align_v1
+    - created_at: 2026-08-04T16:32:34.690482+00:00
+    - reference_id: 174f49a1-5482-43d5-b333-ede2743a7d79
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: fin_engine_align_v1
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 2300.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 2300.0}]
+- supplier_items_sample:
+  - {'name': 'الراكضي', 'total': 470.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'مخرطة العوفي', 'total': 420.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'الراكضي', 'total': 200.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+
+### `3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e`
+- issue_type: **SUPPLIER_POLICY_MISMATCH**
+- customer: **مد الله الثواتي**
+- vehicle: **ا ب ق 5437**
+- vehicle_id: **8708bbd6-18be-4fb0-93a4-f9818b2b91ad**
+- vehicle_status: **diagnosis**
+- visit_id: **3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e**
+- operation_date: **2026-08-04T15:17:16.205788+00:00**
+- workshop_service_total: **0.0**
+- supplier_archive_total: **167.84**
+- expected_customer_receivable: **0.0**
+- expected_revenue: **0.0**
+- expected_current_effect: **0.0**
+- raw_journal_receivable: **167.84**
+- raw_journal_revenue: **167.84**
+- current_ar_effect: **167.84**
+- current_revenue_effect: **167.84**
+- current_income_statement_effect: **167.84**
+- current_customer_balance_effect: **167.84**
+- ar_difference: **167.84**
+- revenue_difference: **167.84**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **REVERSE_LEGACY_ENTRY**
+- journal_entries:
+  - entry_id: `1b91f14d-caa0-4212-a34b-f5d4f7c7cca3`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: fin_engine_align_v1
+    - created_at: 2026-08-04T16:32:35.360283+00:00
+    - reference_id: 3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: fin_engine_align_v1
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 167.84}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 167.84}]
+- supplier_items_sample:
+  - {'name': 'اليمني', 'total': 77.84, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'مؤسسة وليد الجبيل التجارية', 'total': 90.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+
+### `2635ecf1-fd3b-4fe2-9629-f658f9a2c26d`
+- issue_type: **SUPPLIER_POLICY_MISMATCH**
+- customer: **فارس عوض **
+- vehicle: **ح ق م 5520**
+- vehicle_id: **b9fe95f6-e4c3-4466-b853-c0103dc75929**
+- vehicle_status: **diagnosis**
+- visit_id: **2635ecf1-fd3b-4fe2-9629-f658f9a2c26d**
+- operation_date: **2026-08-04T15:08:46.720852+00:00**
+- workshop_service_total: **2300.0**
+- supplier_archive_total: **7381.0**
+- expected_customer_receivable: **2300.0**
+- expected_revenue: **2300.0**
+- expected_current_effect: **2300.0**
+- raw_journal_receivable: **5981.0**
+- raw_journal_revenue: **5981.0**
+- current_ar_effect: **5981.0**
+- current_revenue_effect: **5981.0**
+- current_income_statement_effect: **5981.0**
+- current_customer_balance_effect: **5981.0**
+- ar_difference: **3681.0**
+- revenue_difference: **3681.0**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **REVERSE_LEGACY_ENTRY**
+- journal_entries:
+  - entry_id: `e90e9a39-19ff-4d94-b33b-b6be613530e0`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: active_vehicle_ar_repair
+    - created_at: 2026-08-04T13:44:19.804737+00:00
+    - reference_id: 2635ecf1-fd3b-4fe2-9629-f658f9a2c26d
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: active_vehicle_ar_repair
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 500.0}]
+    - credit_lines: [{'account': '027', 'account_name': 'إيرادات إصلاح محركات', 'amount': 500.0}]
+  - entry_id: `74045e29-c57a-4266-b6ce-aed98066cdc6`
+    - classification: CANONICAL_CURRENT
+    - accounting_identity: None
+    - origin/source: operation
+    - created_at: 2026-08-04T15:05:43.490682+00:00
+    - reference_id: 2635ecf1-fd3b-4fe2-9629-f658f9a2c26d
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 2300.0}]
+    - credit_lines: [{'account': '027', 'account_name': 'إيرادات إصلاح محركات', 'amount': 2300.0}]
+  - entry_id: `3128220e-0d85-4c2b-bc94-37f4a3ade1e8`
+    - classification: CANONICAL_CURRENT
+    - accounting_identity: None
+    - origin/source: operation_payment
+    - created_at: 2026-08-04T15:05:44.17954+00:00
+    - reference_id: 2635ecf1-fd3b-4fe2-9629-f658f9a2c26d
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '003', 'account_name': 'النقد', 'amount': 2000.0}]
+    - credit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 2000.0}]
+  - entry_id: `688328a2-de8d-4683-a55d-5b514fb4647e`
+    - classification: CANONICAL_CURRENT
+    - accounting_identity: None
+    - origin/source: operation_payment
+    - created_at: 2026-08-04T15:08:51.084485+00:00
+    - reference_id: 2635ecf1-fd3b-4fe2-9629-f658f9a2c26d
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '003', 'account_name': 'النقد', 'amount': 300.0}]
+    - credit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 300.0}]
+  - entry_id: `5abdbff4-cbc9-4a55-ab95-8280d491d367`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: fin_engine_align_v1
+    - created_at: 2026-08-04T16:32:31.961468+00:00
+    - reference_id: 2635ecf1-fd3b-4fe2-9629-f658f9a2c26d
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: fin_engine_align_v1
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 3181.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 3181.0}]
+- supplier_items_sample:
+  - {'name': 'القرعاوي', 'total': 7199.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'القرعاوي', 'total': 182.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+
+### `3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14`
+- issue_type: **SUPPLIER_POLICY_MISMATCH**
+- customer: **فهد الطريسي**
+- vehicle: **ح ل ص 5745**
+- vehicle_id: **d5376421-bd6e-420e-8585-ba36c3314082**
+- vehicle_status: **delivered**
+- visit_id: **3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14**
+- operation_date: **2026-08-04T15:40:50.712053+00:00**
+- workshop_service_total: **1700.0**
+- supplier_archive_total: **2578.0**
+- expected_customer_receivable: **1700.0**
+- expected_revenue: **1700.0**
+- expected_current_effect: **0.0**
+- raw_journal_receivable: **2428.0**
+- raw_journal_revenue: **4271.0**
+- current_ar_effect: **0.0**
+- current_revenue_effect: **0.0**
+- current_income_statement_effect: **0.0**
+- current_customer_balance_effect: **0.0**
+- ar_difference: **0.0**
+- revenue_difference: **0.0**
+- affects_current_ar: **NO**
+- affects_current_revenue: **NO**
+- affects_current_income_statement: **NO**
+- affects_current_customer_balance: **NO**
+- classification: **HISTORICAL_ONLY**
+- recommended_action: **NO_ACTION**
+- journal_entries:
+  - entry_id: `e3ef28ca-459a-423d-a7d6-c03e51be5e5a`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: active_vehicle_ar_repair
+    - created_at: 2026-08-04T13:44:18.939778+00:00
+    - reference_id: 3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: active_vehicle_ar_repair
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 2428.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 998.26}, {'account': '041', 'account_name': 'ايراد قطع الورشه', 'amount': 1429.74}]
+  - entry_id: `9416bb26-9bbb-423c-baa7-3b3b7ec2ad14`
+    - classification: LEGACY_POLICY_MISMATCH
+    - accounting_identity: None
+    - origin/source: operation
+    - created_at: 2026-08-04T15:39:20.399574+00:00
+    - reference_id: 3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '004', 'account_name': 'البنك', 'amount': 1843.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 1843.0}]
+- supplier_items_sample:
+  - {'name': 'القرعاوي', 'total': 143.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'كتاوت', 'total': 143.0, 'itemType': 'part', 'billingType': 'supplier'}
+  - {'name': 'القرعاوي', 'total': 1947.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'ساسكو', 'total': 150.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'الموسى', 'total': 195.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+
+### `6484969a-7714-43f8-b0b9-782c915b8abc`
+- issue_type: **SUPPLIER_POLICY_MISMATCH**
+- customer: **ابراهيم صالح **
+- vehicle: **ب ر ق 4806**
+- vehicle_id: **a57b698d-752d-43bf-be66-41a0337de9eb**
+- vehicle_status: **ready**
+- visit_id: **6484969a-7714-43f8-b0b9-782c915b8abc**
+- operation_date: **2026-08-01T12:57:56.487591+00:00**
+- workshop_service_total: **1000.0**
+- supplier_archive_total: **975.0**
+- expected_customer_receivable: **1000.0**
+- expected_revenue: **1000.0**
+- expected_current_effect: **1000.0**
+- raw_journal_receivable: **1975.0**
+- raw_journal_revenue: **1975.0**
+- current_ar_effect: **1975.0**
+- current_revenue_effect: **1975.0**
+- current_income_statement_effect: **1975.0**
+- current_customer_balance_effect: **1975.0**
+- ar_difference: **975.0**
+- revenue_difference: **975.0**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **REVERSE_LEGACY_ENTRY**
+- journal_entries:
+  - entry_id: `6e010906-442f-41e1-ae0d-dae98bf5b094`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: active_vehicle_ar_repair
+    - created_at: 2026-08-04T13:44:17.716011+00:00
+    - reference_id: 6484969a-7714-43f8-b0b9-782c915b8abc
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: active_vehicle_ar_repair
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 1975.0}]
+    - credit_lines: [{'account': '027', 'account_name': 'إيرادات إصلاح محركات', 'amount': 1000.0}, {'account': '041', 'account_name': 'ايراد قطع الورشه', 'amount': 975.0}]
+- supplier_items_sample:
+  - {'name': 'الراكضي', 'total': 175.0, 'itemType': 'supplier', 'billingType': 'supplier'}
+  - {'name': 'كراسي تيمن مع مسامير وعصافير ', 'total': 800.0, 'itemType': 'part', 'billingType': 'supplier'}
+
+### `ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0`
+- issue_type: **NON_SUPPLIER_DUPLICATE_CANDIDATE**
+- customer: **عاصم التويجري**
+- vehicle: **ا ل و 7121**
+- vehicle_id: **0ee51492-8405-4235-8c63-4ca01b6bccc8**
+- vehicle_status: **diagnosis**
+- visit_id: **ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0**
+- operation_date: **2026-08-04T15:29:22.693809+00:00**
+- workshop_service_total: **150.0**
+- supplier_archive_total: **0.0**
+- expected_customer_receivable: **150.0**
+- expected_revenue: **150.0**
+- expected_current_effect: **150.0**
+- raw_journal_receivable: **300.0**
+- raw_journal_revenue: **300.0**
+- current_ar_effect: **300.0**
+- current_revenue_effect: **300.0**
+- current_income_statement_effect: **300.0**
+- current_customer_balance_effect: **300.0**
+- ar_difference: **150.0**
+- revenue_difference: **150.0**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **NEEDS_MANUAL_REVIEW**
+- non_supplier_duplicate_reason: **historical_repair_or_alignment_entry**
+- journal_entries:
+  - entry_id: `6ddcabf8-3305-403c-86e0-820e69e99847`
+    - classification: CANONICAL_CURRENT
+    - accounting_identity: None
+    - origin/source: operation
+    - created_at: 2026-08-04T15:29:29.079768+00:00
+    - reference_id: ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 150.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 150.0}]
+  - entry_id: `1a721f64-e481-4152-a0ae-d9d450d065d8`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: hist_vehicle_ar_repair
+    - created_at: 2026-08-04T15:44:19.963924+00:00
+    - reference_id: ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: hist_vehicle_ar_repair
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 150.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 150.0}]
+
+### `0fd379c7-8d78-4151-b32f-beeb32dae664`
+- issue_type: **NON_SUPPLIER_DUPLICATE_CANDIDATE**
+- customer: **ابو فهد **
+- vehicle: **ا ق ل 222**
+- vehicle_id: **a422209f-8cec-48a6-b06a-49e0c89972e6**
+- vehicle_status: **diagnosis**
+- visit_id: **0fd379c7-8d78-4151-b32f-beeb32dae664**
+- operation_date: **2026-08-04T14:28:21.599194+00:00**
+- workshop_service_total: **2500.0**
+- supplier_archive_total: **0.0**
+- expected_customer_receivable: **2500.0**
+- expected_revenue: **2500.0**
+- expected_current_effect: **2500.0**
+- raw_journal_receivable: **5000.0**
+- raw_journal_revenue: **5000.0**
+- current_ar_effect: **5000.0**
+- current_revenue_effect: **5000.0**
+- current_income_statement_effect: **5000.0**
+- current_customer_balance_effect: **5000.0**
+- ar_difference: **2500.0**
+- revenue_difference: **2500.0**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **NEEDS_MANUAL_REVIEW**
+- non_supplier_duplicate_reason: **historical_repair_or_alignment_entry**
+- journal_entries:
+  - entry_id: `0e83fc0c-4af0-4ede-a73b-03f8dff1b6db`
+    - classification: CANONICAL_CURRENT
+    - accounting_identity: None
+    - origin/source: operation
+    - created_at: 2026-08-04T14:28:27.18249+00:00
+    - reference_id: 0fd379c7-8d78-4151-b32f-beeb32dae664
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 2500.0}]
+    - credit_lines: [{'account': '027', 'account_name': 'إيرادات إصلاح محركات', 'amount': 2500.0}]
+  - entry_id: `4601b6e8-46a5-4a09-8fd5-f78a506f29ad`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: fin_engine_align_v1
+    - created_at: 2026-08-04T16:32:32.689553+00:00
+    - reference_id: 0fd379c7-8d78-4151-b32f-beeb32dae664
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: fin_engine_align_v1
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 2500.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 2500.0}]
+
+### `f5813fbd-f4b4-4561-9f13-9893d1880cc8`
+- issue_type: **NON_SUPPLIER_DUPLICATE_CANDIDATE**
+- customer: **شاص 2006**
+- vehicle: **س ن د 635**
+- vehicle_id: **496cff37-0130-452c-bebf-7a3993d948de**
+- vehicle_status: **diagnosis**
+- visit_id: **f5813fbd-f4b4-4561-9f13-9893d1880cc8**
+- operation_date: **2026-08-04T15:24:08.203339+00:00**
+- workshop_service_total: **800.0**
+- supplier_archive_total: **0.0**
+- expected_customer_receivable: **800.0**
+- expected_revenue: **800.0**
+- expected_current_effect: **800.0**
+- raw_journal_receivable: **1600.0**
+- raw_journal_revenue: **1600.0**
+- current_ar_effect: **1600.0**
+- current_revenue_effect: **1600.0**
+- current_income_statement_effect: **1600.0**
+- current_customer_balance_effect: **1600.0**
+- ar_difference: **800.0**
+- revenue_difference: **800.0**
+- affects_current_ar: **YES**
+- affects_current_revenue: **YES**
+- affects_current_income_statement: **YES**
+- affects_current_customer_balance: **YES**
+- classification: **ACTIVE_ACCOUNTING_MISMATCH**
+- recommended_action: **NEEDS_MANUAL_REVIEW**
+- non_supplier_duplicate_reason: **historical_repair_or_alignment_entry**
+- journal_entries:
+  - entry_id: `79290ede-c4b2-425a-88b9-ec9c7845cb13`
+    - classification: CANONICAL_CURRENT
+    - accounting_identity: None
+    - origin/source: operation
+    - created_at: 2026-08-04T15:24:17.20889+00:00
+    - reference_id: f5813fbd-f4b4-4561-9f13-9893d1880cc8
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: None
+    - historical_tag: None
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 800.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 800.0}]
+  - entry_id: `d87d711e-a660-44c7-a93a-31b06dccdce9`
+    - classification: HISTORICAL_REPAIR
+    - accounting_identity: None
+    - origin/source: fin_engine_align_v1
+    - created_at: 2026-08-04T16:32:33.412065+00:00
+    - reference_id: f5813fbd-f4b4-4561-9f13-9893d1880cc8
+    - reversal_of: None
+    - is_reversed: False
+    - repair_tag: historical_repair
+    - historical_tag: fin_engine_align_v1
+    - debit_lines: [{'account': '005', 'account_name': 'العملاء (ذمم مدينة)', 'amount': 800.0}]
+    - credit_lines: [{'account': '026', 'account_name': 'إيرادات خدمات ميكانيكية', 'amount': 800.0}]
