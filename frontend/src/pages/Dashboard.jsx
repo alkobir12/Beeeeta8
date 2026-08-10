@@ -1102,9 +1102,9 @@ const Dashboard = () => {
               setShowQuickActions(false);
               setSelectedVehicle(null);
             }}
-            onStatusUpdate={async (newStatus) => {
+            onStatusUpdate={async (newStatus, extraPayload = {}) => {
               try {
-                await vehicleAPI.update(selectedVehicle.id, { status: newStatus });
+                await vehicleAPI.update(selectedVehicle.id, { status: newStatus, ...extraPayload });
 
                 // إذا تم التسليم، أغلق أي فاتورة مفتوحة مرتبطة بهذه المركبة
                 if (newStatus === 'delivered') {

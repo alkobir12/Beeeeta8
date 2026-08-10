@@ -985,16 +985,83 @@ async def settle_vehicle_credit_operations(vehicle_id: str):
 
 
 @api_router.put("/vehicles/{vehicle_id}", response_model=Vehicle)
-async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate):
+async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate, request: Request):
     raw_update = update_data.dict(exclude_unset=True)
     customer_file_present = "customerFileNumber" in raw_update
     customer_file_value = raw_update.pop("customerFileNumber", None) if customer_file_present else None
+    final_customer_total_present = "finalCustomerTotal" in raw_update
+    requested_final_customer_total = raw_update.pop("finalCustomerTotal", None) if final_customer_total_present else None
+    requested_finalization_source = raw_update.pop("finalizationSource", None)
+    requested_previous_service_total = raw_update.pop("previousServiceTotal", None)
+    raw_update.pop("finalizedBy", None)
     upd = {k: v for k, v in raw_update.items() if v is not None}
+
+    def _parse_vehicle_notes_for_finalization(notes_value):
+        if isinstance(notes_value, dict):
+            return dict(notes_value)
+        if isinstance(notes_value, str) and notes_value.strip().startswith("{"):
+            try:
+                parsed = json.loads(notes_value)
+                return parsed if isinstance(parsed, dict) else {}
+            except Exception:
+                return {}
+        return {}
+
+    def _request_actor_for_finalization():
+        try:
+            from auth_jwt import identity_from_request
+            ident = identity_from_request(request) or {}
+            return str(ident.get("username") or ident.get("name") or "system").strip() or "system"
+        except Exception:
+            return "system"
+
+    async def _workshop_service_total_for_vehicle(vid: str) -> float:
+        try:
+            if DB_PROVIDER == "supabase" and supabase_service.client:
+                from core.unified_financial_engine import fetch_vehicle_summary
+                summary = fetch_vehicle_summary(supabase_service.client, vid, os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync"))
+                return float(summary.get("total_workshop") or summary.get("workshop_service_total") or 0)
+        except Exception:
+            return 0.0
+        return 0.0
+
+    async def _apply_finalization(existing_doc: Dict[str, Any], patch: Dict[str, Any]) -> Dict[str, Any]:
+        existing_final = existing_doc.get("finalCustomerTotal") or existing_doc.get("final_customer_total")
+        if patch.get("status") == "delivered" and not final_customer_total_present and existing_final is None:
+            raise HTTPException(status_code=400, detail="final_customer_total_required_before_delivery")
+        if not final_customer_total_present:
+            return patch
+        try:
+            final_total = round(float(requested_final_customer_total), 2)
+        except Exception:
+            raise HTTPException(status_code=400, detail="invalid_final_customer_total")
+        if final_total < 0:
+            raise HTTPException(status_code=400, detail="invalid_final_customer_total")
+        previous_service_total = requested_previous_service_total
+        if previous_service_total is None:
+            previous_service_total = await _workshop_service_total_for_vehicle(vehicle_id)
+        try:
+            previous_service_total = round(float(previous_service_total or 0), 2)
+        except Exception:
+            previous_service_total = 0.0
+        base_notes = patch.get("notes") if "notes" in patch else existing_doc.get("notes")
+        notes_payload = _parse_vehicle_notes_for_finalization(base_notes)
+        notes_payload["financial_finalization"] = {
+            "final_customer_total": final_total,
+            "finalized_at": datetime.now(timezone.utc).isoformat(),
+            "finalized_by": _request_actor_for_finalization(),
+            "finalization_source": str(requested_finalization_source or "vehicle_delivery"),
+            "previous_service_total": previous_service_total,
+        }
+        patch["notes"] = json.dumps(notes_payload, ensure_ascii=False, separators=(",", ":"))
+        return patch
 
     if DB_PROVIDER == "supabase":
         existing_vehicle = supabase_service.vehicles_get(vehicle_id)
         if not existing_vehicle:
             raise HTTPException(status_code=404, detail="Vehicle not found")
+
+        upd = await _apply_finalization(existing_vehicle, upd)
 
         v = supabase_service.vehicles_update(vehicle_id, upd) if upd else existing_vehicle
         if not v:
@@ -1004,9 +1071,6 @@ async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate):
         if customer_file_present and customer_id:
             await _set_customer_file_number(customer_id, customer_file_value)
 
-        if upd.get("status") == "delivered":
-            await settle_vehicle_credit_operations(vehicle_id)
-
         patched_rows = await _attach_customer_file_numbers_to_vehicles([v])
         patched = patched_rows[0] if patched_rows else v
         return Vehicle(**patched)
@@ -1015,6 +1079,7 @@ async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate):
         rows = _mem_read("vehicles")
         for i, r in enumerate(rows):
             if r.get("id") == vehicle_id:
+                upd = await _apply_finalization(r, upd)
                 # handle dates
                 if "estimatedCompletion" in upd and isinstance(
                     upd["estimatedCompletion"], datetime
@@ -1037,6 +1102,8 @@ async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate):
     vehicle_before = await db.vehicles.find_one({"id": vehicle_id}, {"_id": 0})
     if not vehicle_before:
         raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    upd = await _apply_finalization(vehicle_before, upd)
 
     if upd:
         await db.vehicles.update_one({"id": vehicle_id}, {"$set": upd})

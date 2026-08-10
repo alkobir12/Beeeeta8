@@ -1,0 +1,43 @@
+{
+  "summary": "Backend-only P0 regression validation completed for supplier exclusion + explicit final customer total behavior. Target suite passed (29 passed, 7 skipped) including new iter340 focused regression tests.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter324_vehicle_financial_summary_contract.py",
+    "/app/backend/tests/test_iter325_unified_finance_engine_payments.py",
+    "/app/backend/tests/test_iter331_p0_unification_regression.py",
+    "/app/backend/tests/test_iter340_p0_supplier_exclusion_finalization.py",
+    "/app/test_reports/pytest/iter340_target_regression.xml",
+    "/app/test_reports/pytest/iter340_new_tests.xml",
+    "/app/test_reports/pytest/iter340_backend_suite.xml"
+  ],
+  "action_items": [
+    "No blocker from this backend regression run; keep iter340 test file in CI to guard supplier exclusion/finalization contract."
+  ],
+  "critical_code_review_comments": [
+    "Confirmed operation_journal_adapter posts workshop_total only for sale/service entries and keeps supplier_archive_total separate (supplier lines do not become workshop revenue).",
+    "Confirmed unified_financial_engine computes pre-delivery customer_total/display_remaining from workshop totals only; supplier totals remain archive fields.",
+    "Confirmed final_customer_total and finalization metadata fields (finalized_at/finalized_by/finalization_source/previous_service_total) are persisted/read via vehicle financial_finalization notes contract.",
+    "Git worktree check shows /app/backend/core/accounting_engine.py is not among modified files in this change set."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter340_p0_supplier_exclusion_finalization.py",
+    "/app/test_reports/iteration_340.json"
+  ],
+  "success_rate": {
+    "backend": "100% (29 passed, 7 skipped)",
+    "frontend": "N/A (skipped by request)"
+  },
+  "seed_data_creation": "No seed/business data created or mutated.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend-only run. Validated requested acceptance scenarios: service=1000 + supplier=500 => pre-delivery customer_total/display_remaining based on 1000 only; finalized totals 1500 and 1400 explicitly drive remaining. AccountingEngine file unchanged in current diff list.",
+  "rca of the issue": "No new failing issue reproduced in requested scope."
+}

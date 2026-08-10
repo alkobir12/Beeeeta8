@@ -10,6 +10,8 @@ import requests
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from routes_extended import _calc_visit_financial
+from core.operation_journal_adapter import _build_operation_journal_entry
+from core.unified_financial_engine import build_vehicle_summary, serialize_notes
 
 
 # Module: public financial-summary API contract + formula checks (no data mutation).
@@ -79,7 +81,7 @@ def _assert_financial_formula(payload: Dict):
     display_remaining = float(payload.get("display_remaining") or 0)
     customer_credit = float(payload.get("customer_credit") or 0)
 
-    assert abs(customer_total - (total_workshop + parts_charge_total)) < 0.01
+    assert abs(customer_total - total_workshop) < 0.01 or payload.get("final_customer_total") is not None
     assert abs(applied_paid - min(confirmed_paid, customer_total)) < 0.01
     assert abs(display_remaining - max(customer_total - applied_paid, 0.0)) < 0.01
     assert abs(customer_credit - max(confirmed_paid - customer_total, 0.0)) < 0.01
@@ -127,7 +129,7 @@ def test_invalid_vehicle_id_returns_404(base_url: str, auth_client: requests.Ses
                 ],
                 "payments": [],
             },
-            {"customer_total": 2775.0, "applied_paid": 0.0, "display_remaining": 2775.0, "customer_credit": 0.0},
+            {"customer_total": 1800.0, "applied_paid": 0.0, "display_remaining": 1800.0, "customer_credit": 0.0},
         ),
         (
             {
@@ -163,3 +165,58 @@ def test_acceptance_arithmetic_scenarios(parsed_notes: Dict, expected: Dict):
     assert abs(applied_paid - expected["applied_paid"]) < 0.01
     assert abs(display_remaining - expected["display_remaining"]) < 0.01
     assert abs(customer_credit - expected["customer_credit"]) < 0.01
+
+
+def test_supplier_items_are_archive_only_for_journal_entry():
+    op = {
+        "id": "op-supplier-archive-only",
+        "type": "service",
+        "paymentMethod": "credit",
+        "paymentStatus": "credit",
+        "total": 1500,
+        "items": [
+            {"itemType": "service", "name": "خدمة", "total": 1000},
+            {"itemType": "supplier", "name": "أبو خالد", "total": 500, "revenueAccountCode": "041", "linkedPart": "x"},
+        ],
+    }
+    entry = _build_operation_journal_entry(op, "finmodule-sync")
+    assert isinstance(entry, dict)
+    assert float(entry["total"]) == 1000
+    assert float(entry["workshop_total"]) == 1000
+    assert float(entry["supplier_archive_total"]) == 500
+    credits = {line["account"]: float(line.get("credit") or 0) for line in entry["lines"]}
+    debits = {line["account"]: float(line.get("debit") or 0) for line in entry["lines"]}
+    assert debits.get("005") == 1000
+    assert sum(credits.values()) == 1000
+    assert credits.get("041", 0) == 0
+
+
+def test_final_customer_total_is_explicit_not_supplier_derived():
+    visits = [
+        {
+            "id": "visit-final",
+            "vehicle_id": "vehicle-final",
+            "notes": serialize_notes({
+                "items": [
+                    {"itemType": "service", "total": 1000},
+                    {"itemType": "supplier", "total": 500},
+                ],
+                "payments": [{"amount": 300, "confirmed": True, "status": "confirmed"}],
+            }),
+        }
+    ]
+    base = build_vehicle_summary({"id": "vehicle-final", "notes": "{}"}, visits, {}, {})
+    assert base["total_workshop"] == 1000
+    assert base["supplier_archive_total"] == 500
+    assert base["customer_total"] == 1000
+    assert base["display_remaining"] == 700
+
+    finalized_1500 = build_vehicle_summary({"id": "vehicle-final", "notes": serialize_notes({"financial_finalization": {"final_customer_total": 1500}})}, visits, {}, {})
+    assert finalized_1500["final_customer_total"] == 1500
+    assert finalized_1500["customer_total"] == 1500
+    assert finalized_1500["display_remaining"] == 1200
+
+    finalized_1400 = build_vehicle_summary({"id": "vehicle-final", "notes": serialize_notes({"financial_finalization": {"final_customer_total": 1400}})}, visits, {}, {})
+    assert finalized_1400["final_customer_total"] == 1400
+    assert finalized_1400["customer_total"] == 1400
+    assert finalized_1400["display_remaining"] == 1100

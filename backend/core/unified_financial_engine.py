@@ -82,6 +82,28 @@ def is_supplier_item(item: Dict[str, Any]) -> bool:
     return raw == "supplier"
 
 
+def vehicle_finalization(vehicle: Dict[str, Any]) -> Dict[str, Any]:
+    notes = parse_notes(vehicle.get("notes"))
+    final = notes.get("financial_finalization") if isinstance(notes, dict) else None
+    if not isinstance(final, dict):
+        final = {}
+    direct_total = vehicle.get("final_customer_total") or vehicle.get("finalCustomerTotal")
+    final_total = final.get("final_customer_total") if final.get("final_customer_total") is not None else direct_total
+    try:
+        final_total_value = float(final_total) if final_total is not None and str(final_total).strip() != "" else None
+    except Exception:
+        final_total_value = None
+    if final_total_value is not None and final_total_value < 0:
+        final_total_value = None
+    return {
+        "final_customer_total": round2(final_total_value) if final_total_value is not None else None,
+        "finalized_at": final.get("finalized_at") or vehicle.get("finalized_at") or vehicle.get("finalizedAt"),
+        "finalized_by": final.get("finalized_by") or vehicle.get("finalized_by") or vehicle.get("finalizedBy"),
+        "finalization_source": final.get("finalization_source") or vehicle.get("finalization_source") or vehicle.get("finalizationSource"),
+        "previous_service_total": round2(final.get("previous_service_total") or vehicle.get("previous_service_total") or vehicle.get("previousServiceTotal")),
+    }
+
+
 def visit_note_totals(notes: Any) -> Dict[str, Any]:
     parsed = parse_notes(notes)
     workshop = 0.0
@@ -115,7 +137,7 @@ def visit_note_totals(notes: Any) -> Dict[str, Any]:
         else:
             confirmed_notes += amount
 
-    customer_total = workshop + parts
+    customer_total = workshop
     applied = min(confirmed_notes, customer_total)
     return {
         "parsed": parsed,
@@ -123,6 +145,7 @@ def visit_note_totals(notes: Any) -> Dict[str, Any]:
         "total_suppliers": round2(parts),
         "parts_charge_total": round2(parts),
         "supplier_cost_total": round2(parts),
+        "current_customer_due": round2(workshop),
         "customer_total": round2(customer_total),
         "total_amount": round2(customer_total),
         "total_items": round2(customer_total),
@@ -251,7 +274,10 @@ def build_vehicle_summary(
     if opening_receivable_total > 0:
         total_workshop += opening_receivable_total
 
-    customer_total = total_workshop + total_parts
+    finalization = vehicle_finalization(vehicle)
+    current_customer_due = total_workshop
+    final_customer_total = finalization.get("final_customer_total")
+    customer_total = safe_float(final_customer_total) if final_customer_total is not None else current_customer_due
     applied_paid = min(total_confirmed, customer_total)
     remaining = max(customer_total - applied_paid, 0.0)
     credit = max(total_confirmed - customer_total, 0.0)
@@ -270,6 +296,13 @@ def build_vehicle_summary(
         "supplier_archive_total": round2(total_parts),
         "supplier_cost_total": round2(total_parts),
         "parts_charge_total": round2(total_parts),
+        "current_customer_due": round2(current_customer_due),
+        "workshop_service_total": round2(total_workshop),
+        "final_customer_total": round2(final_customer_total) if final_customer_total is not None else None,
+        "finalized_at": finalization.get("finalized_at"),
+        "finalized_by": finalization.get("finalized_by"),
+        "finalization_source": finalization.get("finalization_source"),
+        "previous_service_total": round2(finalization.get("previous_service_total")),
         "customer_charge_total": round2(customer_total),
         "customer_total": round2(customer_total),
         "total_amount": round2(customer_total),

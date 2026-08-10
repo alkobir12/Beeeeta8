@@ -22,6 +22,7 @@ const API_URL = (
 
 const isUuidLike = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
 const humanDocNumber = (...values) => values.map((value) => String(value || '').trim()).find((value) => value && !isUuidLike(value)) || '';
+const money = (value) => Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelete }) => {
   const { t, i18n } = useTranslation();
@@ -30,6 +31,8 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
   const navigate = useNavigate();
   const [newStatus, setNewStatus] = useState(vehicle?.status || 'diagnosis');
   const [loading, setLoading] = useState(false);
+  const [deliveryFinance, setDeliveryFinance] = useState(null);
+  const [finalCustomerTotal, setFinalCustomerTotal] = useState('');
   
   // Document form dialogs
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
@@ -40,6 +43,26 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
   useEffect(() => {
     setNewStatus(vehicle?.status || 'diagnosis');
   }, [vehicle]);
+
+  useEffect(() => {
+    if (!isOpen || !vehicle?.id) return;
+    let alive = true;
+    axios.get(`${API_URL}/vehicles/${vehicle.id}/financial-summary`)
+      .then((res) => {
+        if (!alive) return;
+        const summary = res.data || {};
+        setDeliveryFinance(summary);
+        const existingFinal = summary.final_customer_total ?? vehicle.finalCustomerTotal;
+        const fallbackDue = summary.current_customer_due ?? summary.total_workshop ?? 0;
+        setFinalCustomerTotal(String(existingFinal ?? fallbackDue ?? ''));
+      })
+      .catch(() => {
+        if (!alive) return;
+        setDeliveryFinance(null);
+        setFinalCustomerTotal(String(vehicle?.finalCustomerTotal ?? ''));
+      });
+    return () => { alive = false; };
+  }, [isOpen, vehicle?.id]);
 
   const statusOptions = [
     { value: 'diagnosis', label: t('status.diagnosis'), color: 'bg-yellow-500' },
@@ -53,14 +76,25 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
     { value: 'delivered', label: t('status.delivered'), color: 'bg-gray-500' }
   ];
 
-  const handleStatusUpdate = async () => {
+  const handleStatusUpdate = async (targetStatus = newStatus) => {
     try {
       setLoading(true);
-      await onStatusUpdate(newStatus);
+      const extraPayload = {};
+      if (targetStatus === 'delivered') {
+        const finalValue = Number(finalCustomerTotal);
+        if (!Number.isFinite(finalValue) || finalValue < 0) {
+          toast({ title: 'الإجمالي النهائي مطلوب', description: 'أدخل FINAL CUSTOMER TOTAL قبل التسليم.', variant: 'destructive' });
+          return;
+        }
+        extraPayload.finalCustomerTotal = finalValue;
+        extraPayload.finalizationSource = 'vehicle_quick_actions';
+        extraPayload.previousServiceTotal = Number(deliveryFinance?.total_workshop ?? deliveryFinance?.workshop_service_total ?? 0);
+      }
+      await onStatusUpdate(targetStatus, extraPayload);
       
       // Notify Dashboard and other pages to refresh
       window.dispatchEvent(new CustomEvent('vehicleUpdated', { 
-        detail: { vehicleId: vehicle?.id, status: newStatus, timestamp: Date.now() } 
+        detail: { vehicleId: vehicle?.id, status: targetStatus, timestamp: Date.now() } 
       }));
       
       toast({ title: t('common.success'), description: t('messages.success_updated') });
@@ -533,7 +567,28 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={handleStatusUpdate} disabled={loading || newStatus === vehicle.status} className="w-full h-10 sm:h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-sm font-bold shadow-md">
+              {newStatus === 'delivered' && (
+                <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-3 text-slate-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-50" data-testid="delivery-finalization-panel">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div data-testid="delivery-workshop-service-total">خدمات الورشة<br /><b>{money(deliveryFinance?.total_workshop ?? deliveryFinance?.workshop_service_total)} ر.س</b></div>
+                    <div data-testid="delivery-supplier-preview-total">مشتريات الموردين<br /><b>{money(deliveryFinance?.supplier_archive_total ?? deliveryFinance?.total_suppliers)} ر.س</b></div>
+                    <div data-testid="delivery-confirmed-paid-total">المدفوع سابقاً<br /><b>{money(deliveryFinance?.confirmed_paid ?? deliveryFinance?.total_paid)} ر.س</b></div>
+                    <div data-testid="delivery-current-customer-due">المستحق الحالي<br /><b>{money(deliveryFinance?.current_customer_due ?? deliveryFinance?.total_workshop)} ر.س</b></div>
+                  </div>
+                  <Label className="mt-3 block text-sm font-black">الإجمالي النهائي للعميل</Label>
+                  <Input
+                    data-testid="delivery-final-customer-total-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={finalCustomerTotal}
+                    onChange={(e) => setFinalCustomerTotal(e.target.value)}
+                    className="mt-1 bg-white text-slate-950 dark:bg-slate-900 dark:text-white"
+                    placeholder="FINAL CUSTOMER TOTAL"
+                  />
+                </div>
+              )}
+              <Button onClick={() => handleStatusUpdate(newStatus)} disabled={loading || newStatus === vehicle.status} data-testid="quick-actions-status-update-button" className="w-full h-10 sm:h-11 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-sm font-bold shadow-md">
                 <CheckCircle size={16} className="ml-2" />{t('quick_actions.change_status')}
               </Button>
             </div>
@@ -600,7 +655,7 @@ const VehicleQuickActions = ({ isOpen, onClose, vehicle, onStatusUpdate, onDelet
 
               {/* Full Width Actions */}
               <div className="space-y-2 pt-2">
-                <Button data-testid="quick-actions-mark-delivered" onClick={() => handleStatusUpdate('delivered')} disabled={loading} variant="outline" className="w-full h-10 justify-start text-sm bg-green-50 dark:bg-green-900/70 border-2 border-green-400 dark:border-green-600 text-green-800 dark:text-green-50 hover:bg-green-100 dark:hover:bg-green-800 font-semibold">
+                <Button data-testid="quick-actions-mark-delivered" onClick={() => setNewStatus('delivered')} disabled={loading} variant="outline" className="w-full h-10 justify-start text-sm bg-green-50 dark:bg-green-900/70 border-2 border-green-400 dark:border-green-600 text-green-800 dark:text-green-50 hover:bg-green-100 dark:hover:bg-green-800 font-semibold">
                   <CheckCircle size={16} className="ml-2 text-green-600 dark:text-green-300" />{t('status.delivered')}
                 </Button>
 

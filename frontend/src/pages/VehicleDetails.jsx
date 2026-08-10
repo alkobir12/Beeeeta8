@@ -3100,7 +3100,7 @@ const VehicleDetails = () => {
       });
     });
 
-    const customerTotal = serviceTotal + partsCharge;
+    const customerTotal = serviceTotal;
     const appliedPaid = Math.min(confirmedPaid, customerTotal);
     const remaining = Math.max(customerTotal - appliedPaid, 0);
     const customerCredit = Math.max(confirmedPaid - customerTotal, 0);
@@ -3112,6 +3112,8 @@ const VehicleDetails = () => {
       supplier_archive_total: round2(partsCharge),
       supplier_cost_total: round2(partsCharge),
       parts_charge_total: round2(partsCharge),
+      current_customer_due: round2(serviceTotal),
+      workshop_service_total: round2(serviceTotal),
       customer_charge_total: round2(customerTotal),
       customer_total: round2(customerTotal),
       total_amount: round2(customerTotal),
@@ -3240,8 +3242,9 @@ const VehicleDetails = () => {
       title = 'تفاصيل ومصادر الملخص المالي';
       const summary = effectiveFinanceSummary || {};
       const serviceTotal = Number(summary.total_workshop || 0);
-      const partsCharge = Number(summary.parts_charge_total ?? summary.total_suppliers ?? 0);
-      const customerTotal = Number(summary.customer_total ?? summary.total_items ?? summary.total_amount ?? (serviceTotal + partsCharge));
+      const partsCharge = Number(summary.supplier_archive_total ?? summary.parts_charge_total ?? summary.total_suppliers ?? 0);
+      const hasFinalTotal = summary.final_customer_total !== null && summary.final_customer_total !== undefined && summary.final_customer_total !== '';
+      const customerTotal = Number(hasFinalTotal ? summary.final_customer_total : (summary.current_customer_due ?? summary.customer_total ?? summary.total_items ?? summary.total_amount ?? serviceTotal));
       const confirmedPaid = Number(summary.confirmed_paid ?? summary.total_paid ?? 0);
       const applied = Number(summary.applied_paid ?? Math.min(confirmedPaid, customerTotal));
       const remaining = Number(summary.display_remaining ?? summary.balance ?? Math.max(customerTotal - applied, 0));
@@ -3249,8 +3252,8 @@ const VehicleDetails = () => {
       const pending = Number(summary.pending_payment_total || 0);
       rows = [
         { date: '-', visitId: '-', type: 'خدمات الورشة', label: 'إجمالي الخدمة', amount: serviceTotal, note: 'تسجل على العميل' },
-        { date: '-', visitId: '-', type: 'قطع محملة على العميل', label: 'إجمالي القطع', amount: partsCharge, note: 'customer_charge = supplier_cost حالياً' },
-        { date: '-', visitId: '-', type: 'إجمالي العميل', label: 'خدمة + قطع', amount: customerTotal, note: 'إجمالي العميل قبل الدفعات' },
+        { date: '-', visitId: '-', type: 'مشتريات الموردين', label: 'للمعاينة فقط', amount: partsCharge, note: 'لا تدخل ذمة العميل ولا إيراد الورشة' },
+        { date: '-', visitId: '-', type: hasFinalTotal ? 'الإجمالي النهائي' : 'المستحق الحالي', label: hasFinalTotal ? 'معتمد عند التسليم' : 'خدمات الورشة فقط', amount: customerTotal, note: hasFinalTotal ? 'FINAL CUSTOMER TOTAL' : 'لا يشمل مشتريات الموردين' },
         { date: '-', visitId: '-', type: 'المدفوع المؤكد', label: 'إجمالي المستلم المؤكد', amount: confirmedPaid, note: 'لا يجمع من notes ودفتر اليومية معاً' },
         { date: '-', visitId: '-', type: 'المطبق', label: 'min(المستلم، إجمالي العميل)', amount: applied, note: 'تفصيل داخلي لا يظهر كبطاقة أساسية' },
         { date: '-', visitId: '-', type: 'المتبقي على العميل', label: 'max(الإجمالي - المطبق، 0)', amount: remaining, note: 'المتبقي بعد الدفعات المؤكدة' },
@@ -3260,12 +3263,13 @@ const VehicleDetails = () => {
     } else if (sourceKey === 'balance') {
       title = 'كيف تم احتساب المتبقي';
       const summary = effectiveFinanceSummary || {};
-      const totalItems = Number(summary.customer_total ?? summary.total_items ?? summary.total_amount ?? ((Number(summary.total_workshop || 0) + Number(summary.total_suppliers || 0))));
+      const hasFinalTotal = summary.final_customer_total !== null && summary.final_customer_total !== undefined && summary.final_customer_total !== '';
+      const totalItems = Number(hasFinalTotal ? summary.final_customer_total : (summary.current_customer_due ?? summary.customer_total ?? summary.total_items ?? summary.total_amount ?? Number(summary.total_workshop || 0)));
       const confirmedPaid = Number(summary.confirmed_paid ?? summary.total_paid ?? 0);
       const applied = Number(summary.applied_paid ?? Math.min(confirmedPaid, totalItems));
       const remaining = Number(summary.display_remaining ?? summary.balance ?? Math.max(totalItems - applied, 0));
       rows = [
-        { date: '-', visitId: '-', type: 'إجمالي العميل', label: 'خدمة + قطع', amount: totalItems, note: 'خدمات الورشة + القطع المحملة' },
+        { date: '-', visitId: '-', type: hasFinalTotal ? 'الإجمالي النهائي' : 'المستحق الحالي', label: hasFinalTotal ? 'معتمد' : 'خدمات الورشة', amount: totalItems, note: hasFinalTotal ? 'FINAL CUSTOMER TOTAL' : 'بدون مشتريات الموردين' },
         { date: '-', visitId: '-', type: 'المدفوع المؤكد', label: 'إجمالي', amount: confirmedPaid, note: 'المستلم المؤكد فقط' },
         { date: '-', visitId: '-', type: 'المطبق', label: 'إجمالي', amount: applied, note: 'أقل قيمة بين المستلم والإجمالي' },
         { date: '-', visitId: '-', type: 'المتبقي', label: 'إجمالي', amount: remaining, note: 'max(إجمالي العميل - المطبق، 0)' },

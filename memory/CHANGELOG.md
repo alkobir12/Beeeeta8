@@ -1,3 +1,9 @@
+# 2026-08-10 — P0 Supplier Exclusion + Final Customer Total
+- ثبتت قاعدة `itemType=supplier = archive/movement only` في المحرك المالي الموحد وترحيل العمليات وواجهة ملف المركبة.
+- أزيلت heuristics القديمة التي تحول الموردين إلى إيراد ورشة عبر `revenueAccountCode` أو `linkedPart` أو اسم المورد.
+- أضيف اعتماد `final_customer_total` قبل التسليم، مع حفظ بيانات الاعتماد واستخدامه كأساس المتبقي بعد التسليم.
+- تحقق: lint نظيف، `pytest` ذاتي 25 passed / 7 skipped، تحقق backend مستقل 29 passed / 7 skipped، وواجهة الدخول ظهرت في smoke test.
+
 # CHANGELOG
 
 ## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions

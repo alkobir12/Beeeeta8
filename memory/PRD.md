@@ -781,3 +781,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم تسجيل BLOCKER إضافي في البيئتين: وجود 5 قيود يومية بمراجع غير مرتبطة تحتاج تفسيراً قبل P1.
 - لا يبدأ P1 قبل إزالة BLOCKERs واعتماد ذمم الإنتاج سطراً بسطر.
 
+## تحديث 2026-08-10 — P0 Supplier Exclusion + Final Customer Total
+- تم تنفيذ إصلاح محدود بدون إعادة بناء `AccountingEngine`: بنود `itemType=supplier` أصبحت archive/movement only ولا تدخل Customer AR أو Workshop Revenue أو Customer Remaining.
+- أضيف مفهوم `final_customer_total` كرقم صريح يُعتمد عند التسليم ويحفظ معه `finalized_at`, `finalized_by`, `finalization_source`, `previous_service_total` داخل بيانات المركبة.
+- قبل الاعتماد تستخدم المركبات النشطة `workshop_service_total` فقط كمستحق مؤقت؛ بعد الاعتماد يعتمد المتبقي على `final_customer_total` مع خصم الدفعات المؤكدة.
+- الاختبارات: تحقق ذاتي 25 passed / 7 skipped، ثم تحقق backend مستقل 29 passed / 7 skipped بعد إضافة اختبار Iter340؛ قبول 1000 خدمة + 500 مورد + final 1500/final 1400 نجح.
+

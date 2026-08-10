@@ -59,7 +59,34 @@ def to_snake_vehicle(api: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _parse_vehicle_notes(notes: Any) -> Dict[str, Any]:
+    if isinstance(notes, dict):
+        return notes
+    if isinstance(notes, str) and notes.strip().startswith("{"):
+        try:
+            parsed = json.loads(notes)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _vehicle_finalization_from_notes(dbrow: Dict[str, Any]) -> Dict[str, Any]:
+    parsed = _parse_vehicle_notes(dbrow.get("notes"))
+    final = parsed.get("financial_finalization") if isinstance(parsed, dict) else None
+    if not isinstance(final, dict):
+        final = {}
+    return {
+        "finalCustomerTotal": final.get("final_customer_total") or dbrow.get("final_customer_total"),
+        "finalizedAt": final.get("finalized_at") or dbrow.get("finalized_at"),
+        "finalizedBy": final.get("finalized_by") or dbrow.get("finalized_by"),
+        "finalizationSource": final.get("finalization_source") or dbrow.get("finalization_source"),
+        "previousServiceTotal": final.get("previous_service_total") or dbrow.get("previous_service_total"),
+    }
+
+
 def to_camel_vehicle(dbrow: Dict[str, Any]) -> Dict[str, Any]:
+    finalization = _vehicle_finalization_from_notes(dbrow)
     return {
         "id": dbrow.get("id"),
         "plateNumber": dbrow.get("plate_number"),
@@ -84,6 +111,7 @@ def to_camel_vehicle(dbrow: Dict[str, Any]) -> Dict[str, Any]:
         "technicianId": dbrow.get("technician_id"),
         "technicianName": dbrow.get("technician_name"),
         "notes": dbrow.get("notes"),
+        **finalization,
     }
 
 

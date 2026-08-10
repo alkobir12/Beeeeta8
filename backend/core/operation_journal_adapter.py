@@ -229,7 +229,6 @@ def _build_operation_journal_entry(op: Dict[str, Any], workshop_id: Optional[str
 
     ar_code = _sem_code("ar", "005")
     ap_code = _sem_code("ap", "2101")
-    parts_rev_code = _sem_code("parts_revenue", "041")
     admin_exp_code = _sem_code("admin_expense", "035")
     chart_account_ref_map = chart_account_ref_map or {}
 
@@ -251,53 +250,22 @@ def _build_operation_journal_entry(op: Dict[str, Any], workshop_id: Optional[str
     has_part_item = any(str(it.get("itemType") or it.get("item_type") or "").lower() == "part" for it in items_for_check if isinstance(it, dict))
     has_service_item = any(str(it.get("itemType") or it.get("item_type") or "").lower() == "service" for it in items_for_check if isinstance(it, dict))
 
-    abu_khaled_kw = ["أبو خالد الكبير", "ابو خالد الكبير", "أبو خالد", "ابو خالد"]
-    ajel_supplier_kw = ["مخرطة", "مخرطه", "المخرطة", "المخرطه", "مخرطة العوفي", "العبدالرحيم", "عبدالرحيم", "عبدالرحيم صيانة", "عبدالرحيم  صيانة"]
-    is_known_workshop_supplier = lambda name: any(kw in str(name or "").strip() for kw in abu_khaled_kw)
-    is_ajel_supplier = lambda name: any(kw in str(name or "").strip() for kw in ajel_supplier_kw)
-    ajel_supplier_items = [it for it in items_for_check if isinstance(it, dict) and str(it.get("itemType") or "").lower() == "supplier" and is_ajel_supplier(str(it.get("name") or ""))]
-    ajel_total = sum(_safe_amount(it.get("total") or it.get("price") or 0) for it in ajel_supplier_items)
-
     lines = []
     transaction_type = None
     if op_type in ("sale", "service"):
-        total = workshop_total if workshop_total > 0 else total
+        total = workshop_total
         if total <= 0:
             return None
-        workshop_supplier_items = [
-            it for it in items_for_check
-            if isinstance(it, dict)
-            and str(it.get("itemType") or "").lower() == "supplier"
-            and not is_ajel_supplier(str(it.get("name") or ""))
-            and (str(it.get("revenueAccountCode") or "") in ("041", "042") or it.get("linkedPart") or is_known_workshop_supplier(str(it.get("name") or "")))
-        ]
-        workshop_parts_total = sum(_safe_amount(it.get("total") or it.get("price") or 0) for it in workshop_supplier_items)
-        if workshop_parts_total <= 0 and supplier_total > 0 and workshop_supplier_items:
-            workshop_parts_total = supplier_total
-        if op_type == "sale" and has_part_item and not has_service_item and not workshop_supplier_items:
+        if op_type == "sale" and has_part_item and not has_service_item and workshop_total <= 0:
             return None
         transaction_type = "sale"
         debit_code = ar_code if is_credit else cash_code
         valid_rev_code = selected_code if selected_code and len(selected_code) <= 12 and "-" not in selected_code else None
         revenue_code = LEGACY_TO_NEW_CODE.get(valid_rev_code, valid_rev_code) if valid_rev_code else _infer_revenue_code(op)
-        service_amount = workshop_total
-        full_debit = service_amount + workshop_parts_total
-        if workshop_parts_total > 0 and service_amount > 0:
-            lines = [
-                {"account": debit_code, "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code), "debit": full_debit, "credit": 0},
-                {"account": revenue_code, "account_name": ACCOUNT_NAME_MAP.get(revenue_code, "إيرادات الخدمات"), "debit": 0, "credit": service_amount},
-                {"account": parts_rev_code, "account_name": "ايراد قطع الورشه", "debit": 0, "credit": workshop_parts_total},
-            ]
-        elif workshop_parts_total > 0:
-            lines = [
-                {"account": debit_code, "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code), "debit": workshop_parts_total, "credit": 0},
-                {"account": parts_rev_code, "account_name": "ايراد قطع الورشه", "debit": 0, "credit": workshop_parts_total},
-            ]
-        else:
-            lines = [
-                {"account": debit_code, "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code), "debit": total, "credit": 0},
-                {"account": revenue_code, "account_name": ACCOUNT_NAME_MAP.get(revenue_code, revenue_code), "debit": 0, "credit": total},
-            ]
+        lines = [
+            {"account": debit_code, "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code), "debit": total, "credit": 0},
+            {"account": revenue_code, "account_name": ACCOUNT_NAME_MAP.get(revenue_code, revenue_code), "debit": 0, "credit": total},
+        ]
     elif op_type in ("purchase", "expense"):
         transaction_type = "purchase" if op_type == "purchase" else "expense"
 
@@ -367,29 +335,7 @@ def _build_operation_journal_entry(op: Dict[str, Any], workshop_id: Optional[str
         "reference_id": op.get("id"),
     }
 
-    extra_entries = []
-    if ajel_total > 0:
-        for it in ajel_supplier_items:
-            it_total = _safe_amount(it.get("total") or it.get("price") or 0)
-            if it_total <= 0:
-                continue
-            sup_name = str(it.get("name") or "مورد")
-            extra_entries.append({
-                "id": str(uuid.uuid4()),
-                "workshop_id": workshop_id,
-                "date": op.get("date") or datetime.utcnow().isoformat(),
-                "description": f"[آجل] مشتريات من {sup_name} — {op.get('partnerName') or op.get('partner_name') or ''}",
-                "lines": [
-                    {"account": admin_exp_code, "account_name": "مصروفات عامة وإدارية", "debit": it_total, "credit": 0},
-                    {"account": ap_code, "account_name": f"مورد - {sup_name}", "debit": 0, "credit": it_total},
-                ],
-                "total": it_total,
-                "source": "ajel_supplier_purchase",
-                "transaction_type": "purchase",
-                "reference_id": op.get("id"),
-                "supplier_name": sup_name,
-            })
-    return [primary_entry] + extra_entries if extra_entries else primary_entry
+    return primary_entry
 
 
 def _safe_insert_journal_entry(_supa: Any, entry: Dict[str, Any]):

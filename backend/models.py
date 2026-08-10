@@ -38,6 +38,11 @@ class Vehicle(VehicleBase):
     images: List[str] = []  # URLs للصور
     parts: List[Any] = []  # بنود مرتبطة (خدمات/قطع) أو IDs
     estimatedTotal: Optional[float] = None  # المبلغ التقديري المحسوب من البنود
+    finalCustomerTotal: Optional[float] = None
+    finalizedAt: Optional[str] = None
+    finalizedBy: Optional[str] = None
+    finalizationSource: Optional[str] = None
+    previousServiceTotal: Optional[float] = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
@@ -63,6 +68,10 @@ class VehicleUpdate(BaseModel):
     services: Optional[List[str]] = None
     parts: Optional[List[Any]] = None
     customerFileNumber: Optional[str] = None
+    finalCustomerTotal: Optional[float] = None
+    finalizedBy: Optional[str] = None
+    finalizationSource: Optional[str] = None
+    previousServiceTotal: Optional[float] = None
 
 
 # ============ Customer Models ============

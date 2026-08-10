@@ -47,8 +47,9 @@ const MiniMetric = ({ title, value, tone = 'slate', testId }) => {
 export default function VehicleFinancialSummary({ summary, onShowSource, onAddPayment, onConfirmPayment }) {
   const s = summary || {};
   const serviceTotal = Number(s.total_workshop || 0);
-  const partsCharge = Number(s.parts_charge_total ?? s.total_suppliers ?? 0);
-  const customerTotal = Number(s.customer_total ?? s.total_items ?? s.total_amount ?? (serviceTotal + partsCharge));
+  const supplierPreview = Number(s.supplier_archive_total ?? s.parts_charge_total ?? s.total_suppliers ?? 0);
+  const hasFinalTotal = s.final_customer_total !== null && s.final_customer_total !== undefined && s.final_customer_total !== '';
+  const customerTotal = Number(hasFinalTotal ? s.final_customer_total : (s.current_customer_due ?? s.customer_total ?? s.total_items ?? s.total_amount ?? serviceTotal));
   const confirmedPaid = Number(s.confirmed_paid ?? s.total_paid ?? 0);
   const appliedPaid = Number(s.applied_paid ?? Math.min(confirmedPaid, customerTotal));
   const remaining = Number(s.display_remaining ?? s.balance ?? Math.max(customerTotal - appliedPaid, 0));
@@ -82,7 +83,7 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'rgba(153,246,228,0.9)' }}>
               <Calculator size={16} />
-              <span data-testid="vehicle-financial-summary-customer-total-title">إجمالي العميل</span>
+              <span data-testid="vehicle-financial-summary-customer-total-title">{hasFinalTotal ? 'الإجمالي النهائي' : 'المستحق الحالي'}</span>
             </div>
             <div
               className="mt-2 text-3xl sm:text-5xl font-black tabular-nums leading-tight break-words"
@@ -92,15 +93,16 @@ export default function VehicleFinancialSummary({ summary, onShowSource, onAddPa
               {formatMoney(customerTotal)} <span className="text-sm font-medium" style={{ color: 'rgba(226,232,240,0.68)' }}>ر.س</span>
             </div>
             <div className="mt-2 text-xs" style={{ color: 'rgba(226,232,240,0.68)' }} data-testid="vehicle-financial-summary-customer-total-formula">
-              إجمالي العميل = خدمات الورشة + القطع المحملة على العميل
+              {hasFinalTotal ? 'الإجمالي النهائي المعتمد عند التسليم' : 'المستحق الحالي = خدمات الورشة فقط'}
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-xs leading-relaxed" data-testid="vehicle-financial-summary-customer-total-breakdown">
               <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(226,232,240,0.86)' }} data-testid="vehicle-financial-summary-service-chip">
-                خدمة: {formatMoney(serviceTotal)} ر.س
+                خدمات الورشة: {formatMoney(serviceTotal)} ر.س
               </span>
               <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(226,232,240,0.86)' }} data-testid="vehicle-financial-summary-parts-chip">
-                قطع: {formatMoney(partsCharge)} ر.س
+                مشتريات الموردين للمعاينة: {formatMoney(supplierPreview)} ر.س
               </span>
+              {hasFinalTotal && <span className="rounded-xl px-3 py-1.5" style={{ background: 'rgba(20,184,166,0.12)', color: 'rgba(153,246,228,0.95)' }} data-testid="vehicle-financial-summary-finalized-chip">معتمد</span>}
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-col gap-2 lg:min-w-[210px]">

@@ -1421,7 +1421,6 @@ def _build_operation_journal_entry(
 
     ar_code = _sem_code("ar", "005")
     ap_code = _sem_code("ap", "2101")
-    parts_rev_code = _sem_code("parts_revenue", "041")
     admin_exp_code = _sem_code("admin_expense", "035")
 
     chart_account_ref_map = chart_account_ref_map or {}
@@ -1477,68 +1476,16 @@ def _build_operation_journal_entry(
         if isinstance(it, dict)
     )
 
-    # كشف موردي الورشة المعروفين (أبو خالد) حتى بدون linkedPart/revenueAccountCode
-    _ABU_KHALED_KW = ["أبو خالد الكبير", "ابو خالد الكبير", "أبو خالد", "ابو خالد"]
-
-    # موردو الآجل: تُنشأ لهم قيود مشتريات آجل تلقائياً
-    _AJEL_SUPPLIER_KW = [
-        "مخرطة", "مخرطه", "المخرطة", "المخرطه",
-        "مخرطة العوفي", "العبدالرحيم", "عبدالرحيم",
-        "عبدالرحيم صيانة", "عبدالرحيم  صيانة",
-    ]
-
-    def _is_known_workshop_supplier(name: str) -> bool:
-        n = str(name or "").strip()
-        return any(kw in n for kw in _ABU_KHALED_KW)
-
-    def _is_ajel_supplier(name: str) -> bool:
-        """موردو الآجل: المخرطة والعبدالرحيم — تُسجَّل مشترياتهم كذمم دائنة آجل."""
-        n = str(name or "").strip()
-        return any(kw in n for kw in _AJEL_SUPPLIER_KW)
-
-    # استخرج بنود موردي الآجل
-    ajel_supplier_items = [
-        it for it in items_for_check
-        if isinstance(it, dict)
-        and str(it.get("itemType") or "").lower() == "supplier"
-        and _is_ajel_supplier(str(it.get("name") or ""))
-    ]
-    ajel_total = sum(_safe_amount(it.get("total") or it.get("price") or 0) for it in ajel_supplier_items)
-
     if op_type in ("sale", "service"):
-        total = workshop_total if workshop_total > 0 else total
+        total = workshop_total
         if total <= 0:
             return None
-
-        # 🚫 Non-Rakan parts-only sale → archive only, no journal entry.
-        # BUT: if any item has revenueAccountCode for workshop parts revenue,
-        # create a journal entry to (ايراد قطع الورشة).
-        items_for_check = op.get("items") or []
-        workshop_supplier_items = [
-            it for it in items_for_check
-            if isinstance(it, dict)
-            and str(it.get("itemType") or "").lower() == "supplier"
-            and not is_rakan_operation
-            and not _is_ajel_supplier(str(it.get("name") or ""))  # موردو الآجل مُستثنون
-            and (
-                str(it.get("revenueAccountCode") or "") in ("041", "042")
-                or it.get("linkedPart")
-                or _is_known_workshop_supplier(str(it.get("name") or ""))
-            )
-        ]
-        workshop_parts_total = sum(
-            _safe_amount(it.get("total") or it.get("price") or 0)
-            for it in workshop_supplier_items
-        )
-        # إذا لم يُضبط workshop_parts_total من العناصر، استخدم supplier_total
-        if workshop_parts_total <= 0 and supplier_total > 0 and workshop_supplier_items:
-            workshop_parts_total = supplier_total
 
         if (
             op_type == "sale"
             and has_part_item
             and not has_service_item
-            and not workshop_supplier_items
+            and workshop_total <= 0
         ):
             return None
 
@@ -1553,65 +1500,20 @@ def _build_operation_journal_entry(
             _valid_rev_code = LEGACY_TO_NEW_CODE.get(_valid_rev_code, _valid_rev_code)
         revenue_code = _valid_rev_code or _infer_revenue_code(op)
 
-        # المبلغ الإجمالي للقيد = workshop services + workshop supplier parts (042)
-        # workshop_total (متاح من الحسابات السابقة) = الخدمات فقط (بدون موردين)
-        # نتجنب الازدواجية باستخدام workshop_total الصافي للخدمات
-        service_amount = workshop_total  # 0 في حالة قطع فقط، 200 في حالة مختلطة
-        full_debit = service_amount + workshop_parts_total  # 200+120=320 أو 0+150=150
-
-        if workshop_parts_total > 0 and service_amount > 0:
-            # عملية مختلطة: خدمات → إيراد خدمات، قطع ورشة → ايراد قطع الورشة
-            lines = [
-                {
-                    "account": debit_code,
-                    "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code),
-                    "debit": full_debit,
-                    "credit": 0,
-                },
-                {
-                    "account": revenue_code,
-                    "account_name": ACCOUNT_NAME_MAP.get(revenue_code, "إيرادات الخدمات"),
-                    "debit": 0,
-                    "credit": service_amount,
-                },
-                {
-                    "account": parts_rev_code,
-                    "account_name": "ايراد قطع الورشه",
-                    "debit": 0,
-                    "credit": workshop_parts_total,
-                },
-            ]
-        elif workshop_parts_total > 0:
-            # قطع ورشة فقط → ايراد قطع الورشة (بدون خدمات)
-            lines = [
-                {
-                    "account": debit_code,
-                    "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code),
-                    "debit": workshop_parts_total,
-                    "credit": 0,
-                },
-                {
-                    "account": parts_rev_code,
-                    "account_name": "ايراد قطع الورشه",
-                    "debit": 0,
-                    "credit": workshop_parts_total,
-                },
-            ]
-        else:
-            lines = [
-                {
-                    "account": debit_code,
-                    "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code),
-                    "debit": total,
-                    "credit": 0,
-                },
-                {
-                    "account": revenue_code,
-                    "account_name": ACCOUNT_NAME_MAP.get(revenue_code, revenue_code),
-                    "debit": 0,
-                    "credit": total,
-                },
-            ]
+        lines = [
+            {
+                "account": debit_code,
+                "account_name": ACCOUNT_NAME_MAP.get(debit_code, debit_code),
+                "debit": total,
+                "credit": 0,
+            },
+            {
+                "account": revenue_code,
+                "account_name": ACCOUNT_NAME_MAP.get(revenue_code, revenue_code),
+                "debit": 0,
+                "credit": total,
+            },
+        ]
 
     elif op_type in ("purchase", "expense"):
         transaction_type = "purchase" if op_type == "purchase" else "expense"
@@ -1759,47 +1661,6 @@ def _build_operation_journal_entry(
         "reference_id": op.get("id"),
     }
 
-    # ─── قيود آجل إضافية لموردي المخرطة والعبدالرحيم ────────────────────────
-    # المنطق الصحيح:
-    # - العميل يدفع للورشة مبلغاً يشمل تكلفة المخرطة
-    # - الورشة تكون مدينة للمخرطة بهذا المبلغ (آجل)
-    # القيد المنفصل: Dr تكلفة (036) / Cr مورد آجل (2101)
-    # القيد الرئيسي لا يشمل مبلغ المخرطة في الدائن (يُحسب كامل المبلغ عبر النقدية)
-    extra_entries = []
-    if ajel_total > 0:
-        for it in ajel_supplier_items:
-            it_total = _safe_amount(it.get("total") or it.get("price") or 0)
-            if it_total <= 0:
-                continue
-            sup_name = str(it.get("name") or "مورد")
-            extra_entries.append({
-                "id": str(uuid.uuid4()),
-                "workshop_id": workshop_id,
-                "date": op.get("date") or datetime.utcnow().isoformat(),
-                "description": f"[آجل] مشتريات من {sup_name} — {op.get('partnerName') or op.get('partner_name') or ''}",
-                "lines": [
-                    {
-                        "account": admin_exp_code,
-                        "account_name": "مصروفات عامة وإدارية",
-                        "debit": it_total,
-                        "credit": 0,
-                    },
-                    {
-                        "account": ap_code,
-                        "account_name": f"مورد - {sup_name}",
-                        "debit": 0,
-                        "credit": it_total,
-                    },
-                ],
-                "total": it_total,
-                "source": "ajel_supplier_purchase",
-                "transaction_type": "purchase",
-                "reference_id": op.get("id"),
-                "supplier_name": sup_name,
-            })
-
-    if extra_entries:
-        return [primary_entry] + extra_entries
     return primary_entry
 
 
@@ -4159,7 +4020,7 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
         qty = _num(it.get('quantity', 1), 1.0)
         price = _num(it.get('price', it.get('unit_price', 0)), 0.0)
         line_total = _num(it.get('total'), qty * price)
-        if billing_type in {'supplier', 'part', 'parts'}:
+        if billing_type == 'supplier':
             total_suppliers += line_total
         else:
             total_workshop += line_total
@@ -4187,9 +4048,7 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
             if kind in {'advance', 'prepayment', 'customer_advance', 'دفعة مقدمة', 'مقدم', 'مقدمة'}:
                 advance_paid += amt
 
-    # Keep legacy total/balance view for vehicle page display
-    # while exposing supplier archive explicitly in a separate field.
-    total_amount = total_workshop + total_suppliers
+    total_amount = total_workshop
     applied_paid = min(total_paid, total_amount)
     balance = max(total_amount - applied_paid, 0.0)
     customer_credit = max(total_paid - total_amount, 0.0)
@@ -4211,6 +4070,9 @@ def _calc_visit_financial(parsed_notes: Dict[str, Any]) -> Dict[str, Any]:
         'supplier_archive_total': round(total_suppliers, 2),
         'supplier_cost_total': round(total_suppliers, 2),
         'parts_charge_total': round(total_suppliers, 2),
+        'current_customer_due': round(total_workshop, 2),
+        'workshop_service_total': round(total_workshop, 2),
+        'final_customer_total': None,
         'customer_charge_total': round(total_amount, 2),
         'customer_total': round(total_amount, 2),
         'total_amount': round(total_amount, 2),
@@ -4928,7 +4790,7 @@ async def vehicle_financial_summary(vehicle_id: str):
                 total_paid_on_account += fin.get('paid_on_account', 0.0)
                 total_pending_payments += fin.get('pending_payment_total', 0.0)
 
-        total_amount = total_workshop + total_suppliers
+        total_amount = total_workshop
         applied_paid = min(total_paid, total_amount)
         balance = max(total_amount - applied_paid, 0.0)
         customer_credit = max(total_paid - total_amount, 0.0)
@@ -4941,6 +4803,9 @@ async def vehicle_financial_summary(vehicle_id: str):
             "supplier_archive_total": round(total_suppliers, 2),
             "supplier_cost_total": round(total_suppliers, 2),
             "parts_charge_total": round(total_suppliers, 2),
+            "current_customer_due": round(total_workshop, 2),
+            "workshop_service_total": round(total_workshop, 2),
+            "final_customer_total": None,
             "customer_charge_total": round(total_amount, 2),
             "customer_total": round(total_amount, 2),
             "total_paid": round(total_paid, 2),
