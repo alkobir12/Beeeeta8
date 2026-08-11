@@ -1,0 +1,599 @@
+{
+  "generated_at": "2026-08-11T16:27:35.976077+00:00",
+  "mode": "READ_ONLY",
+  "environment": {
+    "preview": "https://finance-overhaul-7.preview.emergentagent.com",
+    "production": "https://car-repair-sys.emergent.host",
+    "production_status": {
+      "health_status": 200,
+      "data_audit": "not_run_no_production_credentials_or_environment_access"
+    }
+  },
+  "period": {
+    "start": "2026-08-01",
+    "end": "2026-08-11",
+    "opening_and_historical_separated": true
+  },
+  "mutation_guard": {
+    "before": {
+      "vehicles": 197,
+      "vehicle_visits": 181,
+      "operations": 56,
+      "journal_entries": 36
+    },
+    "after": {
+      "vehicles": 197,
+      "vehicle_visits": 181,
+      "operations": 56,
+      "journal_entries": 36
+    },
+    "unchanged": true
+  },
+  "counts": {
+    "vehicles": 197,
+    "active_vehicle_files": 14,
+    "visits": 181,
+    "operations": 56,
+    "operations_api": 14,
+    "journal_entries": 36,
+    "journal_current_period": 36,
+    "journal_historical": 0,
+    "journal_opening": 0,
+    "journal_archived": 0,
+    "accounts": 192,
+    "finalized_vehicles": 2,
+    "supplier_only_operations": 1
+  },
+  "numbers": {
+    "current_ar": {
+      "vehicle_file_remaining_total": 9181.0,
+      "unified_engine_total": 9181.0,
+      "ar_customers_total": 9181.0,
+      "ar_ledger_ending": 9181.0,
+      "ar_layers_current": 9181.0,
+      "ledger_all_entries_ar": 22563.84,
+      "katrina_tool_total_ar": 0.0,
+      "katrina_tool_ledger_ar": 22563.84,
+      "assistant_dashboard_total_ar": 0.0,
+      "as_of_period_start_total": 9181.0
+    },
+    "current_period": {
+      "journal_debit": 66739.68,
+      "journal_credit": 66739.68,
+      "journal_ar": 22563.84,
+      "journal_revenue_raw": 1500.0,
+      "journal_expenses_raw": 0.0,
+      "income_revenue_canonical": 7494.0,
+      "income_expenses": 2274.0,
+      "income_net": 5220.0,
+      "income_unknown_entries": 0,
+      "income_excluded_entries": 21,
+      "income_excluded_legacy_revenue": 24013.84,
+      "operations_reconciliation_difference": 38692.16,
+      "missing_operation_journals": {
+        "count": 43,
+        "total": 54626.0,
+        "sample_operation_ids": [
+          "668bed7b-935f-4cc0-9a15-324d4ba9506d",
+          "2dd3dbae-6cc9-46b6-b72d-f76364cc36f7",
+          "c841307c-1fb6-452d-beef-9f4a0d6f5959",
+          "87a7e860-d0b0-45ea-a854-1278a4fbfb23",
+          "a93a70b8-ad73-4477-b63d-2c2b7dd4c00c",
+          "43a736a3-efa0-41cf-be96-b1ca30256b6c",
+          "f395e31a-0b92-4781-92cc-5c02f5b0127f",
+          "6973ed6f-8895-42cf-ad24-331832ebef96",
+          "b666d607-dfde-46e4-b221-0dab4111d0bc",
+          "0dd49396-8748-4276-8272-2fc5ec70ff09"
+        ]
+      },
+      "operation_trace": {
+        "operations_total": 68834.0,
+        "journal_total": 66739.68,
+        "types_count": 4
+      }
+    },
+    "opening": {},
+    "historical_before_period": {},
+    "all_ledger": {
+      "debit": 66739.68,
+      "credit": 66739.68,
+      "ar": 22563.84,
+      "revenue": 1500.0,
+      "expenses": 0.0
+    },
+    "trial_balance": {
+      "debit": 55817.68,
+      "credit": 55817.68,
+      "difference": 0.0
+    },
+    "balance_sheet": {
+      "assets": 22739.84,
+      "liabilities_plus_equity": 21831.84,
+      "difference": 908.0
+    }
+  },
+  "checks": {
+    "all_journal_entries_balanced": true,
+    "no_duplicate_journal_ids": true,
+    "vehicle_files_match_current_ar": true,
+    "ar_customers_matches_engine": true,
+    "ar_ledger_matches_engine": true,
+    "ar_layers_current_matches_engine": true,
+    "trial_balance_balanced_current_period": true,
+    "balance_sheet_equation_balanced": false,
+    "income_statement_has_no_unknown_entries": true,
+    "operations_reconciliation_matched": false,
+    "no_missing_operation_journals": false,
+    "canonical_finalizations_unique_and_equal": false,
+    "supplier_only_operations_do_not_touch_ar_or_revenue": false,
+    "katrina_ar_matches_current_ar": false,
+    "assistant_dashboard_ar_matches_current_ar": false,
+    "journal_page_contains_full_ledger": true,
+    "journal_period_endpoint_count_matches_raw": true
+  },
+  "failed_checks": [
+    "balance_sheet_equation_balanced",
+    "operations_reconciliation_matched",
+    "no_missing_operation_journals",
+    "canonical_finalizations_unique_and_equal",
+    "supplier_only_operations_do_not_touch_ar_or_revenue",
+    "katrina_ar_matches_current_ar",
+    "assistant_dashboard_ar_matches_current_ar"
+  ],
+  "findings": [
+    {
+      "id": "FIN-P0-01",
+      "severity": "P0",
+      "title": "كاترينا لا تستخدم رصيد الذمم الحالي",
+      "evidence": "current_ar=9,181.00 vs katrina=0.00",
+      "root_cause": "finance.ar_summary يعرض stored_balances_total في total_ar رغم إعلانه أن journal_entries هو SSOT.",
+      "recommendation": "اجعل total_ar/current dashboard من current_vehicle_ar_total، واعرض ledger/history كطبقات مستقلة بأسماء صريحة."
+    },
+    {
+      "id": "FIN-P0-02",
+      "severity": "P0",
+      "title": "قيد تاريخي لمشتريات مورد أثّر في ذمم العملاء والإيراد",
+      "evidence": "violations=1; AR/revenue impact=167.84",
+      "root_cause": "قيد fin_engine_align_v1 قديم صُنّف بيعًا لعملية تحتوي supplier items فقط.",
+      "recommendation": "عكس القيد الخاطئ عبر AccountingEngine بعد اعتماد المالك؛ لا تحذفه ولا تعدله مباشرة."
+    },
+    {
+      "id": "FIN-P0-03",
+      "severity": "P0",
+      "title": "إجمالي نهائي محفوظ بلا قيد canonical مطابق",
+      "evidence": "mismatches=1; details=[{'vehicle_id': 'b885d618-a2fa-45df-b14f-0a9e9ff1b484', 'final_customer_total': 2300.0, 'canonical_entries': 0, 'canonical_total': 0.0}]",
+      "root_cause": "حفظ المركبة يسبق posting؛ عند فشل posting يمكن أن يبقى financial_finalization محفوظًا بلا vehfinal entry.",
+      "recommendation": "اجعل الحفظ/posting ذريًا أو أضف outbox/retry idempotent، ثم عالج السجل الحالي بموافقة صريحة."
+    },
+    {
+      "id": "FIN-P0-04",
+      "severity": "P0",
+      "title": "عقد الكاتب الواحد غير مطبق بالكامل",
+      "evidence": "direct journal mutations=8; default fallback calls=5",
+      "root_cause": "مسارات إصلاح/إقفال قديمة تحدّث journal_entries مباشرة وبعض callers لا تستخدم fallback=False.",
+      "recommendation": "مرّر كل mutation عبر AccountingEngine reverse/replace APIs، وأغلق fallback الافتراضي."
+    },
+    {
+      "id": "FIN-P1-01",
+      "severity": "P1",
+      "title": "الميزانية العمومية غير متوازنة بمقدار 908",
+      "evidence": "assets=22,739.84; liabilities+equity=21,831.84; gap=908.00",
+      "root_cause": "الحساب 006 رصيده دائن 454 لكن balance-sheet يستخدم abs(balance)، فيحوّل -454 إلى +454 ويضاعف الفرق إلى 908.",
+      "recommendation": "احتفظ بإشارة الرصيد أو صنّف contra/overdraft صراحة بدل abs()."
+    },
+    {
+      "id": "FIN-P1-02",
+      "severity": "P1",
+      "title": "تقرير مطابقة العمليات غير متوافق مع نموذج canonical الحالي",
+      "evidence": "difference=38,692.16; missing=43",
+      "root_cause": "التقرير يتوقع قيدًا لكل operation ويجمع عمليات delivered/قديمة، بينما النموذج الحالي يعتمد قيد vehfinal واحدًا ويستبعد القيود المؤقتة دلاليًا.",
+      "recommendation": "أعد بناء reconciliation حول business_event_id/accounting_identity والتصنيف الدلالي، ولا تنفذ backfill الحالي آليًا."
+    },
+    {
+      "id": "FIN-P1-03",
+      "severity": "P1",
+      "title": "تاريخ as_of في الذمم غير مطبق فعليًا",
+      "evidence": "period_start=9,181.00; today=9,181.00; end_date load count=0",
+      "root_cause": "build_current_ar_snapshot يقبل end_date لكنه لا يستخدمه لتصفية الزيارات أو القيود.",
+      "recommendation": "طبّق cutoff موحدًا على visits/payments/journals واختبر نقاطًا تاريخية مختلفة."
+    },
+    {
+      "id": "FIN-P1-04",
+      "severity": "P1",
+      "title": "افتراضي اعتماد إجمالي المركبة يضيف مشتريات المورد",
+      "evidence": "VehicleFinancialSummary: itemsTotal = serviceTotal + supplierPreview",
+      "root_cause": "حقل finalCustomerTotal يبدأ من إجمالي البنود المرئي بدل customer_total/serviceTotal فقط.",
+      "recommendation": "اجعل القيمة الافتراضية customer_total فقط مع إبقاء المورد للمعاينة."
+    },
+    {
+      "id": "FIN-P1-05",
+      "severity": "P1",
+      "title": "متابعة الذمم تحتوي fallback صامتًا وcache قديمًا",
+      "evidence": "عند فشل ar-ledger تُنسخ قيمة engine إلى ledger، وhydrate يبقي القيمة الأعلى حتى لو انخفض الرصيد الحي.",
+      "root_cause": "منطق UX يخفي فشل المصدر ويمنع انخفاض الرصيد بعد السداد في بعض السباقات.",
+      "recommendation": "اعرض حالة source unavailable صراحة واستبدل cache دائمًا بالبيانات الحية ذات الإصدار الأحدث."
+    },
+    {
+      "id": "FIN-P1-06",
+      "severity": "P1",
+      "title": "ملخص لوحة المركبات لا يستخدم المحرك الموحد",
+      "evidence": "dashboard_summaries_use_unified_engine=False",
+      "root_cause": "vehicles/dashboard/summaries يحسب estimatedTotal من notes محليًا.",
+      "recommendation": "اجعله يستهلك batch summary من نفس read model المستخدم في ملف المركبة."
+    },
+    {
+      "id": "FIN-P2-01",
+      "severity": "P2",
+      "title": "دفتر اليومية سيعرض KPI جزئيًا بعد 50 قيدًا",
+      "evidence": "current rows=36; frontend limit=50",
+      "root_cause": "KPI يُحسب من safeEntries المحملة فقط وليس total/count server-side.",
+      "recommendation": "أضف totals endpoint أو pagination metadata قبل تجاوز 50 قيدًا."
+    }
+  ],
+  "details": {
+    "unbalanced_entries": [],
+    "duplicate_journal_ids": [],
+    "finalization_mismatches": [
+      {
+        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+        "final_customer_total": 2300.0,
+        "canonical_entries": 0,
+        "canonical_total": 0.0
+      }
+    ],
+    "supplier_policy_violations": [
+      {
+        "operation_id": "3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e",
+        "impact": {
+          "debit": 167.84,
+          "credit": 167.84,
+          "ar": 167.84,
+          "revenue": 167.84
+        },
+        "journal_ids": [
+          "1b91f14d-caa0-4212-a34b-f5d4f7c7cca3"
+        ]
+      }
+    ],
+    "vehicle_api_rows": [
+      {
+        "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+        "status": 200,
+        "customer_total": 150.0,
+        "confirmed_paid": 0.0,
+        "remaining": 150.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+        "status": 200,
+        "customer_total": 100.0,
+        "confirmed_paid": 100.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+        "status": 200,
+        "customer_total": 250.0,
+        "confirmed_paid": 250.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+        "status": 200,
+        "customer_total": 500.0,
+        "confirmed_paid": 0.0,
+        "remaining": 500.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+        "status": 200,
+        "customer_total": 2300.0,
+        "confirmed_paid": 6000.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 7381.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+        "status": 200,
+        "customer_total": 800.0,
+        "confirmed_paid": 0.0,
+        "remaining": 800.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
+        "status": 200,
+        "customer_total": 0.0,
+        "confirmed_paid": 0.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+        "status": 200,
+        "customer_total": 31.0,
+        "confirmed_paid": 0.0,
+        "remaining": 31.0,
+        "supplier_archive_total": 271.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+        "status": 200,
+        "customer_total": 1800.0,
+        "confirmed_paid": 0.0,
+        "remaining": 1800.0,
+        "supplier_archive_total": 175.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+        "status": 200,
+        "customer_total": 2500.0,
+        "confirmed_paid": 0.0,
+        "remaining": 2500.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+        "status": 200,
+        "customer_total": 300.0,
+        "confirmed_paid": 0.0,
+        "remaining": 300.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+        "status": 200,
+        "customer_total": 800.0,
+        "confirmed_paid": 0.0,
+        "remaining": 800.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "8708bbd6-18be-4fb0-93a4-f9818b2b91ad",
+        "status": 200,
+        "customer_total": 0.0,
+        "confirmed_paid": 0.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 167.84,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+        "status": 200,
+        "customer_total": 2300.0,
+        "confirmed_paid": 0.0,
+        "remaining": 2300.0,
+        "supplier_archive_total": 1090.0,
+        "engine_version": "unified-v1"
+      }
+    ],
+    "reconciliation_rows": [
+      {
+        "type": "sale",
+        "type_label_ar": "بيع",
+        "operations_count": 53,
+        "journal_entries_count": 25,
+        "operations_total": 68380.0,
+        "journal_entries_total": 31507.84,
+        "difference": 36872.16,
+        "matched": false,
+        "account_labels": []
+      },
+      {
+        "type": "purchase",
+        "type_label_ar": "شراء",
+        "operations_count": 0,
+        "journal_entries_count": 3,
+        "operations_total": 0.0,
+        "journal_entries_total": 1820.0,
+        "difference": -1820.0,
+        "matched": false,
+        "account_labels": []
+      },
+      {
+        "type": "expense",
+        "type_label_ar": "مصروف",
+        "operations_count": 2,
+        "journal_entries_count": 2,
+        "operations_total": 454.0,
+        "journal_entries_total": 454.0,
+        "difference": 0.0,
+        "matched": true,
+        "account_labels": []
+      },
+      {
+        "type": "sale_return",
+        "type_label_ar": "مرتجع بيع",
+        "operations_count": 0,
+        "journal_entries_count": 0,
+        "operations_total": 0.0,
+        "journal_entries_total": 0.0,
+        "difference": 0.0,
+        "matched": true,
+        "account_labels": []
+      },
+      {
+        "type": "purchase_return",
+        "type_label_ar": "مرتجع شراء",
+        "operations_count": 0,
+        "journal_entries_count": 0,
+        "operations_total": 0.0,
+        "journal_entries_total": 0.0,
+        "difference": 0.0,
+        "matched": true,
+        "account_labels": []
+      },
+      {
+        "type": "payment_order",
+        "type_label_ar": "أمر سداد",
+        "operations_count": 0,
+        "journal_entries_count": 0,
+        "operations_total": 0.0,
+        "journal_entries_total": 0.0,
+        "difference": 0.0,
+        "matched": true,
+        "account_labels": []
+      }
+    ],
+    "katrina_ar_summary": {
+      "ssot": "journal_entries",
+      "ledger_ar_total": 22563.84,
+      "pending_unjournalized_total": 0,
+      "pending_unjournalized_ops": [],
+      "effective_ar": 22563.84,
+      "reconciliation_gap": -22563.84,
+      "data_freeze_note": "الأرقام كما هي — مصير العمليات الآجلة بلا قيود وقيود الاختبار قرار للمالك (أمر علاج L14 بند 4). SSOT المرجعي = دفتر القيود.",
+      "temporary_deferred_total": 7760.0,
+      "temporary_deferred_entries": [
+        {
+          "entry_id": "79290ede",
+          "reference_id": "f5813fbd",
+          "party": "شاص 2006",
+          "total": 800.0,
+          "date": "2026-08-04",
+          "partially_collected": false
+        },
+        {
+          "entry_id": "6ddcabf8",
+          "reference_id": "ca32e1a6",
+          "party": "عاصم التويجري",
+          "total": 150.0,
+          "date": "2026-08-04",
+          "partially_collected": false
+        },
+        {
+          "entry_id": "d7ba7da9",
+          "reference_id": "9092eddb",
+          "party": "ابو صهيب الاردني",
+          "total": 800.0,
+          "date": "2026-08-03",
+          "partially_collected": false
+        },
+        {
+          "entry_id": "0e83fc0c",
+          "reference_id": "0fd379c7",
+          "party": "ابو فهد ",
+          "total": 2500.0,
+          "date": "2026-08-04",
+          "partially_collected": false
+        },
+        {
+          "entry_id": "e4333a1d",
+          "reference_id": "174f49a1",
+          "party": "فيصل الجفير",
+          "total": 1210.0,
+          "date": "2026-08-04",
+          "partially_collected": false
+        },
+        {
+          "entry_id": "74045e29",
+          "reference_id": "2635ecf1",
+          "party": "فارس عوض ",
+          "total": 2300.0,
+          "date": "2026-08-04",
+          "partially_collected": false
+        }
+      ],
+      "temporary_deferred_note": "قيود مؤقتة لبيع آجل (مدين ذمم/دائن إيرادات) — تبقى موسومة حتى التحصيل، وعند السداد يُحدَّث الوسم إلى مُسوَّى مع قيد تحصيل (مدين نقدية/بنك، دائن ذمم).",
+      "total_customers_with_debt": 0,
+      "total_ar": 0,
+      "top_debtors": [],
+      "stored_top_debtors": []
+    }
+  },
+  "single_writer_contract": {
+    "direct_journal_mutations_outside_engine": [
+      {
+        "file": "routes_finance.py",
+        "line": 4912,
+        "code": "supabase.table(\"journal_entries\").update({\"lines\": new_lines}).eq(\"id\", entry_id).execute()"
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 5095,
+        "code": "supabase.table(\"journal_entries\").update({\"lines\": new_lines}).eq(\"id\", entry_id).execute()"
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 5309,
+        "code": "supabase.table(\"journal_entries\").update({\"lines\": new_lines}).eq(\"id\", entry_id).execute()"
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 5472,
+        "code": "supabase.table(\"journal_entries\").update({\"lines\": patched, \"total\": workshop_total}).eq(\"id\", entry.get(\"id\")).execute()"
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 6198,
+        "code": "supa.client.table(\"journal_entries\").update("
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 6299,
+        "code": "supabase.table(\"journal_entries\").update("
+      },
+      {
+        "file": "core/financial_reset_engine.py",
+        "line": 284,
+        "code": "client.table(\"journal_entries\").update({"
+      },
+      {
+        "file": "core/financial_actions.py",
+        "line": 104,
+        "code": "supa.client.table(\"journal_entries\").update({\"description\": nd}).eq(\"id\", r[\"id\"]).execute()"
+      }
+    ],
+    "post_entry_calls_using_default_fallback": [
+      {
+        "file": "server.py",
+        "line": 975,
+        "code": "accounting_engine.post_entry(entry)"
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 2060,
+        "code": "res = accounting_engine.post_entry(entry)"
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 3542,
+        "code": "accounting_engine.post_entry(new_entry)"
+      },
+      {
+        "file": "routes_finance.py",
+        "line": 3678,
+        "code": "response_data = accounting_engine.post_entry(full_entry_data)"
+      },
+      {
+        "file": "routes_suppliers_extended.py",
+        "line": 506,
+        "code": "accounting_engine.post_entry(entry)"
+      }
+    ],
+    "current_ar_end_date_is_effectively_used": false,
+    "current_ar_end_date_load_count": 0,
+    "katrina_total_ar_uses_stored_balances": true,
+    "vehicle_final_default_adds_supplier_archive": true,
+    "debt_page_can_synthesize_ledger_totals_from_engine": true,
+    "debt_page_can_keep_higher_stale_cache": true,
+    "journal_page_fetch_limit_50": true,
+    "dashboard_summaries_use_unified_engine": false
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "summary": "Executed independent READ-ONLY financial consistency re-audit on Preview plus Production health-only check. Re-ran the readonly audit script, validated expected totals/checks via pytest regression, and confirmed mutation guard counts stayed unchanged.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/assistant/dashboard + tool finance.ar_summary",
+        "issue": "Current AR is 9181.00 but Katrina total_ar and assistant dashboard total_ar are 0.00 (while ledger_ar_total is 22563.84).",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/finance/reports/balance-sheet",
+        "issue": "Balance sheet equation is broken: assets=22739.84 vs liabilities+equity=21831.84 (gap=908.00), tied to abs(balance) behavior for account 006 credit balance.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "/api/finance/reports/reconciliation",
+        "issue": "Reconciliation remains incompatible with canonical model: total_absolute_difference=38692.16 and missing_operation_journals.count=43.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "vehicle finalization canonical posting flow",
+        "issue": "Vehicle b885d618-a2fa-45df-b14f-0a9e9ff1b484 stores final_customer_total=2300.00 but has zero canonical vehfinal journal entries.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "operation->journal integrity",
+        "issue": "Supplier-only operation 3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e still impacts AR/revenue by 167.84 via journal 1b91f14d-caa0-4212-a34b-f5d4f7c7cca3.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/finance/reports/income-statement",
+        "issue": "Canonical statement is internally consistent (revenue=7494.00, expenses=2274.00, net=5220.00, unknown=0) but still excludes legacy revenue=24013.84 by policy."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Katrina/assistant AR display",
+        "issue": "Dashboard-visible AR remains 0.00 and does not reflect unified current AR total 9181.00.",
+        "affected_selectors": [
+          "assistant/dashboard total_ar panel"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/scripts/financial_consistency_readonly_audit.py",
+    "/app/test_reports/financial_consistency_readonly_audit.json",
+    "/app/memory/FINANCIAL_CONSISTENCY_READONLY_AUDIT.md",
+    "/app/backend/tests/test_iter346_financial_readonly_reaudit.py",
+    "/app/test_reports/pytest/iter346_financial_readonly.xml"
+  ],
+  "action_items": [
+    "Switch Katrina/assistant AR totals to unified current_vehicle_ar_total for current AR views (keep ledger/history as separate explicit fields).",
+    "Fix balance sheet sign handling (remove/replace abs(balance) for contra/credit asset treatment, especially account 006).",
+    "Rework reconciliation report logic around canonical business event identity; do not auto-backfill using old operation-per-entry assumption.",
+    "Address finalization posting atomicity/order so vehicle finalization cannot persist without canonical vehfinal journal.",
+    "Reverse supplier-only contamination entry through AccountingEngine-approved reversal flow (no direct delete/update).",
+    "Enforce single-writer policy fully: remove direct journal_updates and require explicit fallback=False where mandated."
+  ],
+  "critical_code_review_comments": [
+    "single_writer_contract still shows 8 direct journal mutations outside AccountingEngine and 5 post_entry calls without explicit fallback=False.",
+    "build_current_ar_snapshot accepts end_date but effectively does not use it (load count=0), so as_of historical cutoff is not functionally applied.",
+    "VehicleFinancialSummary default uses serviceTotal + supplierPreview for editable final total seed, which can overstate customer-facing default.",
+    "DebtFollowUp keeps silent ledger fallback and can preserve higher stale cache than current live value.",
+    "JournalEntries page still requests /finance/journal-entries with limit=50.",
+    "Production data audit was not performed (only /api/health checked as requested)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter346_financial_readonly_reaudit.py",
+    "/app/test_reports/financial_consistency_readonly_audit.json",
+    "/app/memory/FINANCIAL_CONSISTENCY_READONLY_AUDIT.md",
+    "/app/test_reports/iteration_346.json"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 pytest assertions passed for readonly verification); application financial checks still 10/17 pass from audit with 7 expected failing controls",
+    "frontend": "100% smoke load (login page rendered, no visible .error selectors in smoke run)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Fresh audit rerun completed at this iteration; mutation guard unchanged (vehicles=197, vehicle_visits=181, operations=56, journal_entries=36). AR alignment for current model remains exactly 9181.00 across vehicle sums/unified/ar_customers/ar_ledger/ar_layers_current. Outstanding divergences remain Katrina/dashboard AR=0 and ledger_ar_total=22563.84, balance sheet gap=908, reconciliation diff=38692.16 with missing journals=43, canonical mismatch for vehicle b885..., and supplier-only AR/revenue contamination (167.84).",
+  "rca of the issue": "Reproduced by rerunning readonly audit script and asserting outputs in pytest. Root causes remain architectural/data-contract: (1) Katrina tool maps total_ar to stored balances layer instead of unified current layer; (2) balance sheet presentation uses absolute sign normalization causing contra/credit asset distortion; (3) reconciliation logic assumes legacy operation-to-journal parity not canonical vehfinal model; (4) finalization flow can persist final totals before guaranteed canonical posting; (5) historical supplier-only entry incorrectly classified as sale and impacts AR/revenue."
+}
