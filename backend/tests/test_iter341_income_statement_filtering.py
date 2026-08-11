@@ -37,3 +37,12 @@ def test_income_statement_classifies_payment_closing_migration_and_unknown():
     assert _classify({"source": "period_close", "description": "إقفال الفترة"}, revenue=-1000, expense=-50) == "CLOSING"
     assert _classify({"source": "opening_balance", "reference_id": "opening-1"}, revenue=100) == "MIGRATION"
     assert _classify({"source": "manual_adjustment", "description": "تعديل يدوي"}, revenue=100) == "UNKNOWN"
+
+
+def test_income_statement_endpoint_does_not_use_live_vehicle_filter():
+    src = Path("/app/backend/routes_finance.py").read_text(encoding="utf-8")
+    start = src.index('@router.get("/reports/income-statement")')
+    end = src.index('@router.get("/reports/cash-flow")', start)
+    fn = src[start:end]
+    assert "_filter_live_journal_entries" not in fn
+    assert '"vehicle_status_affects_income_statement": False' in fn

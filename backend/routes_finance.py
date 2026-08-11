@@ -1237,7 +1237,6 @@ async def get_income_statement(
             limit=10000,
             include_rakan=False,
         )
-        entries = _filter_live_journal_entries(entries, effective_workshop_id)
 
         revenue_accounts: Dict[str, Dict[str, Any]] = {}
         expense_accounts: Dict[str, Dict[str, Any]] = {}
@@ -1247,6 +1246,9 @@ async def get_income_statement(
         excluded_repairs = 0.0
         excluded_temporary = 0.0
         excluded_migration = 0.0
+        excluded_closing = 0.0
+        excluded_closing_revenue_effect = 0.0
+        excluded_closing_expense_effect = 0.0
         excluded_unknown_revenue = 0.0
         excluded_other_revenue = 0.0
         unknown_entries: List[Dict[str, Any]] = []
@@ -1276,6 +1278,9 @@ async def get_income_statement(
             include_expense = classification in {"EXPENSE", "REVERSAL"}
 
             if classification == "CLOSING":
+                excluded_closing += _safe_float(entry.get("total")) or abs(entry_revenue) or abs(entry_expense)
+                excluded_closing_revenue_effect += entry_revenue
+                excluded_closing_expense_effect += entry_expense
                 continue
 
             if classification == "LEGACY_ALIGNMENT":
@@ -1404,20 +1409,26 @@ async def get_income_statement(
                 },
                 "statement_safety": {
                     "mode": "canonical_journal_filter_v1",
+                    "reporting_scope_model": "period_based_semantic_classification_v2",
                     "warning": warnings[0] if warnings else None,
                     "warnings": warnings,
-                    "net_income_qualifier": "filtered_current_journal_entries" if warnings else "canonical_current_journal_entries",
+                    "net_income_qualifier": "period_based_filtered_journal_entries" if warnings else "period_based_canonical_journal_entries",
                     "current_net_income_trustworthy": current_net_income_trustworthy,
+                    "vehicle_status_affects_income_statement": False,
                     "unknown_entries_count": len(unknown_entries),
                     "unknown_revenue_entries_count": len(unknown_revenue_entries),
                     "excluded_entries_count": len(excluded_entries),
                 },
                 "revenue_source_audit": {
+                    "accounting_period_scope": "IN_PERIOD",
                     "revenue_before": round(revenue_before_filter, 2),
                     "excluded_alignment": round(excluded_alignment, 2),
                     "excluded_repairs": round(excluded_repairs, 2),
                     "excluded_temporary": round(excluded_temporary, 2),
                     "excluded_migration": round(excluded_migration, 2),
+                    "excluded_closing": round(excluded_closing, 2),
+                    "excluded_closing_revenue_effect": round(excluded_closing_revenue_effect, 2),
+                    "excluded_closing_expense_effect": round(excluded_closing_expense_effect, 2),
                     "excluded_unknown_revenue": round(excluded_unknown_revenue, 2),
                     "excluded_other_revenue": round(excluded_other_revenue, 2),
                     "excluded_legacy_revenue": round(excluded_legacy_revenue, 2),

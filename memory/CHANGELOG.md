@@ -20,6 +20,12 @@
 - `AccountingEngine` لم يتغير، ولا يوجد حذف/عكس/ترحيل تاريخي.
 - تحقق مستقل Iter341: backend 100%، classifier tests 4/4، وقيم acceptance مطابقة.
 
+# 2026-08-11 — Period-Based Income Statement Scope
+- تم إيقاف استخدام فلتر المركبات الحية داخل قائمة الدخل؛ التسليم `delivered` لم يعد يحذف الإيراد/المصروف من الفترة المحاسبية.
+- قائمة الدخل الآن تعتمد على الفترة + التصنيف الدلالي للقيود، مع بقاء فلاتر legacy/repair/temporary/closing.
+- أرقام أغسطس بعد الإصلاح: revenue 5994، expenses 2274، net_income 3720، margin 62.06%، unknown 0.
+- تحقق مستقل Iter342: backend 100%، و`AccountingEngine` بلا تغيير.
+
 # CHANGELOG
 
 ## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions

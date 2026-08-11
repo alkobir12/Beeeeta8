@@ -7,6 +7,7 @@
 ## P1 التالي
 - إبقاء اختبار `/app/backend/tests/test_iter340_p0_supplier_exclusion_finalization.py` ضمن الانحدار لحماية عقد P0.
 - إبقاء اختبار `/app/backend/tests/test_iter341_income_statement_filtering.py` ضمن الانحدار لحماية فلترة مصادر الإيراد.
+- إبقاء اختبار `/app/backend/tests/test_iter342_income_statement_scope_model.py` ضمن الانحدار لحماية استقلال قائمة الدخل عن حالة المركبة.
 - Root fix مستقبلي: إنشاء قيد canonical واحد واضح لكل حدث تجاري نهائي، مع إبقاء alignment/repair كـ audit/history فقط.
 - ربط QuickPrint والفواتير النهائية بعرض `final_customer_total` المعتمد في قالب الفاتورة النهائي.
 - صفحة تحقق عامة للمستندات عبر QR/هاش/اعتمادات.

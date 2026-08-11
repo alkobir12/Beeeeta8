@@ -803,3 +803,10 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - لم يتم تعديل `AccountingEngine` ولم تُحذف أو تُعكس أي قيود. الواجهة تعرض تنبيه مراجعة عند وجود قيود مستبعدة وتعرض أرقام الفلترة في `revenue_source_audit`.
 - التحقق المستقل Iter341: API values matched acceptance؛ `revenue_before=20785.84`, `excluded_alignment=8948.84`, `excluded_repairs=4877`, `excluded_temporary=6960`, `canonical_revenue=0`, `expenses=874`, `net_income=-874`, `margin=0`, `UNKNOWN=0`.
 
+## تحديث 2026-08-11 — P0 Period-Based Income Statement Scope
+- تم اعتماد نتيجة reconciliation audit وتصحيح السبب الجذري: `Income Statement` لم يعد يستخدم `_filter_live_journal_entries()` ولا يستبعد قيود مركبات `delivered` إذا كانت داخل الفترة المحاسبية.
+- أصبح نطاق قائمة الدخل مبنياً على `journal date/accounting period` + `journal_semantic_class`، مع استمرار استبعاد `LEGACY_ALIGNMENT`, `HISTORICAL_REPAIR`, `MIGRATION`, `TEMPORARY`, `CLOSING`، واعتبار `PAYMENT` غير إيرادي.
+- أضيف `reporting_scope_model=period_based_semantic_classification_v2` و`vehicle_status_affects_income_statement=false` إلى `statement_safety`.
+- أرقام أغسطس بعد الإصلاح: `canonical_business_revenue=5994`, `canonical_expenses=2274`, `net_income=3720`, `margin=62.06%`, `excluded_alignment=8948.84`, `excluded_repairs=7305`, `excluded_temporary=7760`, `excluded_closing=30007.84`, `unknown_count=0`.
+- التحقق: pytest ذاتي 30 passed / 7 skipped، تحقق مستقل Iter342 backend 100%، ولا تغيير على `AccountingEngine` أو البيانات.
+
