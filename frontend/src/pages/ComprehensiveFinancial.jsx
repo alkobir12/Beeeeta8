@@ -431,6 +431,8 @@ export default function ComprehensiveFinancial() {
   const bsTotals = balanceData?.totals || { assets: 0, liabilities: 0, equity: 0 };
   const bsDetails = balanceData?.details || {};
   const incomeTotals = incomeData?.totals || { revenue: 0, expenses: 0, net_income: 0 };
+  const statementSafety = incomeData?.statement_safety || {};
+  const revenueSourceAudit = incomeData?.revenue_source_audit || {};
   const cashFlow = cashFlowQuery.data || {};
   const trialBalance = trialBalanceQuery.data || { accounts: [], totals: { total_debit: 0, total_credit: 0 } };
   const budgetsData = budgetsQuery.data || { rows: [], totals: { planned: 0, actual: 0, variance: 0 } };
@@ -966,6 +968,20 @@ export default function ComprehensiveFinancial() {
         {lastReclassifyResult ? (
           <div className="mb-4 rounded-2xl border border-emerald-300/25 bg-emerald-500/10 px-4 py-2 text-xs text-emerald-100" data-testid="financial-reclassify-result-banner">
             تم تصحيح ربط طرق الدفع بالحسابات: مرشحات {Number(lastReclassifyResult.candidates || 0)} • تم تحديث {Number(lastReclassifyResult.updated || 0)}
+          </div>
+        ) : null}
+
+        {statementSafety?.warning ? (
+          <div className="mb-4 rounded-2xl border border-amber-300/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100" data-testid="financial-income-statement-safety-banner">
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold" data-testid="financial-income-statement-safety-title">{statementSafety.warning}</p>
+                <p className="mt-1 text-amber-100/80" data-testid="financial-income-statement-safety-detail">
+                  الإيراد قبل الفلترة {formatCurrency(revenueSourceAudit.revenue_before || 0)}، المستبعد {formatCurrency(revenueSourceAudit.excluded_legacy_revenue || 0)}، والإيراد المعروض الآن {formatCurrency(revenueSourceAudit.canonical_revenue || incomeTotals.revenue || 0)}.
+                </p>
+              </div>
+            </div>
           </div>
         ) : null}
 

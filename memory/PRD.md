@@ -797,3 +797,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم تثبيت مواضع الأزرار داخل الكرت حسب مرجع HTML: إضافة دفعة، إنهاء وتسعير المركبة، عرض التفاصيل والمصادر، ثم اعتماد الإجمالي النهائي داخل التسوية.
 - لم يتم تنفيذ أي تعديل مالي أثناء الاختبار؛ تحققنا بـ lint و`yarn build` وقراءة API فقط.
 
+## تحديث 2026-08-10 — فلترة قراءة قائمة الدخل من القيود التاريخية
+- تم إصلاح قراءة `Income Statement` فقط بإضافة تصنيف read-only للقيود: `CANONICAL_BUSINESS`, `PAYMENT`, `EXPENSE`, `REVERSAL`, `CLOSING`, `LEGACY_ALIGNMENT`, `HISTORICAL_REPAIR`, `MIGRATION`, `TEMPORARY`, `UNKNOWN`.
+- أصبحت قائمة الدخل تستبعد صراحة `fin_engine_align_v1`, `active_vehicle_ar_repair`, `hist_vehicle_ar_repair`, `period_close`, والقيود المؤقتة/الهجرات/الإصلاحات، ولا تعتبر `operation` canonical إذا كان موسوماً مؤقتاً.
+- لم يتم تعديل `AccountingEngine` ولم تُحذف أو تُعكس أي قيود. الواجهة تعرض تنبيه مراجعة عند وجود قيود مستبعدة وتعرض أرقام الفلترة في `revenue_source_audit`.
+- التحقق المستقل Iter341: API values matched acceptance؛ `revenue_before=20785.84`, `excluded_alignment=8948.84`, `excluded_repairs=4877`, `excluded_temporary=6960`, `canonical_revenue=0`, `expenses=874`, `net_income=-874`, `margin=0`, `UNKNOWN=0`.
+

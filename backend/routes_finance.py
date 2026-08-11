@@ -914,6 +914,107 @@ def _normalize_line(line, id_to_code, code_to_name):
     }
 
 
+INCOME_STATEMENT_CLASSIFICATIONS = {
+    "CANONICAL_BUSINESS",
+    "PAYMENT",
+    "EXPENSE",
+    "REVERSAL",
+    "CLOSING",
+    "LEGACY_ALIGNMENT",
+    "HISTORICAL_REPAIR",
+    "MIGRATION",
+    "TEMPORARY",
+    "UNKNOWN",
+}
+
+
+def _entry_statement_amounts(entry: Dict[str, Any], id_to_code: Dict[str, str], code_to_name: Dict[str, str], code_to_type: Dict[str, str]) -> Dict[str, Any]:
+    normalized_lines = []
+    revenue = 0.0
+    expense = 0.0
+    ar = 0.0
+    for line in entry.get("lines", []) or []:
+        normalized = _normalize_line(line, id_to_code, code_to_name)
+        if not normalized:
+            continue
+        code = normalized["code"]
+        acc_type = code_to_type.get(code) or _infer_account_type_from_code(code)
+        debit = _safe_float(normalized.get("debit"))
+        credit = _safe_float(normalized.get("credit"))
+        normalized_lines.append({**normalized, "type": acc_type})
+        if acc_type == "revenue":
+            revenue += credit - debit
+        elif acc_type == "expense":
+            expense += debit - credit
+        if code in AR_ACCOUNT_CODES:
+            ar += debit - credit
+    return {
+        "lines": normalized_lines,
+        "revenue": round(revenue, 2),
+        "expense": round(expense, 2),
+        "ar": round(ar, 2),
+    }
+
+
+def _metadata_statement_classification(entry: Dict[str, Any]) -> Optional[str]:
+    candidates = [
+        entry.get("statement_classification"),
+        entry.get("income_statement_classification"),
+        entry.get("journal_classification"),
+        entry.get("classification"),
+    ]
+    metadata = entry.get("metadata") or entry.get("meta") or {}
+    if isinstance(metadata, dict):
+        candidates.extend([
+            metadata.get("statement_classification"),
+            metadata.get("income_statement_classification"),
+            metadata.get("journal_classification"),
+            metadata.get("classification"),
+        ])
+    for value in candidates:
+        normalized = str(value or "").strip().upper()
+        if normalized in INCOME_STATEMENT_CLASSIFICATIONS:
+            return normalized
+    return None
+
+
+def classify_journal_entry_for_income_statement(entry: Dict[str, Any], amounts: Dict[str, Any]) -> str:
+    metadata_classification = _metadata_statement_classification(entry)
+    if metadata_classification:
+        return metadata_classification
+
+    source = str(entry.get("source") or "").strip().lower()
+    description = str(entry.get("description") or "")
+    transaction_type = str(entry.get("transaction_type") or entry.get("type") or "").strip().lower()
+    reference_id = str(entry.get("reference_id") or "").strip().lower()
+    revenue = _safe_float(amounts.get("revenue"))
+    expense = _safe_float(amounts.get("expense"))
+
+    if source == "period_close":
+        return "CLOSING"
+    if "reverse" in source or "reversal" in source or "عكس" in description or "إلغاء" in description:
+        return "REVERSAL"
+    if source == "fin_engine_align_v1" or "محاذاة المحرك المالي" in description:
+        return "LEGACY_ALIGNMENT"
+    if source in {"active_vehicle_ar_repair", "hist_vehicle_ar_repair"} or "إصلاح روابط ذمم" in description or "استرجاع بنود تاريخية" in description:
+        return "HISTORICAL_REPAIR"
+    if "opening" in source or "migration" in source or reference_id.startswith("opening-"):
+        return "MIGRATION"
+    if "temporary" in source or "temp" in source or "[قيد مؤقت" in description:
+        return "TEMPORARY"
+    if source == "operation_payment" or transaction_type in {"payment", "receipt", "collection"}:
+        return "PAYMENT"
+    if expense and not revenue:
+        return "EXPENSE"
+    if revenue:
+        if source in {"operation", "vehicle_visit"} and transaction_type in {"sale", "service", ""}:
+            return "CANONICAL_BUSINESS"
+        return "UNKNOWN"
+    if expense:
+        return "EXPENSE"
+    return "PAYMENT"
+
+
 def _fetch_journal_entries(
     workshop_id: str,
     start_date: Optional[str] = None,
@@ -1138,42 +1239,99 @@ async def get_income_statement(
         )
         entries = _filter_live_journal_entries(entries, effective_workshop_id)
 
-        references_with_base_entries = {
-            str(entry.get("reference_id") or "").strip()
-            for entry in entries
-            if str(entry.get("reference_id") or "").strip()
-            and str(entry.get("source") or "").strip().lower()
-            not in {"operation_payment"}
-        }
-
         revenue_accounts: Dict[str, Dict[str, Any]] = {}
         expense_accounts: Dict[str, Dict[str, Any]] = {}
+        revenue_before_filter = 0.0
+        expenses_before_filter = 0.0
+        excluded_alignment = 0.0
+        excluded_repairs = 0.0
+        excluded_temporary = 0.0
+        excluded_migration = 0.0
+        excluded_unknown_revenue = 0.0
+        excluded_other_revenue = 0.0
+        unknown_entries: List[Dict[str, Any]] = []
+        unknown_revenue_entries: List[Dict[str, Any]] = []
+        classification_counts: Dict[str, Dict[str, Any]] = {}
+        excluded_entries: List[Dict[str, Any]] = []
+
+        def _bump_classification(name: str, revenue_amount: float, expense_amount: float):
+            row = classification_counts.setdefault(name, {"entries": 0, "revenue": 0.0, "expenses": 0.0})
+            row["entries"] += 1
+            row["revenue"] = round(_safe_float(row.get("revenue")) + revenue_amount, 2)
+            row["expenses"] = round(_safe_float(row.get("expenses")) + expense_amount, 2)
 
         for entry in entries:
             entry_source = str(entry.get("source") or "").strip().lower()
-            entry_reference = str(entry.get("reference_id") or "").strip()
-            # 🧾 قيود إقفال الفترة تُستثنى من حساب الإيراد/المصروف لأنها تحويلات
-            # للأرباح المحتجزة وليست حركة فعلية. الأرصدة المتأثرة تظهر صفراً
-            # في الحسابات (balance=0) — أما قائمة الدخل فتعرض حركة فعلية فقط.
-            if entry_source == "period_close":
+            amounts = _entry_statement_amounts(entry, id_to_code, code_to_name, code_to_type)
+            entry_revenue = _safe_float(amounts.get("revenue"))
+            entry_expense = _safe_float(amounts.get("expense"))
+            classification = classify_journal_entry_for_income_statement(entry, amounts)
+            _bump_classification(classification, entry_revenue, entry_expense)
+
+            if entry_source != "period_close":
+                revenue_before_filter += entry_revenue
+                expenses_before_filter += entry_expense
+
+            include_revenue = classification in {"CANONICAL_BUSINESS", "REVERSAL"}
+            include_expense = classification in {"EXPENSE", "REVERSAL"}
+
+            if classification == "CLOSING":
                 continue
-            for line in entry.get("lines", []) or []:
-                normalized = _normalize_line(line, id_to_code, code_to_name)
-                if not normalized:
-                    continue
+
+            if classification == "LEGACY_ALIGNMENT":
+                excluded_alignment += entry_revenue
+            elif classification == "HISTORICAL_REPAIR":
+                excluded_repairs += entry_revenue
+            elif classification == "TEMPORARY":
+                excluded_temporary += entry_revenue
+            elif classification == "MIGRATION":
+                excluded_migration += entry_revenue
+            elif classification == "UNKNOWN":
+                excluded_unknown_revenue += entry_revenue
+                if abs(entry_revenue) >= 0.005 or abs(entry_expense) >= 0.005:
+                    row = {
+                        "id": entry.get("id"),
+                        "source": entry.get("source"),
+                        "date": entry.get("date"),
+                        "reference_id": entry.get("reference_id"),
+                        "revenue": round(entry_revenue, 2),
+                        "expenses": round(entry_expense, 2),
+                        "description": str(entry.get("description") or "")[:240],
+                    }
+                    unknown_entries.append(row)
+                    if abs(entry_revenue) >= 0.005:
+                        unknown_revenue_entries.append(row)
+            elif not include_revenue and abs(entry_revenue) >= 0.005:
+                excluded_other_revenue += entry_revenue
+
+            if not include_revenue and abs(entry_revenue) >= 0.005:
+                excluded_entries.append({
+                    "id": entry.get("id"),
+                    "source": entry.get("source"),
+                    "classification": classification,
+                    "date": entry.get("date"),
+                    "reference_id": entry.get("reference_id"),
+                    "revenue": round(entry_revenue, 2),
+                    "description": str(entry.get("description") or "")[:240],
+                })
+
+            if not include_revenue and not include_expense:
+                continue
+
+            for normalized in amounts.get("lines", []) or []:
 
                 code = normalized["code"]
-                acc_type = code_to_type.get(code) or _infer_account_type_from_code(code)
+                acc_type = normalized.get("type") or code_to_type.get(code) or _infer_account_type_from_code(code)
                 debit = _safe_float(normalized.get("debit"))
                 credit = _safe_float(normalized.get("credit"))
                 name = normalized.get("name") or code_to_name.get(code) or code
 
-                if acc_type == "revenue":
+                if include_revenue and acc_type == "revenue":
                     amount = credit - debit
                     if code not in revenue_accounts:
                         revenue_accounts[code] = {"name": name, "amount": 0.0}
                     revenue_accounts[code]["amount"] += amount
-                elif acc_type == "expense":
+                elif include_expense and acc_type == "expense":
                     amount = debit - credit
                     if code not in expense_accounts:
                         expense_accounts[code] = {"name": name, "amount": 0.0}
@@ -1192,6 +1350,7 @@ async def get_income_statement(
 
         total_revenue = sum(float(v.get("amount") or 0) for v in revenue_accounts.values())
         total_expenses = sum(float(v.get("amount") or 0) for v in expense_accounts.values())
+        excluded_legacy_revenue = excluded_alignment + excluded_repairs + excluded_temporary + excluded_migration + excluded_unknown_revenue + excluded_other_revenue
 
         operations_cash_total = 0.0
         operations_bank_total = 0.0
@@ -1214,6 +1373,12 @@ async def get_income_statement(
             print(f"Income statement sales summary skipped: {operations_error}")
         
         net_income = total_revenue - total_expenses
+        current_net_income_trustworthy = len(unknown_entries) == 0
+        warnings = []
+        if abs(excluded_legacy_revenue) >= 0.005:
+            warnings.append("قائمة الدخل تحت المراجعة — توجد قيود تاريخية/إصلاحية مستبعدة")
+        if unknown_entries:
+            warnings.append("قائمة الدخل تحت المراجعة — توجد قيود غير مصنفة")
         
         return {
             "success": True,
@@ -1236,6 +1401,33 @@ async def get_income_statement(
                 "details": {
                     "revenue_by_account": revenue_accounts,
                     "expenses_by_account": expense_accounts,
+                },
+                "statement_safety": {
+                    "mode": "canonical_journal_filter_v1",
+                    "warning": warnings[0] if warnings else None,
+                    "warnings": warnings,
+                    "net_income_qualifier": "filtered_current_journal_entries" if warnings else "canonical_current_journal_entries",
+                    "current_net_income_trustworthy": current_net_income_trustworthy,
+                    "unknown_entries_count": len(unknown_entries),
+                    "unknown_revenue_entries_count": len(unknown_revenue_entries),
+                    "excluded_entries_count": len(excluded_entries),
+                },
+                "revenue_source_audit": {
+                    "revenue_before": round(revenue_before_filter, 2),
+                    "excluded_alignment": round(excluded_alignment, 2),
+                    "excluded_repairs": round(excluded_repairs, 2),
+                    "excluded_temporary": round(excluded_temporary, 2),
+                    "excluded_migration": round(excluded_migration, 2),
+                    "excluded_unknown_revenue": round(excluded_unknown_revenue, 2),
+                    "excluded_other_revenue": round(excluded_other_revenue, 2),
+                    "excluded_legacy_revenue": round(excluded_legacy_revenue, 2),
+                    "canonical_revenue": round(total_revenue, 2),
+                    "expenses": round(total_expenses, 2),
+                    "net_income": round(net_income, 2),
+                    "margin": round((net_income / total_revenue * 100) if total_revenue else 0, 2),
+                    "classification_counts": classification_counts,
+                    "unknown_entries": unknown_entries[:20],
+                    "excluded_entries": excluded_entries[:50],
                 },
             },
         }

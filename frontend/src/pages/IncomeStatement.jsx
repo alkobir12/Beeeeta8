@@ -59,6 +59,8 @@ const IncomeStatement = () => {
 
   const totals = report?.totals || { revenue: 0, expenses: 0, net_income: 0 };
   const details = report?.details || { revenue_by_account: {}, expenses_by_account: {} };
+  const statementSafety = report?.statement_safety || {};
+  const revenueSourceAudit = report?.revenue_source_audit || {};
 
   const profitMargin = totals.revenue > 0 ? ((totals.net_income / totals.revenue) * 100).toFixed(1) : '0.0';
 
@@ -145,6 +147,26 @@ const IncomeStatement = () => {
         >
           <AlertCircle className="h-4 w-4 mt-0.5" />
           <p>{error}</p>
+        </div>
+      )}
+
+      {statementSafety?.warning && (
+        <div
+          className="mb-4 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
+          style={{
+            backgroundColor: 'rgba(245,158,11,0.12)',
+            border: '1px solid rgba(245,158,11,0.35)',
+            color: '#b45309'
+          }}
+          data-testid="income-statement-safety-banner"
+        >
+          <AlertCircle className="h-4 w-4 mt-0.5" />
+          <div>
+            <p className="font-bold" data-testid="income-statement-safety-title">{statementSafety.warning}</p>
+            <p className="mt-1" data-testid="income-statement-safety-detail">
+              الإيراد قبل الفلترة {formatCurrency(revenueSourceAudit.revenue_before || 0)}، المستبعد {formatCurrency(revenueSourceAudit.excluded_legacy_revenue || 0)}، والإيراد المعروض {formatCurrency(revenueSourceAudit.canonical_revenue || totals.revenue || 0)}.
+            </p>
+          </div>
         </div>
       )}
 

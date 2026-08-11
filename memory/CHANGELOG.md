@@ -14,6 +14,12 @@
 - تم إبقاء زر إنهاء وتسعير المركبة لفتح التسوية النهائية، وزر التفاصيل لفتح مصادر الملخص، وزر الاعتماد لحفظ `final_customer_total` فقط عند طلب المستخدم.
 - تحقق: lint ناجح، build ناجح، وGET للملخص المالي أعاد 200 بدون أي تعديل بيانات.
 
+# 2026-08-10 — Income Statement Revenue Source Safety
+- أضيفت فلترة read-only لقائمة الدخل حتى لا تحتسب قيود alignment/repair/temporary/migration كإيراد حالي.
+- أضيفت استجابة `statement_safety` و`revenue_source_audit` للـ API، وتنبيه واجهة لقائمة الدخل واللوحة المالية.
+- `AccountingEngine` لم يتغير، ولا يوجد حذف/عكس/ترحيل تاريخي.
+- تحقق مستقل Iter341: backend 100%، classifier tests 4/4، وقيم acceptance مطابقة.
+
 # CHANGELOG
 
 ## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions
