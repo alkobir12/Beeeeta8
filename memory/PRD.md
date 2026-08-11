@@ -1,3 +1,10 @@
+## Production Incident — Stale Frontend Bundle — 2026-08-11
+- Production: `https://car-repair-sys.emergent.host`. Backend حي: `/api/health=200 {status:ok}` و`/api/auth/login` يصل إلى FastAPI.
+- Production يعرض Login قديمًا يبدأ بـPIN، بينما Preview الحالي يبدأ بكلمة المرور ويعرض تنبيه PIN الموثوق. هذا يثبت version skew بين frontend bundle القديم وbackend/auth الصارم الأحدث.
+- الأثر: الواجهة القديمة ترسل PIN المتقاعد، backend يرفض، والواجهة القديمة بلا inline/toaster الجديد فتبدو العملية صامتة؛ لا جلسة، ولذلك كل الصفحات بلا بيانات.
+- deployment_agent: PASS؛ لا blocker في الكود. السبب Production deployment artifact/checkpoint/CDN وليس البيانات أو AccountingEngine.
+- المطلوب: دعم Emergent يتحقق من frontend rebuild والنشر من checkpoint الحالي وProduction env. لا تغيير كود/بيانات في Preview، وFinancial Core بقي Frozen.
+
 ## P0-B + Visit/QuickPrint Final Acceptance — 2026-08-11
 - Preview فقط؛ Production لم يُفحص أو يعدّل. صُححت حالتا 2,300 و167.84 فقط عبر 3 correction entries + canonical واحد باستخدام AccountingEngine، بلا hard delete.
 - الحالة A أصبحت AR/Revenue=2,300 مع canonical واحد وduplicate=0. الحالة B أصبحت customer AR/Revenue=0 مع supplier archive=167.84.

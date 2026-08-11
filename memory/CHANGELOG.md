@@ -1,3 +1,7 @@
+# 2026-08-11 — تشخيص Production Version Skew
+- أثبت الفحص أن Production backend حي، لكن frontend bundle قديم ويعرض PIN الافتراضي بدل Login الحالي بكلمة المرور.
+- السبب منصي في build/deployment/checkpoint؛ لم يُعدل أي كود أو بيانات، وتم توجيه الحالة لدعم Emergent لإعادة frontend build من النسخة الحالية.
+
 # 2026-08-11 — P0-B + Visit-Level Canonical + QuickPrint Freeze
 - طبقت 3 corrections مستهدفة وقيد canonical واحد عبر AccountingEngine فقط للحالتين 2,300 و167.84؛ لم تُحذف القيود الأصلية ولم تُمس Production.
 - أضفت finalization canonical مستقل لكل زيارة، payments مستقلة، ومنع supplier effect على customer revenue.

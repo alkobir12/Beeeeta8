@@ -1,5 +1,10 @@
 # الحالة بعد تحديث 2026-08-11
 
+## Production — P0 Deployment Artifact
+- إصلاح version skew: إعادة بناء ونشر frontend الحالي من checkpoint الصحيح على `car-repair-sys.emergent.host` عبر دعم Emergent.
+- Acceptance بعد الدعم: Production Login يعرض كلمة المرور افتراضيًا، PIN الموثوق فقط، ثم جلسة ناجحة وظهور البيانات.
+- لا تغيّر Financial Core أو قواعد البيانات لمعالجة هذه المشكلة.
+
 ## FINANCIAL CORE — FROZEN
 - P0-A وP0-B المستهدف وVisit A/B وQuickPrint final acceptance مكتملة.
 - ممنوع audit/cleanup/historical repair إضافي دون اعتماد جديد.
