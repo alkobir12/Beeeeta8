@@ -518,7 +518,7 @@ export default function JournalEntries() {
     cardBlur: 'blur(16px)',
     textPrimary: '#f8fafc',
     textSecondary: '#cbd5f5',
-    textMuted: '#94a3b8',
+    textMuted: '#b9c5da',
     inputBg: 'rgba(15, 23, 42, 0.6)',
     inputBorder: 'rgba(148, 163, 184, 0.25)',
     hoverBg: 'rgba(59, 130, 246, 0.12)',
@@ -563,22 +563,6 @@ export default function JournalEntries() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {canDeleteJournal ? (
-            <button
-              onClick={() => navigate('/settings?tab=financial-reset')}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white transition-all"
-              style={{
-                background: 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)',
-                boxShadow: '0 4px 14px rgba(15, 118, 110, 0.24)'
-              }}
-              data-testid="journal-open-financial-reset-settings-button"
-              title="فتح إعدادات بدء مالي جديد"
-            >
-              <RefreshCw size={17} />
-              <span>بدء مالي جديد من الإعدادات</span>
-            </button>
-            ) : null}
-
             <button
               onClick={fetchJournalEntries}
               className="p-2.5 rounded-xl transition-all"
@@ -615,7 +599,7 @@ export default function JournalEntries() {
 
       {/* 💳 POS / Full View Toggle */}
       <div className="mb-4 flex items-center gap-2" data-testid="journal-view-mode-toggle">
-        <span className="text-xs text-slate-400">العرض:</span>
+        <span className="text-xs text-slate-300">العرض:</span>
         {canUsePosJournal ? (
         <button
           type="button"
@@ -692,7 +676,7 @@ export default function JournalEntries() {
                 <p className="font-bold text-lg sm:text-2xl" style={{ color: stat.valueColor }} data-testid={`journal-stat-${stat.key}-value`}>
                   {stat.value}
                 </p>
-                <p className="text-[10px] sm:text-[11px] truncate" style={{ color: styles.textMuted }} data-testid={`journal-stat-${stat.key}-amount`}>{stat.sub}</p>
+                <p className="text-[10px] sm:text-[11px] font-semibold truncate" style={{ color: styles.textMuted }} data-testid={`journal-stat-${stat.key}-amount`}>{stat.sub}</p>
               </div>
             </div>
           </div>

@@ -103,8 +103,6 @@ const KIND_STYLES = {
   },
 };
 
-const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(amount) || 0) + ' ر.س';
 
@@ -164,12 +162,6 @@ export default function JournalEntryCard({
     return { linked: false, label: 'غير مرتبط' };
   }, [entry?.reference_id, vehicleLabel, partyName]);
 
-  const shortReference = useMemo(() => {
-    const ref = String(entry?.reference_id || '').trim();
-    if (!ref) return '';
-    return ref.replace(UUID_RE, (m) => m.slice(0, 8));
-  }, [entry?.reference_id]);
-
   const lines = Array.isArray(entry?.lines) ? entry.lines : [];
   const totalDebit = lines.reduce((sum, l) => sum + (Number(l?.debit) || 0), 0);
   const totalCredit = lines.reduce((sum, l) => sum + (Number(l?.credit) || 0), 0);
@@ -201,7 +193,7 @@ export default function JournalEntryCard({
                 </span>
               ) : null}
             </h2>
-            <div className="mt-1 line-clamp-2 text-[12px] font-bold leading-relaxed text-zinc-500" data-testid={`journal-card-subtitle-${cardId}`}>
+            <div className="mt-1 line-clamp-2 text-[12px] font-bold leading-relaxed text-zinc-700" data-testid={`journal-card-subtitle-${cardId}`}>
               {subtitle || 'قيد محاسبي'}
             </div>
           </div>
@@ -209,7 +201,7 @@ export default function JournalEntryCard({
             <strong className={`block text-[22px] font-black tabular-nums ${ks.amount}`}>
               {Number(amount).toLocaleString('en-US')}
             </strong>
-            <span className="text-[11px] font-black text-zinc-500">ر.س</span>
+            <span className="text-[11px] font-black text-zinc-700">ر.س</span>
           </div>
         </div>
 
@@ -235,12 +227,12 @@ export default function JournalEntryCard({
           </span>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-zinc-500" data-testid={`journal-card-meta-line-${cardId}`}>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-zinc-700" data-testid={`journal-card-meta-line-${cardId}`}>
           <span data-testid={`journal-card-date-${cardId}`}>
             {entry?.entry_number ? `${entry.entry_number} · ` : ''}{formatDate(entry?.entry_date || entry?.date)}
           </span>
           <span
-            className={`rounded-full px-2.5 py-1 text-[11px] font-black ${linkage.linked ? 'text-emerald-700' : 'text-amber-700'}`}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-black ${linkage.linked ? 'text-emerald-800' : 'text-amber-800'}`}
             data-testid={`journal-card-linkage-${cardId}`}
           >
             {linkage.linked ? '●' : '○'} {linkage.label}
@@ -267,16 +259,9 @@ export default function JournalEntryCard({
               </div>
             ) : null}
 
-            {shortReference ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 px-3 py-2 text-[12px]" data-testid={`journal-card-reference-${cardId}`}>
-                <span className="font-bold text-zinc-500">مرجع الربط</span>
-                <strong className="font-mono text-[11px] text-zinc-900 truncate">{shortReference}</strong>
-              </div>
-            ) : null}
-
             <div className="overflow-hidden rounded-2xl border border-zinc-200">
               <table className="w-full text-[11px]" data-testid={`journal-card-lines-table-${cardId}`}>
-                <thead className="bg-zinc-50 text-zinc-500">
+                <thead className="bg-zinc-50 text-zinc-700">
                   <tr>
                     <th className="p-2 text-right">الحساب</th>
                     <th className="p-2 text-center text-emerald-700">مدين</th>
@@ -286,15 +271,14 @@ export default function JournalEntryCard({
                 <tbody className="divide-y divide-zinc-100">
                   {lines.length ? lines.map((line, idx) => (
                     <tr key={`${cardId}-line-${idx}`} data-testid={`journal-card-line-${cardId}-${idx}`}>
-                      <td className="p-2 font-bold">
-                        {line?.account_code ? <span className="ml-1 font-mono text-[10px] text-zinc-400">[{line.account_code}]</span> : null}
+                      <td className="p-2 font-bold text-zinc-800">
                         {line?.account_name || 'حساب'}
                       </td>
                       <td className="p-2 text-center tabular-nums text-emerald-800">{Number(line?.debit || 0) > 0 ? Number(line.debit).toLocaleString('en-US') : '-'}</td>
                       <td className="p-2 text-center tabular-nums text-rose-800">{Number(line?.credit || 0) > 0 ? Number(line.credit).toLocaleString('en-US') : '-'}</td>
                     </tr>
                   )) : (
-                    <tr><td colSpan={3} className="p-3 text-center text-zinc-400">لا توجد بنود مسجلة</td></tr>
+                    <tr><td colSpan={3} className="p-3 text-center text-zinc-500">لا توجد بنود مسجلة</td></tr>
                   )}
                 </tbody>
                 <tfoot className="bg-zinc-50 font-black">
