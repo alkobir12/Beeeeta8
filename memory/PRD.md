@@ -810,3 +810,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - أرقام أغسطس بعد الإصلاح: `canonical_business_revenue=5994`, `canonical_expenses=2274`, `net_income=3720`, `margin=62.06%`, `excluded_alignment=8948.84`, `excluded_repairs=7305`, `excluded_temporary=7760`, `excluded_closing=30007.84`, `unknown_count=0`.
 - التحقق: pytest ذاتي 30 passed / 7 skipped، تحقق مستقل Iter342 backend 100%، ولا تغيير على `AccountingEngine` أو البيانات.
 
+## تحديث 2026-08-11 — Journal UI KPI Fix
+- تم تعديل صفحة دفتر اليومية UI فقط: البطاقة الرئيسية أصبحت `عدد القيود` ولا تعرض `64,939.68` كـ KPI تشغيلي.
+- تم نقل `SUM(entry.total)=64,939.68` إلى تفاصيل اختيارية باسم `إجمالي حركة الدفتر المسجلة` مع وصف أنه يشمل الإقفال والقيود التاريخية.
+- لم يتم تعديل `Income Statement` بعد Iter342، ولم يتم تعديل `AccountingEngine` أو أي journal entry.
+- التحقق: API دفتر اليومية يعيد 34 قيداً، historical ledger movement = 64,939.68، يوجد `period_close` واحد بقيمة 30,007.84، lint وbuild ناجحان. اختبار المتصفح تأثر بقيود preview `net::ERR_ABORTED` لكن الصفحة والـ UI static ظهرا.
+

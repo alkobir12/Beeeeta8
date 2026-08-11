@@ -26,6 +26,11 @@
 - أرقام أغسطس بعد الإصلاح: revenue 5994، expenses 2274، net_income 3720، margin 62.06%، unknown 0.
 - تحقق مستقل Iter342: backend 100%، و`AccountingEngine` بلا تغيير.
 
+# 2026-08-11 — Journal UI KPI Fix
+- أزيل `إجمالي الحركات` من كروت KPI الرئيسية في دفتر اليومية، واستبدل العرض الرئيسي بـ `عدد القيود`.
+- أُبقي رقم `64,939.68` داخل تفاصيل باسم `إجمالي حركة الدفتر المسجلة` فقط، مع توضيح أنه يشمل الإقفال والقيود التاريخية.
+- تحقق: journal_entries_count=34، historical ledger movement=64,939.68، period_close ما زال موجوداً في البيانات، و`AccountingEngine` بلا تغيير.
+
 # CHANGELOG
 
 ## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions

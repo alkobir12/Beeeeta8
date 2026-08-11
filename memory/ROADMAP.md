@@ -9,6 +9,7 @@
 - إبقاء اختبار `/app/backend/tests/test_iter341_income_statement_filtering.py` ضمن الانحدار لحماية فلترة مصادر الإيراد.
 - إبقاء اختبار `/app/backend/tests/test_iter342_income_statement_scope_model.py` ضمن الانحدار لحماية استقلال قائمة الدخل عن حالة المركبة.
 - Root fix مستقبلي: إنشاء قيد canonical واحد واضح لكل حدث تجاري نهائي، مع إبقاء alignment/repair كـ audit/history فقط.
+- تحسين لاحق مقترح: إضافة تبويب تفصيلي يفرق بين `حركة تشغيلية للفترة` و`حركة دفتر تاريخية` داخل دفتر اليومية.
 - ربط QuickPrint والفواتير النهائية بعرض `final_customer_total` المعتمد في قالب الفاتورة النهائي.
 - صفحة تحقق عامة للمستندات عبر QR/هاش/اعتمادات.
 

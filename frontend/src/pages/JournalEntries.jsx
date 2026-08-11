@@ -702,13 +702,13 @@ export default function JournalEntries() {
       {viewMode === 'full' ? (
         <>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
 
         {/* Stat Cards */}
         {[
-          { key: 'total', label: 'إجمالي القيود', value: stats.total, icon: FileText, iconBg: 'bg-blue-500/15', iconColor: 'text-blue-200' },
+          { key: 'total', label: 'عدد القيود', value: stats.total, icon: FileText, iconBg: 'bg-blue-500/15', iconColor: 'text-blue-200' },
+          { key: 'posted', label: 'القيود المرحلة', value: stats.posted, icon: CheckCircle, iconBg: 'bg-cyan-500/15', iconColor: 'text-cyan-200' },
           { key: 'manual', label: 'القيود اليدوية', value: stats.manual, icon: Pencil, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-200' },
-          { key: 'amount', label: 'إجمالي الحركات', value: formatCurrency(stats.totalAmount), icon: DollarSign, iconBg: 'bg-purple-500/15', iconColor: 'text-purple-200', small: true },
         ].map((stat) => (
           <div 
             key={stat.key}
@@ -735,6 +735,41 @@ export default function JournalEntries() {
           </div>
         ))}
       </div>
+
+      <details
+        className="mb-6 rounded-2xl border backdrop-blur-xl overflow-hidden"
+        style={{
+          background: 'linear-gradient(145deg, rgba(15,23,42,0.76) 0%, rgba(30,41,59,0.54) 100%)',
+          borderColor: 'rgba(148,163,184,0.22)',
+          boxShadow: '0 18px 26px -24px rgba(148,163,184,0.45)',
+          backdropFilter: styles.cardBlur
+        }}
+        data-testid="journal-historical-ledger-details"
+      >
+        <summary
+          className="cursor-pointer select-none px-5 py-4 text-sm font-bold text-slate-200 hover:bg-white/5 transition-colors"
+          data-testid="journal-historical-ledger-summary-toggle"
+        >
+          تفاصيل حركة الدفتر التاريخية
+        </summary>
+        <div className="px-5 pb-5 pt-1" data-testid="journal-historical-ledger-content">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+              <div>
+                <p className="text-xs text-slate-400" data-testid="journal-historical-ledger-label">
+                  إجمالي حركة الدفتر المسجلة
+                </p>
+                <p className="mt-1 text-2xl font-black text-slate-50" data-testid="journal-historical-ledger-value">
+                  {formatCurrency(stats.totalAmount)}
+                </p>
+              </div>
+              <p className="max-w-xl text-xs leading-6 text-slate-400" data-testid="journal-historical-ledger-description">
+                يشمل جميع القيود المسجلة بما فيها الإقفال والقيود التاريخية.
+              </p>
+            </div>
+          </div>
+        </div>
+      </details>
 
       {/* Search and Filters */}
       <div 
