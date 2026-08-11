@@ -61,13 +61,17 @@ const sanitizeEntryText = (value = '') => {
   return String(value)
     .replace(/\[[A-Z_]+\s*:[^\]]*\]/g, '')   // إزالة الوسوم الخام [PARTY:..] [VEHICLE_REF:..] [VISIT:..] [PARTY_TYPE:..]
     .replace(/\[[A-Z_]+\]/g, '')             // إزالة الوسوم بدون قيمة مثل [HISTORICAL_FINANCIAL_REPAIR]
-    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, (m) => `#${m.slice(0, 8)}`)
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
     .replace(/ACCOUNT_CODE:\s*\S+/gi, '')
     .replace(/ACCOUNTING_TARGET:\s*\S+/gi, '')
     .replace(/ACCOUNTING_SOURCE:\s*\S+/gi, '')
     .replace(/ACCOUNT_NAME:\s*[^|\n]+/gi, '')
     .replace(/ACCOUNT_CLASS:\s*\S+/gi, '')
+    .replace(/\b(?=[0-9a-fA-F]*[a-fA-F])[0-9a-fA-F]{5,}\b/g, '')  // إزالة الرموز السداسية الخام مثل 0e16bdba
+    .replace(/\b[A-Za-z][A-Za-z_]{2,}\b/g, '')                    // إزالة الكلمات الإنجليزية التقنية
     .replace(/\s*\/{2,}\s*/g, ' — ')         // تنظيف الفواصل المتبقية بعد إزالة الوسوم
+    .replace(/(?:\s*[—–-]\s*){2,}/g, ' — ')
+    .replace(/[#|]+/g, ' ')
     .replace(/^[\s—–\-/]+|[\s—–\-/]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
@@ -817,7 +821,6 @@ export default function JournalEntries() {
                 description={cleanDescription(entry.description || '', entry.party_label, entry.vehicle_plate)}
                 canEdit={canEditJournal}
                 canDelete={canDeleteJournal}
-                onView={(selected) => { setSelectedEntry(selected); setShowDetailModal(true); }}
                 onPrint={handlePrintInvoice}
                 onEditParty={handleQuickEditParty}
                 onDelete={(selected) => setDeleteConfirm(selected)}

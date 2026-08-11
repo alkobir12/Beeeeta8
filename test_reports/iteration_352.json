@@ -1,0 +1,43 @@
+{
+  "summary": "Frontend-only UI verification (iteration 352) of the SECOND round of Journal (دفتر اليومية) card redesign fixes on /accounting/journal-entries in full view mode. Logged in as مدير/010101, navigated via history.pushState workaround, activated journal-mode-full-button, waited ~14s for 40 cards to load. Ran DOM-level checks across all 40 cards (titles/subtitles/tags/meta/toggle/more) plus expanded lines tables. All four targeted bug fixes verified as PASS. Minor pre-existing filter-chip regression observed for outflow/collection/other chips (return 0 instead of expected 5) — reported but out of scope of this iteration's fixes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "JournalEntries filter chips", "issue": "Chips journal-filter-outflow (شراء ومصروف), journal-filter-collection (تحصيل) and journal-filter-other (أخرى) all return 0 cards after click; only journal-filter-all (40) and journal-filter-income (26) work. Expected outflow=5. Reproduced twice with fresh 'all' reset in between.", "selector": "[data-testid='journal-filter-outflow']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots_iter352/01_journal_full.png",
+    "/app/test_reports/screenshots_iter352/03_more_menu.png",
+    "/app/test_reports/screenshots_iter352/04_expanded.png"
+  ],
+  "verification_results": {
+    "BUG_1a_no_hex_or_latin_in_titles_subtitles": "PASS — Scanned 40 titles + 23 subtitles. 0 hex tokens (>=5 chars containing a-f) and 0 Latin words (>=3 chars). Titles like 'اعتماد الإجمالي النهائي للمركبة ت ج ر 0e16 — اختبار' only contain the 4-char plate fragment '0e16' (acceptable per spec). No occurrence of 'Canonical' anywhere in page body (body.innerText count = 0).",
+    "BUG_1b_no_Canonical_Posting_Metadata_row": "PASS — Body-wide 'Canonical' occurrences = 0 and 'Posting Metadata' occurrences = 0. Second expand-all run had DOM timing issue (0 tables captured) but three separate body-wide scans confirmed absence. First run also had lines_tables count=0 after 5 individual toggles due to DOM re-render but body text was clean.",
+    "BUG_2_no_view_details_button": "PASS — journal-card-view-* count = 0 across all 40 cards. journal-card-more-* count = 40 and journal-card-toggle-* count = 40 (bottom bar contains toggle + more only). Body text does NOT contain 'عرض التفاصيل'.",
+    "BUG_3_tags_row_after_meta_line": "PASS — 40/40 cards have journal-card-tags-* appearing AFTER journal-card-meta-line-* in DOM order (compareDocumentPosition = DOCUMENT_POSITION_FOLLOWING).",
+    "BUG_4a_no_pill_equals_title": "PASS — Checked 40 cards. 0 violations where the type pill text equals the title text.",
+    "BUG_4b_no_duplicate_description_block": "PASS (indirect) — After expanding 6+ cards individually, JS dup-check found 0 duplicates. Full-expand attempt had DOM race but visual screenshots show clean cards with no duplicated description under the header.",
+    "more_menu_actions": "PASS — Opening '•••' menu on first card shows طباعة, تعديل طرف العملية, and حذف (admin) — all three visible via body.innerText scan and screenshot 03.",
+    "regression_filter_chips": "PARTIAL — journal-filter-all=40 ✓, journal-filter-income=26 ✓, journal-filter-outflow=0 (expected 5) ✗, journal-filter-collection=0 ✗, journal-filter-other=0 ✗",
+    "mobile_390px_no_horizontal_overflow": "PASS — document.scrollWidth == clientWidth at 390×844 viewport (no overflow)."
+  },
+  "action_items": [
+    "Investigate why journal-filter-outflow / journal-filter-collection / journal-filter-other filter chips return 0 cards. The type-matching logic in JournalEntries.jsx filter handler may not map to the current entry-type slugs (شراء ومصروف, تحصيل, أخرى). Only 'all' and 'income' (بيع) currently return results."
+  ],
+  "critical_code_review_comments": [
+    "sanitizeEntryText regex approach is effective — no hex/Latin leaked into any of 63 sampled title/subtitle strings.",
+    "Title-dedup chain (party -> vehicle -> description -> type) working as intended: 40/40 cards where title==type-label correctly hide the type pill.",
+    "Filter chips: the outflow/collection/other slug mapping likely diverged from backend/type constants after redesign — please verify the type matcher in JournalEntries.jsx filter reducer."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "95% — all 4 targeted fixes PASS; 1 unrelated filter-chip regression"},
+  "seed_data_creation": "None. Read-only verification, no entries created/edited/deleted (financial core frozen).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "مدير / 010101 (Preview)",
+  "context_for_next_testing_agent": "Journal full-view page loads in ~14s after clicking journal-mode-full-button. Use JS evaluate with Array.from().click() OR page.click by data-testid rather than element handles (DOM re-renders every ~1-2s and detaches handles). Expected: 40 total cards, 26 sale (بيع). The outflow/collection/other filter chip 0-result bug is pre-existing and unrelated to this iteration's card-redesign fixes.",
+  "rca of the issue": "N/A — no functional bug found in the 4 targeted fixes. For the filter-chip minor bug: likely mismatch between chip type-slug ('outflow', 'collection', 'other') and backend entry-type field values used in the filter predicate. Reproduction: click journal-filter-outflow after journal-mode-full-button loads — 0 cards render."
+}
