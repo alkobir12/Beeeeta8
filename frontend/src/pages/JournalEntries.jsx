@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { resolveBackendBase } from '../utils/backendBase';
 import SmartAccountSelect from '../components/SmartAccountSelect';
 import SmartPOSJournal from './SmartPOSJournal';
+import JournalEntryCard, { classifyEntry } from '../components/JournalEntryCard';
 import axios from 'axios';
 import { api } from '../services/api';
 import { hasPermission } from '../utils/permissions';
@@ -48,61 +49,26 @@ const formatCurrency = (amount) => {
 
 const formatDate = (date) => {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('ar-SA', {
+  return new Date(date).toLocaleDateString('ar-SA-u-ca-gregory', {
     year: 'numeric',
-    month: 'short',
-    day: 'numeric'
+    month: '2-digit',
+    day: '2-digit'
   });
-};
-
-const getEntryTypeConfig = (type) => {
-  const configs = {
-    invoice: { icon: Receipt, bgColor: 'bg-blue-500/15', textColor: 'text-blue-200', label: 'فاتورة' },
-    payment: { icon: CreditCard, bgColor: 'bg-emerald-500/15', textColor: 'text-emerald-200', label: 'محصلة' },
-    purchase: { icon: ShoppingCart, bgColor: 'bg-purple-500/15', textColor: 'text-purple-200', label: 'مشتريات' },
-    salary: { icon: Briefcase, bgColor: 'bg-orange-500/15', textColor: 'text-orange-200', label: 'رواتب' },
-    manual: { icon: FileText, bgColor: 'bg-slate-500/15', textColor: 'text-slate-200', label: 'يدوي' },
-  };
-  return configs[type] || configs.manual;
-};
-
-const getPaymentMethodTone = (method) => {
-  const normalized = String(method || '').toLowerCase();
-  if (normalized === 'cash') return 'bg-emerald-500/15 text-emerald-200';
-  if (normalized === 'bank') return 'bg-sky-500/15 text-sky-200';
-  if (normalized === 'pos') return 'bg-violet-500/15 text-violet-200';
-  if (normalized === 'credit') return 'bg-amber-500/15 text-amber-200';
-  return 'bg-white/10 text-slate-200';
-};
-
-const getPaymentStatusTone = (status) => {
-  const normalized = String(status || '').toLowerCase();
-  if (normalized === 'paid_full' || normalized === 'paid') return 'bg-emerald-500/15 text-emerald-200';
-  if (normalized === 'partial') return 'bg-amber-500/15 text-amber-200';
-  if (normalized === 'unpaid' || normalized === 'credit' || normalized === 'pending') return 'bg-rose-500/15 text-rose-200';
-  return 'bg-white/10 text-slate-200';
-};
-
-const getSourceLabel = (source = '') => {
-  const normalized = String(source || '').toLowerCase();
-  if (normalized === 'operation') return 'عملية';
-  if (normalized === 'visit_receipt_voucher') return 'سند قبض';
-  if (normalized === 'pos_template' || normalized === 'pos_instant_sale') return 'POS';
-  if (normalized === 'period_close') return 'إقفال';
-  if (normalized === 'manual') return 'يدوي';
-  return normalized ? normalized : 'غير محدد';
 };
 
 const sanitizeEntryText = (value = '') => {
   if (!value) return '';
   return String(value)
     .replace(/\[[A-Z_]+\s*:[^\]]*\]/g, '')   // إزالة الوسوم الخام [PARTY:..] [VEHICLE_REF:..] [VISIT:..] [PARTY_TYPE:..]
+    .replace(/\[[A-Z_]+\]/g, '')             // إزالة الوسوم بدون قيمة مثل [HISTORICAL_FINANCIAL_REPAIR]
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, (m) => `#${m.slice(0, 8)}`)
     .replace(/ACCOUNT_CODE:\s*\S+/gi, '')
     .replace(/ACCOUNTING_TARGET:\s*\S+/gi, '')
     .replace(/ACCOUNTING_SOURCE:\s*\S+/gi, '')
     .replace(/ACCOUNT_NAME:\s*[^|\n]+/gi, '')
     .replace(/ACCOUNT_CLASS:\s*\S+/gi, '')
-    .replace(/\s*[—–-]\s*$/g, '')            // فاصلة شرطة زائدة في النهاية
+    .replace(/\s*\/{2,}\s*/g, ' — ')         // تنظيف الفواصل المتبقية بعد إزالة الوسوم
+    .replace(/^[\s—–\-/]+|[\s—–\-/]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 };
@@ -297,6 +263,8 @@ export default function JournalEntries() {
           payment_status: entry?.payment_status || '',
           payment_status_label_ar: entry?.payment_status_label_ar || '',
           transaction_type: entry?.transaction_type || '',
+          transaction_type_label_ar: entry?.transaction_type_label_ar || '',
+          reference_id: entry?.reference_id || '',
           source: entry?.source || 'manual'
         };
       });
@@ -445,7 +413,13 @@ export default function JournalEntries() {
   const filteredEntries = ensureArray(entries).filter((entry) => {
     const safeEntry = ensureObject(entry);
     if (!safeEntry) return false;
-    if (statusFilter !== 'all' && entry.status !== statusFilter) return false;
+    if (statusFilter !== 'all') {
+      const kind = classifyEntry(entry);
+      if (statusFilter === 'income' && kind !== 'income') return false;
+      if (statusFilter === 'collection' && kind !== 'collection') return false;
+      if (statusFilter === 'outflow' && kind !== 'outflow') return false;
+      if (statusFilter === 'other' && ['income', 'collection', 'outflow'].includes(kind)) return false;
+    }
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     const safeDescription = sanitizeEntryText(entry.description || '');
@@ -459,27 +433,17 @@ export default function JournalEntries() {
     );
   });
 
-  const getEntryLinkage = (entry) => {
-    const hasReference = Boolean(entry?.reference_id || entry?.referenceId);
-    const hasVehicle = Boolean(entry?.vehicle_plate || extractTagValue(entry?.description || '', 'VEHICLE_REF'));
-    const party = String(entry?.party_label || '').trim();
-    const hasParty = Boolean(party && party !== 'مفتوح');
-    const linked = hasReference || hasVehicle || hasParty;
-    return {
-      linked,
-      label: linked ? 'مترابط' : 'مفتوح',
-      hint: linked ? 'مرتبط بعملية/طرف/مركبة' : 'غير مرتبط بمرجع واضح',
-    };
-  };
-
   const safeEntries = ensureArray(entries).filter((entry) => ensureObject(entry));
 
+  const incomeEntries = safeEntries.filter((e) => ['income', 'collection'].includes(classifyEntry(e)));
+  const outflowEntries = safeEntries.filter((e) => classifyEntry(e) === 'outflow');
   const stats = {
     total: safeEntries.length,
-    posted: safeEntries.filter(e => e.status === 'posted').length,
-    draft: safeEntries.filter(e => e.status === 'draft').length,
+    income: incomeEntries.length,
+    incomeAmount: incomeEntries.reduce((sum, e) => sum + (Number(e.total_debit) || 0), 0),
+    outflow: outflowEntries.length,
+    outflowAmount: outflowEntries.reduce((sum, e) => sum + (Number(e.total_debit) || 0), 0),
     totalAmount: safeEntries.reduce((sum, e) => sum + (Number(e.total_debit) || 0), 0),
-    manual: safeEntries.filter(e => e.source === 'manual').length,
   };
 
   const handlePrintInvoice = (entry) => {
@@ -590,7 +554,7 @@ export default function JournalEntries() {
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: styles.textPrimary }} data-testid="journal-header-title">
+            <h1 className="text-xl sm:text-2xl font-bold" style={{ color: styles.textPrimary }} data-testid="journal-header-title">
               دفتر اليومية المحاسبية
             </h1>
             <p className="text-sm mt-1" style={{ color: styles.textSecondary }} data-testid="journal-header-subtitle">
@@ -598,7 +562,7 @@ export default function JournalEntries() {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {canDeleteJournal ? (
             <button
               onClick={() => navigate('/settings?tab=financial-reset')}
@@ -663,7 +627,7 @@ export default function JournalEntries() {
               : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
           }`}
         >
-          💳 POS الذكي
+          <span className="inline-flex items-center gap-1.5"><CreditCard size={15} /> POS الذكي</span>
         </button>
         ) : null}
         <button
@@ -676,7 +640,7 @@ export default function JournalEntries() {
               : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
           }`}
         >
-          📖 العرض الكامل
+          <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> العرض الكامل</span>
         </button>
       </div>
 
@@ -702,34 +666,33 @@ export default function JournalEntries() {
       {viewMode === 'full' ? (
         <>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-
-        {/* Stat Cards */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
         {[
-          { key: 'total', label: 'عدد القيود', value: stats.total, icon: FileText, iconBg: 'bg-blue-500/15', iconColor: 'text-blue-200' },
-          { key: 'posted', label: 'القيود المرحلة', value: stats.posted, icon: CheckCircle, iconBg: 'bg-cyan-500/15', iconColor: 'text-cyan-200' },
-          { key: 'manual', label: 'القيود اليدوية', value: stats.manual, icon: Pencil, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-200' },
+          { key: 'total', label: 'عدد القيود', value: stats.total, sub: formatCurrency(stats.totalAmount), icon: FileText, iconBg: 'bg-blue-500/15', iconColor: 'text-blue-200', valueColor: '#f8fafc', borderColor: 'rgba(125,211,252,0.24)' },
+          { key: 'income', label: 'بيع وتحصيل', value: stats.income, sub: formatCurrency(stats.incomeAmount), icon: CheckCircle, iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-300', valueColor: '#6ee7b7', borderColor: 'rgba(52,211,153,0.30)' },
+          { key: 'outflow', label: 'شراء ومصروف', value: stats.outflow, sub: formatCurrency(stats.outflowAmount), icon: ShoppingCart, iconBg: 'bg-rose-500/15', iconColor: 'text-rose-300', valueColor: '#fda4af', borderColor: 'rgba(251,113,133,0.30)' },
         ].map((stat) => (
           <div 
             key={stat.key}
-            className="rounded-2xl p-5 border backdrop-blur-xl"
+            className="rounded-2xl p-3 sm:p-5 border backdrop-blur-xl"
             style={{ 
               background: 'linear-gradient(150deg, rgba(15,23,42,0.82) 0%, rgba(15,23,42,0.6) 48%, rgba(8,47,73,0.55) 100%)',
-              borderColor: 'rgba(125,211,252,0.24)',
+              borderColor: stat.borderColor,
               boxShadow: '0 18px 26px -22px rgba(56,189,248,0.5), inset 0 1px 0 rgba(255,255,255,0.10)',
               backdropFilter: styles.cardBlur
             }}
             data-testid={`journal-stat-${stat.key}`}
           >
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
-                <stat.icon size={22} className={stat.iconColor} />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl ${stat.iconBg} flex items-center justify-center shrink-0`}>
+                <stat.icon size={18} className={stat.iconColor} />
               </div>
-              <div>
-                <p className="text-xs" style={{ color: styles.textMuted }} data-testid={`journal-stat-${stat.key}-label`}>{stat.label}</p>
-                <p className={`font-bold ${stat.small ? 'text-lg' : 'text-2xl'}`} style={{ color: styles.textPrimary }} data-testid={`journal-stat-${stat.key}-value`}>
+              <div className="min-w-0">
+                <p className="text-[11px] sm:text-xs truncate" style={{ color: styles.textMuted }} data-testid={`journal-stat-${stat.key}-label`}>{stat.label}</p>
+                <p className="font-bold text-lg sm:text-2xl" style={{ color: stat.valueColor }} data-testid={`journal-stat-${stat.key}-value`}>
                   {stat.value}
                 </p>
+                <p className="text-[10px] sm:text-[11px] truncate" style={{ color: styles.textMuted }} data-testid={`journal-stat-${stat.key}-amount`}>{stat.sub}</p>
               </div>
             </div>
           </div>
@@ -801,21 +764,27 @@ export default function JournalEntries() {
           </div>
 
           <div 
-            className="flex gap-1.5 p-1 rounded-xl"
+            className="flex gap-1.5 p-1 rounded-xl overflow-x-auto"
             style={{ backgroundColor: styles.inputBg }}
-            data-testid="journal-status-filter"
+            data-testid="journal-type-filter"
           >
-            {['all', 'posted', 'draft'].map((filter) => (
+            {[
+              { key: 'all', label: 'الكل', active: 'bg-blue-600 text-white shadow-md' },
+              { key: 'income', label: 'بيع', active: 'bg-emerald-600 text-white shadow-md' },
+              { key: 'collection', label: 'تحصيل', active: 'bg-teal-600 text-white shadow-md' },
+              { key: 'outflow', label: 'شراء ومصروف', active: 'bg-rose-600 text-white shadow-md' },
+              { key: 'other', label: 'أخرى', active: 'bg-amber-600 text-white shadow-md' },
+            ].map((filter) => (
               <button
-                key={filter}
-                onClick={() => setStatusFilter(filter)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  statusFilter === filter ? 'bg-blue-600 text-white shadow-md' : ''
+                key={filter.key}
+                onClick={() => setStatusFilter(filter.key)}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                  statusFilter === filter.key ? filter.active : ''
                 }`}
-                style={statusFilter !== filter ? { color: styles.textSecondary } : {}}
-                data-testid={`filter-${filter}`}
+                style={statusFilter !== filter.key ? { color: styles.textSecondary } : {}}
+                data-testid={`journal-filter-${filter.key}`}
               >
-                {filter === 'all' ? 'الكل' : filter === 'posted' ? 'مرحّل' : 'مسودة'}
+                {filter.label}
               </button>
             ))}
           </div>
@@ -836,7 +805,7 @@ export default function JournalEntries() {
         <div className="px-6 py-4" style={{ borderBottom: `1px solid ${styles.cardBorder}` }}>
           <div className="flex items-center gap-2">
             <FileText size={18} className="text-blue-300" />
-            <h2 className="font-semibold" style={{ color: styles.textPrimary }} data-testid="journal-entries-title">سجل الفواتير والعمليات</h2>
+            <h2 className="font-semibold" style={{ color: styles.textPrimary }} data-testid="journal-entries-title">سجل القيود اليومية</h2>
           </div>
         </div>
 
@@ -856,307 +825,21 @@ export default function JournalEntries() {
             <p style={{ color: styles.textSecondary }}>أضف قيداً جديداً أو قم بإضافة بنود لملف مركبة</p>
           </div>
         ) : (
-          <>
-            <div className="block md:hidden px-4 pb-4 space-y-3">
-              {filteredEntries.map((entry) => {
-                const typeConfig = getEntryTypeConfig(entry.reference_type);
-                const TypeIcon = typeConfig.icon;
-                const total = entry.total_debit || 0;
-                const isManual = entry.source === 'manual';
-                const safeDescription = cleanDescription(entry.description || 'قيد محاسبي', entry.party_label, entry.vehicle_plate);
-                const linkage = getEntryLinkage(entry);
-
-                return (
-                  <div
-                    key={entry.id}
-                    className="rounded-2xl border p-4 backdrop-blur-xl"
-                    style={{
-                      backgroundColor: styles.cardBg,
-                      borderColor: styles.cardBorder,
-                      boxShadow: styles.cardShadow,
-                      backdropFilter: styles.cardBlur
-                    }}
-                    data-testid={`entry-card-${entry.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${typeConfig.bgColor}`}>
-                          <TypeIcon size={18} className={typeConfig.textColor} />
-                        </div>
-                        <div>
-                          <p className="text-[11px] text-blue-200 mb-0.5" data-testid={`entry-card-op-type-${entry.id}`}>
-                            نوع العملية: {entry.operation_type_label || 'غير محدد'}
-                          </p>
-                          <p className="text-sm font-semibold text-slate-100" data-testid={`entry-card-desc-${entry.id}`}>
-                            {safeDescription || 'قيد محاسبي'}
-                          </p>
-                          <p className="text-xs text-slate-400" data-testid={`entry-card-number-${entry.id}`}>
-                            {entry.entry_number}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full ${
-                        isManual ? 'bg-white/10 text-slate-200' : 'bg-blue-500/15 text-blue-200'
-                      }`} data-testid={`entry-card-source-${entry.id}`}>
-                        {isManual ? 'يدوي' : 'آلي'}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-                      <span data-testid={`entry-card-date-${entry.id}`}>{formatDate(entry.entry_date)}</span>
-                      <span data-testid={`entry-card-customer-${entry.id}`}>طرف العملية: {entry.party_label || 'مفتوح'}</span>
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap gap-2" data-testid={`entry-card-payment-row-${entry.id}`}>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] ${getPaymentMethodTone(entry.payment_method)}`} data-testid={`entry-card-payment-method-${entry.id}`}>
-                        {entry.payment_method_label_ar ? `الطريقة: ${entry.payment_method_label_ar}` : `المصدر: ${getSourceLabel(entry.source)}`}
-                      </span>
-                      {entry.payment_status_label_ar && entry.payment_status_label_ar !== '-' ? (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${getPaymentStatusTone(entry.payment_status)}`} data-testid={`entry-card-payment-status-${entry.id}`}>
-                          {entry.payment_status_label_ar}
-                        </span>
-                      ) : null}
-                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-slate-200" data-testid={`entry-card-source-detail-${entry.id}`}>
-                        {getSourceLabel(entry.source)}
-                      </span>
-                    </div>
-
-                    <div className="mt-1">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${linkage.linked ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}`}
-                        data-testid={`entry-card-linkage-${entry.id}`}
-                      >
-                        {linkage.label}
-                      </span>
-                    </div>
-
-                    <div className="mt-1 text-xs text-slate-400" data-testid={`entry-card-vehicle-${entry.id}`}>
-                      المركبة: {entry.vehicle_plate || 'غير محدد'}
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-lg font-bold text-slate-100" data-testid={`entry-card-total-${entry.id}`}>
-                        {formatCurrency(total)}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePrintInvoice(entry)}
-                          className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                          title="طباعة"
-                          data-testid={`entry-card-print-${entry.id}`}
-                        >
-                          <Printer size={16} className="text-blue-300" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedEntry(entry);
-                            setShowDetailModal(true);
-                          }}
-                          className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                          title="عرض التفاصيل"
-                          data-testid={`entry-card-view-${entry.id}`}
-                        >
-                          <Eye size={16} className="text-blue-300" />
-                        </button>
-                        {canEditJournal ? (
-                          <button
-                            onClick={() => handleQuickEditParty(entry)}
-                            className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                            title="تعديل طرف العملية"
-                            data-testid={`entry-card-edit-party-${entry.id}`}
-                          >
-                            <User size={16} className="text-cyan-300" />
-                          </button>
-                        ) : null}
-                        {canEditJournal ? (
-                          <button
-                            onClick={() => {
-                              setEditingEntry(entry);
-                              setShowEntryForm(true);
-                            }}
-                            className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                            title="تعديل"
-                            data-testid={`entry-card-edit-${entry.id}`}
-                          >
-                            <Pencil size={16} className="text-amber-300" />
-                          </button>
-                        ) : null}
-                        {canDeleteJournal ? (
-                          <button
-                            onClick={() => setDeleteConfirm(entry)}
-                            className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                            title="حذف"
-                            data-testid={`entry-card-delete-${entry.id}`}
-                          >
-                            <Trash2 size={16} className="text-rose-300" />
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="hidden md:block">
-              <div>
-                {/* Table Header */}
-                <div 
-                  className="grid grid-cols-12 gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-wider"
-                  style={{ 
-                    color: styles.textSecondary,
-                    backgroundColor: 'rgba(15, 23, 42, 0.85)'
-                  }}
-                >
-                  <div className="col-span-3">الوصف</div>
-                  <div className="col-span-2">التاريخ</div>
-                  <div className="col-span-3">طرف العملية</div>
-                  <div className="col-span-2">المبلغ</div>
-                  <div className="col-span-1">النوع</div>
-                  <div className="col-span-1"></div>
-                </div>
-
-                {/* Table Rows */}
-                {filteredEntries.map((entry) => {
-                  const typeConfig = getEntryTypeConfig(entry.reference_type);
-                  const TypeIcon = typeConfig.icon;
-                  const total = entry.total_debit || 0;
-                  const isManual = entry.source === 'manual';
-                  const safeDescription = cleanDescription(entry.description || 'قيد محاسبي', entry.party_label, entry.vehicle_plate);
-                  const linkage = getEntryLinkage(entry);
-
-                  return (
-                    <div 
-                      key={entry.id}
-                      className="grid grid-cols-12 gap-4 px-6 py-4 items-center transition-colors"
-                      style={{ borderBottom: `1px solid ${styles.cardBorder}` }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styles.hoverBg}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      data-testid={`entry-row-${entry.id}`}
-                    >
-                      <div className="col-span-3 flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${typeConfig.bgColor}`}>
-                          <TypeIcon size={18} className={typeConfig.textColor} />
-                        </div>
-                        <div>
-                          <p className="text-[11px] text-blue-200">
-                            نوع العملية: {entry.operation_type_label || 'غير محدد'}
-                          </p>
-                          <p className="font-medium text-sm" style={{ color: styles.textPrimary }}>
-                            {safeDescription || 'قيد محاسبي'}
-                          </p>
-                          <p className="text-xs" style={{ color: styles.textMuted }}>
-                            {entry.entry_number}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="col-span-2">
-                        <p className="text-sm" style={{ color: styles.textSecondary }}>
-                          {formatDate(entry.entry_date)}
-                        </p>
-                      </div>
-
-                      <div className="col-span-3">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm truncate" style={{ color: styles.textPrimary }} data-testid={`entry-row-party-${entry.id}`}>
-                            طرف العملية: {entry.party_label || 'مفتوح'}
-                          </p>
-                          {canEditJournal ? (
-                            <button
-                              onClick={() => handleQuickEditParty(entry)}
-                              className="p-1.5 rounded-md hover:bg-white/10"
-                              title="تعديل طرف العملية"
-                              data-testid={`entry-row-party-edit-${entry.id}`}
-                            >
-                              <Pencil size={13} className="text-cyan-300" />
-                            </button>
-                          ) : null}
-                        </div>
-                        <p className="text-xs" style={{ color: styles.textMuted }} data-testid={`entry-row-vehicle-${entry.id}`}>
-                          المركبة: {entry.vehicle_plate || 'غير محدد'}
-                        </p>
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${getPaymentMethodTone(entry.payment_method)}`} data-testid={`entry-row-payment-method-${entry.id}`}>
-                            {entry.payment_method_label_ar ? `الطريقة: ${entry.payment_method_label_ar}` : `المصدر: ${getSourceLabel(entry.source)}`}
-                          </span>
-                          {entry.payment_status_label_ar && entry.payment_status_label_ar !== '-' ? (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${getPaymentStatusTone(entry.payment_status)}`} data-testid={`entry-row-payment-status-${entry.id}`}>
-                              {entry.payment_status_label_ar}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className={`text-[10px] mt-1 ${linkage.linked ? 'text-emerald-300' : 'text-amber-300'}`} data-testid={`entry-row-linkage-${entry.id}`}>
-                          حالة الربط: {linkage.label}
-                        </p>
-                      </div>
-
-                      <div className="col-span-2">
-                        <p className="font-semibold" style={{ color: styles.textPrimary }}>
-                          {formatCurrency(total)}
-                        </p>
-                      </div>
-
-                      <div className="col-span-1">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                          isManual 
-                            ? 'bg-white/10 text-slate-200' 
-                            : 'bg-blue-500/15 text-blue-200'
-                        }`}>
-                          {isManual ? 'يدوي' : getSourceLabel(entry.source)}
-                        </span>
-                      </div>
-
-                      <div className="col-span-1 flex justify-end gap-1">
-                        <button
-                          onClick={() => {
-                            setSelectedEntry(entry);
-                            setShowDetailModal(true);
-                          }}
-                          className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                          title="عرض التفاصيل"
-                          data-testid={`view-btn-${entry.id}`}
-                        >
-                          <Eye size={16} style={{ color: styles.textSecondary }} />
-                        </button>
-                        {canEditJournal ? (
-                          <button
-                            onClick={() => {
-                              setEditingEntry(entry);
-                              setShowEntryForm(true);
-                            }}
-                            className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                            title="تعديل"
-                            data-testid={`edit-btn-${entry.id}`}
-                          >
-                            <Pencil size={16} className="text-amber-300" />
-                          </button>
-                        ) : null}
-                        {canDeleteJournal ? (
-                          <button
-                            onClick={() => setDeleteConfirm(entry)}
-                            className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                            title="حذف"
-                            data-testid={`delete-btn-${entry.id}`}
-                          >
-                            <Trash2 size={16} className="text-rose-300" />
-                          </button>
-                        ) : null}
-                        <button
-                          onClick={() => handlePrintInvoice(entry)}
-                              className="p-2 rounded-lg transition-colors hover:bg-white/10"
-                          title="طباعة"
-                          data-testid={`print-btn-${entry.id}`}
-                        >
-                          <Printer size={16} style={{ color: styles.textSecondary }} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 p-3 sm:p-4" data-testid="journal-entries-grid">
+            {filteredEntries.map((entry) => (
+              <JournalEntryCard
+                key={entry.id}
+                entry={entry}
+                description={cleanDescription(entry.description || '', entry.party_label, entry.vehicle_plate)}
+                canEdit={canEditJournal}
+                canDelete={canDeleteJournal}
+                onView={(selected) => { setSelectedEntry(selected); setShowDetailModal(true); }}
+                onPrint={handlePrintInvoice}
+                onEditParty={handleQuickEditParty}
+                onDelete={(selected) => setDeleteConfirm(selected)}
+              />
+            ))}
+          </div>
         )}
       </div>
         </>
