@@ -15,16 +15,16 @@ async def test_journal_entries():
             
             # Step 1: Login
             print("1. Login process...")
-            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/login')
+            await page.goto('https://finance-overhaul-7.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             await page.fill('[data-testid="login-username-input"]', 'مدير')
             await page.click('[data-testid="login-submit-button"]')
-            await page.wait_for_url('https://ar-ledger-ssot.preview.emergentagent.com/', timeout=15000)
+            await page.wait_for_url('https://finance-overhaul-7.preview.emergentagent.com/', timeout=15000)
             print("✅ Login successful")
             
             # Step 2: Navigate to Journal Entries
             print("2. Navigate to Journal Entries page...")
-            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/accounting/journal-entries')
+            await page.goto('https://finance-overhaul-7.preview.emergentagent.com/accounting/journal-entries')
             await page.wait_for_selector('[data-testid="journal-entries-page"]', timeout=10000)
             print("✅ Journal Entries page loaded")
             

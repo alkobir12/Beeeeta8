@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 # Use the production backend URL from frontend .env
-BASE_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
+BASE_URL = "https://finance-overhaul-7.preview.emergentagent.com/api"
 
 def log_test(test_name, status, details=""):
     """Log test results with timestamp"""

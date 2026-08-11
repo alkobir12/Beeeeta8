@@ -259,6 +259,7 @@ async def login(payload: LoginPayload, request: Request, response: Response):
         device_id = await auth_store.trust_device(username=resolved_name, days=30)
 
     result = await _issue_tokens(response, resolved_name, actor.role, device_id=device_id)
+    result["pin_configured"] = has_user_pin
     await auth_store.audit("login", username=resolved_name, success=True, ip=ip,
                            user_agent=ua, detail=f"method={method}")
     return result

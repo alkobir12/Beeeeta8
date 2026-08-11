@@ -22,7 +22,7 @@ import time
 import requests
 import pytest
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://ar-ledger-ssot.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://finance-overhaul-7.preview.emergentagent.com").rstrip("/")
 BYPASS = "c68b2b87386db82cb541d78d584a821fa4809f2afb53a45e"
 
 # Vehicle chosen by main agent: has full data (customerName, plateNumber, customerId)

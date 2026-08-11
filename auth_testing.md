@@ -1,11 +1,28 @@
-# Auth Testing Playbook
+# خطة اختبار المصادقة
 
-Security P0 hardening verification:
-- Name-only login must return 401.
-- Shared/default/admin PIN must return 401.
-- Empty credential must return 401.
-- Wrong credential must return 401.
-- Valid per-user credential returns token with that user role only.
-- Non-admin access to admin endpoint returns 403.
-- Repeated failed attempts trigger lockout/rate limit.
-- Responses/logs must not include secrets or PINs.
+## 1. التحقق من MongoDB
+- تأكيد وجود `auth_credentials` للحسابين `مدير` و`احمد`.
+- تأكيد أن `password_hash` يبدأ بـ `$2b$` دون طباعة قيمة الـhash.
+- تأكيد عدم اعتماد أي PIN مشترك أو غير مهيأ من المستخدم.
+
+## 2. اختبار API
+- دخول `مدير` بكلمة المرور الموثقة في `/app/memory/test_credentials.md` يجب أن يعيد 200 ودور `admin`.
+- دخول `احمد` بكلمة المرور الموثقة يجب أن يعيد 200 ودور `accountant`.
+- الاستجابة الناجحة بكلمة المرور يجب أن تعيد `pin_configured=false` ما لم يضبط المستخدم PIN بنفسه.
+- الدخول بالاسم فقط يجب أن يعيد 401.
+- PIN القديم `123123` يجب أن يعيد 401.
+- الاستجابة الناجحة يجب أن تضبط access/refresh cookies كـ httpOnly.
+- `GET /api/auth/me` باستخدام جلسة ناجحة يجب أن يعيد المستخدم نفسه.
+
+## 3. اختبار الواجهة
+- صفحة `/login` تبدأ بوضع كلمة المرور عند عدم وجود جهاز موثوق.
+- محاولة اعتماد خاطئ تعرض `login-error-alert` وtoast مرئيًا.
+- بيانات جهاز PIN قديمة تُلغى تلقائيًا عند رفض PIN وتتحول الواجهة إلى كلمة المرور.
+- الدخول الصحيح ينقل المستخدم إلى لوحة التحكم.
+- لا يُحفظ `trusted_device` بعد دخول كلمة المرور إذا لم يضبط المستخدم PIN خاصًا به.
+- كل الحقول والأزرار والتنبيهات الحرجة تحمل `data-testid` فريدًا.
+
+## 4. قيود أمنية
+- لا تعِد تفعيل name-only أو PIN افتراضي/مشترك.
+- لا تستخدم بيانات MOCKED.
+- لا تغيّر AccountingEngine أو أي منطق مالي.

@@ -8,7 +8,7 @@
     "ui_bugs": [
       {
         "component": "DocumentPrint (/print)",
-        "issue": "عند فتح /print?vehicleId=df10586b-5cf9-44aa-83bc-9364a4da34e2&visitId=d1498141-b134-4823-9586-756506361a19&type=invoice لا يتم تحميل بنود الزيارة المطلوبة (فك وتركيب تربو/التانكي) وتظهر صفوف بنود غير مكتملة/افتراضية مع رقم مستند مولد عشوائياً.",
+        "issue": "عند فتح /print?vehicleId=finance-overhaul-7&visitId=finance-overhaul-7&type=invoice لا يتم تحميل بنود الزيارة المطلوبة (فك وتركيب تربو/التانكي) وتظهر صفوف بنود غير مكتملة/افتراضية مع رقم مستند مولد عشوائياً.",
         "selector": "[data-testid='document-item-description-0']",
         "priority": "CRITICAL"
       }

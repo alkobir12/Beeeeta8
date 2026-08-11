@@ -12,6 +12,7 @@ import { queryClient } from './queryClient';
 import { getFirstAllowedRoute, hasRoutePermission, normalizePermissions, resolveRoutePermission } from './utils/permissions';
 import { resolveBackendBase } from './utils/backendBase';
 import { installAuthInterceptors } from './utils/authToken';
+import { Toaster } from './components/ui/toaster';
 
 // 🔒 Install JWT interceptors globally — auto-attaches Authorization header to every
 // axios/fetch request once a token is stored in localStorage (set by Login.jsx).
@@ -255,6 +256,7 @@ function App() {
                 </Routes>
               </Suspense>
             </Router>
+            <Toaster />
           </div>
           </AssistantProvider>
         </ThemeProvider>

@@ -42,6 +42,6 @@
   "seed_data_creation": "None",
   "retest_needed": false,
   "should_main_agent_self_test": true,
-  "context_for_next_testing_agent": "Validated on https://ar-ledger-ssot.preview.emergentagent.com and /vehicle/ffcf800c-d1bb-40df-8df3-effa59bc05cd. Diagnosis direct button passed 3 consecutive opens with required workshop fields; invoice menu and first visit print succeeded. If retesting visit print, ensure a visit card is expanded to expose visit-print-button selector.",
+  "context_for_next_testing_agent": "Validated on https://finance-overhaul-7.preview.emergentagent.com and /vehicle/ffcf800c-d1bb-40df-8df3-effa59bc05cd. Diagnosis direct button passed 3 consecutive opens with required workshop fields; invoice menu and first visit print succeeded. If retesting visit print, ensure a visit card is expanded to expose visit-print-button selector.",
   "rca of the issue": "Previous intermittent diagnosis behavior appears mitigated by introducing the direct always-visible diagnosis button. Earlier visit-print selector timeout in first pass was due to collapsed visit card state (button not visible), not a print generation failure."
 }

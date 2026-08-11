@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Get backend URL from environment
-BACKEND_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
+BACKEND_URL = "https://finance-overhaul-7.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 # Test results tracking

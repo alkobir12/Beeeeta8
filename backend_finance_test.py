@@ -401,7 +401,7 @@ class FinanceAPITester:
 def main():
     """Main function to run the finance tests"""
     # Use the base URL from frontend/.env
-    BASE_URL = "https://ar-ledger-ssot.preview.emergentagent.com"
+    BASE_URL = "https://finance-overhaul-7.preview.emergentagent.com"
     
     if len(sys.argv) > 1:
         BASE_URL = sys.argv[1]

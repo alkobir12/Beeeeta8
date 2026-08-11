@@ -17,7 +17,7 @@ async def test_operations_page_detailed():
             # Step 1: Login
             print("Step 1: Login")
             
-            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/login')
+            await page.goto('https://finance-overhaul-7.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             
             await page.fill('[data-testid="login-username-input"]', 'مدير')
@@ -28,7 +28,7 @@ async def test_operations_page_detailed():
             
             # Step 2: Navigate to operations
             print("\nStep 2: Navigate to operations page")
-            await page.goto('https://ar-ledger-ssot.preview.emergentagent.com/operations')
+            await page.goto('https://finance-overhaul-7.preview.emergentagent.com/operations')
             await page.wait_for_timeout(5000)  # Wait longer for data to load
             print("✅ Navigated to operations page")
             

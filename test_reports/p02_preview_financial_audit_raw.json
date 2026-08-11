@@ -1,6 +1,6 @@
 {
   "environment": "preview",
-  "base_url": "https://ar-ledger-ssot.preview.emergentagent.com",
+  "base_url": "https://finance-overhaul-7.preview.emergentagent.com",
   "login_result": {
     "status": 200,
     "ok": true,

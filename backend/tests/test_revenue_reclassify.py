@@ -4,7 +4,7 @@
 import requests
 import json
 
-API_URL = "https://ar-ledger-ssot.preview.emergentagent.com/api"
+API_URL = "https://finance-overhaul-7.preview.emergentagent.com/api"
 WID = "finmodule-sync"
 TOWDHEEB = ["توضيب", "تلميع مكينة", "توضيب مكينه"]
 

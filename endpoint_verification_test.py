@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Get backend URL from environment
-BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://ar-ledger-ssot.preview.emergentagent.com')
+BACKEND_URL = os.getenv('REACT_APP_BACKEND_URL', 'https://finance-overhaul-7.preview.emergentagent.com')
 API_BASE = f"{BACKEND_URL}/api"
 
 class EndpointVerificationTester:

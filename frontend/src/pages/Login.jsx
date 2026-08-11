@@ -23,14 +23,16 @@ function readTrustedDevice() {
 const Login = () => {
   const { toast } = useToast();
   useTranslation();
+  const [initialTrusted] = useState(() => readTrustedDevice());
   const [name, setName] = useState(() => localStorage.getItem(LAST_USERNAME_KEY) || '');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(() => !initialTrusted?.device_id);
   const [rememberDevice, setRememberDevice] = useState(true);
-  const [pinMode, setPinMode] = useState(true);
-  const [trusted, setTrusted] = useState(null);
+  const [pinMode, setPinMode] = useState(() => Boolean(initialTrusted?.device_id));
+  const [trusted, setTrusted] = useState(initialTrusted);
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   useEffect(() => {
     const t = readTrustedDevice();
@@ -64,11 +66,13 @@ const Login = () => {
 
   const finishLogin = async (data) => {
     localStorage.setItem(LAST_USERNAME_KEY, data.username);
-    if (data?.device_id && rememberDevice) {
+    if (data?.device_id && data?.pin_configured === true && rememberDevice) {
       localStorage.setItem(TRUSTED_DEVICE_KEY, JSON.stringify({
         device_id: data.device_id,
         username: data.username,
       }));
+    } else {
+      localStorage.removeItem(TRUSTED_DEVICE_KEY);
     }
     await establishSession({ username: data.username, role: data.role, token: data.access_token });
     toast({ title: 'مرحباً بك', description: `أهلاً بعودتك، ${data.username}` });
@@ -77,15 +81,19 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
+    setAuthError('');
     if (!name.trim()) {
+      setAuthError('أدخل اسم المستخدم للمتابعة');
       toast({ title: 'اسم المستخدم مطلوب', description: 'أدخل اسم المستخدم للمتابعة', variant: 'destructive' });
       return;
     }
     if (pinMode && pin.trim().length !== 6) {
+      setAuthError('أدخل رمز PIN المكوّن من 6 أرقام');
       toast({ title: 'رمز غير مكتمل', description: 'أدخل رمز PIN المكوّن من 6 أرقام', variant: 'destructive' });
       return;
     }
     if (!pinMode && !password) {
+      setAuthError('أدخل كلمة المرور للمتابعة');
       toast({ title: 'كلمة المرور مطلوبة', description: 'أدخل كلمة المرور الاحتياطية', variant: 'destructive' });
       return;
     }
@@ -106,20 +114,34 @@ const Login = () => {
         if (res.status === 401 && /كلمة المرور مطلوبة/.test(res.detail || '')) {
           setShowPassword(true);
           setPinMode(false);
+          setAuthError('كلمة المرور مطلوبة لهذا الحساب');
           toast({ title: 'كلمة المرور مطلوبة', description: 'كلمة المرور مطلوبة لهذا الحساب — أدخلها للمتابعة' });
           return;
         }
         if (res.status === 429) {
+          setAuthError('محاولات كثيرة — انتظر قليلاً ثم حاول مجددًا');
           toast({ title: 'محاولات كثيرة', description: 'انتظر قليلاً ثم حاول مجدداً', variant: 'destructive' });
           return;
         }
         if (pinMode && res.status === 401) {
-          toast({ title: 'رمز غير صحيح', description: 'تحقق من رمز PIN وحاول مرة أخرى', variant: 'destructive' });
+          localStorage.removeItem(TRUSTED_DEVICE_KEY);
+          setTrusted(null);
+          setPinMode(false);
+          setShowPassword(true);
+          setPin('');
+          setAuthError('تعذر استخدام PIN على هذا الجهاز. أدخل كلمة المرور للمتابعة');
+          toast({
+            title: 'استخدم كلمة المرور',
+            description: 'تعذر استخدام PIN على هذا الجهاز، فتم نقلك إلى الدخول الآمن بكلمة المرور',
+            variant: 'destructive',
+          });
           return;
         }
+        const message = formatApiDetail(res.detail) || 'اسم المستخدم غير معروف أو بيانات الدخول غير صحيحة';
+        setAuthError(message);
         toast({
           title: 'خطأ',
-          description: formatApiDetail(res.detail) || 'اسم المستخدم غير معروف أو بيانات الدخول غير صحيحة',
+          description: message,
           variant: 'destructive',
         });
         return;
@@ -127,6 +149,7 @@ const Login = () => {
       await finishLogin(res.data);
     } catch (e) {
       console.error('Login error:', e);
+      setAuthError('فشل في تسجيل الدخول بسبب تعذر الاتصال أو انتهاء المهلة');
       toast({ title: 'خطأ', description: 'فشل في تسجيل الدخول (تعذر الاتصال أو مهلة)', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -166,7 +189,7 @@ const Login = () => {
                 type="text"
                 placeholder="مثال: احمد"
                 value={name}
-                onChange={event => setName(event.target.value)}
+                onChange={event => { setName(event.target.value); setAuthError(''); }}
                 onKeyPress={handleKeyPress}
                 className="apple-input"
                 autoFocus
@@ -186,7 +209,7 @@ const Login = () => {
                   maxLength={6}
                   placeholder="••••••"
                   value={pin}
-                  onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                  onChange={e => { setPin(e.target.value.replace(/\D/g, '')); setAuthError(''); }}
                   onKeyPress={handleKeyPress}
                   className="apple-input tracking-[0.5em] text-center text-xl"
                   data-testid="login-pin-input"
@@ -204,7 +227,7 @@ const Login = () => {
                     type="password"
                     placeholder="أدخل كلمة المرور"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => { setPassword(e.target.value); setAuthError(''); }}
                     onKeyPress={handleKeyPress}
                     className="apple-input"
                     data-testid="login-password-input"
@@ -223,6 +246,17 @@ const Login = () => {
               </>
             )}
 
+            {authError && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="w-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 text-right"
+                data-testid="login-error-alert"
+              >
+                {authError}
+              </div>
+            )}
+
             <button
               onClick={handleLogin}
               disabled={loading}
@@ -237,14 +271,24 @@ const Login = () => {
             </button>
 
             <div className="flex items-center justify-center text-xs pt-1">
+              {(pinMode || trusted?.device_id) ? (
               <button
                 type="button"
-                onClick={() => { setPinMode(!pinMode); setShowPassword(pinMode); }}
+                onClick={() => {
+                  setPinMode(!pinMode);
+                  setShowPassword(pinMode);
+                  setAuthError('');
+                }}
                 className="text-[#0071E3] hover:underline"
                 data-testid="login-pin-mode-toggle"
               >
                 {pinMode ? 'استخدام كلمة المرور الاحتياطية' : 'العودة إلى PIN السريع'}
               </button>
+              ) : (
+                <span className="text-[#6E6E73]" data-testid="login-pin-availability-note">
+                  يتاح PIN السريع بعد تسجيل الدخول وتوثيق هذا الجهاز
+                </span>
+              )}
               {!pinMode && !showPassword && (
                 <button
                   type="button"

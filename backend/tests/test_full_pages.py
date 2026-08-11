@@ -4,7 +4,7 @@
 import requests, json, time
 from datetime import datetime
 
-BASE = "https://ar-ledger-ssot.preview.emergentagent.com/api"
+BASE = "https://finance-overhaul-7.preview.emergentagent.com/api"
 WID  = "finmodule-sync"
 
 PASS = "✅"
