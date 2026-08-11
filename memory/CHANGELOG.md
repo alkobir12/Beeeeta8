@@ -37,6 +37,12 @@
 - اختبار Preview جديد أثبت: services=1210، supplier archive=1090، final_customer_total=1500، canonical revenue=1500، payment revenue=0، supplier revenue=0، idempotency يمنع التكرار.
 - تحقق مستقل Iter343: 21/21 passed، ولا تغيير على `AccountingEngine` أو قواعد Iter342 أو Journal KPI UI.
 
+# 2026-08-11 — Security P0 Auth Hardening
+- حُظر تسجيل الدخول بالاسم فقط، وحُظر default/shared quick PIN، وأصبح auth fail-closed عند credential ناقص أو store غير متاح.
+- أضيفت اختبارات Iter344 للتحقق من: 401 للاسم فقط/الـ PIN القديم/الاعتماد الخاطئ، token عادي بدور employee فقط، 403 على endpoint مالي مميز، و429 بعد 5 محاولات فاشلة.
+- Secret exposure audit: لا توجد أسرار مطبوعة في التقرير، لكن توجد مؤشرات exposure محلية/تاريخية تتطلب rotation قبل production hardening الكامل.
+- تحقق: 10 passed لاختبارات auth P0، و19 passed / 4 skipped للانحدار المجمد، وbuild ناجح.
+
 # CHANGELOG
 
 ## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions

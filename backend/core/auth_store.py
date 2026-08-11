@@ -7,7 +7,7 @@ Provides the production-auth foundation shared by every login method:
   • Auth AUDIT log (login/refresh/logout/password/pin/google/new-device).
   • Password & PIN hashing (bcrypt).
 
-Backward-compatible: name-only login keeps working; these are additive capabilities.
+Security P0: name-only login is blocked; credentials and auth store fail closed.
 All datetimes are timezone-aware UTC and stored as ISO strings.
 """
 from __future__ import annotations
@@ -307,17 +307,10 @@ async def set_pin(username: str, pin: str) -> None:
     await _ensure_cred_index()
     await _db().auth_credentials.update_one(
         {"username": username},
-        {"$set": {"pin_hash": hash_secret(pin), "updated_at": _iso(_now())},
+        {"$set": {"pin_hash": hash_secret(pin), "pin_user_configured": True, "updated_at": _iso(_now())},
          "$setOnInsert": {"username": username}}, upsert=True)
 
 
 async def ensure_pin(username: str, pin: str) -> bool:
-    """Idempotently seed a configured PIN as a bcrypt hash. Returns True when changed."""
-    await _ensure_cred_index()
-    current = await _db().auth_credentials.find_one(
-        {"username": username}, {"_id": 0, "pin_hash": 1}
-    )
-    if current and verify_secret(pin, current.get("pin_hash", "")):
-        return False
-    await set_pin(username, pin)
-    return True
+    """Shared/default PIN seeding is disabled. Kept as a no-op for old imports."""
+    return False

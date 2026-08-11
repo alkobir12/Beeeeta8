@@ -10,6 +10,10 @@
 - إبقاء اختبار `/app/backend/tests/test_iter342_income_statement_scope_model.py` ضمن الانحدار لحماية استقلال قائمة الدخل عن حالة المركبة.
 - Root fix مستقبلي: إنشاء قيد canonical واحد واضح لكل حدث تجاري نهائي، مع إبقاء alignment/repair كـ audit/history فقط.
 - P1 مكتمل جزئياً: اعتماد `final_customer_total` أصبح ينشئ قيد canonical idempotent للحدث النهائي. المتبقي لاحقاً: خطة تنظيف/أرشفة القيود التاريخية legacy بدون حذف أو reverse إلا بعد اعتماد المستخدم.
+
+## P0 أمني متبقٍ خارج هذا التعديل
+- تدوير أسرار Production/Preview المتأثرة: Supabase service role, JWT secret, LLM/API keys, bypass/developer approval secrets، مع خطة تحديث deployment حتى لا يتوقف النظام.
+- إزالة/تنظيف أي ملفات محلية أو تاريخية تحمل أسراراً فعلية من مسارات العمل المستقبلية بعد تدويرها.
 - تحسين لاحق مقترح: إضافة تبويب تفصيلي يفرق بين `حركة تشغيلية للفترة` و`حركة دفتر تاريخية` داخل دفتر اليومية.
 - ربط QuickPrint والفواتير النهائية بعرض `final_customer_total` المعتمد في قالب الفاتورة النهائي.
 - صفحة تحقق عامة للمستندات عبر QR/هاش/اعتمادات.

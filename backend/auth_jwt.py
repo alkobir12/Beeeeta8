@@ -1,10 +1,7 @@
-"""
-JWT Authentication module — preserves name-only login UX while securing APIs.
+"""JWT Authentication module.
 
-- POST /api/auth/login: accepts {username}, returns JWT access token + sets httpOnly cookie
-- get_current_user dependency: validates JWT from Authorization header OR cookie
-- Permissive mode: GET endpoints without token still return 200 (back-compat)
-- Strict mode: write endpoints (POST/PUT/DELETE) require valid token
+Security P0: authentication is credential-only and fail-closed. No name-only
+login, no shared/default PIN bypass, and no stateless token fallback.
 """
 import os
 import uuid
@@ -170,13 +167,10 @@ async def _issue_tokens(response: Response, username: str, role: Optional[str],
     access_token = create_access_token(username, role)
     jti = f"rt_{uuid.uuid4().hex}"
     refresh_token = create_refresh_token(username, jti, family_id=family_id, device_id=device_id)
-    try:
-        fam = await auth_store.register_refresh(
-            jti=jti, username=username, role=role or "", expires_at=_refresh_expiry(),
-            family_id=family_id, device_id=device_id,
-        )
-    except Exception:
-        fam = family_id  # store unavailable → still return tokens (degraded, stateless)
+    fam = await auth_store.register_refresh(
+        jti=jti, username=username, role=role or "", expires_at=_refresh_expiry(),
+        family_id=family_id, device_id=device_id,
+    )
     # re-embed the resolved family so the token and store agree
     refresh_token = create_refresh_token(username, jti, family_id=fam, device_id=device_id)
     _set_auth_cookies(response, access_token, refresh_token)
@@ -208,16 +202,12 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
 
 @router.post("/login")
 async def login(payload: LoginPayload, request: Request, response: Response):
-    """تسجيل الدخول متعدد الطرق (متوافق رجعياً مع الاسم فقط).
-
-    الأولوية: password → pin (المدير سريعاً، وبقية الحسابات على جهاز موثوق) → اسم فقط.
-    من لديه كلمة مرور مضبوطة يجب أن يقدّمها (لا يُقبل الاسم فقط له).
-    """
+    """تسجيل الدخول ببيانات اعتماد صريحة فقط: password أو PIN مهيأ للمستخدم."""
     from core import rbac, auth_store
     ip, ua = _client_meta(request)
     identifier = (payload.email or payload.username or "").strip()
     if not identifier or len(identifier) > 120:
-        raise HTTPException(status_code=400, detail="المعرّف مطلوب")
+        raise HTTPException(status_code=401, detail="بيانات الدخول غير صحيحة")
 
     # 🔒 brute-force lockout
     if await auth_store.recent_failures(identifier, minutes=15, ip=ip) >= 5:
@@ -239,32 +229,30 @@ async def login(payload: LoginPayload, request: Request, response: Response):
     resolved_name = actor.name or resolved_username
 
     has_password = bool(creds and creds.get("password_hash"))
-    has_pin = bool(creds and creds.get("pin_hash"))
+    has_user_pin = bool(creds and creds.get("pin_hash") and creds.get("pin_user_configured") is True)
+
+    supplied_password = payload.password is not None and str(payload.password).strip() != ""
+    supplied_pin = payload.pin is not None and str(payload.pin).strip() != ""
+    if not supplied_password and not supplied_pin:
+        await auth_store.audit("login", username=resolved_name, success=False, ip=ip,
+                               user_agent=ua, detail="credential_required")
+        raise HTTPException(status_code=401, detail="بيانات الدخول غير صحيحة")
 
     method = None
-    if payload.password is not None:
+    if supplied_password:
         if not (has_password and auth_store.verify_secret(payload.password, creds["password_hash"])):
             await auth_store.audit("login", username=resolved_name, success=False, ip=ip,
                                    user_agent=ua, detail="bad_password")
             raise HTTPException(status_code=401, detail="بيانات الدخول غير صحيحة")
         method = "password"
-    elif payload.pin is not None:
+    elif supplied_pin:
         trusted = await auth_store.is_device_trusted(username=resolved_name, device_id=payload.device_id or "")
-        quick_pin_login = len(payload.pin) == 6
-        pin_valid = has_pin and auth_store.verify_secret(payload.pin, creds["pin_hash"])
-        if not (pin_valid and (trusted or quick_pin_login)):
+        pin_valid = has_user_pin and auth_store.verify_secret(payload.pin, creds["pin_hash"])
+        if not (pin_valid and trusted):
             await auth_store.audit("login", username=resolved_name, success=False, ip=ip,
                                    user_agent=ua, detail="bad_pin_or_untrusted_device")
             raise HTTPException(status_code=401, detail="رمز PIN غير صحيح")
         method = "pin"
-    else:
-        # No secret supplied → only allowed if the user has NO credentials set (back-compat).
-        if has_password or has_pin:
-            # not a credential guess → don't count toward brute-force lockout
-            await auth_store.audit("login_challenge", username=resolved_name, success=False,
-                                   ip=ip, user_agent=ua, detail="credential_required")
-            raise HTTPException(status_code=401, detail="كلمة المرور مطلوبة لهذا الحساب")
-        method = "name_only"
 
     device_id = payload.device_id
     if payload.remember_device and method in ("password", "pin"):
@@ -352,8 +340,12 @@ async def refresh(request: Request, response: Response):
             await auth_store.audit("refresh", username=resolved_name, success=False, ip=ip,
                                    user_agent=ua, detail=str(e))
             raise HTTPException(status_code=401, detail="refresh token revoked")
-        except Exception:
-            pass  # store unavailable → degrade to stateless refresh
+        except auth_store.RefreshReuseError:
+            raise
+        except Exception as exc:
+            await auth_store.audit("refresh", username=resolved_name, success=False, ip=ip,
+                                   user_agent=ua, detail="refresh_store_unavailable")
+            raise HTTPException(status_code=503, detail="Auth store unavailable") from exc
 
     access_token = create_access_token(resolved_name, actor.role)
     new_refresh = create_refresh_token(resolved_name, new_jti, family_id=fam, device_id=device_id)

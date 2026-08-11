@@ -358,18 +358,10 @@ app = FastAPI(title="Workshop Management API")
 
 
 @app.on_event("startup")
-async def initialize_quick_manager_login():
-    from core import auth_store
+async def validate_auth_configuration():
     from auth_jwt import _get_jwt_secret
 
     _get_jwt_secret()
-    username = os.environ.get("MANAGER_QUICK_USERNAME")
-    pin = os.environ.get("MANAGER_QUICK_PIN")
-    if not username or not pin or not pin.isdigit() or len(pin) != 6:
-        raise RuntimeError("MANAGER_QUICK_USERNAME / MANAGER_QUICK_PIN must configure a 6-digit PIN")
-    changed = await auth_store.ensure_pin(username, pin)
-    if changed:
-        await auth_store.audit("seed_pin", username=username, success=True, detail="configured_from_env")
 
 # Runtime guard middleware (مراقبة وحماية خفيفة أثناء التشغيل)
 from runtime_guard import runtime_guard_middleware
@@ -422,7 +414,7 @@ async def validation_exception_handler(request, exc):
 # Configure via env to support custom domains + emergent host during deployment.
 cors_origins_raw = os.environ.get(
     "CORS_ORIGINS",
-    "https://fixsa.online,https://www.fixsa.online,http://localhost:3000",
+    "https://fixsa.online,https://www.fixsa.online,https://car-repair-sys.emergent.host,http://localhost:3000",
 )
 allow_origins = [o.strip() for o in cors_origins_raw.split(",") if o.strip()]
 
@@ -433,6 +425,8 @@ def _credentialed_cors_origin(origin: Optional[str]) -> Optional[str]:
     if origin in allow_origins:
         return origin
     if origin.endswith(".preview.emergentagent.com"):
+        return origin
+    if origin.endswith(".emergent.host"):
         return origin
     if "*" in allow_origins:
         return origin

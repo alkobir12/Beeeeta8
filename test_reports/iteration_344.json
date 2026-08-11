@@ -1,0 +1,53 @@
+{
+  "summary": "Backend-only security P0 hardening verification executed against public preview URL with auth regression + playbook checks.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Missing identifier / fully empty credentials return 400 (\"المعرّف مطلوب\") instead of required fail-closed 401.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Credentialed CORS contract failing on live response: Access-Control-Allow-Origin is '*' and Access-Control-Allow-Credentials header is absent.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter344_security_p0_auth_hardening.py",
+    "/app/backend/tests/test_iter344_auth_playbook_regression.py",
+    "/app/test_reports/pytest/iter344_security_p0_auth_hardening.xml",
+    "/app/test_reports/pytest/iter344_auth_hardening_full.xml"
+  ],
+  "action_items": [
+    "Normalize auth fail-closed behavior so empty/missing login payloads return 401 consistently.",
+    "Fix live CORS credential headers for auth endpoints (explicit origin + Access-Control-Allow-Credentials: true; no wildcard when cookies are used).",
+    "Update /app/memory/test_credentials.md to include the documented security test password reference requested by this story (without exposing production secrets)."
+  ],
+  "critical_code_review_comments": [
+    "Verified code no longer seeds MANAGER_QUICK_PIN or calls auth_store.ensure_pin at startup.",
+    "Verified freeze-scope files remain unchanged in working tree: accounting_engine.py, routes_finance.py, JournalEntries.jsx, vehicle_finalization_posting.py.",
+    "Auth test stability issue fixed in regression test by generating unique IPs to avoid historical lockout contamination between reruns."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter344_security_p0_auth_hardening.py",
+    "/app/backend/tests/test_iter344_auth_playbook_regression.py",
+    "/app/test_reports/iteration_344.json"
+  ],
+  "success_rate": {
+    "backend": "80% (8/10 passed)",
+    "frontend": "N/A (skipped by request)"
+  },
+  "seed_data_creation": "No financial/business seed data mutated. Security user auth credential setup used only for auth test path.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Baseline hardening tests pass (name-only blocked, default PIN blocked, valid employee role, finance-action 403, lockout 429, secret-key non-leak checks). Remaining blockers are status-code contract for empty identifier and live credentialed CORS header mismatch.",
+  "rca of the issue": "RCA-1: /api/auth/login currently raises HTTPException(400, \"المعرّف مطلوب\") before fail-closed 401 credential checks, causing contract mismatch for empty identifier cases. Repro: POST {} to /api/auth/login => 400. RCA-2: backend app code sets credentialed CORS, but live preview response headers show wildcard ACAO and missing Access-Control-Allow-Credentials, likely due edge/proxy CORS override; this breaks strict cookie-based cross-origin auth contract."
+}

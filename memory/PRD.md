@@ -825,3 +825,11 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - قبل/بعد August Income Statement: canonical count 3→4، revenue 5994→7494، expenses 2274 ثابتة، payment count 2→3، net income 3720→5220.
 - التحقق: self pytest 42 passed / 7 skipped، build ناجح، تحقق مستقل Iter343 21/21 passed، و`AccountingEngine` بلا تعديل.
 
+## تحديث 2026-08-11 — Security P0 Auth Hardening
+- تم إلغاء name-only login نهائياً: أي login بدون password/PIN صالح يرجع 401 ولا يصدر token.
+- تم إزالة منطق الثقة في default/shared/admin/master PIN: `server.py` لم يعد يزرع `MANAGER_QUICK_PIN`، و`auth_store.ensure_pin` أصبح no-op، وPIN لا يقبل إلا إذا كان user-specific hashed وموسوم `pin_user_configured=True` وعلى جهاز موثوق.
+- auth يفشل مغلقاً عند credential ناقص/فارغ أو auth store refresh غير متاح؛ لا يوجد stateless refresh fallback.
+- تم إضافة test user عادي في Preview فقط: `مستخدم اختبار أمني` بدور employee لاختبارات RBAC، بدون إنشاء Admin إنتاجي.
+- Secret exposure audit read-only بدون طباعة قيم: `backend/.env` غير tracked حالياً لكنه موجود في git history؛ توجد أسماء/مواقع مفاتيح Supabase/JWT/LLM/bypass داخل ملفات محلية/تاريخ، لذلك `SECRET_ROTATION_REQUIRED=YES` قبل اعتماد production.
+- التحقق: P0 auth suite 10 passed، regression المجمد 19 passed / 4 skipped، build ناجح، ولا تغيير على `AccountingEngine`, `routes_finance`, `JournalEntries`, `vehicle_finalization_posting`, `VehicleFinancialSummary`.
+
