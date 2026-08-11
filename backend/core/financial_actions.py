@@ -78,32 +78,8 @@ SETTLED_TAG = "[بيع آجل — مُسوَّى ✓]"
 
 
 def mark_temp_deferred_settled(reference_id: Optional[str], fully: Optional[bool] = None) -> None:
-    """بعد التحصيل: يحدّث وسم القيد المؤقت للبيع الآجل إلى مُسوَّى/جزئي (best-effort)."""
-    if not reference_id:
-        return
-    try:
-        from supabase_service import SupabaseService
-        supa = SupabaseService()
-        rows = (supa.client.table("journal_entries").select("id,description,total,source")
-                .eq("reference_id", str(reference_id)).execute().data) or []
-        temp_rows = [r for r in rows
-                     if TEMP_DEFERRED_TAG in str(r.get("description") or "")
-                     or PARTIAL_TAG in str(r.get("description") or "")]
-        if not temp_rows:
-            return
-        if fully is None:
-            base_total = sum(float(r.get("total") or 0) for r in temp_rows)
-            paid = sum(float(r.get("total") or 0) for r in rows
-                       if str(r.get("source") or "") in ("payment", "operation_payment"))
-            fully = base_total > 0 and (paid + 0.01) >= base_total
-        tag = SETTLED_TAG if fully else PARTIAL_TAG
-        for r in temp_rows:
-            d = str(r.get("description") or "")
-            nd = d.replace(PARTIAL_TAG, tag).replace(TEMP_DEFERRED_TAG, tag)
-            if nd != d:
-                supa.client.table("journal_entries").update({"description": nd}).eq("id", r["id"]).execute()
-    except Exception:
-        pass
+    """توافق قديم فقط؛ حالة السداد تُحفظ في operation ولا تُغيّر القيد المحاسبي."""
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

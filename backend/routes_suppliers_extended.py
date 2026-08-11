@@ -472,41 +472,74 @@ async def import_execute(payload: Dict[str, Any] = Body(...)):
     if amount_col is None:
         raise HTTPException(status_code=400, detail="يجب تحديد عمود المبلغ على الأقل")
 
-    imported: List[Dict] = []
-    failed:   List[Dict] = []
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Supabase غير متصل؛ تم إيقاف الاستيراد دون أي كتابة")
 
+    prepared: List[Dict[str, Any]] = []
+    validation_errors: List[Dict[str, Any]] = []
     for i, row in enumerate(rows):
         try:
             amount = float(str(row[int(amount_col)]).replace(",", ""))
             if amount <= 0:
                 raise ValueError("مبلغ سالب أو صفر")
-            name  = str(row[int(name_col)]).strip()  if name_col  is not None else supplier_name
-            date  = str(row[int(date_col)]).strip()[:10] if date_col is not None else _now_iso()[:10]
+            name = str(row[int(name_col)]).strip() if name_col is not None else supplier_name
+            date = str(row[int(date_col)]).strip()[:10] if date_col is not None else _now_iso()[:10]
             rtype = str(row[int(type_col)]).strip() if type_col is not None else "credit"
-
-            # إنشاء قيد يومية للحركة المستوردة
-            if supabase:
-                debit  = amount if "debit"  in rtype.lower() or "مدين" in rtype else 0.0
-                credit = amount if "credit" in rtype.lower() or "دائن" in rtype or not debit else 0.0
-                if not debit and not credit:
-                    credit = amount
-                entry = {
-                    "id":          str(uuid.uuid4()),
+            debit = amount if "debit" in rtype.lower() or "مدين" in rtype else 0.0
+            credit = amount if "credit" in rtype.lower() or "دائن" in rtype or not debit else 0.0
+            if not debit and not credit:
+                credit = amount
+            identity_seed = f"supplier-import:{workshop_id}:{payload.get('supplier_id') or name}:{i + 1}:{date}:{amount:.2f}:{rtype}"
+            entry_id = str(uuid.uuid5(uuid.NAMESPACE_URL, identity_seed))
+            prepared.append({
+                "row": i + 1,
+                "name": name,
+                "amount": amount,
+                "date": date,
+                "entry": {
+                    "id": entry_id,
                     "workshop_id": workshop_id,
-                    "date":        date,
+                    "date": date,
                     "description": f"[مستورد] {name} — {rtype}",
-                    "source":      "import",
+                    "source": "import",
+                    "transaction_type": "supplier_import",
+                    "reference_id": f"supplier-import:{entry_id}",
+                    "business_event_id": f"supplier_import::{entry_id}",
                     "lines": [
                         {"account": "004", "account_name": "البنك", "debit": debit, "credit": credit if not debit else 0},
                         {"account": "2101", "account_name": f"مورد - {name}", "debit": credit if not debit else 0, "credit": debit},
                     ],
                     "total": amount,
-                }
-                from core import accounting_engine
-                accounting_engine.post_entry(entry)
-            imported.append({"row": i + 1, "name": name, "amount": amount, "date": date})
-        except Exception as e:
-            failed.append({"row": i + 1, "error": str(e), "data": row[:5]})
+                },
+            })
+        except Exception as error:
+            validation_errors.append({"row": i + 1, "error": str(error), "data": row[:5]})
+
+    if validation_errors:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "supplier_import_validation_failed",
+                "message": "فشل التحقق؛ لم تُكتب أي حركة مالية",
+                "failed_rows": validation_errors[:20],
+            },
+        )
+
+    from core import accounting_engine
+    imported: List[Dict[str, Any]] = []
+    for item in prepared:
+        posted_rows = accounting_engine.post_entry(item["entry"], fallback=False)
+        if not isinstance(posted_rows, list) or not posted_rows or not (posted_rows[0] or {}).get("id"):
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "error": "supplier_import_post_failed",
+                    "failed_row": item["row"],
+                    "posted_rows_before_failure": len(imported),
+                    "message": "لم يعتبر الاستيراد ناجحًا؛ لم يؤكد AccountingEngine حفظ السطر",
+                },
+            )
+        imported.append({"row": item["row"], "name": item["name"], "amount": item["amount"], "date": item["date"]})
 
     invalidate_finance_caches()
 
@@ -514,8 +547,8 @@ async def import_execute(payload: Dict[str, Any] = Body(...)):
         "success": True,
         "data": {
             "imported": len(imported),
-            "failed":   len(failed),
+            "failed":   0,
             "imported_rows": imported[:10],
-            "failed_rows":   failed[:10],
+            "failed_rows":   [],
         }
     }

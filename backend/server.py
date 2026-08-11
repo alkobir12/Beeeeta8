@@ -923,8 +923,8 @@ async def settle_vehicle_credit_operations(vehicle_id: str):
             .execute()
         )
         operations = ops_res.data or []
-    except Exception:
-        return
+    except Exception as error:
+        raise RuntimeError("credit_operation_lookup_failed") from error
 
     for op in operations:
         amount = float(op.get("total_amount") or op.get("amount") or op.get("total") or 0)
@@ -942,8 +942,8 @@ async def settle_vehicle_credit_operations(vehicle_id: str):
             )
             if exists.data:
                 continue
-        except Exception:
-            pass
+        except Exception as error:
+            raise RuntimeError("credit_settlement_duplicate_check_failed") from error
 
         entry = {
             "id": str(uuid.uuid4()),
@@ -970,12 +970,18 @@ async def settle_vehicle_credit_operations(vehicle_id: str):
             "operation_id": op.get("id"),
         }
 
-        try:
-            from core import accounting_engine
-            accounting_engine.post_entry(entry)
-            supabase_service.client.table("operations").update({"payment_method": "cash"}).eq("id", op.get("id")).execute()
-        except Exception:
-            continue
+        from core import accounting_engine
+        posted_rows = accounting_engine.post_entry(entry, fallback=False)
+        if not isinstance(posted_rows, list) or not posted_rows or not (posted_rows[0] or {}).get("id"):
+            raise RuntimeError("credit_settlement_journal_not_persisted")
+        update_result = (
+            supabase_service.client.table("operations")
+            .update({"payment_method": "cash"})
+            .eq("id", op.get("id"))
+            .execute()
+        )
+        if not getattr(update_result, "data", None):
+            raise RuntimeError("credit_settlement_operation_not_updated")
 
 
 @api_router.put("/vehicles/{vehicle_id}", response_model=Vehicle)
@@ -1190,6 +1196,13 @@ async def save_vehicle_parts_and_create_journal(
     if not allowed.allowed:
         allowed = rbac.check_permission(actor, "journal_entries", "create")
     rbac.require(allowed)
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "legacy_vehicle_parts_auto_posting_disabled",
+            "message": "تم تعطيل إنشاء عملية/قيد تلقائي من بنود المركبة. اعتماد الإجمالي النهائي يستخدم المسار canonical فقط.",
+        },
+    )
     try:
         workshop_id = os.getenv("REACT_APP_WORKSHOP_ID", "workshop-1")
         

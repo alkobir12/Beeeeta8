@@ -45,7 +45,7 @@ def _load_test_credential(field: str) -> str:
     if field == "username":
         match = re.search(r"\| `([^`]+)`\s+\| admin\s+\|", text)
     else:
-        match = re.search(r"admin\s+\|[^\n]+quick PIN `([^`]+)`", text)
+        match = re.search(r"\|\s*`مدير`\s*\|\s*admin\s*\|[^\n]*\|\s*`([^`]+)`\s*\|", text)
     return match.group(1).strip() if match else ""
 
 
@@ -61,17 +61,17 @@ def auth_headers(api_base_url: str):
     session = requests.Session()
     session.headers.update({"Content-Type": "application/json"})
     manager_username = _load_test_credential("username")
-    manager_pin = _load_test_credential("pin")
-    if not manager_username or not manager_pin:
+    manager_password = _load_test_credential("password")
+    if not manager_username or not manager_password:
         pytest.skip("Manager test credentials missing")
 
     response = session.post(
         f"{api_base_url}{LOGIN_URL}",
-        json={"username": manager_username, "pin": manager_pin},
+        json={"username": manager_username, "password": manager_password},
         timeout=30,
     )
     if response.status_code != 200:
-        pytest.skip(f"Manager PIN login failed: {response.status_code} {response.text[:180]}")
+        pytest.skip(f"Manager password login failed: {response.status_code} {response.text[:180]}")
 
     body = response.json()
     token = body.get("access_token") or body.get("token")

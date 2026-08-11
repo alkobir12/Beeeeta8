@@ -2052,15 +2052,15 @@ def _build_repair_journal_entry_from_operation(
     }
 
 
-def _insert_repair_journal_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
-    if not supabase:
-        raise Exception("Supabase not connected")
-    # 🏦 المسار المركزي: AccountingEngine (توازن + منع تكرار)
-    from core import accounting_engine
-    res = accounting_engine.post_entry(entry)
-    if res:
-        return res[0]
-    raise Exception("Insert not persisted: AccountingEngine returned no row")
+def _raise_legacy_financial_mutation_blocked(action: str) -> None:
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "legacy_financial_mutation_blocked",
+            "action": action,
+            "message": "هذا المسار القديم للكتابة المالية معطّل. القيود النهائية تمر عبر AccountingEngine فقط.",
+        },
+    )
 
 
 @router.get("/reports/reconciliation")
@@ -2277,6 +2277,9 @@ async def backfill_missing_operation_journals(
     - `apply_changes=false` => معاينة فقط (dry-run)
     - `apply_changes=true`  => إنشاء قيود للعمليات التي لا تملك قيدًا مرجعيًا
     """
+    if apply_changes:
+        _raise_legacy_financial_mutation_blocked("reconciliation_backfill_43_operations")
+
     try:
         end_date = end_date or datetime.now().strftime("%Y-%m-%d")
         start_date = start_date or (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
@@ -2344,58 +2347,16 @@ async def backfill_missing_operation_journals(
             for item in missing_operations[:20]
         ]
 
-        if not apply_changes:
-            return {
-                "success": True,
-                "mode": "dry_run",
-                "data": {
-                    "period": {"start_date": start_date, "end_date": end_date},
-                    "missing_count": len(missing_operations),
-                    "missing_total": round(
-                        sum(_safe_float(item["operation"].get("total")) for item in missing_operations),
-                        2,
-                    ),
-                    "preview": preview,
-                },
-            }
-
-        created = 0
-        created_items = []
-        failed = []
-        for item in missing_operations[:max_records]:
-            try:
-                inserted = _insert_repair_journal_entry(item["journal"])
-                created += 1
-                created_items.append(
-                    {
-                        "journal_id": str(inserted.get("id") or item["journal"].get("id")),
-                        "reference_id": str(
-                            inserted.get("reference_id") or item["journal"].get("reference_id")
-                        ),
-                        "transaction_type": inserted.get("transaction_type")
-                        or item["journal"].get("transaction_type"),
-                        "workshop_id": inserted.get("workshop_id") or item["journal"].get("workshop_id"),
-                        "date": inserted.get("date") or item["journal"].get("date"),
-                        "source": inserted.get("source") or item["journal"].get("source"),
-                    }
-                )
-            except Exception as insert_error:
-                failed.append(
-                    {
-                        "operation_id": str(item["operation"].get("id")),
-                        "error": str(insert_error),
-                    }
-                )
-
         return {
             "success": True,
-            "mode": "apply",
+            "mode": "dry_run",
             "data": {
                 "period": {"start_date": start_date, "end_date": end_date},
-                "found_missing": len(missing_operations),
-                "created": created,
-                "created_items": created_items[:50],
-                "failed": failed,
+                "missing_count": len(missing_operations),
+                "missing_total": round(
+                    sum(_safe_float(item["operation"].get("total")) for item in missing_operations),
+                    2,
+                ),
                 "preview": preview,
             },
         }
@@ -3539,29 +3500,19 @@ async def close_period(
 
         try:
             from core import accounting_engine
-            accounting_engine.post_entry(new_entry)
+            posted_rows = accounting_engine.post_entry(new_entry, fallback=False)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"فشل حفظ قيد الإقفال: {e}")
-
-        # 8) تحديث رصيد الحسابات (balance=0 للإيرادات/المصروفات، يضاف net للأرباح المحتجزة)
-        try:
-            for acc in accounts:
-                t = (acc.get("type") or "").lower()
-                if t in ("revenue", "expense"):
-                    supa.client.table("accounts").update({"balance": 0}).eq("id", acc["id"]).execute()
-            if equity_acc:
-                old_bal = float(equity_acc.get("balance") or 0)
-                new_bal = round(old_bal + net_income, 2)
-                supa.client.table("accounts").update({"balance": new_bal}).eq("id", equity_acc["id"]).execute()
-        except Exception as e:
-            print(f"period-close: balance update warning: {e}")
+        if not isinstance(posted_rows, list) or not posted_rows or not (posted_rows[0] or {}).get("id"):
+            raise HTTPException(status_code=502, detail="رفض AccountingEngine قيد الإقفال أو لم يؤكد حفظه")
+        persisted_journal_id = str(posted_rows[0]["id"])
 
         return {
             "success": True,
             "data": {
                 "closed": True,
                 "as_of_date": as_of,
-                "journal_entry_id": new_entry["id"],
+                "journal_entry_id": persisted_journal_id,
                 "total_revenue_closed": round(total_revenue_closed, 2),
                 "total_expense_closed": round(total_expense_closed, 2),
                 "net_income_transferred": net_income,
@@ -3675,13 +3626,19 @@ async def create_journal_entry(entry: dict, request: Request, workshop_id: str =
         # 🏦 المسار المركزي: AccountingEngine (توازن + منع تكرار + أعمدة متكيّفة)
         full_entry_data = {**entry_data, "transaction_type": transaction_type}
         from core import accounting_engine
-        response_data = accounting_engine.post_entry(full_entry_data)
+        response_data = accounting_engine.post_entry(full_entry_data, fallback=False)
+        if not isinstance(response_data, list) or not response_data or not (response_data[0] or {}).get("id"):
+            raise HTTPException(
+                status_code=502,
+                detail="رفض AccountingEngine القيد اليدوي أو لم يؤكد حفظه",
+            )
+        persisted_id = str(response_data[0]["id"])
 
         invalidate_finance_caches()
         result = {
             "success": True,
             "message": "تم إنشاء القيد المحاسبي بنجاح",
-            "id": (response_data[0].get("id") if response_data else entry_data["id"]),
+            "id": persisted_id,
             "data": response_data,
         }
         if _idem_key:
@@ -3695,11 +3652,7 @@ async def create_journal_entry(entry: dict, request: Request, workshop_id: str =
         raise
     except Exception as e:
         print(f"Error in create_journal_entry: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "فشل في إنشاء القيد المحاسبي",
-        }
+        raise HTTPException(status_code=500, detail="فشل في إنشاء القيد المحاسبي") from e
 
 
 @router.get("/operations")
@@ -3717,87 +3670,8 @@ async def get_financial_operations(
 async def update_journal_entry(
     entry_id: str, entry: dict, workshop_id: str = Query(...)
 ):
-    """تعديل قيد محاسبي يدوي في Supabase مع إمكانية تعديل نوع الحركة."""
-    try:
-        if not supabase:
-            raise Exception("Supabase not connected")
-
-        existing = (
-            supabase.table("journal_entries")
-            .select("*")
-            .eq("id", entry_id)
-            .eq("workshop_id", workshop_id)
-            .execute()
-        )
-
-        if not existing.data or len(existing.data) == 0:
-            return {
-                "success": False,
-                "error": "القيد غير موجود",
-                "message": "لم يتم العثور على القيد المطلوب",
-            }
-
-        # Base update data
-        update_data = {
-            "date": entry.get("date"),
-            "description": entry.get("description", ""),
-            "lines": entry.get("lines", []),
-            "total": entry.get("total", 0),
-            "updated_at": datetime.now().isoformat(),
-        }
-
-        # Add transaction_type if provided
-        if entry.get("transaction_type") is not None:
-            update_data["transaction_type"] = entry.get("transaction_type")
-
-        # Remove None values
-        update_data = {k: v for k, v in update_data.items() if v is not None}
-
-        try:
-            response = (
-                supabase.table("journal_entries")
-                .update(update_data)
-                .eq("id", entry_id)
-                .execute()
-            )
-            
-            invalidate_finance_caches()
-            return {
-                "success": True,
-                "message": "تم تحديث القيد المحاسبي بنجاح",
-                "data": response.data,
-            }
-            
-        except Exception as schema_error:
-            # If transaction_type column doesn't exist, try without it
-            if "transaction_type" in update_data:
-                print(f"Schema error with transaction_type, trying without: {schema_error}")
-                update_data_basic = {k: v for k, v in update_data.items() if k != "transaction_type"}
-                
-                response = (
-                    supabase.table("journal_entries")
-                    .update(update_data_basic)
-                    .eq("id", entry_id)
-                    .execute()
-                )
-                
-                invalidate_finance_caches()
-                return {
-                    "success": True,
-                    "message": "تم تحديث القيد المحاسبي بنجاح (بدون transaction_type)",
-                    "data": response.data,
-                    "note": "تم التحديث بدون حقل transaction_type - يحتاج تحديث قاعدة البيانات"
-                }
-            else:
-                raise schema_error
-
-    except Exception as e:
-        print(f"Error in update_journal_entry: {str(e)}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "فشل في تحديث القيد المحاسبي",
-        }
+    """القيود غير قابلة للتعديل؛ التصحيح يتم بعكس القيد وإنشاء قيد جديد."""
+    _raise_legacy_financial_mutation_blocked("manual_journal_update")
 
 
 @router.delete("/journal-entries/{entry_id}")
@@ -4829,6 +4703,9 @@ async def reclassify_payment_accounts(
     تصحيح القيود التي سُجلت على النقد 1101 بدل البنك 1102 (أو العكس)
     بحسب طريقة الدفع في العملية المرجعية.
     """
+    if apply_changes:
+        _raise_legacy_financial_mutation_blocked("reclassify_payment_accounts")
+
     end_date = end_date or datetime.now().strftime("%Y-%m-%d")
     start_date = start_date or "2000-01-01"
 
@@ -4908,9 +4785,6 @@ async def reclassify_payment_accounts(
                     "payment_method": method,
                     "expected_cash_account": expected_cash,
                 })
-                if apply_changes and supabase:
-                    supabase.table("journal_entries").update({"lines": new_lines}).eq("id", entry_id).execute()
-                    updated += 1
 
         return {
             "success": True,
@@ -4949,6 +4823,9 @@ async def apply_bank_revenue_policy(
     2) تحويل عمليات البيع/الخدمة النقدية إلى bank في جدول operations
     3) التأكد من وجود حساب نقاط بيع 1104 كحساب فرعي تحت البنك 1102
     """
+    if apply_changes:
+        _raise_legacy_financial_mutation_blocked("apply_bank_revenue_policy")
+
     end_date = end_date or datetime.now().strftime("%Y-%m-%d")
     start_date = start_date or "2000-01-01"
 
@@ -4970,38 +4847,12 @@ async def apply_bank_revenue_policy(
                 pos = by_code.get("1104")
 
                 target_parent = (bank or {}).get("id") or (current_assets or {}).get("id")
-                if not pos and apply_changes:
-                    new_row = {
-                        "id": f"acc-{uuid.uuid4().hex[:12]}",
-                        "code": "1104",
-                        "name": "نقاط بيع",
-                        "name_en": "POS",
-                        "type": "asset",
-                        "parent_id": target_parent,
-                        "is_system": True,
-                        "balance": 0.0,
-                    }
-                    inserted = supabase.table("accounts").insert(new_row).execute().data or [new_row]
-                    result["created"] = True
-                    result["account"] = inserted[0]
-                elif pos:
-                    needs_update = (
-                        str(pos.get("name") or "") != "نقاط بيع"
-                        or str(pos.get("parent_id") or "") != str(target_parent or "")
-                    )
-                    if needs_update and apply_changes:
-                        updated = (
-                            supabase.table("accounts")
-                            .update({"name": "نقاط بيع", "name_en": "POS", "parent_id": target_parent})
-                            .eq("id", pos.get("id"))
-                            .execute()
-                            .data
-                            or [pos]
-                        )
-                        result["updated"] = True
-                        result["account"] = updated[0]
-                    else:
-                        result["account"] = pos
+                result["account"] = pos
+                result["missing"] = pos is None
+                result["needs_update"] = bool(pos) and (
+                    str(pos.get("name") or "") != "نقاط بيع"
+                    or str(pos.get("parent_id") or "") != str(target_parent or "")
+                )
                 return result
 
             if db is not None:
@@ -5015,35 +4866,12 @@ async def apply_bank_revenue_policy(
                 pos = by_code.get("1104")
                 target_parent = (bank or {}).get("id") or (current_assets or {}).get("id")
 
-                if not pos and apply_changes:
-                    doc = {
-                        "id": f"acc-{uuid.uuid4().hex[:12]}",
-                        "code": "1104",
-                        "name": "نقاط بيع",
-                        "nameEn": "POS",
-                        "type": "asset",
-                        "parentId": target_parent,
-                        "isSystem": True,
-                        "balance": 0.0,
-                    }
-                    await db.accounts.insert_one(doc)
-                    result["created"] = True
-                    result["account"] = doc
-                elif pos:
-                    needs_update = (
-                        str(pos.get("name") or "") != "نقاط بيع"
-                        or str(pos.get("parentId") or "") != str(target_parent or "")
-                    )
-                    if needs_update and apply_changes:
-                        await db.accounts.update_one(
-                            {"id": pos.get("id")},
-                            {"$set": {"name": "نقاط بيع", "nameEn": "POS", "parentId": target_parent}},
-                        )
-                        updated_doc = await db.accounts.find_one({"id": pos.get("id")}, {"_id": 0})
-                        result["updated"] = True
-                        result["account"] = updated_doc or pos
-                    else:
-                        result["account"] = pos
+                result["account"] = pos
+                result["missing"] = pos is None
+                result["needs_update"] = bool(pos) and (
+                    str(pos.get("name") or "") != "نقاط بيع"
+                    or str(pos.get("parentId") or "") != str(target_parent or "")
+                )
                 return result
         except Exception as pos_error:
             result["error"] = str(pos_error)
@@ -5090,13 +4918,6 @@ async def apply_bank_revenue_policy(
 
             if has_change:
                 changed_entries.append(entry_id)
-                if apply_changes:
-                    if supabase:
-                        supabase.table("journal_entries").update({"lines": new_lines}).eq("id", entry_id).execute()
-                        updated_entries += 1
-                    elif db is not None:
-                        await db.journal_entries.update_one({"id": entry_id}, {"$set": {"lines": new_lines}})
-                        updated_entries += 1
 
         operations = _fetch_operations_for_reconciliation(
             workshop_id=workshop_id,
@@ -5119,19 +4940,6 @@ async def apply_bank_revenue_policy(
                 continue
 
             op_candidates.append(op_id)
-            if apply_changes:
-                if supabase:
-                    try:
-                        supabase.table("operations").update({"payment_method": "bank", "paymentMethod": "bank"}).eq("id", op_id).execute()
-                    except Exception:
-                        supabase.table("operations").update({"payment_method": "bank"}).eq("id", op_id).execute()
-                    op_updated += 1
-                elif db is not None:
-                    await db.operations.update_one(
-                        {"id": op_id},
-                        {"$set": {"payment_method": "bank", "paymentMethod": "bank"}},
-                    )
-                    op_updated += 1
 
         return {
             "success": True,
@@ -5176,6 +4984,8 @@ async def repost_bank_and_fix_imbalance(
     2) إصلاح القيود ذات الحساب الفارغ (account='') وربطها بالبنك
     3) موازنة أي قيد غير متوازن بإضافة سطر موازنة على حساب فروقات ترحيل
     """
+    _raise_legacy_financial_mutation_blocked("repost_bank_and_fix_imbalance_balancing_plug")
+
     end_date = end_date or datetime.now().strftime("%Y-%m-%d")
     start_date = start_date or "2000-01-01"
 
@@ -5304,11 +5114,6 @@ async def repost_bank_and_fix_imbalance(
 
             if changed:
                 touched_entries += 1
-                if apply_changes:
-                    if supabase:
-                        supabase.table("journal_entries").update({"lines": new_lines}).eq("id", entry_id).execute()
-                    elif db is not None:
-                        await db.journal_entries.update_one({"id": entry_id}, {"$set": {"lines": new_lines}})
 
         tb = await get_trial_balance(
             workshop_id=workshop_id,
@@ -5361,6 +5166,9 @@ async def reclassify_vehicle_workshop_dues(
     apply_changes: bool = Query(False),
 ):
     """Exclude supplier item amounts from vehicle revenue/dues (sale/service)."""
+    if apply_changes:
+        _raise_legacy_financial_mutation_blocked("reclassify_vehicle_workshop_dues")
+
     end_date = end_date or datetime.now().strftime("%Y-%m-%d")
     start_date = start_date or (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
@@ -5419,59 +5227,6 @@ async def reclassify_vehicle_workshop_dues(
                 "workshop_total": workshop_total,
                 "supplier_total": supplier_total,
             })
-
-            if apply_changes and supabase:
-                # 1) operation total => workshop only
-                try:
-                    supabase.table("operations").update({
-                        "total": workshop_total,
-                        "subtotal": workshop_total,
-                        "workshop_total": workshop_total,
-                        "supplier_archive_total": supplier_total,
-                    }).eq("id", op_id).execute()
-                except Exception:
-                    supabase.table("operations").update({
-                        "total": workshop_total,
-                        "subtotal": workshop_total,
-                    }).eq("id", op_id).execute()
-
-                # 2) operation journal entries => adjust to workshop total
-                try:
-                    entries = (
-                        supabase.table("journal_entries")
-                        .select("id,lines,total,source")
-                        .eq("reference_id", op_id)
-                        .in_("source", ["operation", "operation_rakan_parts"])
-                        .execute()
-                        .data
-                        or []
-                    )
-                except Exception:
-                    entries = []
-
-                for entry in entries:
-                    lines = entry.get("lines") or []
-                    if not isinstance(lines, list):
-                        continue
-                    patched = []
-                    for line in lines:
-                        if not isinstance(line, dict):
-                            patched.append(line)
-                            continue
-                        account = str(line.get("account") or "").strip()
-                        debit = _safe_float(line.get("debit"))
-                        credit = _safe_float(line.get("credit"))
-                        next_line = dict(line)
-
-                        if account in {"1101", "1102", "1103", "acc-1101", "acc-1102", "acc-1103"} and debit > 0:
-                            next_line["debit"] = workshop_total
-                        if (account.startswith("4") or account.startswith("acc-4")) and credit > 0:
-                            next_line["credit"] = workshop_total
-                        patched.append(next_line)
-
-                    supabase.table("journal_entries").update({"lines": patched, "total": workshop_total}).eq("id", entry.get("id")).execute()
-
-                updated += 1
 
         return {
             "success": True,
@@ -6128,6 +5883,9 @@ async def migrate_legacy_account_codes(
     يحوّل أكواد الحسابات القديمة (1101/1102/1103/4100/6100…) إلى الأكواد التسلسلية الجديدة
     (003/004/005/026/036…) في جميع سطور قيود اليومية.
     """
+    if apply_changes:
+        _raise_legacy_financial_mutation_blocked("migrate_legacy_account_codes")
+
     LEGACY_MAP = {
         "1101": "003", "acc-1101": "003",
         "1102": "004", "acc-1102": "004",
@@ -6187,25 +5945,6 @@ async def migrate_legacy_account_codes(
             candidates.append({"id": entry.get("id"), "lines": new_lines})
 
     updated = 0
-    if apply_changes:
-        provider = os.environ.get("DB_PROVIDER", "mongo").lower()
-        for c in candidates:
-            eid = c["id"]
-            try:
-                if provider == "supabase":
-                    from supabase_service import SupabaseService as _SB
-                    supa = _SB()
-                    supa.client.table("journal_entries").update(
-                        {"lines": c["lines"]}
-                    ).eq("id", eid).execute()
-                elif db:
-                    await db.journal_entries.update_one(
-                        {"id": eid}, {"$set": {"lines": c["lines"]}}
-                    )
-                updated += 1
-            except Exception as e:
-                print(f"migrate_legacy_codes: failed {eid}: {e}")
-        invalidate_finance_caches()
 
     return {
         "success": True,
@@ -6228,6 +5967,9 @@ async def reclassify_revenue_sub_accounts(
     - بنود تحتوي "توضيب" → 027 (إيرادات إصلاح محركات)
     - غير ذلك → 026 (إيرادات خدمات ميكانيكية)
     """
+    if apply_changes:
+        _raise_legacy_financial_mutation_blocked("reclassify_revenue_sub_accounts")
+
     OLD_REV_CODES = {"024", "025", "4001", "4000", "4100"}
     TOWDHEEB_KW = ["توضيب", "تلميع مكينة", "غسيل مكينة", "تنظيف مكينة"]
     NAME_MAP = {
@@ -6293,16 +6035,6 @@ async def reclassify_revenue_sub_accounts(
             candidates.append({"id": entry.get("id"), "lines": new_lines})
 
     updated = 0
-    if apply_changes and supabase:
-        for c in candidates:
-            try:
-                supabase.table("journal_entries").update(
-                    {"lines": c["lines"]}
-                ).eq("id", c["id"]).execute()
-                updated += 1
-            except Exception as e:
-                print(f"reclassify_revenue: update {c['id']} failed: {e}")
-        invalidate_finance_caches()
 
     return {
         "success": True,

@@ -1,0 +1,51 @@
+{
+  "summary": "Completed independent P0-A Preview verification (static + live read-only + frontend smoke). Single-writer hardening tests passed, blocked mutation endpoints returned expected codes, reconciliation dry-run reported missing_count=43, and before/after SHA256 fingerprints for journal_entries/operations/accounts/vehicle_visits remained identical.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/app/backend/tests/test_iter342_income_statement_scope_model.py",
+        "issue": "4 live tests skipped because credential parsing still expects old quick-PIN pattern in test helper; not an app runtime failure."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter347_p0a_single_writer_hardening.py",
+    "/app/backend/tests/test_iter347_live_preview_guardrails.py",
+    "/app/backend/tests/test_iter340_p0_supplier_exclusion_finalization.py",
+    "/app/backend/tests/test_iter342_income_statement_scope_model.py",
+    "/app/backend/tests/test_iter343_vehicle_finalization_canonical_posting.py",
+    "/app/backend/tests/test_decimal_prd_v1_1.py",
+    "/app/test_reports/pytest/iter347_p0a_single_writer_hardening.xml",
+    "/app/test_reports/pytest/iter347_live_preview_guardrails.xml",
+    "/app/test_reports/pytest/iter347_backend.xml",
+    "/app/test_reports/pytest/iter347_frozen_regressions.xml"
+  ],
+  "action_items": [
+    "If live income-statement verification via iter342 is still required, update that test's credential parser/login mode to password-based Preview credentials from /app/memory/test_credentials.md.",
+    "Review /api/vehicles/{vehicle_id}/save-parts-and-create-journal path for policy alignment (it directly inserts operations and has no full compensation flow if downstream financial steps fail)."
+  ],
+  "critical_code_review_comments": [
+    "Single-writer and fail-closed rules validated on targeted P0-A paths: no active direct journal_entries mutations outside AccountingEngine and all accounting_engine.post_entry callsites use fallback=False.",
+    "Potential policy drift risk remains in server.py save_vehicle_parts_and_create_journal: direct operations writes exist outside canonical /api/operations flow (no provider 503 guard / no explicit reverse+delete compensation block there)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter347_p0a_single_writer_hardening.py",
+    "/app/backend/tests/test_iter347_live_preview_guardrails.py",
+    "/app/test_reports/iteration_347.json"
+  ],
+  "success_rate": {
+    "backend": "100% on executed checks (87 passed, 0 failed, 4 skipped)",
+    "frontend": "100% smoke (login page loaded, no visible .error selectors)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview-only safe checks executed with no financial data mutation: blocked maintenance/repost/manual update/integrity-fix paths blocked as expected; reconciliation backfill dry-run missing_count stayed 43; fingerprint counts remained journal_entries=36, operations=56, accounts=192, vehicle_visits=181 with identical SHA256 before/after.",
+  "rca of the issue": "No runtime P0-A regression reproduced in tested scope. Only residual test-suite gap observed (iter342 live tests skipped due outdated credential parsing pattern). Potential architectural risk (not executed as failing behavior) is alternate operation creation path in server.py bypassing canonical guarded /api/operations flow."
+}

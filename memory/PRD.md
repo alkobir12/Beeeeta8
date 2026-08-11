@@ -1,3 +1,11 @@
+## P0-A Single Writer Hardening — 2026-08-11
+- اكتمل في Preview فقط وتوقف التنفيذ قبل P0-B. لم يُفحص/يُعدل Production، ولم تتغير بيانات Preview.
+- كل `post_entry` callers تستخدم `fallback=False`، ولا توجد direct `journal_entries` mutations فعالة خارج AccountingEngine. maintenance writes/backfill 43/balancing plug/reset/manual update/legacy vehicle auto-posting محظورة.
+- create/close/import/payment/operation posting أصبحت fail-closed عند `[]/None/error`، مع منع memory financial fallback والنجاح الجزئي الصامت.
+- القبول: `ACTIVE_DIRECT_FINANCIAL_WRITES=0`, `ACTIVE_SILENT_FINANCIAL_FALLBACKS=0`, `ACCOUNTINGENGINE_SINGLE_WRITER=PASS`, `FINANCIAL_DATA_CHANGES=0`.
+- التحقق: 92/92 self-tests ثم Iter347 وIter348 مستقلًا؛ fingerprints بقيت journals=36, operations=56, accounts=192, visits=181. Income Statement المجمد بقي 7,494 / 2,274 / 5,220 وAR=9,181.
+- التقرير: `/app/memory/P0A_SINGLE_WRITER_REGRESSION_REPORT.md`.
+
 ## تدقيق مالي شامل READ ONLY — 2026-08-11
 - النطاق: Preview للفترة `2026-08-01 → 2026-08-11` مع Production health-only؛ لم يتوفر وصول بيانات Production. تم فحص ملف المركبة، العمليات، متابعة الذمم، دفتر اليومية، المالية والمحاسبة، وكاترينا.
 - Mutation guard نجح: `vehicles=197`, `vehicle_visits=181`, `operations=56`, `journal_entries=36` قبل/بعد بلا أي تغيير. لا توجد MOCKED APIs.

@@ -1,0 +1,50 @@
+{
+  "summary": "Completed final P0-A Preview re-verification (backend + frontend smoke) after Iter347 fixes. All targeted P0-A guardrail/regression suites passed, frozen income-statement scope suite passed with password login, and live read-only fingerprint checks remained unchanged.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/app/backend/tests/test_iter344_auth_playbook_regression.py::test_security_user_password_hash_is_bcrypt_2b",
+        "issue": "Skipped because SECURITY_TEST_USERNAME record was not found in auth_credentials for bcrypt-prefix assertion; runtime manager/accountant auth flows still passed."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter347_p0a_single_writer_hardening.py",
+    "/app/backend/tests/test_iter347_live_preview_guardrails.py",
+    "/app/backend/tests/test_iter342_income_statement_scope_model.py",
+    "/app/backend/tests/test_iter344_auth_playbook_regression.py",
+    "/app/backend/tests/test_iter344_security_p0_auth_hardening.py",
+    "/app/test_reports/pytest/iter348_p0a_single_writer_hardening.xml",
+    "/app/test_reports/pytest/iter348_live_preview_guardrails.xml",
+    "/app/test_reports/pytest/iter348_income_statement_scope_model.xml",
+    "/app/test_reports/pytest/iter348_auth_playbook_regression.xml",
+    "/app/test_reports/pytest/iter348_security_p0_auth_hardening.xml"
+  ],
+  "action_items": [
+    "If strict playbook completeness is required, seed/ensure SECURITY_TEST_USERNAME exists in auth_credentials so bcrypt-prefix assertion runs without skip.",
+    "Keep P0-B untouched as requested; no reconciliation correction execution should start in this track."
+  ],
+  "critical_code_review_comments": [
+    "No P0-A runtime regression found: legacy vehicle auto-post endpoint is blocked with 410 and expected error code before any financial write path.",
+    "server.py is materially oversized (well beyond 700 lines), increasing regression risk; split into focused modules/routes to improve maintainability and safer future hardening changes.",
+    "Duplicate helper definition detected for _is_suppliers_table_missing in server.py; low-risk cleanup recommended to avoid drift between duplicated helpers."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_348.json"
+  ],
+  "success_rate": {
+    "backend": "97.3% (36 passed, 0 failed, 1 skipped)",
+    "frontend": "100% smoke (login route loaded, critical controls visible, no page error selectors)"
+  },
+  "seed_data_creation": "Auth-only test fixture ensured security test user 'مستخدم اختبار أمني' exists for lockout/RBAC validation; no financial seed/mutation executed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Preview-only validation completed with no financial mutations: P0-A blocked mutation endpoints remained 410 (or documented dry-run behavior), reconciliation backfill dry-run missing_count stayed 43, and immutable live fingerprints stayed journals=36 operations=56 accounts=192 vehicle_visits=181 with identical SHA256 before/after. Iter342 now executes via password login without skipped tests.",
+  "rca of the issue": "No new defect reproduced in requested P0-A scope. Previous concern (legacy vehicle save-parts auto-posting) is now correctly fail-closed via 410 before write flow, matching canonical finalization policy."
+}

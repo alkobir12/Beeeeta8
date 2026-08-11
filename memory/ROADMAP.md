@@ -1,5 +1,10 @@
 # الحالة بعد تحديث 2026-08-11
 
+## P0-A — مكتمل ومتوقف للمراجعة
+- `ACCOUNTINGENGINE_SINGLE_WRITER=PASS` وdirect/fallback active paths = 0.
+- balancing plug وbackfill 43 وfinancial reset وlegacy vehicle auto-posting محظورة.
+- P0-B غير مبدوء: 2,300 و167.84 والميزانية وكاترينا والمصالحة ما زالت كما هي بانتظار اعتماد مستقل.
+
 ## P0 — تعارضات التدقيق المالي المؤكدة
 1. توحيد كاترينا ولوحتها على `current_vehicle_ar_total` للرقم الحالي، مع فصل ledger/history بوضوح.
 2. عكس قيد المورد الخاطئ `1b91f14d...` عبر AccountingEngine فقط بعد موافقة المالك؛ الأثر `167.84` على AR/revenue.

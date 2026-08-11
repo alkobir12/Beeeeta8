@@ -1,3 +1,8 @@
+# 2026-08-11 — P0-A Single Writer Hardening
+- عطلت direct journal maintenance/backfill/reset/balancing/manual-update/legacy vehicle auto-posting، وألزمت جميع callers بـ`fallback=False` وpersisted engine result.
+- جعلت close/manual/import/payment/operation flows fail-closed ومنعت memory financial fallback والنجاح الجزئي الصامت؛ لم يتغير `AccountingEngine` نفسه.
+- تحقق Iter348 النهائي: جميع اختبارات P0-A وقواعد الدخل المجمدة ناجحة، fingerprints الحية لم تتغير، وP0-B/Production لم يُلمسا.
+
 # 2026-08-11 — تدقيق الاتساق المالي الشامل (READ ONLY)
 - أُضيف مدقق مستقل `/app/scripts/financial_consistency_readonly_audit.py` مع mutation guard وتقرير موحد لملف المركبة/العمليات/الذمم/اليومية/المالية/كاترينا.
 - أكد التطابق الحالي للذمم عند `9,181.00` وتوازن القيود وقائمة الدخل canonical، وكشف 10 تعارضات/مخاطر مرتبة P0/P1/P2 دون تعديل أي بيانات.

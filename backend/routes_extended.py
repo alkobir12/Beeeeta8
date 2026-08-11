@@ -2121,6 +2121,15 @@ async def operations_integrity_check(payload: Dict[str, Any] = Body(...)):
 @router.post("/operations/integrity/fix-all")
 async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={})):
     """تصحيح تلقائي للقيود المفقودة — يُنشئ journal entries للعمليات التي ليس لها قيد محاسبي."""
+    dry_run = bool(payload.get("dry_run") or payload.get("preview"))
+    if not dry_run:
+        raise HTTPException(
+            status_code=410,
+            detail={
+                "error": "operations_integrity_backfill_blocked",
+                "message": "تم حظر إنشاء قيود جماعية للعمليات؛ التقرير الحالي غير متوافق مع النموذج canonical.",
+            },
+        )
     try:
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         if provider != "supabase":
@@ -2149,8 +2158,6 @@ async def operations_integrity_fix_all(payload: Dict[str, Any] = Body(default={}
 
         # 3) Find operations missing journal entries
         missing = [o for o in ops if str(o.get("id") or "") not in existing_je and float(o.get("total") or 0) > 0]
-
-        dry_run = bool(payload.get("dry_run") or payload.get("preview"))
 
         # 4) Build entries via the canonical builder (SSOT — نفس منطق إنشاء العمليات):
         #    accrual basis + new chart codes (005 العملاء / 026 إيرادات / 003 النقد / 2101 موردون)
@@ -2871,8 +2878,8 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             )
             for je in prev:
                 already_paid += float(je.get("total") or 0)
-        except Exception as e:
-            print(f"Payment lookup failed: {e}")
+        except Exception as error:
+            raise HTTPException(status_code=502, detail="تعذر التحقق من الدفعات السابقة؛ تم إيقاف التحصيل") from error
 
         try:
             visit_id_for_paid = str(op_row.get("visit_id") or op_row.get("visitId") or "").strip()
@@ -2889,8 +2896,8 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
                 if visit_rows:
                     visit_fin = _calc_visit_financial(_parse_notes_json(visit_rows[0].get("notes")))
                     already_paid += float(visit_fin.get("totalPaid") or visit_fin.get("total_paid") or 0)
-        except Exception as e:
-            print(f"Visit payment lookup failed: {e}")
+        except Exception as error:
+            raise HTTPException(status_code=502, detail="تعذر التحقق من دفعات ملف المركبة؛ تم إيقاف التحصيل") from error
 
         remaining = max(0.0, total - already_paid)
         # حد الخصم لا يتجاوز المتبقي
@@ -2957,8 +2964,8 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
                 or []
             )
             has_base_operation_entry = len(base_entries) > 0
-        except Exception:
-            has_base_operation_entry = False
+        except Exception as error:
+            raise HTTPException(status_code=502, detail="تعذر التحقق من القيد الأساسي؛ تم إيقاف التحصيل") from error
 
         if has_base_operation_entry:
             if op_type in ("sale", "service"):
@@ -2998,43 +3005,14 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             else:
                 raise HTTPException(status_code=400, detail="unsupported operation type")
         else:
-            # Missing-base fallback: never recognize revenue/expense during settlement.
-            # Settlement only moves cash/bank/POS against AR/AP; missing base must be
-            # reconciled separately instead of duplicating revenue.
-            if op_type in ("sale", "service"):
-                lines = [
-                    {
-                        "account": cash_code,
-                        "account_name": ACCOUNT_NAME_MAP.get(cash_code, cash_code),
-                        "debit": pay_amount,
-                        "credit": 0,
-                    },
-                    {
-                        "account": "005",
-                        "account_name": ACCOUNT_NAME_MAP.get("005", "العملاء"),
-                        "debit": 0,
-                        "credit": pay_amount,
-                    },
-                ]
-                desc = f"تحصيل آجل بدون قيد أساس مراجع - {op_row.get('partner_name') or ''}"
-            elif op_type in ("purchase", "expense"):
-                lines = [
-                    {
-                        "account": "2101",
-                        "account_name": ACCOUNT_NAME_MAP.get("2101", "الموردون"),
-                        "debit": pay_amount,
-                        "credit": 0,
-                    },
-                    {
-                        "account": cash_code,
-                        "account_name": ACCOUNT_NAME_MAP.get(cash_code, cash_code),
-                        "debit": 0,
-                        "credit": pay_amount,
-                    },
-                ]
-                desc = f"سداد آجل بدون قيد أساس مراجع - {op_row.get('partner_name') or ''}"
-            else:
-                raise HTTPException(status_code=400, detail="unsupported operation type")
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "base_journal_required",
+                    "message": "لا يمكن تأكيد السداد دون قيد أساس موثق. تم إيقاف العملية دون أي تحديث مالي.",
+                    "operation_id": op_id,
+                },
+            )
 
         pay_date = (payload or {}).get("date")
         receipt_info = _save_operation_payment_receipt(op_id, (payload or {}).get("receipt") or {})
@@ -3059,74 +3037,70 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
 
         # FIX: قيد الخصم منفصل — مدين "الإيرادات" (خصم مسموح/contra-revenue) / دائن "العملاء"
         if discount_amount > 0 and op_type in ("sale", "service") and has_base_operation_entry:
-            try:
-                _disc_code = _sem_code("revenue_parent", "024")
-                _disc_ar = _sem_code("ar", "005")
-                discount_entry = {
-                    "id": str(uuid.uuid4()),
-                    "workshop_id": workshop_id,
-                    "date": pay_date or datetime.utcnow().isoformat(),
-                    "description": f"خصم ممنوح للعميل - {op_row.get('partner_name') or ''}".strip(),
-                    "lines": [
-                        {
-                            "account": _disc_code,
-                            "account_name": ACCOUNT_NAME_MAP.get(_disc_code, "الإيرادات"),
-                            "debit": discount_amount,
-                            "credit": 0,
-                        },
-                        {
-                            "account": _disc_ar,
-                            "account_name": ACCOUNT_NAME_MAP.get(_disc_ar, "العملاء"),
-                            "debit": 0,
-                            "credit": discount_amount,
-                        },
-                    ],
-                    "total": discount_amount,
-                    "source": "operation_discount",
-                    "transaction_type": "discount",
-                    "reference_id": op_id,
-                }
-                _safe_insert_journal_entry(supa, discount_entry)
-            except Exception as disc_err:
-                print(f"discount entry insert failed: {disc_err}")
+            _disc_code = _sem_code("revenue_parent", "024")
+            _disc_ar = _sem_code("ar", "005")
+            discount_entry = {
+                "id": str(uuid.uuid4()),
+                "workshop_id": workshop_id,
+                "date": pay_date or datetime.utcnow().isoformat(),
+                "description": f"خصم ممنوح للعميل - {op_row.get('partner_name') or ''}".strip(),
+                "lines": [
+                    {
+                        "account": _disc_code,
+                        "account_name": ACCOUNT_NAME_MAP.get(_disc_code, "الإيرادات"),
+                        "debit": discount_amount,
+                        "credit": 0,
+                    },
+                    {
+                        "account": _disc_ar,
+                        "account_name": ACCOUNT_NAME_MAP.get(_disc_ar, "العملاء"),
+                        "debit": 0,
+                        "credit": discount_amount,
+                    },
+                ],
+                "total": discount_amount,
+                "source": "operation_discount",
+                "transaction_type": "discount",
+                "reference_id": op_id,
+            }
+            _safe_insert_journal_entry(supa, discount_entry)
 
         remaining_after = max(0.0, remaining - pay_amount - discount_amount)
         new_status = "paid" if remaining_after <= 0.0001 else "partial"
         new_method = settlement_method if new_status == "paid" else "credit"
 
+        update_payload = {
+            "payment_method": new_method,
+            "paymentMethod": new_method,
+            "payment_status": new_status,
+            "paymentStatus": new_status,
+        }
+        if receipt_info and receipt_info.get("url"):
+            prev_notes = str(op_row.get("notes") or "").strip()
+            receipt_line = f"[PAYMENT_RECEIPT] {receipt_info.get('url')}"
+            update_payload["notes"] = f"{prev_notes}\n{receipt_line}".strip()
         try:
-            update_payload = {
-                "payment_method": new_method,
-                "paymentMethod": new_method,
-                "payment_status": new_status,
-                "paymentStatus": new_status,
-            }
-            if receipt_info and receipt_info.get("url"):
-                prev_notes = str(op_row.get("notes") or "").strip()
-                receipt_line = f"[PAYMENT_RECEIPT] {receipt_info.get('url')}"
-                update_payload["notes"] = f"{prev_notes}\n{receipt_line}".strip()
-            try:
-                supa.client.table("operations").update(update_payload).eq("id", op_id).execute()
-            except Exception as update_error:
-                retry_payload = dict(update_payload)
-                for _ in range(10):
-                    match = re.search(r"Could not find the '([^']+)' column", str(update_error))
-                    if not match:
-                        break
-                    missing_col = match.group(1)
-                    if missing_col not in retry_payload:
-                        break
-                    retry_payload.pop(missing_col, None)
-                    try:
-                        supa.client.table("operations").update(retry_payload).eq("id", op_id).execute()
-                        update_error = None
-                        break
-                    except Exception as retry_error:
-                        update_error = retry_error
-                if update_error:
-                    print(f"confirm-payment operation update skipped: {update_error}")
-        except Exception:
-            pass
+            update_response = supa.client.table("operations").update(update_payload).eq("id", op_id).execute()
+        except Exception as update_error:
+            retry_payload = dict(update_payload)
+            for _ in range(10):
+                match = re.search(r"Could not find the '([^']+)' column", str(update_error))
+                if not match:
+                    break
+                missing_col = match.group(1)
+                if missing_col not in retry_payload:
+                    break
+                retry_payload.pop(missing_col, None)
+                try:
+                    update_response = supa.client.table("operations").update(retry_payload).eq("id", op_id).execute()
+                    update_error = None
+                    break
+                except Exception as retry_error:
+                    update_error = retry_error
+            if update_error:
+                raise HTTPException(status_code=502, detail="تم ترحيل القيد لكن تعذر تحديث حالة العملية؛ أعد المحاولة بنفس مفتاح Idempotency") from update_error
+        if not getattr(update_response, "data", None):
+            raise HTTPException(status_code=502, detail="لم يؤكد مصدر البيانات تحديث حالة العملية")
 
         # P0: no direct cleanup/delete for legacy journal rows; accounting fixes must use AccountingEngine.reverse().
 
@@ -3308,6 +3282,14 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
         payload = dict(payload or {})
         idempotency_key = _extract_idempotency_key(payload)
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
+        if provider != "supabase":
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "financial_provider_unavailable",
+                    "message": "تم تعطيل إنشاء العمليات المالية عبر memory/Mongo؛ Supabase + AccountingEngine مطلوبان.",
+                },
+            )
         kind = _normalize_operation_kind(payload)
 
         vehicle_doc = None
@@ -3318,8 +3300,8 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
             supa_for_meta = SupabaseService()
             try:
                 biz_accounts = supa_for_meta.accounts_list() or []
-            except Exception:
-                biz_accounts = []
+            except Exception as error:
+                raise HTTPException(status_code=502, detail="تعذر تحميل حسابات الأعمال؛ لم تُنشأ العملية") from error
 
             try:
                 chart_res = (
@@ -3328,8 +3310,8 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
                     .execute()
                 )
                 chart_accounts = chart_res.data or []
-            except Exception:
-                chart_accounts = []
+            except Exception as error:
+                raise HTTPException(status_code=502, detail="تعذر تحميل الدليل المحاسبي؛ لم تُنشأ العملية") from error
 
             if payload.get("vehicleId"):
                 try:
@@ -3338,8 +3320,8 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
                         (v for v in vehicles if str(v.get("id")) == str(payload.get("vehicleId"))),
                         None,
                     )
-                except Exception:
-                    vehicle_doc = None
+                except Exception as error:
+                    raise HTTPException(status_code=502, detail="تعذر التحقق من المركبة؛ لم تُنشأ العملية") from error
 
         elif provider == "memory" or db is None:
             biz_accounts = _mem_read("business_accounts")
@@ -3502,7 +3484,7 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
             except HTTPException:
                 raise
             except Exception as duplicate_guard_error:
-                print(f"POS duplicate collection guard warning: {duplicate_guard_error}")
+                raise HTTPException(status_code=502, detail="تعذر التحقق من التحصيل المكرر؛ لم تُنشأ عملية بديلة") from duplicate_guard_error
 
         visit_data = None
         if payload.get("vehicleId"):
@@ -3577,6 +3559,7 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
             # ✅ Accrual basis: always create a journal entry for sale/purchase/expense
             # - Credit operations will hit AR/AP
             # - Cash/transfer operations will hit Cash/Bank
+            posted_journal_ids: List[str] = []
             try:
                 entry = None if is_unconfirmed_vehicle_financial else _build_operation_journal_entry(
                     op,
@@ -3586,9 +3569,12 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
                 # قد يُعيد list من القيود (في حالة موردي الآجل)
                 if isinstance(entry, list):
                     for e in entry:
-                        _safe_insert_journal_entry(supa, e)
+                        inserted_rows = _safe_insert_journal_entry(supa, e)
+                        posted_journal_ids.append(str(inserted_rows[0]["id"]))
                 else:
-                    _safe_insert_journal_entry(supa, entry)
+                    inserted_rows = _safe_insert_journal_entry(supa, entry)
+                    if inserted_rows:
+                        posted_journal_ids.append(str(inserted_rows[0]["id"]))
 
                 # Inventory decrement/increment + COGS entries for part-linked lines
                 cogs_entries = _adjust_supabase_inventory_and_build_cogs_entries(
@@ -3597,7 +3583,8 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
                     workshop_id,
                 )
                 for cogs_entry in cogs_entries:
-                    _safe_insert_journal_entry(supa, cogs_entry)
+                    inserted_rows = _safe_insert_journal_entry(supa, cogs_entry)
+                    posted_journal_ids.append(str(inserted_rows[0]["id"]))
                     firewall_state.log_event(
                         "cogs_generated",
                         {
@@ -3610,11 +3597,34 @@ async def create_operation(request: Request, payload: Dict[str, Any] = Body(...)
 
                 _invalidate_finance_caches_safe()
             except Exception as je_error:
-                print(f"Failed to create journal entry for operation: {je_error}")
-                raise HTTPException(status_code=500, detail={
+                compensation_errors = []
+                from core import accounting_engine
+                for journal_id in reversed(posted_journal_ids):
+                    try:
+                        accounting_engine.reverse_entry(
+                            journal_id=journal_id,
+                            reason="operation_creation_failed_before_completion",
+                            actor={"user_id": _request_actor_name(request), "role": "system"},
+                            workshop_id=workshop_id,
+                        )
+                    except Exception as reverse_error:
+                        compensation_errors.append(f"journal:{journal_id}:{reverse_error}")
+                try:
+                    deleted = supa.operations_delete(str(op.get("id")))
+                    if not deleted:
+                        compensation_errors.append(f"operation:{op.get('id')}:not_deleted")
+                except Exception as delete_error:
+                    compensation_errors.append(f"operation:{op.get('id')}:{delete_error}")
+                if compensation_errors:
+                    raise HTTPException(status_code=500, detail={
+                        "error": "operation_compensation_failed",
+                        "msg": "فشل ترحيل العملية وفشل التعويض الكامل؛ يلزم تدخل تشغيلي.",
+                        "compensation_errors": compensation_errors,
+                    }) from je_error
+                raise HTTPException(status_code=502, detail={
                     "error": "journal_post_failed",
-                    "msg": "تعذّر ترحيل القيد عبر المحرك المحاسبي؛ لم يتم اعتبار العملية مكتملة مالياً.",
-                })
+                    "msg": "تعذّر ترحيل القيد؛ تم حذف العملية غير المكتملة وعكس أي قيد جزئي عبر AccountingEngine.",
+                }) from je_error
             await _append_operation_to_visit(payload, op, provider, db, visit_data)
             _invalidate_ops_caches()
             return op
