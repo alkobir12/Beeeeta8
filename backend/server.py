@@ -1037,6 +1037,13 @@ async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate, request: R
             raise HTTPException(status_code=400, detail="invalid_final_customer_total")
         if final_total < 0:
             raise HTTPException(status_code=400, detail="invalid_final_customer_total")
+        if existing_final is not None:
+            try:
+                existing_final_value = round(float(existing_final), 2)
+            except Exception:
+                existing_final_value = None
+            if existing_final_value is not None and abs(existing_final_value - final_total) >= 0.01:
+                raise HTTPException(status_code=409, detail="final_customer_total_already_finalized")
         previous_service_total = requested_previous_service_total
         if previous_service_total is None:
             previous_service_total = await _workshop_service_total_for_vehicle(vehicle_id)
@@ -1046,15 +1053,57 @@ async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate, request: R
             previous_service_total = 0.0
         base_notes = patch.get("notes") if "notes" in patch else existing_doc.get("notes")
         notes_payload = _parse_vehicle_notes_for_finalization(base_notes)
+        existing_fin = notes_payload.get("financial_finalization") if isinstance(notes_payload.get("financial_finalization"), dict) else {}
+        preserved_finalized_at = existing_fin.get("finalized_at") if existing_final is not None else None
+        preserved_finalized_by = existing_fin.get("finalized_by") if existing_final is not None else None
+        preserved_source = existing_fin.get("finalization_source") if existing_final is not None else None
+        try:
+            from core.vehicle_finalization_posting import accounting_identity_for_vehicle_finalization
+            accounting_identity = accounting_identity_for_vehicle_finalization(vehicle_id)
+            business_event_id = f"vehicle_finalization::{vehicle_id}"
+        except Exception:
+            accounting_identity = f"vehicle_finalization::{vehicle_id}::final_customer_total::v1"
+            business_event_id = f"vehicle_finalization::{vehicle_id}"
         notes_payload["financial_finalization"] = {
             "final_customer_total": final_total,
-            "finalized_at": datetime.now(timezone.utc).isoformat(),
-            "finalized_by": _request_actor_for_finalization(),
-            "finalization_source": str(requested_finalization_source or "vehicle_delivery"),
+            "finalized_at": preserved_finalized_at or datetime.now(timezone.utc).isoformat(),
+            "finalized_by": preserved_finalized_by or _request_actor_for_finalization(),
+            "finalization_source": str(requested_finalization_source or preserved_source or "vehicle_delivery"),
             "previous_service_total": previous_service_total,
+            "business_event_id": business_event_id,
+            "accounting_identity": accounting_identity,
         }
         patch["notes"] = json.dumps(notes_payload, ensure_ascii=False, separators=(",", ":"))
         return patch
+
+    def _finalization_from_vehicle_notes(vehicle_doc: Dict[str, Any]) -> Dict[str, Any]:
+        notes_payload = _parse_vehicle_notes_for_finalization(vehicle_doc.get("notes"))
+        fin = notes_payload.get("financial_finalization") if isinstance(notes_payload.get("financial_finalization"), dict) else {}
+        return fin if isinstance(fin, dict) else {}
+
+    def _post_supabase_finalization_if_needed(vehicle_doc: Dict[str, Any]) -> Dict[str, Any]:
+        if not final_customer_total_present:
+            return {}
+        try:
+            from core.vehicle_finalization_posting import post_vehicle_finalization_canonical_entry
+            fin = _finalization_from_vehicle_notes(vehicle_doc)
+            final_total = fin.get("final_customer_total") if fin.get("final_customer_total") is not None else requested_final_customer_total
+            result = post_vehicle_finalization_canonical_entry(
+                supabase_service.client,
+                vehicle_doc,
+                final_customer_total=final_total,
+                finalized_at=fin.get("finalized_at"),
+                finalized_by=fin.get("finalized_by"),
+                posting_source=fin.get("finalization_source") or str(requested_finalization_source or "vehicle_delivery"),
+                workshop_id=os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync"),
+            )
+            if result.get("idempotent") and result.get("matches_requested_total") is False:
+                raise HTTPException(status_code=409, detail="canonical_finalization_posting_conflict")
+            return result
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"canonical_finalization_post_failed:{exc}") from exc
 
     if DB_PROVIDER == "supabase":
         existing_vehicle = supabase_service.vehicles_get(vehicle_id)
@@ -1066,6 +1115,8 @@ async def update_vehicle(vehicle_id: str, update_data: VehicleUpdate, request: R
         v = supabase_service.vehicles_update(vehicle_id, upd) if upd else existing_vehicle
         if not v:
             raise HTTPException(status_code=404, detail="Vehicle not found")
+
+        _post_supabase_finalization_if_needed(v)
 
         customer_id = str(v.get("customerId") or existing_vehicle.get("customerId") or "").strip()
         if customer_file_present and customer_id:

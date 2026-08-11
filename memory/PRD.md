@@ -816,3 +816,12 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - لم يتم تعديل `Income Statement` بعد Iter342، ولم يتم تعديل `AccountingEngine` أو أي journal entry.
 - التحقق: API دفتر اليومية يعيد 34 قيداً، historical ledger movement = 64,939.68، يوجد `period_close` واحد بقيمة 30,007.84، lint وbuild ناجحان. اختبار المتصفح تأثر بقيود preview `net::ERR_ABORTED` لكن الصفحة والـ UI static ظهرا.
 
+## تحديث 2026-08-11 — P1 Canonical Business Posting عند اعتماد final_customer_total
+- تم إضافة adapter صغير `core/vehicle_finalization_posting.py` لا ينشئ محركاً جديداً؛ يبني قيد الاعتماد النهائي ويفوض الكتابة إلى `AccountingEngine.post_entry` فقط.
+- عند اعتماد `finalCustomerTotal` للمركبة يتم إنشاء قيد canonical واحد فقط بهوية مستقرة `vehfinal:<vehicle_id>`، source=`vehicle_visit`, transaction_type=`sale`, total=`final_customer_total`، مع metadata داخل الوصف وخط memo.
+- تم تعديل `visit_sync.py` بحيث مزامنة الزيارة تنشئ سجلاً تشغيلياً فقط ولا تنشئ قيد بيع مؤقت جديد؛ الإيراد النهائي ينتظر اعتماد `final_customer_total`.
+- حالة اختبار Preview الجديدة: vehicle `af49ee7e-24b5-4fd1-a4c6-2dc3c8f08f5c`, visit `76d7fe6d-f2dc-48fe-a7a8-2889cde85f87`, services=1210, supplier=1090, final=1500, payment=300.
+- النتائج: canonical entry واحد `8cef844c-be06-4230-9b6d-f6d7e47e72ff`, revenue effect=1500، supplier revenue=0، payment revenue=0، remaining=1200، no temporary sale posting للحالة الجديدة.
+- قبل/بعد August Income Statement: canonical count 3→4، revenue 5994→7494، expenses 2274 ثابتة، payment count 2→3، net income 3720→5220.
+- التحقق: self pytest 42 passed / 7 skipped، build ناجح، تحقق مستقل Iter343 21/21 passed، و`AccountingEngine` بلا تعديل.
+

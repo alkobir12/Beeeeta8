@@ -286,12 +286,11 @@ async def _sync_visit_to_operation(visit_id: str, visit_data: dict, supa_service
                         raise
                     payload.pop(missing_column, None)
                     print(f"⚠️ Sync retry without missing column: {missing_column}")
-            # 🏦 مسار كتابة موحد: كل زيارة ببنود تُنشئ/تحدّث قيودها (بيع آجل + تحصيلات)
-            try:
-                _sync_visit_journal(supa_service, visit_id, op_data, total_paid, total_discount, payment_method)
-            except Exception as je_error:
-                print(f"⚠️ Visit journal sync failed for {visit_id}: {je_error}")
-                raise
+            # P1 Canonical Business Posting:
+            # Vehicle visit rows/operations remain operational source records only.
+            # The final revenue journal effect is posted once when final_customer_total
+            # is explicitly approved at delivery/finalization.
+            print(f"ℹ️ Visit {visit_id} synced as operational record only; final journal waits for final_customer_total approval")
             # 🧹 إبطال كاش الحسابات المالية فوراً حتى تعكس الصفحات الأرقام الجديدة
             try:
                 import perf_cache

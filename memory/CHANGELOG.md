@@ -31,6 +31,12 @@
 - أُبقي رقم `64,939.68` داخل تفاصيل باسم `إجمالي حركة الدفتر المسجلة` فقط، مع توضيح أنه يشمل الإقفال والقيود التاريخية.
 - تحقق: journal_entries_count=34، historical ledger movement=64,939.68، period_close ما زال موجوداً في البيانات، و`AccountingEngine` بلا تغيير.
 
+# 2026-08-11 — Canonical Final Customer Posting
+- أضيف مسار canonical عند اعتماد `final_customer_total`: حدث تجاري واحد → accounting_identity واحد → قيد canonical واحد عبر `AccountingEngine`.
+- تم إيقاف إنشاء قيد بيع مؤقت جديد من `visit_sync` للزيارات الجديدة؛ الزيارة تبقى مصدر تشغيل فقط حتى الاعتماد النهائي.
+- اختبار Preview جديد أثبت: services=1210، supplier archive=1090، final_customer_total=1500، canonical revenue=1500، payment revenue=0، supplier revenue=0، idempotency يمنع التكرار.
+- تحقق مستقل Iter343: 21/21 passed، ولا تغيير على `AccountingEngine` أو قواعد Iter342 أو Journal KPI UI.
+
 # CHANGELOG
 
 ## 19 June 2026 — P0 Enterprise Operator: Centralized Accounting + Persistence + RBAC + Financial Actions

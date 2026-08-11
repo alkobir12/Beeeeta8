@@ -1,0 +1,44 @@
+{
+  "summary": "Backend-only iter343 verification completed: canonical final_customer_total posting, idempotency behavior, iter340/341/342 regressions, and live preview read-only checks all passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter343_vehicle_finalization_canonical_posting.py",
+    "/app/backend/tests/test_iter343_live_canonical_readonly.py",
+    "/app/backend/tests/test_iter340_p0_supplier_exclusion_finalization.py",
+    "/app/backend/tests/test_iter341_income_statement_filtering.py",
+    "/app/backend/tests/test_iter342_income_statement_scope_model.py",
+    "/app/test_reports/pytest/iter343_regression.xml",
+    "/app/test_reports/pytest/iter343_live_readonly.xml",
+    "/app/test_reports/pytest/iter343_full_backend.xml"
+  ],
+  "action_items": [
+    "No blocker found in requested scope; keep iter343 live read-only test in regression runs."
+  ],
+  "critical_code_review_comments": [
+    "Confirmed /app/backend/core/accounting_engine.py has no working-tree diff (ACCOUNTINGENGINE unchanged in this scope).",
+    "Confirmed canonical adapter emits source=vehicle_visit, transaction_type=sale, reference_id=vehfinal:<vehicle_id>, total=final_customer_total, with canonical metadata represented in description/memo contract.",
+    "Confirmed visit_sync path does not create temporary sale posting for target visit reference after synchronization changes.",
+    "routes_finance.py remains very large (>6000 lines), increasing maintenance and regression risk; modular split is recommended."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter343_live_canonical_readonly.py",
+    "/app/test_reports/iteration_343.json"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21 passed)",
+    "frontend": "N/A (skipped by request)"
+  },
+  "seed_data_creation": "No seed/business data created or mutated; validation performed read-only against preview data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Live checks verified vehicle af49ee7e-24b5-4fd1-a4c6-2dc3c8f08f5c has exactly one canonical journal reference vehfinal:af49ee7e-24b5-4fd1-a4c6-2dc3c8f08f5c with total 1500, visit 76d7fe6d-f2dc-48fe-a7a8-2889cde85f87 has no temporary sale journal posting, vehicle financial summary values match expected (1210/1090/1500/300/1200), and August income statement canonical_revenue/revenue equals 7494 with PAYMENT revenue impact 0.",
+  "rca of the issue": "No failing issue reproduced in requested scope. Previous temporary revenue risk is mitigated by deferring canonical posting to final_customer_total approval path and keeping visit_sync operational-only for visits."
+}
