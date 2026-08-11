@@ -1,3 +1,9 @@
+# 2026-08-11 — P0-B + Visit-Level Canonical + QuickPrint Freeze
+- طبقت 3 corrections مستهدفة وقيد canonical واحد عبر AccountingEngine فقط للحالتين 2,300 و167.84؛ لم تُحذف القيود الأصلية ولم تُمس Production.
+- أضفت finalization canonical مستقل لكل زيارة، payments مستقلة، ومنع supplier effect على customer revenue.
+- QuickPrint يطبع الزيارة المختارة ويستخدم approved final_customer_total بلا recalculation ويدعم multi-visit.
+- Iter350 النهائي نجح 6/6 backend و1/1 frontend؛ Income=9,794/2,274/7,520 وAR=9,181. Financial Core أصبح Frozen.
+
 # 2026-08-11 — P0-A Single Writer Hardening
 - عطلت direct journal maintenance/backfill/reset/balancing/manual-update/legacy vehicle auto-posting، وألزمت جميع callers بـ`fallback=False` وpersisted engine result.
 - جعلت close/manual/import/payment/operation flows fail-closed ومنعت memory financial fallback والنجاح الجزئي الصامت؛ لم يتغير `AccountingEngine` نفسه.

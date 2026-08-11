@@ -992,12 +992,12 @@ def classify_journal_entry_for_income_statement(entry: Dict[str, Any], amounts: 
 
     if source == "period_close":
         return "CLOSING"
+    if source in {"active_vehicle_ar_repair", "hist_vehicle_ar_repair", "historical_financial_repair"} or "إصلاح روابط ذمم" in description or "استرجاع بنود تاريخية" in description:
+        return "HISTORICAL_REPAIR"
     if "reverse" in source or "reversal" in source or "عكس" in description or "إلغاء" in description:
         return "REVERSAL"
     if source == "fin_engine_align_v1" or "محاذاة المحرك المالي" in description:
         return "LEGACY_ALIGNMENT"
-    if source in {"active_vehicle_ar_repair", "hist_vehicle_ar_repair"} or "إصلاح روابط ذمم" in description or "استرجاع بنود تاريخية" in description:
-        return "HISTORICAL_REPAIR"
     if "opening" in source or "migration" in source or reference_id.startswith("opening-"):
         return "MIGRATION"
     if "temporary" in source or "temp" in source or "[قيد مؤقت" in description:

@@ -1,5 +1,10 @@
 # الحالة بعد تحديث 2026-08-11
 
+## FINANCIAL CORE — FROZEN
+- P0-A وP0-B المستهدف وVisit A/B وQuickPrint final acceptance مكتملة.
+- ممنوع audit/cleanup/historical repair إضافي دون اعتماد جديد.
+- `LEGACY RECONCILIATION` انتقل إلى Backlog ولا يُنفذ bulk repair.
+
 ## P0-A — مكتمل ومتوقف للمراجعة
 - `ACCOUNTINGENGINE_SINGLE_WRITER=PASS` وdirect/fallback active paths = 0.
 - balancing plug وbackfill 43 وfinancial reset وlegacy vehicle auto-posting محظورة.

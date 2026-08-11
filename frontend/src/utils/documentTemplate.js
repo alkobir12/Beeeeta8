@@ -141,7 +141,10 @@ export const renderDocumentTemplate = (templateHtml, payload = {}, workshop = {}
   const rows = normalizeRows(payload.items || []);
   const partsTotal = rows.filter((item) => item.kind === 'قطعة').reduce((sum, item) => sum + item.total, 0);
   const laborTotal = rows.filter((item) => item.kind !== 'قطعة').reduce((sum, item) => sum + item.total, 0);
-  const total = rows.reduce((sum, item) => sum + item.total, 0) + safeNumber(settings?.totals?.tax || payload.tax || 0);
+  const approvedFinalRaw = settings.final_customer_total ?? payload.final_customer_total ?? payload.approved_final_customer_total;
+  const hasApprovedFinal = approvedFinalRaw !== null && approvedFinalRaw !== undefined && String(approvedFinalRaw).trim() !== '';
+  const calculatedItemsTotal = rows.reduce((sum, item) => sum + item.total, 0) + safeNumber(settings?.totals?.tax || payload.tax || 0);
+  const total = hasApprovedFinal ? safeNumber(approvedFinalRaw) : calculatedItemsTotal;
   const paid = safeNumber(settings?.totals?.paid || payload?.payment?.paid || 0);
   const docType = payload.doc_type || payload.docType || settings.doc_type || 'invoice';
   const [titleAr, titleEn] = docTitle(docType);

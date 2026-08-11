@@ -1,3 +1,11 @@
+## P0-B + Visit/QuickPrint Final Acceptance — 2026-08-11
+- Preview فقط؛ Production لم يُفحص أو يعدّل. صُححت حالتا 2,300 و167.84 فقط عبر 3 correction entries + canonical واحد باستخدام AccountingEngine، بلا hard delete.
+- الحالة A أصبحت AR/Revenue=2,300 مع canonical واحد وduplicate=0. الحالة B أصبحت customer AR/Revenue=0 مع supplier archive=167.84.
+- AR Core بقي 9,181. Income Statement تغير شرعيًا إلى Revenue=9,794، Expenses=2,274، Net=7,520؛ repairs مستبعدة دلاليًا.
+- أضيفت visit-level canonical identities المستقلة وQuickPrint selected-visit approved total بلا إعادة حساب، مع payments مستقلة ودعم multi-visit.
+- Iter350 النهائي: backend 6/6 وfrontend 1/1. **MOCKED:** isolated Visit A/B/QuickPrint fixture فقط؛ live P0-B read-only.
+- **FINANCIAL CORE FROZEN. LEGACY RECONCILIATION BACKLOG.** التقرير: `/app/memory/P0B_FINAL_FINANCIAL_CORE_FREEZE.md`.
+
 ## P0-A Single Writer Hardening — 2026-08-11
 - اكتمل في Preview فقط وتوقف التنفيذ قبل P0-B. لم يُفحص/يُعدل Production، ولم تتغير بيانات Preview.
 - كل `post_entry` callers تستخدم `fallback=False`، ولا توجد direct `journal_entries` mutations فعالة خارج AccountingEngine. maintenance writes/backfill 43/balancing plug/reset/manual update/legacy vehicle auto-posting محظورة.

@@ -167,11 +167,15 @@ export const VehiclePrintVisitPicker = ({ open, visits, pendingHeaderPrintType, 
           ) : visits.map((visit, index) => {
             const visitDate = String(visit.entryDate || visit.entry_date || visit.created_at || visit.createdAt || '').slice(0, 10) || '—';
             const visitLabel = visit.invoiceNumber || visit.invoice_number || visit.documentNumber || visit.document_number || `زيارة ${index + 1}`;
-            const visitTotal = Number(visit.total_workshop ?? visit.workshop_total ?? visit.total ?? 0).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            let parsedNotes = {};
+            try { parsedNotes = typeof visit.notes === 'string' ? JSON.parse(visit.notes || '{}') : (visit.notes || {}); } catch (e) { parsedNotes = {}; }
+            const approvedFinal = parsedNotes?.financial_finalization?.final_customer_total ?? visit.final_customer_total ?? visit.finalCustomerTotal;
+            const hasApprovedFinal = approvedFinal !== null && approvedFinal !== undefined && approvedFinal !== '';
+            const visitTotal = Number(hasApprovedFinal ? approvedFinal : (visit.total_workshop ?? visit.workshop_total ?? visit.total ?? 0)).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             return (
               <button key={visit.id || index} type="button" onClick={() => onPick(pendingHeaderPrintType, visit.id)} className="mb-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-right transition-colors hover:bg-slate-50" data-testid={`vehicle-print-visit-option-${visit.id}`}>
                 <span className="block text-sm font-bold text-slate-900" data-testid={`vehicle-print-visit-option-title-${visit.id}`}>{visitLabel}</span>
-                <span className="mt-1 block text-xs text-slate-500" data-testid={`vehicle-print-visit-option-meta-${visit.id}`}>التاريخ: {visitDate} · مبلغ الورشة: {visitTotal}</span>
+                <span className="mt-1 block text-xs text-slate-500" data-testid={`vehicle-print-visit-option-meta-${visit.id}`}>التاريخ: {visitDate} · {hasApprovedFinal ? 'الإجمالي المعتمد' : 'مبلغ الورشة'}: {visitTotal}</span>
               </button>
             );
           })}

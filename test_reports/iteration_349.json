@@ -1,0 +1,47 @@
+{
+  "summary": "Executed final Preview verification for requested P0-B scope and single isolated Visit A/B scenario. LIVE read-only checks confirmed targeted corrections/canonical integrity and supplier exclusion behavior; isolated backend Visit finalization unit and frontend QuickPrint unit passed once. One critical mismatch remains in income-statement exposed totals vs required canonical expectation.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/finance/reports/income-statement?workshop_id=finmodule-sync",
+        "issue": "Totals currently return revenue=6116.16, expenses=2274, net_income=3842.16 instead of required revenue=9794, expenses=2274, net_income=7520. Response revenue_source_audit.classification_counts.CANONICAL_BUSINESS.revenue already shows 9794, but totals are reduced by REVERSAL bucket (-3677.84).",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter349_p0b_live_readonly_verify.py",
+    "/app/backend/tests/test_iter349_visit_finalization_unit.py",
+    "/app/frontend/src/utils/documentTemplate.visitQuickPrint.test.js",
+    "/app/test_reports/pytest/iter349_backend.xml"
+  ],
+  "action_items": [
+    "Fix income-statement totals contract so exposed totals align with required canonical model for this frozen phase (expected 9794/2274/7520, unknown=0).",
+    "Keep P0-B correction set immutable: no new repair batches/audits/cleanup; preserve current targeted lineage only.",
+    "After totals fix, rerun only the same final verification set (test_iter349_p0b_live_readonly_verify + test_iter349_visit_finalization_unit + documentTemplate.visitQuickPrint.test.js)."
+  ],
+  "critical_code_review_comments": [
+    "Contract presence verified: /api/finance-engine/visits/{visit_id}/finalize uses visitfinal identity via post_visit_finalization_canonical_entry and AccountingEngine fallback=False path; conflict on changed total is fail-closed (409).",
+    "VehicleDetails buildVisitPayload correctly sends selected visit_id + approved final_customer_total + settings.total_source and hard-fails QuickPrint invoice/receipt when approved final is missing.",
+    "renderDocumentTemplate prefers approved final total over item recalculation; visit picker supports multiple visits and shows approved total when available."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter349_p0b_live_readonly_verify.py",
+    "/app/test_reports/iteration_349.json"
+  ],
+  "success_rate": {
+    "backend": "96.3% (26/27 passed; 1 failed)",
+    "frontend": "100% for requested isolated quickprint unit + smoke load"
+  },
+  "seed_data_creation": "None. Used LIVE READ-ONLY checks and ISOLATED FIXTURE ONLY (MOCKED) unit tests for Visit A/B scenario.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Do not create live financial fixtures. P0-B lineage checks passed live: originals exist, exactly one historical_financial_repair correction per target original, Case A vehfinal canonical single entry total=2300 and net AR/revenue=2300, Case B net AR/revenue=0 with supplier archive retained 167.84 and no canonical sale. AR core remains 9181. Only failing point is income-statement exposed totals mismatch while canonical classification already reports 9794.",
+  "rca of the issue": "Reproduced via authenticated call to /api/finance/reports/income-statement. Response shows classification_counts.CANONICAL_BUSINESS.revenue=9794 (expected) but top-level totals.revenue=6116.16 because REVERSAL classification (-3677.84) is still netted into public totals. This indicates a presentation/aggregation contract mismatch in totals computation, not a missing P0-B canonical posting."
+}

@@ -233,7 +233,9 @@ const QuickPrintDialog = ({
         reason: e?.message || 'template_generation_failed', missing_variables: e?.variables || [],
       }).catch(() => null);
       const missing = e?.variables || findUnresolvedTemplateVariables(e?.response?.data?.detail?.content || '');
-      const message = e?.code === 'template_incomplete' ? e.message : (missing.length ? `القالب غير مكتمل. المتغيرات الناقصة: ${missing.join('، ')}` : (e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : (e?.response?.data?.detail?.message || 'تعذر إنشاء المعاينة بالقالب المختار')));
+      const message = e?.message === 'visit_final_customer_total_required_for_quickprint'
+        ? 'يجب اعتماد الإجمالي النهائي للزيارة المحددة قبل طباعة الفاتورة.'
+        : (e?.code === 'template_incomplete' ? e.message : (missing.length ? `القالب غير مكتمل. المتغيرات الناقصة: ${missing.join('، ')}` : (e?.message === 'timeout' ? 'انتهت مهلة إنشاء المعاينة' : (e?.response?.data?.detail?.message || 'تعذر إنشاء المعاينة بالقالب المختار'))));
       setError(message);
       return '';
     } finally {

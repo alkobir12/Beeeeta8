@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import requests
+import routes_finance
 
 
 def _resolve_base_url() -> str:
@@ -145,3 +146,15 @@ def test_income_statement_endpoint_no_live_filter_reference():
 
     assert "_filter_live_journal_entries" not in fn_body
     assert '"vehicle_status_affects_income_statement": False' in fn_body
+
+
+def test_explicit_historical_repair_source_precedes_reversal_wording():
+    classification = routes_finance.classify_journal_entry_for_income_statement(
+        {
+            "source": "historical_financial_repair",
+            "description": "عكس مستهدف لقيد تاريخي",
+            "transaction_type": "repair_reversal",
+        },
+        {"revenue": -100, "expense": 0, "ar": -100, "lines": []},
+    )
+    assert classification == "HISTORICAL_REPAIR"

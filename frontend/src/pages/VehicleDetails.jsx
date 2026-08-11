@@ -55,6 +55,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { userLayoutsAPI } from '../services/userLayoutsAPI';
 import { resolveBackendBase } from '../utils/backendBase';
 import { generateIdempotencyKey } from '../utils/idempotency';
+import { getApprovedVisitFinancialContext } from '../utils/visitQuickPrint';
 
 const ARCHIVE_AUDIT_KEY = 'vehicle-archive-edit-audit-v1';
 
@@ -2234,8 +2235,17 @@ const VehicleDetails = () => {
       quantity: 1,
       price: visit?.total_workshop ?? visit?.workshop_total ?? visit?.total ?? 0,
     })];
+    const visitFinalization = getApprovedVisitFinancialContext(visit);
+    const approvedFinalTotal = visitFinalization.final_customer_total;
+    if (['invoice', 'receipt'].includes(docType) && (!Number.isFinite(approvedFinalTotal) || approvedFinalTotal <= 0)) {
+      throw new Error('visit_final_customer_total_required_for_quickprint');
+    }
+    const confirmedPaid = visitFinalization.confirmed_paid;
     return {
       doc_type: docType,
+      visit_id: visit?.id,
+      final_customer_total: approvedFinalTotal,
+      approved_final_customer_total: approvedFinalTotal,
       items: printableItems,
       customer: {
         name: vehicle?.customerName || vehicle?.ownerName || '',
@@ -2251,6 +2261,13 @@ const VehicleDetails = () => {
         notes: plainNotes,
       },
       settings: {
+        visit_id: visit?.id,
+        final_customer_total: approvedFinalTotal,
+        total_source: Number.isFinite(approvedFinalTotal) ? 'approved_visit_final_customer_total' : 'visit_items_preview',
+        totals: {
+          total: approvedFinalTotal,
+          paid: confirmedPaid,
+        },
         document_number: humanDocNumber(visit?.invoiceNumber, visit?.invoice_number, visit?.documentNumber, visit?.document_number),
         document_title: labelMap[docType] || 'مستند',
         date: visitDate,

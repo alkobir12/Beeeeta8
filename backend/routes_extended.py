@@ -4839,6 +4839,107 @@ async def vehicle_financial_summary(vehicle_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/finance-engine/visits/{visit_id}/finalize")
+async def unified_finalize_visit(request: Request, visit_id: str, payload: Dict[str, Any] = Body(None)):
+    """اعتماد إجمالي نهائي مستقل لزيارة واحدة وترحيله canonical مرة واحدة."""
+    payload = dict(payload or {})
+    try:
+        uuid.UUID(str(visit_id))
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid visit id")
+    if os.environ.get("DB_PROVIDER", "mongo").lower() != "supabase":
+        raise HTTPException(status_code=503, detail="visit finalization requires supabase provider")
+
+    actor = await _require_finance_payment_permission(request)
+    try:
+        from supabase_service import SupabaseService
+        from core.unified_financial_engine import parse_notes, round2, serialize_notes, visit_note_totals
+        from core.vehicle_finalization_posting import post_visit_finalization_canonical_entry
+
+        final_total = round2(payload.get("final_customer_total") or payload.get("finalCustomerTotal"))
+        if final_total <= 0:
+            raise HTTPException(status_code=400, detail="final_customer_total_must_be_positive")
+        workshop_id = os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync")
+        supa = SupabaseService()
+        visit_rows = (
+            supa.client.table("vehicle_visits")
+            .select("*")
+            .eq("id", visit_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        if not visit_rows:
+            raise HTTPException(status_code=404, detail="visit not found")
+        visit = visit_rows[0]
+        vehicle_id = str(visit.get("vehicle_id") or visit.get("vehicleId") or "").strip()
+        vehicle_rows = (
+            supa.client.table("vehicles")
+            .select("*")
+            .eq("id", vehicle_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+        if not vehicle_rows:
+            raise HTTPException(status_code=404, detail="vehicle not found")
+        vehicle = vehicle_rows[0]
+        parsed = parse_notes(visit.get("notes"))
+        existing_finalization = parsed.get("financial_finalization") if isinstance(parsed.get("financial_finalization"), dict) else {}
+        existing_total = existing_finalization.get("final_customer_total")
+        if existing_total is not None and abs(round2(existing_total) - final_total) >= 0.01:
+            raise HTTPException(status_code=409, detail="visit_final_customer_total_already_finalized")
+
+        finalized_at = existing_finalization.get("finalized_at") or datetime.now(timezone.utc).isoformat()
+        finalized_by = existing_finalization.get("finalized_by") or actor.name or actor.id
+        posting = post_visit_finalization_canonical_entry(
+            supa.client,
+            visit,
+            vehicle,
+            final_customer_total=final_total,
+            finalized_at=finalized_at,
+            finalized_by=finalized_by,
+            posting_source=str(payload.get("finalization_source") or "visit_finalize_api"),
+            workshop_id=workshop_id,
+        )
+        if posting.get("idempotent") and posting.get("matches_requested_total") is not True:
+            raise HTTPException(status_code=409, detail="visit_canonical_total_conflict")
+
+        previous_service_total = visit_note_totals(visit.get("notes")).get("total_workshop") or 0
+        parsed["financial_finalization"] = {
+            "final_customer_total": final_total,
+            "finalized_at": finalized_at,
+            "finalized_by": finalized_by,
+            "finalization_source": str(payload.get("finalization_source") or "visit_finalize_api"),
+            "previous_service_total": round2(payload.get("previous_service_total") or previous_service_total),
+            "accounting_identity": posting.get("accounting_identity"),
+            "business_event_id": posting.get("business_event_id"),
+            "journal_entry_id": posting.get("journal_id"),
+        }
+        update_result = (
+            supa.client.table("vehicle_visits")
+            .update({"notes": serialize_notes(parsed)})
+            .eq("id", visit_id)
+            .execute()
+        )
+        if not getattr(update_result, "data", None):
+            raise HTTPException(status_code=502, detail="visit_finalization_saved_but_visit_metadata_update_failed")
+        return {
+            "success": True,
+            "visit_id": visit_id,
+            "vehicle_id": vehicle_id,
+            "final_customer_total": final_total,
+            "posting": posting,
+            "engine_version": "unified-v1",
+        }
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @router.post("/finance-engine/visits/{visit_id}/payments/confirm")
 async def unified_confirm_visit_payment(request: Request, visit_id: str, payload: Dict[str, Any] = Body(None)):
     """Unified SSOT path for new confirmed visit payments.

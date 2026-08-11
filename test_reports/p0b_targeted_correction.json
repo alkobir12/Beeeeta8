@@ -1,0 +1,90 @@
+{
+  "mode": "apply",
+  "generated_at": "2026-08-11T18:04:08.823783+00:00",
+  "plan": [
+    {
+      "journal_id": "ea999c19-4bfc-4771-83f1-ebae1dae70c9",
+      "target": {
+        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+        "visit_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+        "source": "fin_engine_align_v1",
+        "amount": "2300.00"
+      },
+      "original_impact": {
+        "ar": 2300.0,
+        "revenue": 2300.0
+      },
+      "correction_reference": "p0b-correction:ea999c19-4bfc-4771-83f1-ebae1dae70c9",
+      "already_corrected": true
+    },
+    {
+      "journal_id": "e4333a1d-6785-4ebe-a381-b2b990dfd1b6",
+      "target": {
+        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+        "visit_id": "174f49a1-5482-43d5-b333-ede2743a7d79",
+        "source": "operation",
+        "amount": "1210.00"
+      },
+      "original_impact": {
+        "ar": 1210.0,
+        "revenue": 1210.0
+      },
+      "correction_reference": "p0b-correction:e4333a1d-6785-4ebe-a381-b2b990dfd1b6",
+      "already_corrected": true
+    },
+    {
+      "journal_id": "1b91f14d-caa0-4212-a34b-f5d4f7c7cca3",
+      "target": {
+        "vehicle_id": "8708bbd6-18be-4fb0-93a4-f9818b2b91ad",
+        "visit_id": "3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e",
+        "source": "fin_engine_align_v1",
+        "amount": "167.84"
+      },
+      "original_impact": {
+        "ar": 167.84,
+        "revenue": 167.84
+      },
+      "correction_reference": "p0b-correction:1b91f14d-caa0-4212-a34b-f5d4f7c7cca3",
+      "already_corrected": true
+    }
+  ],
+  "canonical_before": [
+    "f293b477-0e55-4d80-b792-53940d400ab7"
+  ],
+  "posted_corrections": [
+    {
+      "journal_id": "4cb248a7-0ec8-41ae-8d7c-aa81e4d99f46",
+      "idempotent": true
+    },
+    {
+      "journal_id": "646644eb-83e4-4567-836b-6a1f3f6c0f03",
+      "idempotent": true
+    },
+    {
+      "journal_id": "c7376bb9-08cc-41da-887f-b17f5066fbba",
+      "idempotent": true
+    }
+  ],
+  "canonical_posting": {
+    "posted": false,
+    "idempotent": true,
+    "journal_id": "f293b477-0e55-4d80-b792-53940d400ab7",
+    "accounting_identity": "vehfinal:b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+    "business_event_id": "vehicle_finalization::b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+    "final_customer_total": 2300.0,
+    "matches_requested_total": true
+  },
+  "verification": {
+    "missing_canonical_2300": "PASS",
+    "duplicate_canonical": 0,
+    "vehicle_2300_net_effect": {
+      "ar": 2300.0,
+      "revenue": 2300.0
+    },
+    "supplier_net_effect": {
+      "ar": 0.0,
+      "revenue": 0.0
+    },
+    "supplier_archive_effect": 167.84
+  }
+}
