@@ -2,7 +2,7 @@
   "generated_at": "2026-08-11T16:27:35.976077+00:00",
   "mode": "READ_ONLY",
   "environment": {
-    "preview": "https://finance-overhaul-7.preview.emergentagent.com",
+    "preview": "https://canonical-integrity.preview.emergentagent.com",
     "production": "https://car-repair-sys.emergent.host",
     "production_status": {
       "health_status": 200,

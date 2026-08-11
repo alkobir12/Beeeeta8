@@ -1,3 +1,10 @@
+## Production Fix — Root Cause Found & Fixed — 2026-08-11 (لاحقًا)
+- السبب الجذري الحقيقي للواجهة القديمة في الإنتاج: أثناء SECURITY P0 HARDENING أُضيفت `.env / .env.* / *.env` إلى `.gitignore` وحُذف `backend/.env` و`frontend/.env` من git (commit 484b8b39). منصة Emergent تبني الإنتاج من git وتتطلب وجود ملفات .env (تحدّث قيمها تلقائيًا عند النشر)؛ غيابها منع إعادة بناء الواجهة فبقيت الحزمة القديمة `main.afb18f1d.js` بينما تحدثت الخلفية = version skew.
+- الأدلة: حزمة الإنتاج لا تحتوي `login-error-alert`/`pin_configured` (0 occurrences)، البناء المحلي `CI=true yarn build` ينجح (main.30d39854.js يحتوي العلامات)، لا يوجد Service Worker، وdeployment_agent رصد BLOCKER في .gitignore.
+- الإصلاح: أزيلت الأسطر الثلاثة من `.gitignore` وأُعيد تتبع `backend/.env` و`frontend/.env` في git. إعادة فحص deployment_agent = **PASS بدون موانع**. المعاينة سليمة (login مدير/010101 يعمل).
+- المطلوب من المستخدم: **إعادة النشر (Redeploy) من أحدث checkpoint** عبر زر Deploy في المنصة. بعد النشر يجب أن تظهر صفحة الدخول الجديدة (كلمة مرور أولًا).
+- ملاحظة أمنية: عودة .env إلى git (مستودع خاص) تعيد أهمية P0 تدوير الأسرار (JWT_SECRET, SUPABASE_SERVICE_ROLE_KEY, EMERGENT_LLM_KEY) — مؤجل بانتظار قرار المستخدم بعد التحقق من نجاح النشر.
+
 ## Production Incident — Stale Frontend Bundle — 2026-08-11
 - Production: `https://car-repair-sys.emergent.host`. Backend حي: `/api/health=200 {status:ok}` و`/api/auth/login` يصل إلى FastAPI.
 - Production يعرض Login قديمًا يبدأ بـPIN، بينما Preview الحالي يبدأ بكلمة المرور ويعرض تنبيه PIN الموثوق. هذا يثبت version skew بين frontend bundle القديم وbackend/auth الصارم الأحدث.

@@ -47,7 +47,7 @@ def test_security_user_password_hash_is_bcrypt_2b():
 # The public preview edge proxy may rewrite CORS headers; this test validates
 # the FastAPI app response that will be served behind production ingress.
 def test_success_login_sets_httponly_cookies_and_credentialed_cors_headers():
-    origin = "https://finance-overhaul-7.preview.emergentagent.com"
+    origin = "https://canonical-integrity.preview.emergentagent.com"
     cors_api = os.environ.get("SECURITY_INTERNAL_API_URL", "http://localhost:8001").rstrip("/")
     response = requests.post(
         f"{cors_api}/api/auth/login",

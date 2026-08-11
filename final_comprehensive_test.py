@@ -11,7 +11,7 @@ from datetime import datetime
 import uuid
 
 # Configuration
-BASE_URL = "https://finance-overhaul-7.preview.emergentagent.com/api"
+BASE_URL = "https://canonical-integrity.preview.emergentagent.com/api"
 USERNAME = "مدير"
 
 class Colors:

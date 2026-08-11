@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime, timedelta
 
 # Configuration
-BACKEND_URL = "https://finance-overhaul-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://canonical-integrity.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 def print_test_header(test_name):

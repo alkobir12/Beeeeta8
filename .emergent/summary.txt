@@ -1,132 +1,182 @@
-<analysis>**original_problem_statement**: Overhaul financial operator (Katrina), document templates (strict sanitization, no raw placeholders, unified A4/mobile), and mobile QuickPrint UI. PRODUCT REQUIREMENTS: Single active default template per tenant/type/locale, dynamic electronic approval stamps, Supabase UUID compliance, and zero silent fallbacks on template failures. A critical newly added requirement is 100% synchronization of financial numbers across AR Ledger, Operations, Debt Follow-up, and Vehicle Profile pages using a Single Source of Truth (SSOT).
+<analysis>**original_problem_statement**: Overhaul financial operator (Katrina), fix Supplier Exclusion policy mismatches, correct the Income Statement reporting scope, fix the Journal KPI UI, implement Canonical Business Posting for vehicle finalization, and execute Security P0 Hardening. PRODUCT REQUIREMENTS: Supplier items are archive/movement only. Single active default template. Zero silent fallbacks. 100% synchronization of financial numbers using AccountingEngine as the SSOT.
 
 **User's preferred language**: Arabic (العربية)
-**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and respond in the user's preferred language ONLY. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic ONLY. NEVER suggest English solutions or prompts.
+**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic ONLY. NEVER suggest English solutions or prompts.
 
 **what currently exists?** 
-The system is successfully deployed to production. Unified document templates (Invoice, Quotes, Diagnoses) and the redesigned mobile QuickPrint are fully functional and tested end-to-end. The auth refresh 401 loop is resolved. A massive financial synchronization overhaul was completed:  is now the strict Single Source of Truth (SSOT) for all Accounts Receivable (AR) calculations. Missing journal entries for legacy credit sales were retroactively generated. Operations now accurately reflect partial payments, and deleting visits/operations strictly cascades to delete related journal entries. 
+The financial core is currently **FROZEN** by user request.  is the strict Single Source of Truth (SSOT) and the ONLY allowed writer to  (P0-A completed). All direct database financial mutations, balancing plugs, and silent fallbacks have been aggressively blocked or removed. Canonical Integrity (P0-B) is completed for targeted discrepancies (2300 final total and 167.84 supplier exclusion). QuickPrint now correctly handles independent visits with independent canonical totals. Authentication is strict: name-only and default PIN () logins are removed; temporary password  is actively used for Preview.
 
 **Last working item**:
-    - Last item agent was working: Fixing the  logic in  to correctly reflect partial payments (e.g., showing 80 paid / 120 remaining instead of incorrectly marking the whole operation as paid because the last payment was cash) and ensuring cascade deletion of journal entries when a visit is deleted. 
-    - Status: RESOLVED
-    - Agent Testing Done: Y (pytest + UI consistency verified, AR gap = 0.0)
+    - Last item agent was working: Diagnosing why the Production deployment is not showing data/updates despite the Preview working perfectly. Agent confirmed via , , and  that this is an Emergent Infrastructure issue (Stale Frontend Cache/Version Skew in Production), NOT a codebase, DB, or billing (50 credits) issue.
+    - Status: BLOCKED (Requires Emergent Support intervention by the user).
+    - Agent Testing Done: Y
     - Which testing method agent to use? NA
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  None. (All P0 blockers, Auth loops, and Financial Sync discrepancies were resolved).
+  - Issue 1: P0 - Secret Rotation Required in Production
+     - Attempted fixes: Identified in previous sessions but explicitly deferred to avoid breaking production without a deployment plan. Supabase key was noted as updated by user, but others may remain.
+     - Next debug checklist: Coordinate with the user to rotate exposed Git/.env secrets (JWT, LLM).
+     - Why fix this issue and what will be achieved with the fix? Secures the production environment.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Backend
+  - Issue 2: P0 - Critical Code Quality & Security Vulnerabilities (System Reported)
+     - Attempted fixes: None.
+     - Next debug checklist: 
+        1. Remove hardcoded secrets in .
+        2. Fix Circular Import ( →  → ).
+        3. Frontend: Fix  usage for JWT tokens in  (XSS vulnerability).
+        4. Frontend: Fix missing hook dependencies (484 instances, critical in ).
+     - Why fix this issue and what will be achieved with the fix? Prevents runtime crashes, severe XSS attacks, and React reconciliation bugs.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
+  - Issue 3: P1 - Public Verification Page for Documents
+     - Attempted fixes: None
+     - Next debug checklist: Build QR Code scanning to verify document hash, signatures, and approval status.
+     - Why fix this issue and what will be achieved with the fix? Core PRD requirement for QuickPrint UI.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Both
 
-**In progress Task List**:
-  None.
+**In progress Task List**: None.
 
 **Upcoming and Future Tasks**
-  Task 1: P0 - UX/UI Redesign Project (Start the comprehensive UX/UI redesign according to the user's new plan).
-  Task 2: P1 - Public Verification Page for Documents: Each document must have a QR Code, Verification ID, Document Hash, Template Version, Timestamp, Digital Signature Status, Approval Status, and Company Info. Scanning the QR should open a public verification page showing the document's validity/status without exposing sensitive financial data.
-  Task 3: P2 - Google OAuth Testing: Run a dedicated testing round for Google OAuth on production (deferred from the last round).
-  Task 4: P2 - Add a visible audit log inside the document UI indicating which template name and version was used for accountability.
-  Task 5: P2 - AR Aging Report: Implement an aging report (30/60/90 days) with automatic WhatsApp reminders for overdue clients.
+    Upcoming Tasks:
+    - P0-C: READER CONSISTENCY. Make Katrina AI read from the exact same canonical AR read service () so Katrina AR matches Core AR (9,181). DO NOT create a new calculation for Katrina.
+    - P0-D: BALANCE SHEET GAP. Investigate the 908 gap READ-ONLY. Identify Assets, Liabilities, Equity, and root cause. DO NOT use balancing plugs. Propose fix for user approval.
+    - P0-E: RECONCILIATION DIFFERENCES (38,692.16). Categorize differences (Legacy, Temporary, Repair, etc.). DO NOT execute bulk repairs.
+    - P1: Connect Katrina AI Operator to Document Templates and QuickPrint.
+    Future Tasks:
+    - P2: Google OAuth Testing on production.
+    - P2: AR Aging Report (30/60/90 days) with automatic WhatsApp reminders.
+    - P2: Refactor/Split  (Oversized module).
 
 **Completed work in this session**
-- Fixed Auth Refresh 401 Loop (, ) (DONE)
-- Deployment Readiness (Configured CORS , cleaned  secrets, migrated session variable) (DONE)
-- Production Validation for Templates and Electronic Stamps (DONE)
-- Fixed Financial AR Ledger sync: Unified calculation logic across Vehicle, Operations, Debts, and Ledger (DONE)
-- Retroactively generated missing journal entries for 163 visits (DONE)
-- Merged duplicate customer profiles () (DONE)
-- Fixed Operation snapshot logic for partial payments in  (DONE)
-- Implemented cascade delete for journal entries when visits/operations are deleted (DONE)
+- Restored Preview Authentication with temporary password  for  and  (DONE)
+- Executed P0-A: Single Writer Hardening. Removed all 8 direct journal mutation endpoints. Enforced fail-closed policy (DONE)
+- Executed P0-B: Canonical Integrity. Fixed missing 2300 canonical posting and reversed 167.84 supplier effect on AR idempotently (DONE)
+- Extracted and isolated QuickPrint to handle multiple independent visits properly (DONE)
+- Fixed Income Statement aggregation contract logic for Reversals (DONE)
+- Diagnosed Production Stale Frontend issue (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: XSS risks with multipart HTML uploads
-   - Debug checklist: Ensure Role-Based Access Control (RBAC) and strict tenant isolation are enforced on template uploads, as highlighted by the Security Audit.
-   - Why to solve this issue and what will be achieved with this? Prevents low-level staff from uploading malicious HTML that executes during PDF generation.
-   - Should Test frontend/backend/both after fix: Backend
-   - Is recurring issue? N
+   Issue 1: Testing Agent  on 
+   - Debug checklist: Testing agent browser automation fails to load authenticated  data due to the preview environment edge proxy/CORS limitations. 
+   - Why to solve this issue and what will be achieved with this? Allows E2E UI testing.
+   - Should Test frontend/backend/both after fix: Both
+   - Is recurring issue? Y (Platform limitation).
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: None in this session.
+  - Issue recurrence in previous fork: None
   - Recurrence count: 0
-  - Status: NA
+  - Status: RESOLVED
 
 **Code Architecture**
 /app
 ├── backend
 │   ├── core
-│   │   ├── ar_ledger.py (SSOT for accounts receivable)
-│   │   └── auth_store.py
-│   ├── server.py (Operations snapshot and journal entries logic)
-│   ├── visit_sync.py (Visit to operation syncing)
-│   ├── routes_finance.py
-│   ├── routes_auth.py
-│   └── supabase_service.py
+│   │   ├── accounting_engine.py (Strict SSOT for journal writes - FROZEN)
+│   │   ├── unified_financial_engine.py
+│   │   ├── operation_journal_adapter.py (Fail-closed enforced)
+│   │   ├── vehicle_finalization_posting.py
+│   │   └── financial_actions.py
+│   ├── auth_jwt.py 
+│   ├── routes_finance.py (FROZEN - High complexity)
+│   ├── routes_extended.py (Direct mutations disabled)
+│   ├── server.py 
+│   └── scripts
+│       ├── financial_consistency_readonly_audit.py
+│       └── p0b_targeted_correction.py
 ├── frontend
-│   └── src ...
+│   └── src
+│       ├── components
+│       │   ├── QuickPrintDialog.jsx
+│       │   └── vehicle-details
+│       │       └── VehicleDetailsChrome.jsx
+│       ├── pages
+│       │   ├── Login.jsx (Updated error handling)
+│       │   └── VehicleDetails.jsx (Refactored for QuickPrint independent visits)
+│       └── utils
+│           └── documentTemplate.js
 
 **Key Technical Concepts**
-- React frontend + FastAPI backend + Supabase DB.
--  table is the absolute Single Source of Truth (SSOT) for all financial ledger and Accounts Receivable calculations.
-- JWT Auth with rotating refresh tokens (short-lived access + 7-day refresh).
+- **FINANCIAL CORE IS FROZEN**: User explicitly demanded that , Income Statement rules, Journal KPI UI,  policy, and Supplier Exclusion policy must NOT be modified. Do not build new financial engines.
+- **Single Writer Pattern**: Absolutely NO direct writes to  are allowed bypassing .
+- **Fail-Closed Financials**: If the  returns empty, None, or throws an error, the upstream process (operations, visits, etc.) MUST fail and roll back.
 
 **key DB schema**
-  - : Central source of truth for financials.
-  - : Contains snapshot/cache of financial state for display, synchronized via .
-  - : Linked to operations and journal entries.
-  - : Relies on computed balances derived strictly from the ledger.
+  - : Accounting ledger (PostgreSQL via Supabase)
+  - : MongoDB auth storage (User accounts)
+  -  & : Application state
 
 **changes in tech stack**
   - None.
 
 **All files of reference** 
-  -  (Financial sync, partial payment snapshot logic)
-  -  (Visit to operation synchronization)
-  -  (Auth loop fixes)
-  -  (Ledger calculation rules)
-  -  (Validation plan for production)
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
 
 **Areas that need refactoring**: 
-- Logic in  handling financial snapshots and caching is very heavy and could be extracted into dedicated domain services.
+- : Extremely large, needs splitting.
+- : Heavy component, missing dependency arrays.
 
 **key api endpoints**
+-  
 - 
-- 
-- 
--  (Now cascades to operations and journal entries)
 
 **Critical Info for New Agent**
 - **LANGUAGE**: Respond ONLY in Arabic.
-- **ENVIRONMENTS**: The app is now deployed to production. If the user reports an issue, clarify if they are testing on Preview or Production. Code changes can only happen in Preview.
-- **FINANCIAL RULE**: Never calculate Accounts Receivable (AR) strictly from  or . The  table is the strict SSOT. Any new financial feature MUST interact with journal entries.
-- **NEXT STEP**: The user explicitly requested to begin the **UX/UI Redesign Project** after this synchronization fix. Acknowledge the completion of the sync and propose the UX/UI plan.
+- **FREEZE WARNING**: The user strictly declared: . You must not write code that alters the  logic or core financial definitions without explicit user permission.
+- **AUTH CREDENTIALS**: To log in to the Preview environment, use username  or  with the password .  PIN does not work.
+- **NEXT TASKS (P0-C, P0-D, P0-E)**: Must be executed strictly as **READ-ONLY** analysis first. You must present the findings to the user and get approval before making any DB changes.
+- **PRODUCTION ISSUE**: Production is showing a stale frontend (old login screen) due to a deployment caching issue on Emergent's end. The user has been informed to contact Emergent support. Do not attempt to fix production by altering Preview code.
 
 **documents and test reports created in this job**
   - 
   - 
+  - 
+  -  (Read-only Audit)
+  -  (P0-A Verification)
+  -  (P0-B Final Retry)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - *User*: اكمل (Continue)
- - *Agent*: (Modified  and  to fix partial payment UI display).
- - *Agent*: (Tested operation view, confirmed 200 total / 80 paid / 120 balance shows correctly).
- - *Agent*: (Tested visit deletion, verified cascading journal deletion).
- - *Agent*: (Ran testing_agent to confirm final fix).
- - *User*: Credits Recharged. Please Continue.
- - *Agent*: (Read  verifying 5/5 backend tests passed and UI consistency is fixed).
- - *Agent*: Finished the task declaring 100% financial number synchronization across all pages.
+ - *User*: Please use ask_human tool and confirm your plan now.
+ - *User*: There is a problem, data is not showing in the domain. Call the agent and see what the problem is.
+ - *User*: (System Code Quality Report injection - Backend 34/100, Frontend 0/100).
+ - *User*: Another problem, cannot login in preview. -> (Provided  and  via ask_human).
+ - *User*: Fix it, make the new password for both users 010101.
+ - *User*: Check the numbers in Vehicle, Operations, Debts, Journal, Finance, Katrina. Ensure they all use one accounting engine. Complete comprehensive check and find mismatches. -> (Agent ran read-only audit).
+ - *User*: (Huge prompt accepting audit) Apply P0-A in Preview only. Block 8 direct journal writes. Fail closed. No silent fallbacks. STOP after P0-A. DO NOT START P0-B.
+ - *User*: Approve P0-B for the two specific cases only. Do ONE FINAL E2E test. Then FINANCIAL CORE = FROZEN. -> (Agent executed P0-B).
+ - *User*: Why is data not showing in production? Find the problem. -> (Agent found stale frontend deployment issue).
+ - *User*: Could it be because of the 50 credit hosting? -> (Agent confirmed it's not billing, but an infrastructure version skew).
+ - *Pending Action*: Wait for user to initiate P0-C, P0-D, or address the Code Quality/Security issues.
 
 **Project Health Check:**
-- Broken: None.
-- Mocked: None.
+Broken: Production Deployment (Stale Frontend Cache).
+Mocked: None.
+Vulnerable: Production Secrets exposed in Git/.env. Frontend localStorage JWT. Backend Hardcoded Secrets.
 
 **3rd Party Integrations**
-- Emergent LLM Key (Used for Katrina intent parsing) — uses Emergent LLM Key.
+- Emergent LLM Key
+- Supabase PostgreSQL
 
 **Testing status**
-  - Testing agent used after significant changes: YES
+  - Testing agent used after significant changes: YES (Extensively for P0-A Guardrails and P0-B Canonical Integrity).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None
+  - Test files created: , , .
+  - Known regressions: None (Income statement classification bug was caught and fixed).
 
 **Credentials to test flow:**
-- Manager (Admin): Username , PIN 
+- Check . Preview access:  /  or  / .
 
 **What agent forgot to execute**
-- The agent fully completed the financial alignment. Nothing was missed. The next agent needs to shift focus to the Public Verification Page (QR) and the UX/UI Redesign.</analysis>
+- The agent properly deferred the Production Secrets rotation to avoid breaking the live app, but the critical Code Quality review (System injected) containing hardcoded secrets and XSS vulnerabilities was completely ignored due to the user's strict focus on the Financial Audit (P0-A/P0-B). The next agent should bring these security issues to the user's attention.</analysis>

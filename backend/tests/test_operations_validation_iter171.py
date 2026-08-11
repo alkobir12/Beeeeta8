@@ -15,7 +15,7 @@ import uuid
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://finance-overhaul-7.preview.emergentagent.com"
+    BASE_URL = "https://canonical-integrity.preview.emergentagent.com"
 
 
 class TestOperationsValidation:

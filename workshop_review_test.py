@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 
 # Backend URL from frontend/.env
-BACKEND_URL = "https://finance-overhaul-7.preview.emergentagent.com/api"
+BACKEND_URL = "https://canonical-integrity.preview.emergentagent.com/api"
 
 # Test credentials
 TEST_USERNAME = "مدير"
