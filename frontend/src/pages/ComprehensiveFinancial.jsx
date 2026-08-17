@@ -1325,7 +1325,14 @@ export default function ComprehensiveFinancial() {
                         <p className="text-xs text-slate-300" data-testid={`financial-balance-${section.key}-name-${idx}`}>{acc.name}</p>
                         <span className="text-[10px] text-cyan-200">عرض المصدر</span>
                       </div>
-                      <p className="text-sm text-slate-100 font-semibold" data-testid={`financial-balance-${section.key}-value-${idx}`}>{formatCurrency(acc.balance || 0)}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`text-sm font-semibold ${Number(acc.balance) < 0 ? 'text-amber-300' : 'text-slate-100'}`} data-testid={`financial-balance-${section.key}-value-${idx}`}>{formatCurrency(acc.balance || 0)}</p>
+                        {acc.is_contra ? (
+                          <span className="rounded-full border border-amber-300/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-200" data-testid={`financial-balance-${section.key}-contra-tag-${idx}`}>
+                            {acc.balance_nature || 'رصيد عكسي'}
+                          </span>
+                        ) : null}
+                      </div>
                     </button>
                   )) : <p className="text-xs text-slate-400" data-testid={`financial-balance-${section.key}-empty`}>لا توجد بيانات</p>}
                 </div>

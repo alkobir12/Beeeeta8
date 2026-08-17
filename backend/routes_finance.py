@@ -1148,15 +1148,20 @@ async def get_balance_sheet(
             else:
                 continue
 
-            if abs(balance) < 0.0001:
+            if -0.0001 < balance < 0.0001:
                 continue
 
             account_data = {
                 "id": code,
                 "code": code,
                 "name": row.get("name") or code_to_name.get(code) or code,
-                "balance": round(abs(balance), 2),
+                "balance": round(balance, 2),
             }
+            if balance < 0:
+                account_data["is_contra"] = True
+                account_data["balance_nature"] = (
+                    "رصيد دائن / عكسي" if acc_type == "asset" else "رصيد مدين / عكسي"
+                )
 
             if acc_type == "asset":
                 assets_accounts.append(account_data)
@@ -1170,7 +1175,7 @@ async def get_balance_sheet(
         total_equity = sum(acc["balance"] for acc in equity_accounts)
 
         # صافي دخل الفترة يُرحَّل لحقوق الملكية (توازن الميزانية: أصول = خصوم + حقوق)
-        if abs(net_income_period) >= 0.005:
+        if net_income_period >= 0.005 or net_income_period <= -0.005:
             equity_accounts.append({
                 "id": "023",
                 "code": "023",

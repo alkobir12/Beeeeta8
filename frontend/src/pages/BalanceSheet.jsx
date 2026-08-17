@@ -137,8 +137,9 @@ const BalanceSheet = () => {
           variant="default"
           details={
             sections.assets?.slice(0, 5).map(acc => ({
-              label: acc.name,
-              value: formatCurrency(acc.balance)
+              label: acc.is_contra ? `${acc.name} (${acc.balance_nature || 'رصيد عكسي'})` : acc.name,
+              value: formatCurrency(acc.balance),
+              valueColor: Number(acc.balance) < 0 ? 'text-amber-400' : undefined
             })) || []
           }
         />
@@ -209,7 +210,17 @@ const BalanceSheet = () => {
                   <Wallet size={16} className="text-blue-400" />
                 </div>
                 <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{acc.name}</h3>
-                <p className="text-lg font-bold text-blue-400">{formatCurrency(acc.balance)}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className={`text-lg font-bold ${Number(acc.balance) < 0 ? 'text-amber-400' : 'text-blue-400'}`}>{formatCurrency(acc.balance)}</p>
+                  {acc.is_contra ? (
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                      style={{ backgroundColor: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', color: '#f59e0b' }}
+                      data-testid={`balance-sheet-contra-tag-${idx}`}
+                    >
+                      {acc.balance_nature || 'رصيد عكسي'}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
