@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T16:27:35.976077+00:00",
+  "generated_at": "2026-08-17T20:34:55.412420+00:00",
   "mode": "READ_ONLY",
   "environment": {
     "preview": "https://canonical-integrity.preview.emergentagent.com",
@@ -11,105 +11,105 @@
   },
   "period": {
     "start": "2026-08-01",
-    "end": "2026-08-11",
+    "end": "2026-08-17",
     "opening_and_historical_separated": true
   },
   "mutation_guard": {
     "before": {
-      "vehicles": 197,
-      "vehicle_visits": 181,
-      "operations": 56,
-      "journal_entries": 36
+      "vehicles": 213,
+      "vehicle_visits": 198,
+      "operations": 75,
+      "journal_entries": 92
     },
     "after": {
-      "vehicles": 197,
-      "vehicle_visits": 181,
-      "operations": 56,
-      "journal_entries": 36
+      "vehicles": 213,
+      "vehicle_visits": 198,
+      "operations": 75,
+      "journal_entries": 92
     },
     "unchanged": true
   },
   "counts": {
-    "vehicles": 197,
-    "active_vehicle_files": 14,
-    "visits": 181,
-    "operations": 56,
-    "operations_api": 14,
-    "journal_entries": 36,
-    "journal_current_period": 36,
+    "vehicles": 213,
+    "active_vehicle_files": 18,
+    "visits": 198,
+    "operations": 75,
+    "operations_api": 19,
+    "journal_entries": 92,
+    "journal_current_period": 92,
     "journal_historical": 0,
     "journal_opening": 0,
     "journal_archived": 0,
-    "accounts": 192,
-    "finalized_vehicles": 2,
-    "supplier_only_operations": 1
+    "accounts": 196,
+    "finalized_vehicles": 8,
+    "supplier_only_operations": 3
   },
   "numbers": {
     "current_ar": {
-      "vehicle_file_remaining_total": 9181.0,
-      "unified_engine_total": 9181.0,
-      "ar_customers_total": 9181.0,
-      "ar_ledger_ending": 9181.0,
-      "ar_layers_current": 9181.0,
-      "ledger_all_entries_ar": 22563.84,
+      "vehicle_file_remaining_total": 12725.0,
+      "unified_engine_total": 12725.0,
+      "ar_customers_total": 12725.0,
+      "ar_ledger_ending": 12725.0,
+      "ar_layers_current": 12725.0,
+      "ledger_all_entries_ar": 40521.0,
       "katrina_tool_total_ar": 0.0,
-      "katrina_tool_ledger_ar": 22563.84,
+      "katrina_tool_ledger_ar": 40521.0,
       "assistant_dashboard_total_ar": 0.0,
-      "as_of_period_start_total": 9181.0
+      "as_of_period_start_total": 12725.0
     },
     "current_period": {
-      "journal_debit": 66739.68,
-      "journal_credit": 66739.68,
-      "journal_ar": 22563.84,
-      "journal_revenue_raw": 1500.0,
-      "journal_expenses_raw": 0.0,
-      "income_revenue_canonical": 7494.0,
-      "income_expenses": 2274.0,
-      "income_net": 5220.0,
+      "journal_debit": 144513.06,
+      "journal_credit": 144513.06,
+      "journal_ar": 40521.0,
+      "journal_revenue_raw": 45324.16,
+      "journal_expenses_raw": 115.0,
+      "income_revenue_canonical": 54996.0,
+      "income_expenses": 2389.0,
+      "income_net": 52607.0,
       "income_unknown_entries": 0,
-      "income_excluded_entries": 21,
-      "income_excluded_legacy_revenue": 24013.84,
-      "operations_reconciliation_difference": 38692.16,
+      "income_excluded_entries": 24,
+      "income_excluded_legacy_revenue": 20336.0,
+      "operations_reconciliation_difference": 7293.16,
       "missing_operation_journals": {
-        "count": 43,
-        "total": 54626.0,
+        "count": 59,
+        "total": 70302.0,
         "sample_operation_ids": [
-          "668bed7b-935f-4cc0-9a15-324d4ba9506d",
-          "2dd3dbae-6cc9-46b6-b72d-f76364cc36f7",
-          "c841307c-1fb6-452d-beef-9f4a0d6f5959",
-          "87a7e860-d0b0-45ea-a854-1278a4fbfb23",
-          "a93a70b8-ad73-4477-b63d-2c2b7dd4c00c",
-          "43a736a3-efa0-41cf-be96-b1ca30256b6c",
-          "f395e31a-0b92-4781-92cc-5c02f5b0127f",
-          "6973ed6f-8895-42cf-ad24-331832ebef96",
-          "b666d607-dfde-46e4-b221-0dab4111d0bc",
-          "0dd49396-8748-4276-8272-2fc5ec70ff09"
+          "f441c5f2-9365-4fc5-928e-2182224b9311",
+          "f4f34aa0-d651-4b96-a3d7-41cabf37e5b9",
+          "3dab92e3-3066-47f0-94b5-a484d34c2d07",
+          "b48c0850-1453-4740-9639-1a99687fda67",
+          "3acd2af5-989d-405e-b656-23d972dbfcab",
+          "2e371c2b-dca5-4884-8207-aa8d0b1147ad",
+          "feb09cfe-b7d7-4b35-8f1d-648e037b6083",
+          "6c4693aa-9de6-4ddd-88b5-318b1f1ff0ba",
+          "38478ae1-3f3a-4666-ad14-4477eb34583a",
+          "817430ba-f4ba-4ec1-8928-0fb965d67aae"
         ]
       },
       "operation_trace": {
-        "operations_total": 68834.0,
-        "journal_total": 66739.68,
-        "types_count": 4
+        "operations_total": 85050.0,
+        "journal_total": 144513.06,
+        "types_count": 7
       }
     },
     "opening": {},
     "historical_before_period": {},
     "all_ledger": {
-      "debit": 66739.68,
-      "credit": 66739.68,
-      "ar": 22563.84,
-      "revenue": 1500.0,
-      "expenses": 0.0
+      "debit": 144513.06,
+      "credit": 144513.06,
+      "ar": 40521.0,
+      "revenue": 45324.16,
+      "expenses": 115.0
     },
     "trial_balance": {
-      "debit": 55817.68,
-      "credit": 55817.68,
+      "debit": 105887.06,
+      "credit": 105887.06,
       "difference": 0.0
     },
     "balance_sheet": {
-      "assets": 22739.84,
-      "liabilities_plus_equity": 21831.84,
-      "difference": 908.0
+      "assets": 64102.0,
+      "liabilities_plus_equity": 62964.0,
+      "difference": 1138.0
     }
   },
   "checks": {
@@ -124,28 +124,28 @@
     "income_statement_has_no_unknown_entries": true,
     "operations_reconciliation_matched": false,
     "no_missing_operation_journals": false,
-    "canonical_finalizations_unique_and_equal": false,
+    "canonical_finalizations_unique_and_equal": true,
     "supplier_only_operations_do_not_touch_ar_or_revenue": false,
     "katrina_ar_matches_current_ar": false,
     "assistant_dashboard_ar_matches_current_ar": false,
-    "journal_page_contains_full_ledger": true,
+    "journal_page_contains_full_ledger": false,
     "journal_period_endpoint_count_matches_raw": true
   },
   "failed_checks": [
     "balance_sheet_equation_balanced",
     "operations_reconciliation_matched",
     "no_missing_operation_journals",
-    "canonical_finalizations_unique_and_equal",
     "supplier_only_operations_do_not_touch_ar_or_revenue",
     "katrina_ar_matches_current_ar",
-    "assistant_dashboard_ar_matches_current_ar"
+    "assistant_dashboard_ar_matches_current_ar",
+    "journal_page_contains_full_ledger"
   ],
   "findings": [
     {
       "id": "FIN-P0-01",
       "severity": "P0",
       "title": "كاترينا لا تستخدم رصيد الذمم الحالي",
-      "evidence": "current_ar=9,181.00 vs katrina=0.00",
+      "evidence": "current_ar=12,725.00 vs katrina=0.00",
       "root_cause": "finance.ar_summary يعرض stored_balances_total في total_ar رغم إعلانه أن journal_entries هو SSOT.",
       "recommendation": "اجعل total_ar/current dashboard من current_vehicle_ar_total، واعرض ledger/history كطبقات مستقلة بأسماء صريحة."
     },
@@ -161,7 +161,7 @@
       "id": "FIN-P0-03",
       "severity": "P0",
       "title": "إجمالي نهائي محفوظ بلا قيد canonical مطابق",
-      "evidence": "mismatches=1; details=[{'vehicle_id': 'b885d618-a2fa-45df-b14f-0a9e9ff1b484', 'final_customer_total': 2300.0, 'canonical_entries': 0, 'canonical_total': 0.0}]",
+      "evidence": "mismatches=0; details=[]",
       "root_cause": "حفظ المركبة يسبق posting؛ عند فشل posting يمكن أن يبقى financial_finalization محفوظًا بلا vehfinal entry.",
       "recommendation": "اجعل الحفظ/posting ذريًا أو أضف outbox/retry idempotent، ثم عالج السجل الحالي بموافقة صريحة."
     },
@@ -169,7 +169,7 @@
       "id": "FIN-P0-04",
       "severity": "P0",
       "title": "عقد الكاتب الواحد غير مطبق بالكامل",
-      "evidence": "direct journal mutations=8; default fallback calls=5",
+      "evidence": "direct journal mutations=0; default fallback calls=0",
       "root_cause": "مسارات إصلاح/إقفال قديمة تحدّث journal_entries مباشرة وبعض callers لا تستخدم fallback=False.",
       "recommendation": "مرّر كل mutation عبر AccountingEngine reverse/replace APIs، وأغلق fallback الافتراضي."
     },
@@ -177,7 +177,7 @@
       "id": "FIN-P1-01",
       "severity": "P1",
       "title": "الميزانية العمومية غير متوازنة بمقدار 908",
-      "evidence": "assets=22,739.84; liabilities+equity=21,831.84; gap=908.00",
+      "evidence": "assets=64,102.00; liabilities+equity=62,964.00; gap=1,138.00",
       "root_cause": "الحساب 006 رصيده دائن 454 لكن balance-sheet يستخدم abs(balance)، فيحوّل -454 إلى +454 ويضاعف الفرق إلى 908.",
       "recommendation": "احتفظ بإشارة الرصيد أو صنّف contra/overdraft صراحة بدل abs()."
     },
@@ -185,7 +185,7 @@
       "id": "FIN-P1-02",
       "severity": "P1",
       "title": "تقرير مطابقة العمليات غير متوافق مع نموذج canonical الحالي",
-      "evidence": "difference=38,692.16; missing=43",
+      "evidence": "difference=7,293.16; missing=59",
       "root_cause": "التقرير يتوقع قيدًا لكل operation ويجمع عمليات delivered/قديمة، بينما النموذج الحالي يعتمد قيد vehfinal واحدًا ويستبعد القيود المؤقتة دلاليًا.",
       "recommendation": "أعد بناء reconciliation حول business_event_id/accounting_identity والتصنيف الدلالي، ولا تنفذ backfill الحالي آليًا."
     },
@@ -193,7 +193,7 @@
       "id": "FIN-P1-03",
       "severity": "P1",
       "title": "تاريخ as_of في الذمم غير مطبق فعليًا",
-      "evidence": "period_start=9,181.00; today=9,181.00; end_date load count=0",
+      "evidence": "period_start=12,725.00; today=12,725.00; end_date load count=0",
       "root_cause": "build_current_ar_snapshot يقبل end_date لكنه لا يستخدمه لتصفية الزيارات أو القيود.",
       "recommendation": "طبّق cutoff موحدًا على visits/payments/journals واختبر نقاطًا تاريخية مختلفة."
     },
@@ -225,7 +225,7 @@
       "id": "FIN-P2-01",
       "severity": "P2",
       "title": "دفتر اليومية سيعرض KPI جزئيًا بعد 50 قيدًا",
-      "evidence": "current rows=36; frontend limit=50",
+      "evidence": "current rows=92; frontend limit=50",
       "root_cause": "KPI يُحسب من safeEntries المحملة فقط وليس total/count server-side.",
       "recommendation": "أضف totals endpoint أو pagination metadata قبل تجاوز 50 قيدًا."
     }
@@ -233,14 +233,7 @@
   "details": {
     "unbalanced_entries": [],
     "duplicate_journal_ids": [],
-    "finalization_mismatches": [
-      {
-        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
-        "final_customer_total": 2300.0,
-        "canonical_entries": 0,
-        "canonical_total": 0.0
-      }
-    ],
+    "finalization_mismatches": [],
     "supplier_policy_violations": [
       {
         "operation_id": "3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e",
@@ -275,11 +268,11 @@
         "engine_version": "unified-v1"
       },
       {
-        "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+        "vehicle_id": "e93529cd-bc16-464f-bc59-a835b694df0f",
         "status": 200,
-        "customer_total": 250.0,
-        "confirmed_paid": 250.0,
-        "remaining": 0.0,
+        "customer_total": 4500.0,
+        "confirmed_paid": 0.0,
+        "remaining": 4500.0,
         "supplier_archive_total": 0.0,
         "engine_version": "unified-v1"
       },
@@ -293,12 +286,30 @@
         "engine_version": "unified-v1"
       },
       {
-        "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+        "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+        "status": 200,
+        "customer_total": 250.0,
+        "confirmed_paid": 250.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "ddc21487-a04e-467f-b31e-f238c255d4a6",
+        "status": 200,
+        "customer_total": 515.0,
+        "confirmed_paid": 300.0,
+        "remaining": 215.0,
+        "supplier_archive_total": 175.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
         "status": 200,
         "customer_total": 2300.0,
-        "confirmed_paid": 6000.0,
-        "remaining": 0.0,
-        "supplier_archive_total": 7381.0,
+        "confirmed_paid": 0.0,
+        "remaining": 2300.0,
+        "supplier_archive_total": 2980.0,
         "engine_version": "unified-v1"
       },
       {
@@ -311,6 +322,15 @@
         "engine_version": "unified-v1"
       },
       {
+        "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+        "status": 200,
+        "customer_total": 800.0,
+        "confirmed_paid": 0.0,
+        "remaining": 800.0,
+        "supplier_archive_total": 2551.0,
+        "engine_version": "unified-v1"
+      },
+      {
         "vehicle_id": "523451c4-01a9-455e-902c-b21ae944a85f",
         "status": 200,
         "customer_total": 0.0,
@@ -320,66 +340,75 @@
         "engine_version": "unified-v1"
       },
       {
-        "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
-        "status": 200,
-        "customer_total": 31.0,
-        "confirmed_paid": 0.0,
-        "remaining": 31.0,
-        "supplier_archive_total": 271.0,
-        "engine_version": "unified-v1"
-      },
-      {
-        "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
-        "status": 200,
-        "customer_total": 1800.0,
-        "confirmed_paid": 0.0,
-        "remaining": 1800.0,
-        "supplier_archive_total": 175.0,
-        "engine_version": "unified-v1"
-      },
-      {
         "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
         "status": 200,
         "customer_total": 2500.0,
         "confirmed_paid": 0.0,
         "remaining": 2500.0,
-        "supplier_archive_total": 0.0,
+        "supplier_archive_total": 3984.0,
         "engine_version": "unified-v1"
       },
       {
-        "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+        "vehicle_id": "a6e141b3-0348-461e-92f3-33fc85aeeb86",
         "status": 200,
-        "customer_total": 300.0,
-        "confirmed_paid": 0.0,
-        "remaining": 300.0,
-        "supplier_archive_total": 0.0,
+        "customer_total": 610.0,
+        "confirmed_paid": 500.0,
+        "remaining": 110.0,
+        "supplier_archive_total": 110.0,
         "engine_version": "unified-v1"
       },
       {
-        "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+        "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
         "status": 200,
-        "customer_total": 800.0,
-        "confirmed_paid": 0.0,
-        "remaining": 800.0,
-        "supplier_archive_total": 0.0,
+        "customer_total": 2445.0,
+        "confirmed_paid": 6000.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 11442.0,
         "engine_version": "unified-v1"
       },
       {
-        "vehicle_id": "8708bbd6-18be-4fb0-93a4-f9818b2b91ad",
+        "vehicle_id": "3fe04b84-d1c9-4c64-af34-c67f98979989",
         "status": 200,
         "customer_total": 0.0,
         "confirmed_paid": 0.0,
         "remaining": 0.0,
-        "supplier_archive_total": 167.84,
+        "supplier_archive_total": 25.0,
         "engine_version": "unified-v1"
       },
       {
-        "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+        "vehicle_id": "b6549aaa-3c98-469c-b523-4b09954e096e",
         "status": 200,
-        "customer_total": 2300.0,
+        "customer_total": 200.0,
         "confirmed_paid": 0.0,
-        "remaining": 2300.0,
-        "supplier_archive_total": 1090.0,
+        "remaining": 200.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "0b99b0d0-0f2e-4431-8901-23f4d9522f95",
+        "status": 200,
+        "customer_total": 650.0,
+        "confirmed_paid": 0.0,
+        "remaining": 650.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "eb5b4dba-c6bb-4962-87ef-3ca741c23dce",
+        "status": 200,
+        "customer_total": 0.0,
+        "confirmed_paid": 0.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 0.0,
+        "engine_version": "unified-v1"
+      },
+      {
+        "vehicle_id": "0a9612ad-e2f5-45c3-ae45-8db7eeee6758",
+        "status": 200,
+        "customer_total": 0.0,
+        "confirmed_paid": 0.0,
+        "remaining": 0.0,
+        "supplier_archive_total": 0.0,
         "engine_version": "unified-v1"
       }
     ],
@@ -387,11 +416,11 @@
       {
         "type": "sale",
         "type_label_ar": "بيع",
-        "operations_count": 53,
-        "journal_entries_count": 25,
-        "operations_total": 68380.0,
-        "journal_entries_total": 31507.84,
-        "difference": 36872.16,
+        "operations_count": 71,
+        "journal_entries_count": 43,
+        "operations_total": 84481.0,
+        "journal_entries_total": 79009.84,
+        "difference": 5471.16,
         "matched": false,
         "account_labels": []
       },
@@ -409,12 +438,12 @@
       {
         "type": "expense",
         "type_label_ar": "مصروف",
-        "operations_count": 2,
-        "journal_entries_count": 2,
-        "operations_total": 454.0,
-        "journal_entries_total": 454.0,
-        "difference": 0.0,
-        "matched": true,
+        "operations_count": 3,
+        "journal_entries_count": 5,
+        "operations_total": 569.0,
+        "journal_entries_total": 571.0,
+        "difference": -2.0,
+        "matched": false,
         "account_labels": []
       },
       {
@@ -453,18 +482,18 @@
     ],
     "katrina_ar_summary": {
       "ssot": "journal_entries",
-      "ledger_ar_total": 22563.84,
+      "ledger_ar_total": 40521.0,
       "pending_unjournalized_total": 0,
       "pending_unjournalized_ops": [],
-      "effective_ar": 22563.84,
-      "reconciliation_gap": -22563.84,
+      "effective_ar": 40521.0,
+      "reconciliation_gap": -40521.0,
       "data_freeze_note": "الأرقام كما هي — مصير العمليات الآجلة بلا قيود وقيود الاختبار قرار للمالك (أمر علاج L14 بند 4). SSOT المرجعي = دفتر القيود.",
       "temporary_deferred_total": 7760.0,
       "temporary_deferred_entries": [
         {
           "entry_id": "79290ede",
           "reference_id": "f5813fbd",
-          "party": "شاص 2006",
+          "party": "محمد عبدالله الوهبي",
           "total": 800.0,
           "date": "2026-08-04",
           "partially_collected": false
@@ -518,75 +547,8 @@
     }
   },
   "single_writer_contract": {
-    "direct_journal_mutations_outside_engine": [
-      {
-        "file": "routes_finance.py",
-        "line": 4912,
-        "code": "supabase.table(\"journal_entries\").update({\"lines\": new_lines}).eq(\"id\", entry_id).execute()"
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 5095,
-        "code": "supabase.table(\"journal_entries\").update({\"lines\": new_lines}).eq(\"id\", entry_id).execute()"
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 5309,
-        "code": "supabase.table(\"journal_entries\").update({\"lines\": new_lines}).eq(\"id\", entry_id).execute()"
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 5472,
-        "code": "supabase.table(\"journal_entries\").update({\"lines\": patched, \"total\": workshop_total}).eq(\"id\", entry.get(\"id\")).execute()"
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 6198,
-        "code": "supa.client.table(\"journal_entries\").update("
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 6299,
-        "code": "supabase.table(\"journal_entries\").update("
-      },
-      {
-        "file": "core/financial_reset_engine.py",
-        "line": 284,
-        "code": "client.table(\"journal_entries\").update({"
-      },
-      {
-        "file": "core/financial_actions.py",
-        "line": 104,
-        "code": "supa.client.table(\"journal_entries\").update({\"description\": nd}).eq(\"id\", r[\"id\"]).execute()"
-      }
-    ],
-    "post_entry_calls_using_default_fallback": [
-      {
-        "file": "server.py",
-        "line": 975,
-        "code": "accounting_engine.post_entry(entry)"
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 2060,
-        "code": "res = accounting_engine.post_entry(entry)"
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 3542,
-        "code": "accounting_engine.post_entry(new_entry)"
-      },
-      {
-        "file": "routes_finance.py",
-        "line": 3678,
-        "code": "response_data = accounting_engine.post_entry(full_entry_data)"
-      },
-      {
-        "file": "routes_suppliers_extended.py",
-        "line": 506,
-        "code": "accounting_engine.post_entry(entry)"
-      }
-    ],
+    "direct_journal_mutations_outside_engine": [],
+    "post_entry_calls_using_default_fallback": [],
     "current_ar_end_date_is_effectively_used": false,
     "current_ar_end_date_load_count": 0,
     "katrina_total_ar_uses_stored_balances": true,
