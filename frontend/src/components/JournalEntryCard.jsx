@@ -12,6 +12,7 @@ export const TRANSACTION_TYPE_LABELS = {
   salary: 'رواتب',
   settlement: 'تسوية',
   repair_reversal: 'قيد تصحيحي',
+  reversal: 'قيد عكسي',
   closing: 'قيد إقفال',
   manual: 'قيد يدوي',
 };
@@ -28,6 +29,7 @@ export const SOURCE_LABELS = {
   period_close: 'إقفال فترة',
   manual: 'قيد يدوي',
   historical_financial_repair: 'تصحيح محاسبي',
+  reversal: 'قيد عكسي',
   hist_vehicle_ar_repair: 'استرجاع ذمم سابقة',
   active_vehicle_ar_repair: 'إثبات ذمم مركبات',
   fin_engine_align_v1: 'محاذاة المحرك المالي',
@@ -53,7 +55,7 @@ export const classifyEntry = (entry) => {
   if (['sale', 'sale_return', 'receipt_voucher'].includes(type)) return 'income';
   if (type === 'payment') return 'collection';
   if (['purchase', 'purchase_return', 'expense', 'salary'].includes(type)) return 'outflow';
-  if (type === 'repair_reversal') return 'correction';
+  if (type === 'repair_reversal' || type === 'reversal') return 'correction';
   if (type === 'closing') return 'closing';
   return 'neutral';
 };
@@ -362,7 +364,7 @@ export default function JournalEntryCard({
                 onClick={() => { setShowMenu(false); onDelete && onDelete(entry); }}
                 data-testid={`journal-card-delete-${cardId}`}
               >
-                <Trash2 size={14} /> حذف
+                <Trash2 size={14} /> إلغاء القيد (عكسي)
               </button>
             ) : null}
           </div>

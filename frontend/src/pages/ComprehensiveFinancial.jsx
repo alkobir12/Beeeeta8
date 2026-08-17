@@ -132,6 +132,8 @@ const ExpandableMetricCard = ({ title, value, subtitle, details = [], expanded, 
 
 const safeDate = (date) => date.toISOString().split('T')[0];
 
+const FAR_FUTURE_DATE = '2099-12-31';
+
 const resolveWorkshopId = () => {
   const fromEnv = process.env.REACT_APP_WORKSHOP_ID;
   if (fromEnv && String(fromEnv).trim()) return String(fromEnv).trim();
@@ -176,7 +178,7 @@ export default function ComprehensiveFinancial() {
     parts_profit: false,
   });
   const [startDate, setStartDate] = useState('2000-01-01');
-  const [endDate, setEndDate] = useState(() => safeDate(new Date()));
+  const [endDate, setEndDate] = useState(FAR_FUTURE_DATE);
   const [activePreset, setActivePreset] = useState('all');
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -820,6 +822,7 @@ export default function ComprehensiveFinancial() {
       case 'all':
       default:
         start = '2000-01-01';
+        end = FAR_FUTURE_DATE; // «كل الفترة» تشمل أي قيود بتواريخ لاحقة (فروقات توقيت الأجهزة/الخوادم)
     }
     setStartDate(start);
     setEndDate(end);
@@ -831,10 +834,12 @@ export default function ComprehensiveFinancial() {
     if (closing) return;
     setClosing(true);
     setCloseResult(null);
+    // 🛡️ تاريخ الإقفال لا يتجاوز اليوم أبداً حتى لو كان مدى العرض ممتداً للمستقبل
+    const closeAsOfDate = endDate > safeDate(new Date()) ? safeDate(new Date()) : endDate;
     try {
       const res = await financeAPI.closePeriod(workshopId, {
-        as_of_date: endDate,
-        description: `إقفال الفترة حتى ${endDate}`,
+        as_of_date: closeAsOfDate,
+        description: `إقفال الفترة حتى ${closeAsOfDate}`,
       });
       const data = res?.data?.data || res?.data || {};
       setCloseResult({ ok: true, data });
@@ -1110,7 +1115,7 @@ export default function ComprehensiveFinancial() {
               <div className="space-y-2 text-sm text-slate-200">
                 <p>هذا الإجراء سيُنشئ <strong className="text-amber-200">قيداً محاسبياً متوازناً</strong> ينقل كل أرصدة الإيرادات/المصروفات إلى <strong className="text-cyan-200">الأرباح المحتجزة</strong> ويُصفّرها للبدء من جديد.</p>
                 <ul className="text-xs text-slate-400 list-disc pr-5 space-y-0.5">
-                  <li>تاريخ الإقفال: <span className="text-slate-200 font-mono">{endDate}</span></li>
+                  <li>تاريخ الإقفال: <span className="text-slate-200 font-mono">{endDate > safeDate(new Date()) ? safeDate(new Date()) : endDate}</span></li>
                   <li>سيُنشأ قيد واحد متوازن (مدين = دائن)</li>
                   <li>الجدار سيرفض القيد إذا لم يكن متوازناً</li>
                   <li>الأرصدة التاريخية تُحفظ في «أرباح محتجزة» (023)</li>

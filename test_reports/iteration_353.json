@@ -1,0 +1,47 @@
+{
+  "summary": "Tested (1) journal delete-via-reversal flow and (2) KPI period filtering / FAR_FUTURE_DATE fixes. KPI fix works (backend + UI): 'كل الفترة' preset yields end_date=2099-12-31, larger totals than 'اليوم'; income-statement across ranges is monotonic and consistent. DELETE=REVERSAL is BROKEN: DELETE /api/finance/journal-entries/{id}?workshop_id=finmodule-sync returns success=false with error 'reverse_entry() got an unexpected keyword argument workshop_id'. This means the user's original bug ('لا يمكن حذف القيود') is NOT actually fixed — every delete attempt still fails at the backend, no reversal entry is created, no audit trail entry added. Idempotency of DELETE cannot be verified because the first call already errors out.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "DELETE /api/finance/journal-entries/{id}",
+        "issue": "routes_finance.py:3712 calls accounting_engine.reverse_entry(journal_id=..., reason=..., actor=..., workshop_id=workshop_id) but the engine wrapper at core/accounting_engine.py:637 has signature reverse_entry(*, journal_id=None, reference_id=None, reason='', actor=None) — no workshop_id kwarg. Every DELETE therefore fails with TypeError, returned to caller as {success:false, error:\"reverse_entry() got an unexpected keyword argument 'workshop_id'\"}. Confirmed against live preview backend with a freshly created test entry.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Delete journal entry (reversal)",
+        "issue": "Because backend DELETE errors out, the UI success toast 'تم إلغاء أثر القيد بنجاح عبر قيد عكسي' will never fire; the delete-confirm modal will show a failure. Not re-tested in UI once the backend regression was confirmed (would only reproduce the same error).",
+        "affected_selectors": ["confirm-delete-btn", "journal-card-delete-*"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_reversal_and_kpi.py",
+    "/app/test_reports/pytest/reversal_kpi.xml"
+  ],
+  "action_items": [
+    "FIX CRITICAL: routes_finance.py delete_journal_entry — remove the workshop_id=workshop_id kwarg from the accounting_engine.reverse_entry(...) call (line ~3712-3717), OR add workshop_id to accounting_engine.reverse_entry signature (financial-core-frozen policy → prefer the route-side fix). Retest with test_reversal_and_kpi.py::TestReversal.",
+    "After fix, verify idempotency (second DELETE returns idempotent flag / no duplicate reversal) — test already in place."
+  ],
+  "critical_code_review_comments": [
+    "Route error handler swallows exception as {success:false} with HTTP 200 — this hides real 500-class regressions from monitoring. Consider returning 500 or logging at ERROR level with stack trace so bugs like this signature mismatch don't silently reach production.",
+    "core/accounting_engine.reverse_entry signature does not accept workshop_id, but reverse operations are conceptually workshop-scoped — worth deciding whether the engine should validate/scope by workshop_id before writing the reversal, especially in a multi-tenant deployment.",
+    "POST /journal-entries response shape returns id at top-level AND inside data (list). Consistency: standardize to a single canonical entry object under data."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_reversal_and_kpi.py"
+  ],
+  "success_rate": {"backend": "60% (3/5 tests pass — 2 delete-reversal tests fail due to backend regression)", "frontend": "KPI presets + FAR_FUTURE_DATE verified visually; delete UI not retested"},
+  "test_credentials": "مدير / 010101 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created 2 disposable balanced journal entries during testing (Cash 003 debit 1.00 / Revenue 024 credit 1.00) labelled 'قيد اختبار مؤقت للحذف العكسي'. Because DELETE is broken, these entries could NOT be reversed and remain in the ledger. Main agent may want to reverse them manually after fixing the bug (they add +2.00 revenue / +2.00 cash — negligible).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Server clock is now 2026-08-17 (past the 2026-08-12/13 future-dated entries), so YTD-to-today totals now equal all-time totals in current live data — TEST 3's original 'range-with-future strictly > range-until-today' expectation no longer holds by pure data; the test was relaxed to verify (a) all >= ytd, (b) today < all, (c) FAR_FUTURE_DATE end_date is accepted. Delete-reversal bug is the blocker; after main agent fixes the reverse_entry kwarg mismatch, re-run pytest backend/tests/test_reversal_and_kpi.py and then do the UI TEST 1 flow. TEST 5 (close-period date cap dialog) not executed after critical bug was confirmed — main agent to verify or re-test.",
+  "rca of the issue": "RCA: The main-agent fix modified routes_finance.py:3712 to call accounting_engine.reverse_entry(journal_id=entry_id, reason=..., actor=..., workshop_id=workshop_id). However core/accounting_engine.reverse_entry(...) (line 637) is a keyword-only wrapper that accepts only {journal_id, reference_id, reason, actor}. Python raises TypeError at call time; the try/except in the route converts it to {success:false, error:'reverse_entry() got an unexpected keyword argument workshop_id'} and HTTP 200, so no 5xx is visible. Reproduction: POST a balanced entry, then DELETE /api/finance/journal-entries/{id}?workshop_id=finmodule-sync → returns success:false with that exact error. Mitigation (route-side, preserves frozen financial core): drop the workshop_id kwarg from the reverse_entry call. Alternative (touches core, not recommended per frozen-core policy): extend engine signature to accept and validate workshop_id."
+}

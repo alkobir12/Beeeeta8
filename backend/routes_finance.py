@@ -3713,9 +3713,15 @@ async def delete_journal_entry(entry_id: str, workshop_id: str = Query(...)):
             journal_id=entry_id,
             reason="manual_journal_delete_request",
             actor={"user_id": "routes_finance.delete_journal_entry"},
-            workshop_id=workshop_id,
         )
         if not reverse_result.get("reversed"):
+            entries_info = reverse_result.get("entries") or []
+            if any(item.get("idempotent") for item in entries_info):
+                return {
+                    "success": True,
+                    "message": "القيد مَعكوس مسبقًا — لا حاجة لإجراء إضافي",
+                    "data": reverse_result,
+                }
             return {
                 "success": False,
                 "error": reverse_result.get("error") or "reverse_failed",

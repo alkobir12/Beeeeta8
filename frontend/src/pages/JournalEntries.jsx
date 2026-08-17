@@ -380,11 +380,18 @@ export default function JournalEntries() {
 
   const handleDeleteEntry = async (entryId) => {
     try {
-      alert('تم إيقاف حذف القيود من الواجهة. التصحيحات المستقبلية ستكون بقيود عكسية من Backend.');
-      setDeleteConfirm(null);
+      const response = await api.delete(`/finance/journal-entries/${entryId}`, { params: { workshop_id: WORKSHOP_ID } });
+      const data = response?.data;
+      if (data?.success) {
+        setDeleteConfirm(null);
+        alert('تم إلغاء أثر القيد بنجاح عبر قيد عكسي من المحرك المحاسبي');
+        fetchJournalEntries();
+      } else {
+        alert(data?.message || data?.error || 'تعذر إلغاء القيد');
+      }
     } catch (error) {
-      console.error('Error deleting entry:', error);
-      alert('حدث خطأ في حذف القيد');
+      console.error('Error reversing entry:', error);
+      alert('حدث خطأ أثناء إلغاء القيد');
     }
   };
 
@@ -1793,17 +1800,18 @@ function DeleteConfirmModal({ entry, onClose, onConfirm, isLight, styles }) {
         }}
       >
         <div className="p-6 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-100 flex items-center justify-center">
-            <Trash2 size={32} className="text-rose-300" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+            <ArrowLeftRight size={32} className="text-amber-500" />
           </div>
           <h3 className="text-xl font-bold mb-2" style={{ color: styles.textPrimary }}>
-            حذف القيد المحاسبي
+            إلغاء القيد بقيد عكسي
           </h3>
           <p className="mb-6" style={{ color: styles.textSecondary }}>
-            هل أنت متأكد من حذف القيد
-            <span className="font-semibold"> {sanitizeEntryText(entry.description || entry.entry_number)} </span>؟
+            سيتم إنشاء قيد عكسي يلغي أثر القيد
+            <span className="font-semibold"> {sanitizeEntryText(entry.description || entry.entry_number)} </span>
+            بالكامل عبر المحرك المحاسبي.
             <br />
-            <span className="text-rose-300 text-sm">هذا الإجراء لا يمكن التراجع عنه</span>
+            <span className="text-amber-300 text-sm">لا يوجد حذف مباشر — يبقى القيد الأصلي في السجل للمراجعة ويُلغى أثره المالي</span>
           </p>
           
           <div className="flex gap-3">
@@ -1812,8 +1820,8 @@ function DeleteConfirmModal({ entry, onClose, onConfirm, isLight, styles }) {
               className="flex-1 py-3 rounded-xl font-medium text-white bg-rose-600 hover:bg-rose-700 transition-all flex items-center justify-center gap-2"
               data-testid="confirm-delete-btn"
             >
-              <Trash2 size={18} />
-              نعم، احذف
+              <ArrowLeftRight size={18} />
+              نعم، ألغِ القيد
             </button>
             <button
               onClick={onClose}

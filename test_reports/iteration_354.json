@@ -1,0 +1,40 @@
+{
+  "summary": "RETEST after iter353 fix — all 3 requested checks PASS. TEST A: pytest backend/tests/test_reversal_and_kpi.py = 5/5 PASS after adjusting fixture to use unique amount+nonce (POST is idempotent on hash of date+lines, so identical payloads across runs return the same entry_id which is then reported as already-reversed) and updating assertions to read the idempotent flag from data.entries[0] (engine response shape). Backend fix confirmed via curl: 1st DELETE → reversed=true, posted=true, journal_id issued; 2nd DELETE → success=true with idempotent=true and message 'القيد مَعكوس مسبقًا — لا حاجة لإجراء إضافي'. No TypeError. TEST B: UI delete flow end-to-end — logged in مدير/010101, navigated to /accounting/journal-entries, clicked journal-mode-full-button, located the disposable card (search by nonce did not filter — see minor issue below; used scroll instead), opened '•••', clicked 'إلغاء القيد (عكسي)', confirmed modal title 'إلغاء القيد بقيد عكسي', clicked confirm-delete-btn, captured native alert 'تم إلغاء أثر القيد بنجاح عبر قيد عكسي من المحرك المحاسبي', and after refresh saw the amber reversal card ('قيد عكسي' tag, JE-0002) next to the original amber card (JE-0001, 'قيد اختبار مؤقت للحذف العكسي UI') — audit trail preserved. TEST C: /accounting/comprehensive → financial-close-period-button opens the dialog with 'تاريخ الإقفال: 2026-08-17' (today's server date, NOT 2099-12-31) → cancelled with Escape without confirming (no closing entry posted).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/finance/journal-entries/{id}", "issue": "Route wraps engine result in success:true whether reversed=true or reversed=false+idempotent=true. Both branches share the same top-level success flag, and the idempotent hint lives at data.entries[0].idempotent (not at data.idempotent) — worth surfacing at data root for easier client consumption; documented in test fix."},
+      {"endpoint": "POST /api/finance/journal-entries", "issue": "Idempotency: identical (date + lines) payloads across sessions return the SAME entry_id — description in DB does NOT update from the second POST even though HTTP 200 message says 'تم إنشاء القيد المحاسبي بنجاح'. Could mislead callers into thinking a new entry was created. Consider returning an 'existing:true' flag or updating description on repeat POST."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Journal search (full mode)", "issue": "Search box filtering (input[placeholder*='بحث برقم القيد أو الوصف أو العميل']) does NOT match on partial Latin/hex tokens inside Arabic descriptions — e.g., searching for the nonce '69b98d' contained in description 'قيد اختبار مؤقت للحذف العكسي UI 69b98d' returns 0 results, while Arabic substring 'اختبار مؤقت للحذف' also returns 0 in full mode (may only match reference-id or exact prefix). Non-blocking: users can still scroll to locate entries. Recommend making description search case-insensitive and substring-based across mixed scripts.", "affected_selectors": ["input[placeholder*='بحث']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_reversal_and_kpi.py",
+    "/app/test_reports/pytest/reversal_kpi_iter354.xml"
+  ],
+  "action_items": [
+    "(optional) Expose idempotent/already_reversed flag at data root of DELETE response (currently only at data.entries[0].idempotent) to make client-side branching cleaner.",
+    "(optional) Fix journal-full-mode search to substring-match Arabic + Latin/hex fragments in description.",
+    "(optional) POST /finance/journal-entries idempotency: include 'existing:true' when returning a previously-created entry rather than 'تم إنشاء ... بنجاح'."
+  ],
+  "critical_code_review_comments": [
+    "DELETE=reverse now works and is idempotent — bug from iter353 is definitively closed. The 'idempotent' branch correctly refuses to post a duplicate reversal, preserving ledger hygiene.",
+    "Server clock is 2026-08-17; FAR_FUTURE_DATE=2099-12-31 is still accepted for KPI ranges (test_far_future_end_date_accepted PASS)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_reversal_and_kpi.py"
+  ],
+  "success_rate": {"backend": "100% (5/5 pytest, DELETE reversal + idempotency + KPI ranges)", "frontend": "100% (UI delete E2E + close-period date-cap dialog)"},
+  "test_credentials": "مدير / 010101 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Created ONE disposable balanced manual entry via API for UI TEST B (id=5bdc8c1a-de0c-408b-befe-bc6823c8adf9, Cash 003 debit 0.58 / Revenue 024 credit 0.58, description 'قيد اختبار مؤقت للحذف العكسي UI 69b98d'). REVERSED via UI in the same test, so ledger net-zero. Pytest fixture also creates disposable entries and TEST 1 reverses them (net-zero). NO real business entries were touched. Close-period dialog was CANCELLED without confirming (no closing entry posted).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Delete=reversal flow is fully green (backend + UI). Close-period dialog date cap works. Only non-blocking follow-ups are: (a) response-shape surface idempotent at data root, (b) full-mode search substring/mixed-script matching, (c) POST idempotency messaging. If future testing needs to reverse a disposable entry, use a unique amount (round(random.uniform(0.11,0.99),2)) plus a unique nonce in description to bypass POST dedup — otherwise you'll get an already-existing already-reversed entry_id and delete calls will appear as no-ops. Pytest fixture in /app/backend/tests/test_reversal_and_kpi.py already does this.",
+  "rca of the issue": "Original iter353 bug (reverse_entry() got an unexpected keyword argument 'workshop_id') is fixed at routes_finance.py delete_journal_entry — the workshop_id kwarg was removed from the accounting_engine.reverse_entry(...) call; the frozen core signature accounting_engine.reverse_entry(*, journal_id, reference_id, reason, actor) is respected. Idempotency path now short-circuits with success:true + message 'القيد مَعكوس مسبقًا — لا حاجة لإجراء إضافي' when reference 'reversal::<id>' already exists, preventing duplicate reversals. Confirmed with fresh entry: 1st DELETE reversed=true+posted=true+journal_id issued; 2nd DELETE reversed=false+idempotent=true. UI happy path shows correct alert and audit-trail cards; close-period dialog capped at server-today."
+}

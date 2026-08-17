@@ -198,5 +198,29 @@
     "category": "",
     "rating": 5.0,
     "createdAt": "2026-08-02T21:05:06.228645"
+  },
+  {
+    "id": "f92bcd68-a160-4224-9a2a-0f5e9a967f3b",
+    "name": "ورشةمحمد علي الصمعاني",
+    "phone": "",
+    "contactPerson": "",
+    "email": "",
+    "address": "",
+    "city": "",
+    "category": "",
+    "rating": 5.0,
+    "createdAt": "2026-08-17T05:55:12.017166"
+  },
+  {
+    "id": "7d7ca8d0-73aa-480e-a0fa-045f15889873",
+    "name": "محطة بتروجين",
+    "phone": "0",
+    "contactPerson": "",
+    "email": "",
+    "address": "لبقصيم بريده البصر",
+    "city": "بريده",
+    "category": "محطة",
+    "rating": 5.0,
+    "createdAt": "2026-08-17T07:04:55.766186"
   }
 ]
