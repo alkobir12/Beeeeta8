@@ -121,7 +121,7 @@ def test_lockout_after_five_failed_attempts(session, api_url):
 
 # Feature: CORS credentials contract for preview origin (public endpoint)
 def test_login_cors_headers_for_preview_origin(session, api_url):
-    origin = "https://canonical-integrity.preview.emergentagent.com"
+    origin = "https://accounting-ssot-fix.preview.emergentagent.com"
     res = session.post(
         f"{api_url}/api/auth/login",
         headers={"Content-Type": "application/json", "Origin": origin},

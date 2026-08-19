@@ -10,12 +10,12 @@ from dotenv import load_dotenv
 
 load_dotenv("/app/backend/.env")
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://canonical-integrity.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://accounting-ssot-fix.preview.emergentagent.com").rstrip("/")
 BYPASS = os.environ.get("RATE_LIMIT_BYPASS_TOKEN", "")
 
 HDR = {"x-ratelimit-bypass": BYPASS, "Content-Type": "application/json"}
 
-LOGIN_PAYLOAD = {"username": "مدير", "pin": "123123"}
+LOGIN_PAYLOAD = {"username": "مدير", "password": "010101"}
 
 
 def _login():
@@ -36,7 +36,10 @@ def test_refresh_cookie_only():
     r = requests.post(f"{BASE_URL}/api/auth/refresh", headers=HDR, cookies=cookies, timeout=20)
     assert r.status_code == 200, f"cookie-only refresh failed: {r.status_code} {r.text}"
     j = r.json()
-    assert j.get("access_token") and j.get("refresh_token")
+    # XSS hardening: cookie-driven refresh must NOT expose refresh_token in the body
+    assert j.get("access_token")
+    assert "refresh_token" not in j, "cookie-driven refresh must keep refresh token httpOnly-cookie-only"
+    assert "refresh_token" in r.cookies or "refresh_token" in {c.name for c in r.cookies}
 
 
 def test_refresh_bearer_only():

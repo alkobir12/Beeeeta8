@@ -1,33 +1,67 @@
 /**
- * JWT Authentication helper — preserves name-only login UX.
+ * JWT Authentication helper — httpOnly-cookie-first (XSS hardening).
  *
- * Backend issues a 30-day token after a simple username submission.
- * Frontend stores it in localStorage + attaches it to every axios request
- * via global interceptor (set up in App.js).
+ * Tokens are NEVER persisted in localStorage. The access token lives in
+ * module memory only; the authoritative copies are httpOnly cookies set by
+ * the backend (access_token + refresh_token). A non-sensitive marker
+ * ('auth_session'='1') tells the app a session likely exists after reload.
  */
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
-const TOKEN_KEY = 'auth_token';
-const REFRESH_KEY = 'refresh_token';
+const SESSION_MARKER = 'auth_session';
+const LEGACY_TOKEN_KEY = 'auth_token';
+const LEGACY_REFRESH_KEY = 'refresh_token';
 
-/** Call POST /api/auth/login with username, store returned JWT. */
+let _accessToken = '';
+
+function _isBackendUrl(url) {
+  const u = String(url || '');
+  return u.startsWith('/') || (BACKEND && u.startsWith(BACKEND));
+}
+
+function _setMarker(on) {
+  try {
+    if (on) localStorage.setItem(SESSION_MARKER, '1');
+    else localStorage.removeItem(SESSION_MARKER);
+  } catch (e) { /* noop */ }
+}
+
+/** Purge any legacy localStorage tokens (pre-hardening sessions). */
+function _purgeLegacyTokens() {
+  try {
+    const hadLegacy = Boolean(localStorage.getItem(LEGACY_TOKEN_KEY) || localStorage.getItem(LEGACY_REFRESH_KEY));
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_REFRESH_KEY);
+    localStorage.removeItem('token');
+    if (hadLegacy) _setMarker(true);
+  } catch (e) { /* noop */ }
+}
+
+/** True if a session likely exists (in-memory token or marker from a prior login). */
+export function hasAuthSession() {
+  if (_accessToken) return true;
+  try { return localStorage.getItem(SESSION_MARKER) === '1'; } catch { return false; }
+}
+
+/** Call POST /api/auth/login with username, keep returned JWT in memory. */
 export async function loginAndIssueToken(username) {
   const res = await loginRequest({ username });
   return res.ok ? res.data?.access_token || null : null;
 }
 
-/** Persist issued tokens (access + refresh) and reset the logout latch. */
+/** Keep the issued access token in memory only + set the session marker. */
 export function storeTokens(data) {
   const token = data?.access_token;
   if (!token) return null;
-  localStorage.setItem(TOKEN_KEY, token);
-  if (data?.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+  _accessToken = token;
+  _setMarker(true);
+  _purgeLegacyTokens();
   _loggingOut = false;
   return token;
 }
 
 /** P1 multi-method login: body may carry {username|email, password, pin, device_id, remember_device}.
- *  Returns {ok, status, data, detail}. Stores tokens on success. */
+ *  Returns {ok, status, data, detail}. Keeps the access token in memory on success. */
 export async function loginRequest(body) {
   const performLogin = async (withCredentials = true) => fetch(`${BACKEND}/api/auth/login`, {
     method: 'POST',
@@ -73,27 +107,19 @@ export async function loginRequest(body) {
   }
 }
 
+/** In-memory access token (may be '' right after reload — cookies still authenticate). */
 export function getStoredToken() {
-  try { return localStorage.getItem(TOKEN_KEY) || ''; }
-  catch (e) {
-    console.warn('getStoredToken failed:', e);
-    return '';
-  }
-}
-
-function getStoredRefresh() {
-  try { return localStorage.getItem(REFRESH_KEY) || ''; }
-  catch (e) {
-    console.warn('getStoredRefresh failed:', e?.message || e);
-    return '';
-  }
+  return _accessToken || '';
 }
 
 export function clearStoredToken() {
+  _accessToken = '';
   try {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-  } catch (e) { console.warn('clearStoredToken failed:', e); }
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_REFRESH_KEY);
+    localStorage.removeItem('token');
+  } catch (e) { /* noop */ }
+  _setMarker(false);
 }
 
 let _refreshPromise = null;
@@ -108,7 +134,7 @@ function _isAuthPath(url) {
   }
 }
 
-/** Orderly logout when refresh is impossible — clear tokens, notify app, redirect once.
+/** Orderly logout when refresh is impossible — clear session, notify app, redirect once.
  *  Prevents the "401 → refresh-fail → repeat" cascade/loop the owner reported. */
 function _orderlyLogout() {
   if (_loggingOut) return;
@@ -125,28 +151,23 @@ function _orderlyLogout() {
   } catch (e) { console.warn('Orderly logout redirect failed:', e?.message || e); }
 }
 
-/** Mint a fresh access token (single-flight). Uses the httpOnly refresh cookie AND,
- *  as a fallback for cookie-blocked contexts (cross-site iframe / Safari ITP), the
- *  stored refresh token via Authorization: Bearer. Concurrent callers await the same
- *  in-flight promise (request queue), then each replays its own request. */
+/** Mint a fresh access token via the httpOnly refresh cookie (single-flight).
+ *  Concurrent callers await the same in-flight promise, then replay their requests. */
 export async function refreshAccessToken() {
   if (_refreshPromise) return _refreshPromise;
   _refreshPromise = (async () => {
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      const storedRefresh = getStoredRefresh();
-      if (storedRefresh) headers.Authorization = `Bearer ${storedRefresh}`;
       const resp = await fetch(`${BACKEND}/api/auth/refresh`, {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
       if (!resp.ok) return null;
       const data = await resp.json();
       const token = data?.access_token;
       if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
-        if (data?.refresh_token) localStorage.setItem(REFRESH_KEY, data.refresh_token);
+        _accessToken = token;
+        _setMarker(true);
         _loggingOut = false; // a successful refresh clears the logout latch
         return token;
       }
@@ -161,11 +182,14 @@ export async function refreshAccessToken() {
   return _refreshPromise;
 }
 
-/** Install global axios + fetch interceptors that attach Bearer header + auto-refresh. */
+/** Install global axios + fetch interceptors: cookies-first auth + auto-refresh on 401. */
 export function installAuthInterceptors(axios) {
   if (!axios || axios.__authInstalled) return;
   axios.__authInstalled = true;
-  // axios request: attach Bearer
+  _purgeLegacyTokens();
+  // send httpOnly cookies with every axios request (same-origin backend)
+  axios.defaults.withCredentials = true;
+  // axios request: attach in-memory Bearer when available (cookies cover the rest)
   axios.interceptors.request.use(
     (cfg) => {
       const t = getStoredToken();
@@ -184,7 +208,7 @@ export function installAuthInterceptors(axios) {
     async (err) => {
       const cfg = err?.config || {};
       const status = err?.response?.status;
-      const hadAuthContext = Boolean(cfg.__hadAuthToken || getStoredRefresh());
+      const hadAuthContext = Boolean(cfg.__hadAuthToken || hasAuthSession());
       if (status === 401 && !cfg.__isRetry && !_isAuthPath(cfg.url) && hadAuthContext) {
         const newToken = await refreshAccessToken();
         if (newToken) {
@@ -199,21 +223,23 @@ export function installAuthInterceptors(axios) {
     }
   );
 
-  // Patch global fetch to attach the header + auto-refresh on 401
+  // Patch global fetch: include cookies for backend calls + auto-refresh on 401
   if (typeof window !== 'undefined' && window.fetch && !window.fetch.__authPatched) {
     const origFetch = window.fetch.bind(window);
     const patched = async function (input, init = {}) {
       const t = getStoredToken();
-      const hadAuthContext = Boolean(t || getStoredRefresh());
+      const hadAuthContext = Boolean(t || hasAuthSession());
       const headers = new Headers(init.headers || (typeof input !== 'string' && input?.headers) || {});
       if (t && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${t}`);
       const url = typeof input === 'string' ? input : (input && input.url) || '';
-      let resp = await origFetch(input, { ...init, headers });
+      const sendCookies = _isBackendUrl(url) && !init.credentials;
+      const baseInit = sendCookies ? { ...init, credentials: 'include' } : init;
+      let resp = await origFetch(input, { ...baseInit, headers });
       if (resp.status === 401 && !init.__isRetry && !_isAuthPath(url) && hadAuthContext) {
         const newToken = await refreshAccessToken();
         if (newToken) {
           headers.set('Authorization', `Bearer ${newToken}`);
-          resp = await origFetch(input, { ...init, headers, __isRetry: true });
+          resp = await origFetch(input, { ...baseInit, headers, __isRetry: true });
         } else {
           _orderlyLogout();
         }

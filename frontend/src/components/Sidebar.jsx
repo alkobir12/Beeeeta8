@@ -29,6 +29,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import LanguageToggleButton from './LanguageToggleButton';
 import { resolveBackendBase } from '../utils/backendBase';
+import { clearStoredToken } from '../utils/authToken';
 import { hasPermission, hasRoutePermission, resolveRoutePermission } from '../utils/permissions';
 import { readRecentPages, clearRecentPages } from '../hooks/useRecentPages';
 import { Clock } from 'lucide-react';
@@ -192,11 +193,22 @@ const Sidebar = ({
     if (window.innerWidth < 1024) onClose?.();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (e) { /* proceed with local cleanup */ }
+    clearStoredToken();
     localStorage.removeItem('workshopUser');
     localStorage.removeItem('session');
     localStorage.removeItem('user');
-    navigate('/login');
+    localStorage.removeItem('auth_session');
+    try {
+      document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    } catch (e) { /* noop */ }
+    window.location.replace('/login');
   };
 
   const readSession = () => {

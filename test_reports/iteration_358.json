@@ -1,0 +1,46 @@
+{
+  "summary": "Executed backend auth-contract regression (7 pytest tests) and frontend E2E for XSS hardening (cookie auth, localStorage checks, logout). Backend 7/7 pass — confirming cookie-based /me, cookie-refresh omitting refresh_token from body, bearer-refresh including refresh_token (API-client compat), logout revoking session, balance sheet balanced (73879 = 420 + 73459), and AR SSOT canonical (dashboard total_ar=19405.0 == /api/finance/ar/customers total_ar=19405.0). Frontend XSS hardening verified: after login (مدير/010101) localStorage has NO auth_token/refresh_token keys, only auth_session='1' marker; both access_token and refresh_token cookies are HttpOnly+Secure. Session survives reload, /accounting/journal-entries loads with data, /debts-followup renders AR total ١٩,٤٠٥.٠٠ ر.س correctly (Arabic-Indic digits). One frontend UX issue found: sidebar-logout-button does NOT redirect to /login and does NOT fully clear localStorage (auth_session=1 and session={full user object} remain); server-side logout DOES work (visiting / after logout shows 'غير مصرح بالوصول' unauthorized page, proving cookies were revoked).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Sidebar.handleLogout",
+        "issue": "After clicking sidebar-logout-button: (1) URL stays at '/' instead of redirecting to /login (navigate('/login') appears to fail or is overridden). (2) localStorage still contains auth_session='1' AND session={full user permissions object with role=admin, phone, etc.} — the client-side cleanup only removes 'workshopUser','session','user' via removeItem, but the SESSION object with sensitive role/permissions data is being RE-created by another effect after navigation, OR the removal is happening but a re-render restores it. (3) Visiting / after logout shows 'غير مصرح بالوصول' (backend rejects — server-side revocation OK) but the app never sends user to the login screen. Root cause hypothesis: clearStoredToken() removes auth_session marker, then navigate('/login') is called, but route guard sees residual session state (or hasAuthSession re-derives true from residual state) and bounces user back to /. Note: session object stringified in localStorage exposes role and full permissions map — this partially defeats the XSS hardening effort since an XSS payload could still read admin permissions & user identity from localStorage.session.",
+        "selector": "[data-testid=\"sidebar-logout-button\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter358_xss_auth.py",
+    "/app/test_reports/pytest/iter358_results.xml"
+  ],
+  "action_items": [
+    "Fix Sidebar.handleLogout: ensure localStorage.removeItem('auth_session') is called (currently clearStoredToken should do this via _setMarker(false) but appears to be re-set); also remove 'session' key which contains full role/permissions payload — this data should not be in localStorage after XSS hardening since it discloses admin identity/permissions to any XSS payload.",
+    "Investigate why navigate('/login') from Sidebar.handleLogout doesn't land on /login — could be a route guard bouncing based on residual localStorage.session. Consider using window.location.href='/login' for a hard redirect to guarantee state reset (there is already _orderlyLogout in authToken.js that does this pattern).",
+    "Consider clearing ALL non-essential localStorage keys on logout (posthog, last_login_username is fine, but session/user/workshopUser must go)."
+  ],
+  "critical_code_review_comments": [
+    "Sidebar.handleLogout hard-codes REACT_APP_BACKEND_URL fallback '' — if env is missing this hits same-origin which will fail silently; prefer failing fast.",
+    "localStorage.session stringified user object with full permissions map partially defeats XSS hardening — an injected script can enumerate admin role & permissions even though the JWT itself is safely in httpOnly cookies. Recommend moving user identity to a server-fetched /me call each session (already available via GET /api/auth/me) rather than persisting in localStorage.",
+    "Backend /api/auth/logout is cookie-driven and works correctly (verified by test_logout_revokes_session_old_cookies_cannot_refresh). No backend change needed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter358_xss_auth.py (NEW - regression suite for XSS auth contract)"
+  ],
+  "success_rate": {
+    "backend": "100% (7/7 pytest)",
+    "frontend": "~85% (XSS hardening + session persistence + data pages all pass; logout redirect/cleanup fails)"
+  },
+  "test_credentials": "مدير/010101 used once for UI (successful). احمد/010101 used for all curl/pytest tests. No lockouts triggered.",
+  "seed_data_creation": "None — read-only testing per financial-core-frozen instruction.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend cookie-auth contract is solid and verified by /app/backend/tests/test_iter358_xss_auth.py (7 tests, all pass). If retesting logout fix: (1) login as مدير, (2) click [data-testid=sidebar-logout-button], (3) assert URL contains /login within 5s, (4) assert localStorage.getItem('auth_session') === null AND localStorage.getItem('session') === null, (5) visit / and assert URL stays at /login (no auto-login). Debts-followup AR total is rendered in Arabic-Indic digits (١٩,٤٠٥ not 19,405) — regex must handle both. BRUTE-FORCE LOCKOUT WARNING still applies: prefer احمد for curl and only one مدير UI login per iteration.",
+  "rca of the issue": "Logout partial-failure RCA: (1) Server side works — POST /api/auth/logout revokes session (proven by pytest test and by post-logout dashboard showing 'unauthorized'). (2) Client side handleLogout in /app/frontend/src/components/Sidebar.jsx:196-208 calls clearStoredToken() then removes 'workshopUser','session','user' then navigate('/login'). Observed defects: (a) After the flow, localStorage still contains auth_session='1' and session={admin user JSON} — either clearStoredToken._setMarker(false) is not persisting, or something re-writes them (e.g., a top-level useEffect that reads user state and writes back to localStorage), or the removeItem calls throw silently. (b) navigate('/login') does not land on /login — URL remains '/'. Likely a top-level route guard (App.js or PrivateRoute) reads hasAuthSession() or localStorage.session, still sees truthy, and redirects back to / (protected). Reproduction: login as مدير, click logout button, observe URL stays at '/' and localStorage.session still holds admin user object. Mitigation: (i) Change navigate('/login') to window.location.replace('/login') so all in-memory state is wiped. (ii) In handleLogout add localStorage.removeItem('auth_session') explicitly and iterate remove of all known auth keys BEFORE navigate. (iii) Do not persist the full user/permissions object in localStorage — fetch via /api/auth/me on each app mount."
+}

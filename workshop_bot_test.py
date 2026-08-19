@@ -9,7 +9,7 @@ import sys
 from typing import Dict, Any
 
 # Backend URL from environment
-BACKEND_URL = "https://canonical-integrity.preview.emergentagent.com/api"
+BACKEND_URL = "https://accounting-ssot-fix.preview.emergentagent.com/api"
 
 class Colors:
     GREEN = '\033[92m'

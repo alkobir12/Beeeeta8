@@ -1,0 +1,64 @@
+{
+  "before": {
+    "journal_count": 103,
+    "total_debit": 174384.06,
+    "total_credit": 174384.06,
+    "raw_ar_net": 40139.0
+  },
+  "after": {
+    "journal_count": 106,
+    "total_debit": 177834.06,
+    "total_credit": 177834.06,
+    "raw_ar_net": 36689.0
+  },
+  "results": [
+    {
+      "target": "d87d711e-a660-44c7-a93a-31b06dccdce9",
+      "amount": 800.0,
+      "reversed": true,
+      "entries": [
+        {
+          "original_id": "d87d711e-a660-44c7-a93a-31b06dccdce9",
+          "posted": true,
+          "journal_id": "24cad53c-eb19-43c0-a75e-49c37c591c6c",
+          "tx_hash": "fa5f14dd10ca07fe0b314aa75ddc5601e5bea1e088362a40d8907d8a9ee93ab7",
+          "total": 800.0,
+          "debit": 800.0,
+          "credit": 800.0
+        }
+      ]
+    },
+    {
+      "target": "1a721f64-e481-4152-a0ae-d9d450d065d8",
+      "amount": 150.0,
+      "reversed": true,
+      "entries": [
+        {
+          "original_id": "1a721f64-e481-4152-a0ae-d9d450d065d8",
+          "posted": true,
+          "journal_id": "2acda727-447b-471d-9ce3-f25d5f41ce02",
+          "tx_hash": "b5b8045c82eebab556ff3df084a41fa8fe0c82d630a71c97b32f9a8a2d29bde6",
+          "total": 150.0,
+          "debit": 150.0,
+          "credit": 150.0
+        }
+      ]
+    },
+    {
+      "target": "4601b6e8-46a5-4a09-8fd5-f78a506f29ad",
+      "amount": 2500.0,
+      "reversed": true,
+      "entries": [
+        {
+          "original_id": "4601b6e8-46a5-4a09-8fd5-f78a506f29ad",
+          "posted": true,
+          "journal_id": "b9ed453a-d237-4d36-831c-3386d408f6b2",
+          "tx_hash": "e2d5a74c5546bbb34e889c0ffe2a6b2708010d68b159482f7cd76dedc9c4c6d6",
+          "total": 2500.0,
+          "debit": 2500.0,
+          "credit": 2500.0
+        }
+      ]
+    }
+  ]
+}

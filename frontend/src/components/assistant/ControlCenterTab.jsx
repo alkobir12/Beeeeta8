@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { getStoredToken } from '../../utils/authToken';
 import { AlertTriangle, Bot, Check, Clock, ExternalLink, FileSearch, RefreshCw, ShieldAlert, Sparkles, X } from 'lucide-react';
 
 const BASE = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_BACKEND_URL || '');
@@ -7,9 +8,9 @@ const FC_API = `${BASE}/api/financial-control`;
 const RUNTIME_API = `${BASE}/api/runtime`;
 
 const authConfig = (extra = {}) => {
-  let token = '';
-  try { token = localStorage.getItem('auth_token') || localStorage.getItem('token') || ''; } catch { token = ''; }
-  return token ? { ...extra, headers: { ...(extra.headers || {}), Authorization: `Bearer ${token}` } } : extra;
+  const token = getStoredToken();
+  const base = { ...extra, withCredentials: true };
+  return token ? { ...base, headers: { ...(extra.headers || {}), Authorization: `Bearer ${token}` } } : base;
 };
 
 const unwrapArray = (res) => {
@@ -25,9 +26,11 @@ const unwrapObject = (res) => {
 };
 
 const fetchJson = async (url) => {
-  let token = '';
-  try { token = localStorage.getItem('auth_token') || localStorage.getItem('token') || ''; } catch { token = ''; }
-  const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  const token = getStoredToken();
+  const res = await fetch(url, {
+    credentials: 'include',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
   if (!res.ok) throw new Error(`http_${res.status}`);
   return res.json();
 };

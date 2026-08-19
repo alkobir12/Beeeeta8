@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { getStoredToken } from '../../utils/authToken';
 import { useAssistant } from './AssistantProvider';
 import { AssistantCard } from './AssistantCard';
 import { AssistantDashboard } from './AssistantDashboard';
@@ -117,10 +118,9 @@ export const UnifiedAssistantDrawer = () => {
     if (!open) return;
     const fetchCount = () => {
       const apiBase = process.env.NODE_ENV === 'production' ? '' : (process.env.REACT_APP_BACKEND_URL || '');
-      let token = '';
-      try { token = localStorage.getItem('auth_token') || localStorage.getItem('token') || ''; } catch (e) { token = ''; }
+      const token = getStoredToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-      axios.get(`${apiBase}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 }, headers })
+      axios.get(`${apiBase}/api/runtime/approvals`, { params: { status: 'pending', limit: 100 }, headers, withCredentials: true })
         .then(({ data }) => setControlCount((data?.data || []).filter((a) => a?.source_classification !== 'TEST_ARTIFACT').length))
         .catch(() => {});
     };

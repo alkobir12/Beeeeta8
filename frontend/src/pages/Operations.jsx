@@ -9,6 +9,7 @@ import { useToast } from '../hooks/use-toast';
 import GuidanceStepper from '../components/GuidanceStepper';
 // Floating assistant disabled: AbuFahad floating chat is injected via Layout
 import { financeAPI } from '../services/api';
+import { getStoredToken } from '../utils/authToken';
 import { generateIdempotencyKey } from '../utils/idempotency';
 import { useTheme } from '../contexts/ThemeContext';
 import ConfirmPaymentDialog from '../components/ConfirmPaymentDialog';
@@ -28,12 +29,8 @@ import { RecentOperationsWidget } from '../components/assistant/RecentOperations
 const API_URL = `${resolveBackendBase()}/api`;
 const OPERATIONS_PAGE_SIZE = 15;
 const buildAuthHeaders = () => {
-  try {
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch (e) {
-    return {};
-  }
+  const token = getStoredToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 const xhrApiJson = (pathWithQuery) => new Promise((resolve, reject) => {
   if (typeof window === 'undefined') {

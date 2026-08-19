@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { resolveBackendBase } from '../../utils/backendBase';
+import { hasAuthSession } from '../../utils/authToken';
 import { useVoice } from './useVoice';
 
 /**
@@ -21,9 +22,7 @@ const API_URL = (
 const WORKSHOP_ID = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
 const STORAGE_KEY = 'assistant.session_id';
 
-const hasAuthToken = () => {
-  try { return Boolean(localStorage.getItem('auth_token')); } catch { return false; }
-};
+const hasAuthToken = () => hasAuthSession();
 
 const AssistantContext = createContext(null);
 

@@ -1,14 +1,16 @@
 import axios from 'axios';
 import { API_BASE, resolveBackendBase } from '../utils/backendBase';
+import { getStoredToken } from '../utils/authToken';
 
 export { API_BASE, resolveBackendBase };
 
 const api = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
+  const token = getStoredToken();
   if (token && !config.headers?.Authorization) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;

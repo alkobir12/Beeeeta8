@@ -352,14 +352,18 @@ async def refresh(request: Request, response: Response):
     new_refresh = create_refresh_token(resolved_name, new_jti, family_id=fam, device_id=device_id)
     _set_auth_cookies(response, access_token, new_refresh)
     await auth_store.audit("refresh", username=resolved_name, success=True, ip=ip, user_agent=ua)
-    return {
+    result = {
         "access_token": access_token,
-        "refresh_token": new_refresh,
         "token_type": "bearer",
         "username": resolved_name,
         "role": actor.role,
         "expires_in_minutes": ACCESS_TOKEN_EXPIRE_MINUTES,
     }
+    # 🔐 XSS hardening: browsers (cookie-driven refresh) never receive the refresh
+    # token in the body — it stays httpOnly-cookie-only. Bearer clients (curl/tests) keep it.
+    if auth.startswith("Bearer "):
+        result["refresh_token"] = new_refresh
+    return result
 
 
 # ---------------- P1: credential management + sessions + audit ----------------

@@ -1,0 +1,423 @@
+{
+  "total_registered_tools": 26,
+  "write_tools": [],
+  "intent_matrix": [
+    {
+      "question": "كم إجمالي الذمم؟",
+      "expected": "finance.ar_summary",
+      "detected": [
+        "finance.ar_summary"
+      ],
+      "query_extracted": {}
+    },
+    {
+      "question": "كم ذمة سعد العقيلي؟",
+      "expected": "customers.search|finance.ar_summary",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "ذمة سعد العقيلي",
+        "operations.search": "ذمة سعد العقيلي"
+      }
+    },
+    {
+      "question": "من أكثر عميل عليه؟",
+      "expected": "nl.search",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "أكثر عليه",
+        "operations.search": "أكثر عميل عليه"
+      }
+    },
+    {
+      "question": "كم دخلنا هذا الشهر؟",
+      "expected": "finance.sales_report",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "دخلنا هذا الشهر",
+        "operations.search": "دخلنا هذا الشهر"
+      }
+    },
+    {
+      "question": "كم المصروف؟",
+      "expected": "firewall.cash_flow",
+      "detected": [
+        "firewall.cash_flow"
+      ],
+      "query_extracted": {}
+    },
+    {
+      "question": "كم صافي الدخل؟",
+      "expected": "?",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "صافي الدخل",
+        "operations.search": "صافي الدخل"
+      }
+    },
+    {
+      "question": "هل الميزانية متوازنة؟",
+      "expected": "?",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "الميزانية متوازنة",
+        "operations.search": "الميزانية متوازنة"
+      }
+    },
+    {
+      "question": "كم عندنا نقد؟",
+      "expected": "?",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "عندنا نقد",
+        "operations.search": "عندنا نقد"
+      }
+    },
+    {
+      "question": "اعرض آخر قيد",
+      "expected": "accounting.journal_entries",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "آخر قيد",
+        "operations.search": "آخر قيد"
+      }
+    },
+    {
+      "question": "كم زيارة لهذه المركبة؟",
+      "expected": "vehicles.search|workshop.active_visits",
+      "detected": [
+        "workshop.active_visits"
+      ],
+      "query_extracted": {}
+    },
+    {
+      "question": "وش باقي عليها؟",
+      "expected": "?",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "وش باقي عليها",
+        "operations.search": "وش باقي عليها"
+      }
+    },
+    {
+      "question": "كم دفعت؟",
+      "expected": "?",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "دفعت",
+        "operations.search": "دفعت"
+      }
+    },
+    {
+      "question": "من الموردين؟",
+      "expected": "suppliers.search|finance.payables_summary",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "الموردين",
+        "operations.search": "الموردين"
+      }
+    },
+    {
+      "question": "وش يحتاج قراري اليوم؟",
+      "expected": "runtime.pending_approvals",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "وش يحتاج قراري اليوم",
+        "operations.search": "وش يحتاج قراري اليوم"
+      }
+    },
+    {
+      "question": "اعرض سيارة فارس",
+      "expected": "vehicles.search",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "سيارة فارس",
+        "operations.search": "سيارة فارس"
+      }
+    },
+    {
+      "question": "وش باقي على ح ق م 5520؟",
+      "expected": "vehicles.search",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "وش باقي ح ق م 5520",
+        "operations.search": "وش باقي ح ق م 5520"
+      }
+    },
+    {
+      "question": "آخر زيارة لمحمد",
+      "expected": "customers.search|operations.search",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "آخر زيارة لمحمد",
+        "operations.search": "آخر زيارة لمحمد"
+      }
+    },
+    {
+      "question": "اعرض كامري صالح",
+      "expected": "vehicles.search",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "كامري صالح",
+        "operations.search": "كامري صالح"
+      }
+    },
+    {
+      "question": "كم دفع العميل؟",
+      "expected": "customers.search",
+      "detected": [
+        "customers.search",
+        "operations.search"
+      ],
+      "query_extracted": {
+        "customers.search": "دفع",
+        "operations.search": "دفع العميل"
+      }
+    },
+    {
+      "question": "قيود مؤقتة",
+      "expected": "finance.ar_summary",
+      "detected": [
+        "finance.ar_summary"
+      ],
+      "query_extracted": {}
+    }
+  ],
+  "entity_resolution": {
+    "exact_name": {
+      "resolved": "سعد العقيلي"
+    },
+    "partial_name": {
+      "error": "ambiguous",
+      "candidates_count": 3
+    },
+    "duplicate_first_name": {
+      "error": "ambiguous",
+      "candidates_count": 6
+    },
+    "unknown_entity": {
+      "error": "not_found",
+      "candidates_count": 0
+    },
+    "vehicle_by_plate": {
+      "resolved": "د س ا 3313"
+    },
+    "vehicle_unknown": {
+      "error": "not_found",
+      "candidates_count": 0
+    }
+  },
+  "read_tools": {
+    "finance.ar_summary": {
+      "success": true,
+      "error": null,
+      "total_ar": 19405.0,
+      "debtors": 14,
+      "source": "unified_financial_engine.build_current_ar_snapshot"
+    },
+    "finance.payables_summary": {
+      "success": true,
+      "error": null,
+      "total_ap": 0,
+      "suppliers": 0
+    },
+    "finance.sales_report": {
+      "success": true,
+      "error": null,
+      "keys": [
+        "period",
+        "count",
+        "total_sales",
+        "paid_amount",
+        "unpaid_amount",
+        "items",
+        "cards"
+      ]
+    },
+    "firewall.cash_flow": {
+      "success": true,
+      "error": null,
+      "keys": [
+        "period_days",
+        "inflow",
+        "outflow",
+        "net",
+        "is_negative"
+      ]
+    },
+    "accounting.journal_entries": {
+      "success": true,
+      "error": null,
+      "count": 5,
+      "balanced": true
+    },
+    "vehicles.status_summary": {
+      "success": true,
+      "error": null,
+      "summary": {
+        "total_current": 19,
+        "in_repair": 13,
+        "ready_for_handover": 5,
+        "delivered_total": 196,
+        "note": "الأرقام مطابقة للوحة التحكم (المركبات الحالية تستثني المُسلَّمة delivered)."
+      }
+    },
+    "workshop.active_visits": {
+      "success": true,
+      "error": null
+    },
+    "operations.recent": {
+      "success": true,
+      "error": null,
+      "count": 4,
+      "keys": [
+        "count",
+        "items",
+        "cards"
+      ]
+    },
+    "runtime.pending_approvals": {
+      "success": true,
+      "error": null,
+      "pending": 4,
+      "keys": [
+        "count",
+        "cards",
+        "approvals"
+      ]
+    },
+    "customers.search": {
+      "success": true,
+      "error": null,
+      "matches": 1
+    },
+    "suppliers.search": {
+      "success": true,
+      "error": null,
+      "keys": [
+        "query",
+        "count",
+        "matches",
+        "cards"
+      ]
+    },
+    "firewall.operation_integrity": {
+      "success": true,
+      "error": null,
+      "with_warnings": 45
+    }
+  },
+  "missing_tool_behavior": {
+    "success": false,
+    "error": "tool not found: nonexistent.tool"
+  },
+  "risky_actions": [
+    "bulk_delete",
+    "bulk_update",
+    "close_visits",
+    "collect_payment",
+    "create_expense",
+    "create_invoice",
+    "create_purchase",
+    "delete_customer",
+    "delete_operation",
+    "delete_vehicle",
+    "reverse_entry"
+  ],
+  "read_only_actions": [
+    "get_active_visits",
+    "get_customers",
+    "get_vehicles"
+  ],
+  "financial_actions_runtime": [
+    "expense",
+    "external_operation",
+    "external_operation_payment",
+    "invoice",
+    "payment",
+    "purchase",
+    "reverse"
+  ],
+  "four_eyes_enforced": true,
+  "pending_approvals": [
+    {
+      "id": "034a696f2483",
+      "action": "external_operation",
+      "classification": "USER_DRAFT"
+    },
+    {
+      "id": "b3281dca1811",
+      "action": "external_operation",
+      "classification": "USER_DRAFT"
+    },
+    {
+      "id": "bafffa617ef5",
+      "action": "external_operation",
+      "classification": "USER_DRAFT"
+    },
+    {
+      "id": "d1a20ef21532",
+      "action": "customer",
+      "classification": "USER_DRAFT"
+    }
+  ],
+  "panel_values": {
+    "active_visits": 200,
+    "health_score": 81,
+    "total_ar": 19405.0,
+    "total_ap": 0,
+    "cash_flow_30d": 25731.0,
+    "critical_findings": 10,
+    "low_stock": 169,
+    "ops_with_warnings": 45
+  },
+  "parity": {
+    "total_ar_tool": 19405.0,
+    "total_ar_panel": 19405.0,
+    "delta": 0.0
+  }
+}
