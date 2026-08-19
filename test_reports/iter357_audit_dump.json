@@ -1,0 +1,157 @@
+{
+  "journal_count": 103,
+  "alattan_entries": 3,
+  "alattan_sales": [
+    {
+      "id": "60b68633-0ff4-4372-84c8-866a32d8f86e",
+      "ref": "vehfinal:3fe04b84-d1c9-4c64-af34-c67f98979989",
+      "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة د س ا 3313 — عبد الرحمن العطان [BUSINESS_EVENT_ID:vehicle_finalization::3fe04b84-d1c9-4c64-af34-c67f98979989] [ACCOUNTING_IDENTITY:vehfinal:3fe04b8",
+      "ar_debit": 8500.0,
+      "ar_credit": 0.0,
+      "rev_credit": 8500.0,
+      "bank_debit": 0,
+      "cash_debit": 0,
+      "source": "vehicle_visit"
+    }
+  ],
+  "alattan_payments": [
+    {
+      "id": "31ace1a7-e4de-42f7-a5dd-ec422359d6b0",
+      "ref": "694082f5-9402-4422-807f-e0d2f803ca1c",
+      "desc": "تحصيل دفعة مؤكدة - عبد الرحمن العطان [VISIT:694082f5-9402-4422-807f-e0d2f803ca1c] [PAYMENT:359d2e11-071c-4765-ad1c-0f85d09966e5]    694082f5-9402-4422-807f-e0d2f803ca1c ",
+      "ar_debit": 0.0,
+      "ar_credit": 5500.0,
+      "rev_credit": 0,
+      "bank_debit": 5500.0,
+      "cash_debit": 0,
+      "source": "unified_visit_payment"
+    },
+    {
+      "id": "61d76d76-450d-4127-b8f0-6714a8f6d53b",
+      "ref": "694082f5-9402-4422-807f-e0d2f803ca1c",
+      "desc": "تحصيل دفعة مؤكدة - عبد الرحمن العطان [VISIT:694082f5-9402-4422-807f-e0d2f803ca1c] [PAYMENT:5552a689-4394-4e68-841a-1515120972c2]    694082f5-9402-4422-807f-e0d2f803ca1c ",
+      "ar_debit": 0.0,
+      "ar_credit": 3000.0,
+      "rev_credit": 0,
+      "bank_debit": 0,
+      "cash_debit": 3000.0,
+      "source": "unified_visit_payment"
+    }
+  ],
+  "alattan_math_balance": 0.0,
+  "verdict_NO_DUPLICATION_FOR_ALATTAN": "CONFIRMED",
+  "debtors_count": 0,
+  "debtors_total_ar_customers_endpoint": null,
+  "alattan_in_debtors": [],
+  "legacy_dup_findings": [
+    {
+      "ref": "f5813fbd-f4b4-4561-9f13-9893d1880cc8",
+      "expected_each": 800.0,
+      "count_sales_with_ar_debit": 2,
+      "sources": [
+        "operation",
+        "fin_engine_align_v1"
+      ],
+      "entries": [
+        {
+          "id": "79290ede-c4b2-425a-88b9-ec9c7845cb13",
+          "source": "operation",
+          "ar_debit": 800.0,
+          "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة f5813fbd    f5813fbd-f4b4-4561-9f13-9893d1880cc8 "
+        },
+        {
+          "id": "d87d711e-a660-44c7-a93a-31b06dccdce9",
+          "source": "fin_engine_align_v1",
+          "ar_debit": 800.0,
+          "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] شاص 2006 / س ن د 635 [VISIT:f5813fbd-f4b4-4561-9f13-9893d1880cc8] [VEHICLE:496cff37-0130-452c-bebf-7a3993d94"
+        }
+      ],
+      "any_reversed": false
+    },
+    {
+      "ref": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+      "expected_each": 150.0,
+      "count_sales_with_ar_debit": 2,
+      "sources": [
+        "operation",
+        "hist_vehicle_ar_repair"
+      ],
+      "entries": [
+        {
+          "id": "6ddcabf8-3305-403c-86e0-820e69e99847",
+          "source": "operation",
+          "ar_debit": 150.0,
+          "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة ca32e1a6    ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0 "
+        },
+        {
+          "id": "1a721f64-e481-4152-a0ae-d9d450d065d8",
+          "source": "hist_vehicle_ar_repair",
+          "ar_debit": 150.0,
+          "desc": "[استرجاع بنود تاريخية من ملف المركبة] عاصم التويجري / ا ل و 7121 [VISIT:ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0] [VEHICLE:0ee51492-8405-4235-8c63-4ca01b6"
+        }
+      ],
+      "any_reversed": false
+    },
+    {
+      "ref": "0fd379c7-8d78-4151-b32f-beeb32dae664",
+      "expected_each": 2500.0,
+      "count_sales_with_ar_debit": 2,
+      "sources": [
+        "operation",
+        "fin_engine_align_v1"
+      ],
+      "entries": [
+        {
+          "id": "0e83fc0c-4af0-4ede-a73b-03f8dff1b6db",
+          "source": "operation",
+          "ar_debit": 2500.0,
+          "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 0fd379c7    0fd379c7-8d78-4151-b32f-beeb32dae664 "
+        },
+        {
+          "id": "4601b6e8-46a5-4a09-8fd5-f78a506f29ad",
+          "source": "fin_engine_align_v1",
+          "ar_debit": 2500.0,
+          "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] ابو فهد / ا ق ل 222 [VISIT:0fd379c7-8d78-4151-b32f-beeb32dae664] [VEHICLE:a422209f-8cec-48a6-b06a-49e0c89972"
+        }
+      ],
+      "any_reversed": false
+    }
+  ],
+  "LEGACY_DUP_TOTAL_AR_EFFECT": 3450.0,
+  "verdict_LEGACY_DUPLICATES_PRESENT": [
+    "f5813fbd-f4b4-4561-9f13-9893d1880cc8",
+    "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0",
+    "0fd379c7-8d78-4151-b32f-beeb32dae664"
+  ],
+  "ref_174f49a1_ar_sales": [
+    {
+      "id": "e4333a1d-6785-4ebe-a381-b2b990dfd1b6",
+      "source": "operation",
+      "ar_debit": 1210.0
+    },
+    {
+      "id": "ea999c19-4bfc-4771-83f1-ebae1dae70c9",
+      "source": "fin_engine_align_v1",
+      "ar_debit": 2300.0
+    }
+  ],
+  "ref_174f49a1_all_reversed": true,
+  "current_ar_readers": {
+    "ar_customers.total_ar": null,
+    "ar_ledger.ending_balance": null,
+    "ar-ledger.current_vehicle_ar_total": null,
+    "katrina.finance.ar_summary.total_ar": 19405.0
+  },
+  "current_ar_readers_numeric": {
+    "katrina.finance.ar_summary.total_ar": 19405.0
+  },
+  "verdict_CURRENT_AR_READERS_IDENTICAL": "INSUFFICIENT_READERS",
+  "RAW_LEDGER_AR_TOTAL": 40139.0,
+  "UNATTRIBUTED_OPEN_PARTY_TOTAL": 40139.0,
+  "raw_ledger_top_parties": [
+    [
+      "مفتوح",
+      40139.0
+    ]
+  ]
+}

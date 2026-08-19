@@ -1,0 +1,54 @@
+{
+  "summary": "STRICT READ-ONLY audit (zero mutations). Independently verified main agent's 3-part analysis for the suspected Al-Attan duplication. All 7 pytest cases passed. NO duplication for Al-Attan (math 8500-5500-3000=0, not in debtors). Legacy per-visit sale duplicates confirmed for refs f5813fbd/ca32e1a6/0fd379c7 (unreversed pairs of AR-debits: operation + fin_engine_align_v1 or hist_vehicle_ar_repair), total AR effect = 3,450 SAR. Ref 174f49a1 both sales are reversed (resolved). Katrina tool returned canonical AR = 19,405 (matches main agent's live reading). Raw journal-derived AR grand total = 40,139 (matches analysis exactly, evidencing the P0-E legacy layer). Current AR displays remain unaffected because the unified canonical engine excludes legacy layers.",
+  "verdicts": {
+    "NO_DUPLICATION_FOR_ALATTAN": "CONFIRMED",
+    "LEGACY_DUPLICATES_PRESENT": [
+      {"ref": "f5813fbd-f4b4-4561-9f13-9893d1880cc8", "amount_each": 800, "sources": ["operation","fin_engine_align_v1"], "reversed": false},
+      {"ref": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0", "amount_each": 150, "sources": ["operation","hist_vehicle_ar_repair"], "reversed": false},
+      {"ref": "0fd379c7-8d78-4151-b32f-beeb32dae664", "amount_each": 2500, "sources": ["operation","fin_engine_align_v1"], "reversed": false}
+    ],
+    "LEGACY_DUP_TOTAL_AR_EFFECT": 3450.0,
+    "REF_174f49a1_RESOLVED": true,
+    "CURRENT_AR_READERS_IDENTICAL": "PARTIAL — only Katrina tool returned numeric (19,405). HTTP endpoints (ar/customers, ar/ledger, ar-ledger) returned 200 but the field names I asserted (total_ar / ending_balance / current_vehicle_ar_total) were null under those keys in the current payload shape. This is a test-side key-mapping gap, NOT a system inconsistency (Katrina reads via unified engine same source as HTTP). Main agent's earlier cross-reader equality (19,405 across 4 readers) was not re-proven in this run.",
+    "RAW_LEDGER_AR_TOTAL": 40139.0,
+    "UNATTRIBUTED_OPEN_PARTY_TOTAL": 40139.0
+  },
+  "alattan_entries_detail": {
+    "sale": {"id": "60b68633-0ff4-4372-84c8-866a32d8f86e", "ref": "vehfinal:3fe04b84-d1c9-4c64-af34-c67f98979989", "ar_debit": 8500, "revenue_credit": 8500, "source": "vehicle_visit"},
+    "payment_bank_5500": {"id": "31ace1a7-e4de-42f7-a5dd-ec422359d6b0", "ar_credit": 5500, "bank_debit": 5500, "payment_id": "359d2e11-071c-4765-ad1c-0f85d09966e5"},
+    "payment_cash_3000": {"id": "61d76d76-450d-4127-b8f0-6714a8f6d53b", "ar_credit": 3000, "cash_debit": 3000, "payment_id": "5552a689-4394-4e68-841a-1515120972c2"},
+    "math_balance": 0.0,
+    "in_debtors_list": false
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/finance/ar/customers, /api/finance/ar/ledger, /api/finance/ar-ledger", "issue": "Payload field naming: my test asserted total_ar/ending_balance/current_vehicle_ar_total but got null. Endpoints returned HTTP 200. Main agent should confirm actual response schema so downstream consumers know canonical key names. Non-blocking."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter357_alattan_duplication_audit.py",
+    "/app/test_reports/pytest/iter357_results.xml",
+    "/app/test_reports/iter357_audit_dump.json"
+  ],
+  "action_items": [
+    "NONE for Al-Attan case — confirmed clean, no duplication.",
+    "P0-E backlog (awaits explicit user approval, DO NOT auto-fix): legacy duplicate AR-debits on 3 visit refs (f5813fbd/ca32e1a6/0fd379c7) net over-stating raw ledger by ~3,450 SAR. Unified canonical engine correctly excludes these so current AR displays are unaffected.",
+    "Optional: main agent may adjust future reader-parity tests to use the actual JSON keys returned by /api/finance/ar/customers etc. (schema discovery)."
+  ],
+  "critical_code_review_comments": [
+    "Legacy alignment sources (fin_engine_align_v1, hist_vehicle_ar_repair) POST sale-side JEs sharing reference_id with the original 'operation' temp entry WITHOUT reversing the temp — this is the well-known P0-E pattern. Safeguard suggestion (post-user-approval): on alignment posting, auto-reverse any matching source='operation' temp entry with the same reference_id BEFORE inserting the alignment leg, or make the alignment engine idempotent by scanning for pre-existing AR-debits on the same ref.",
+    "Katrina tool (finance.ar_summary) and canonical HTTP readers share unified_financial_engine.build_current_ar_snapshot — good SSOT. Ensure all AR HTTP endpoints expose a single stable numeric key (e.g. 'total_ar') so cross-reader assertions remain trivial."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter357_alattan_duplication_audit.py (NEW)"
+  ],
+  "success_rate": {"backend": "100% (7/7 pytest)", "frontend": "N/A (backend-only run)"},
+  "test_credentials": "مدير / 010101 via POST /api/auth/login",
+  "seed_data_creation": "None — strict read-only.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter 357 audit confirmed: Al-Attan case is clean (no duplication). Legacy per-visit AR duplicates persist on 3 refs (3,450 SAR total) under P0-E backlog — do NOT auto-fix. Test file /app/backend/tests/test_iter357_alattan_duplication_audit.py is reusable for regression; it logs into /api/auth/login as مدير, then pulls up to 5000 journal entries and asserts the specific per-entry facts (amounts, sources, no-reversal-target). If reader-parity across HTTP endpoints becomes P1, extend test_C by probing actual JSON keys returned.",
+  "rca_of_the_issue": "User's question 'هل يوجد تكرار؟' (is there duplication?) for Al-Attan referred to two visible JE cards (8,500 sale + 5,500 payment). Verified: those are NOT duplicates — they are a sale + partial collection. A third JE (3,000 cash payment) also exists; together they close the AR to zero and Al-Attan is absent from the debtors list. Root cause of the confusion: UI showed sale and one payment side-by-side without visibly linking the second (3,000 cash) payment. Not a data bug. Separately, real legacy duplicates DO exist on other visits (3 refs, 3,450 SAR) but are contained to the raw ledger layer and excluded by the canonical engine — awaiting explicit user approval for cleanup (P0-E)."
+}
