@@ -175,13 +175,37 @@ async def _firewall_cash_flow(workshop_id: str = "finmodule-sync") -> Dict[str, 
 
 
 async def _finance_ar_summary(workshop_id: str = "finmodule-sync") -> Dict[str, Any]:
-    """ملخص ذمم العملاء — 📒 SSOT: القيود هي المرجع (L14-D6 الشق التقني).
+    """ملخص ذمم العملاء — 🎯 SSOT: نفس القراءة القانونية الموحدة (build_current_ar_snapshot).
 
-    الأرقام لا تُعدَّل: الأرصدة المخزنة تُعرض كطبقة مصالحة بانتظار قرار المالك."""
+    total_ar يأتي حصراً من المحرك المالي الموحد (نفس مصدر ملفات المركبات/الديون/الذمم).
+    طبقات الدفتر/المصالحة تُعرض كطبقات مستقلة بأسماء صريحة بلا أي تعديل."""
     from core import ar_ledger
     s = await ar_ledger.summary(workshop_id)
+
+    # 📌 القراءة القانونية الموحدة — fail-closed: لا صفر صامت عند الفشل
+    from supabase_service import SupabaseService
+    from core.unified_financial_engine import build_current_ar_snapshot
+    supa = SupabaseService()
+    if supa.mock_mode:
+        return {"error": "canonical AR read unavailable (no real database connection)"}
+    current = build_current_ar_snapshot(supa.client, workshop_id=workshop_id)
+    current_customers = sorted(
+        (current.get("customers") or []),
+        key=lambda row: float(row.get("balance") or 0),
+        reverse=True,
+    )
+    current_debtors = [
+        {"name": row.get("customer") or row.get("name"), "phone": row.get("phone") or "", "balance": row.get("balance")}
+        for row in current_customers
+    ]
     stored = s.get("stored_top_debtors") or []
     return {
+        # 🎯 المصدر القانوني الموحد (يطابق ملفات المركبات/الديون/الذمم)
+        "total_ar": current.get("total_ar"),
+        "total_customers_with_debt": len(current_debtors),
+        "top_debtors": current_debtors[:5],
+        "current_customers": current_debtors,
+        "ar_source": "unified_financial_engine.build_current_ar_snapshot",
         # 🧭 طبقات SSOT (القيود مرجع الحقيقة)
         "ssot": s.get("ssot"),
         "ledger_ar_total": s.get("ledger_ar_total"),
@@ -194,10 +218,8 @@ async def _finance_ar_summary(workshop_id: str = "finmodule-sync") -> Dict[str, 
         "temporary_deferred_total": s.get("temporary_deferred_total"),
         "temporary_deferred_entries": s.get("temporary_deferred_entries"),
         "temporary_deferred_note": s.get("temporary_deferred_note"),
-        # طبقة العرض القديمة (أرصدة مخزنة — كما كانت، بلا أي تعديل)
-        "total_customers_with_debt": len(stored),
-        "total_ar": s.get("stored_balances_total"),
-        "top_debtors": stored[:5],
+        # طبقة تاريخية صريحة (أرصدة مخزنة قديمة — للعرض فقط، ليست الذمم الحالية)
+        "stored_balances_total": s.get("stored_balances_total"),
         "stored_top_debtors": stored,
     }
 

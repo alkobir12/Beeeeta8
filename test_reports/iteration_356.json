@@ -1,0 +1,76 @@
+{
+  "summary": "READ-ONLY verification of P0-C fix in backend/core/tool_router.py::_finance_ar_summary. All 6 checks PASS. AR readers identical at live value 19,405.00 SAR / 14 debtors captured within one tight window.",
+  "checks": {
+    "CHECK_1_ALL_AR_READERS_IDENTICAL": {
+      "status": "PASS",
+      "measurements": {
+        "vehicles_sum_/api/finance/ar/customers": 19405.0,
+        "engine_total_ar_/api/finance/ar/customers": 19405.0,
+        "n_customers": 14,
+        "ledger_ending_balance_/api/finance/ar/ledger": 19405.0,
+        "debt_current_vehicle_ar_total_/api/finance/ar-ledger": 19405.0,
+        "assistant_dashboard_panel_total_ar_value": 19405.0,
+        "assistant_dashboard_secondary": "14 عميل",
+        "katrina_finance.ar_summary_total_ar": 19405.0,
+        "katrina_total_customers_with_debt": 14,
+        "katrina_ar_source": "unified_financial_engine.build_current_ar_snapshot"
+      },
+      "delta_across_readers": 0.0
+    },
+    "CHECK_2_PER_CUSTOMER_IDENTITY": {
+      "status": "PASS",
+      "top_debtor_katrina": {"name": "سعد العقيلي", "balance": 4500.0},
+      "same_name_in_/ar/customers": {"balance": 4500.0}
+    },
+    "CHECK_3_KATRINA_AR_SSOT_STATIC": {
+      "status": "PASS",
+      "old_line_present_'total_ar_stored_balances_total'": false,
+      "build_current_ar_snapshot_used": true,
+      "fail_closed_branch_present": true,
+      "ar_source_literal": "unified_financial_engine.build_current_ar_snapshot"
+    },
+    "CHECK_4_ACCOUNTINGENGINE_UNCHANGED": {
+      "status": "PASS",
+      "git_status_backend_files_modified": ["backend/core/tool_router.py"],
+      "accounting_engine_untouched": true
+    },
+    "CHECK_5_NO_NEW_CALCULATOR": {
+      "status": "PASS",
+      "tool_router_imports_existing_build_current_ar_snapshot": true,
+      "unified_financial_engine.py_untouched_in_git_diff": true
+    },
+    "CHECK_6_FRONTEND_READERS_CONSISTENT": {
+      "status": "PASS",
+      "route": "/debts-followup",
+      "displayed_current_ar": "19,405.00 ر.س",
+      "displayed_ledger_total": "19,405.00 ر.س",
+      "displayed_customer_count": 14,
+      "gap_stored_vs_ledger": "0.00 (0 عمليات)",
+      "screenshot": "/app/test_reports/iter356_debt3.png"
+    }
+  },
+  "metrics": {
+    "KATRINA_AR_SSOT": "OK (ar_source=unified_financial_engine.build_current_ar_snapshot)",
+    "ASSISTANT_AR_SSOT": "OK (panel total_ar=19405.0, secondary='14 عميل')",
+    "ALL_AR_READERS_IDENTICAL": "OK (delta=0.0 across 6 readers)",
+    "CORE_AR": 19405.0,
+    "FINANCIAL_DATA_CHANGES": 0,
+    "ACCOUNTINGENGINE": "UNCHANGED"
+  },
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_ar_ssot.py", "/app/test_reports/pytest/pytest_ar_ssot.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix is minimal and correct: single file (backend/core/tool_router.py) reuses canonical read service build_current_ar_snapshot with the same SupabaseService pattern as ar_ledger. Fail-closed (returns explicit error when supa.mock_mode) instead of silent 0.",
+    "Stored/legacy balances remain exposed under explicit names (stored_balances_total, stored_top_debtors) — good backward compatibility while making SSOT the single truth for total_ar/top_debtors.",
+    "ar_source field added — improves observability, downstream consumers can assert on source of truth."
+  ],
+  "updated_files": ["/app/backend/tests/test_ar_ssot.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "مدير / 010101 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None (strict read-only run)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "AR SSOT fix verified. All 6 readers now converge on unified_financial_engine.build_current_ar_snapshot. Live value at test time = 19,405.00 SAR / 14 debtors. Reusable pytest at backend/tests/test_ar_ssot.py performs full identity check across HTTP readers + Katrina tool + static source guard. Absolute value may drift with live user activity — the assertion is equality among readers, not equality to any constant."
+}
