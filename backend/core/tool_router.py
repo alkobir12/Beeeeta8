@@ -63,6 +63,7 @@ def register_tool(
     handler: Callable[..., Awaitable[Any]],
     params: Optional[Dict[str, Any]] = None,
     write: bool = False,
+    sensitivity: str = "operational",
 ) -> None:
     """Registers a tool in the router.
 
@@ -70,12 +71,19 @@ def register_tool(
       • `write=False` (default) — read-only, always allowed.
       • `write=True` — must also have `BOT_ALLOW_WRITES=1` in env, otherwise
         `WriteToolBlockedError` is raised at registration time.
+
+    🔐 Authorization metadata (P0 leak fix):
+      • sensitivity="revenue"     → يتطلب دور معتمد أو صلاحية reports.revenue (server-side gate)
+      • sensitivity="financial"   → بيانات مالية غير إيرادية (متاحة للأدوار المصادَقة)
+      • sensitivity="operational" → بيانات تشغيلية عامة
     """
     if write and not _writes_allowed():
         raise WriteToolBlockedError(
             f"Cannot register write-capable tool '{name}' while "
             "BOT_ALLOW_WRITES != '1'. This is a Phase 3A safety contract."
         )
+    if sensitivity not in {"revenue", "financial", "operational"}:
+        raise ValueError(f"invalid tool sensitivity '{sensitivity}' for tool '{name}'")
     _TOOLS[name] = {
         "name": name,
         "agent": agent,
@@ -83,6 +91,7 @@ def register_tool(
         "handler": handler,
         "params": params or {},
         "write": bool(write),
+        "sensitivity": sensitivity,
     }
 
 
@@ -97,6 +106,7 @@ def list_tools(agent: Optional[str] = None) -> List[Dict[str, Any]]:
             "description": t["description"],
             "params": t["params"],
             "write": t.get("write", False),
+            "sensitivity": t.get("sensitivity", "operational"),
         })
     return out
 
@@ -107,7 +117,30 @@ def is_write_tool(name: str) -> bool:
     return bool(t and t.get("write"))
 
 
-async def call_tool(name: str, **kwargs) -> Dict[str, Any]:
+def tool_sensitivity(name: str) -> str:
+    """Returns the registered sensitivity classification of a tool."""
+    t = _TOOLS.get(name)
+    return str((t or {}).get("sensitivity") or "operational")
+
+
+PERMISSION_DENIED = "PERMISSION_DENIED"
+
+
+def role_can_view_revenue(role: Optional[str]) -> bool:
+    """🔐 بوابة الإيرادات الموحدة — أدوار الاعتماد أو صلاحية reports.revenue. Fail-closed."""
+    r = (role or "").strip().lower()
+    if not r:
+        return False
+    try:
+        from core.rbac import APPROVER_ROLES, get_role_permissions
+        if r in APPROVER_ROLES:
+            return True
+        return bool((get_role_permissions(r).get("reports") or {}).get("revenue"))
+    except Exception:
+        return False
+
+
+async def call_tool(name: str, *, actor_role: Optional[str] = None, **kwargs) -> Dict[str, Any]:
     tool = _TOOLS.get(name)
     if not tool:
         return {"success": False, "error": f"tool not found: {name}"}
@@ -121,6 +154,19 @@ async def call_tool(name: str, **kwargs) -> Dict[str, Any]:
                 "write tool invocation blocked: BOT_ALLOW_WRITES != '1' "
                 "(Phase 3A read-only contract)"
             ),
+        }
+    # 🔐 P0 — server-side authorization gate BEFORE executing the handler.
+    # Revenue-sensitive tools are fail-closed: missing/unauthorized role → explicit denial.
+    if tool.get("sensitivity") == "revenue" and not role_can_view_revenue(actor_role):
+        from core import llm_traces as _lt
+        _lt.add_tool_call(tool=name, tool_input=kwargs, success=False,
+                          error=PERMISSION_DENIED, duration_ms=0.0, write=False)
+        return {
+            "success": False,
+            "tool": name,
+            "agent": tool["agent"],
+            "error": PERMISSION_DENIED,
+            "message": "🚫 بيانات الإيرادات غير مصرّحة لدورك الحالي — تواصل مع المدير إن كنت تحتاج هذه الصلاحية.",
         }
     from core import llm_traces
     import time as _time
@@ -505,31 +551,73 @@ async def _inventory_low_stock(workshop_id: str = "finmodule-sync", limit: int =
     }
 
 
-async def _finance_payables_summary(workshop_id: str = "finmodule-sync", limit: int = 5) -> Dict[str, Any]:
-    """💼 ملخص ذمم الموردين (Accounts Payable) + أعلى الموردين دائنية."""
+async def _finance_payables_summary(workshop_id: str = "finmodule-sync", limit: int = 5, query: str = "") -> Dict[str, Any]:
+    """💼 ذمم الموردين (AP) من الدفتر القانوني — نفس مصدر الميزانية العمومية (ميزان المراجعة).
+
+    المصدر السابق (suppliers.ajelBalance المخزّن) كان ينتج صفراً خاطئاً بينما الدفتر يظهر التزاماً فعلياً.
+    """
     import os
     import httpx
     base = os.environ.get("INTERNAL_API_BASE", "http://localhost:8001")
+    q = (query or "").strip()
     try:
-        async with httpx.AsyncClient(timeout=15.0, headers=_int_headers()) as client:
-            r = await client.get(f"{base}/api/suppliers")
-            suppliers = r.json() if r.status_code == 200 else []
+        async with httpx.AsyncClient(timeout=20.0, headers=_int_headers()) as client:
+            r = await client.get(f"{base}/api/finance/reports/trial-balance", params={"workshop_id": workshop_id})
+            if r.status_code != 200:
+                return {"error": f"SOURCE_ERROR: HTTP {r.status_code} من ميزان المراجعة القانوني", "cards": []}
+            body = r.json() or {}
+            if not body.get("success"):
+                return {"error": f"SOURCE_ERROR: {body.get('error') or 'trial-balance failed'}", "cards": []}
+            accounts = (body.get("data") or {}).get("accounts") or []
+
+            suppliers = []
+            for a in accounts:
+                nm = str(a.get("name") or "").strip()
+                if not nm.startswith("مورد"):
+                    continue
+                bal = round(float(a.get("credit") or 0) - float(a.get("debit") or 0), 2)
+                clean = nm.split("-", 1)[1].strip() if "-" in nm else nm
+                suppliers.append({"account_code": a.get("code"), "name": clean, "balance": bal})
+
+            if q:
+                from core.arabic_nlp import arabic_match
+                hits = [s for s in suppliers if arabic_match(q, s["name"])]
+                if hits:
+                    return {
+                        "query": q,
+                        "matches": hits,
+                        "total_ap_for_query": round(sum(h["balance"] for h in hits), 2),
+                        "ap_source": "canonical_trial_balance_ledger",
+                    }
+                # لا حساب دفتري — تحقق من سجل الموردين لتمييز الصفر الحقيقي عن غير الموجود
+                rs = await client.get(f"{base}/api/suppliers")
+                if rs.status_code != 200:
+                    return {"error": f"SOURCE_ERROR: HTTP {rs.status_code} من سجل الموردين", "cards": []}
+                registry = rs.json() if isinstance(rs.json(), list) else []
+                reg_hit = next((s for s in registry if arabic_match(q, str(s.get("name") or ""))), None)
+                if reg_hit:
+                    return {
+                        "query": q,
+                        "matches": [{"name": reg_hit.get("name"), "balance": 0.0, "balance_state": "CONFIRMED_ZERO"}],
+                        "total_ap_for_query": 0.0,
+                        "ap_source": "canonical_trial_balance_ledger (لا يوجد حساب دفتري للمورد — رصيد مؤكد صفر)",
+                    }
+                return {"query": q, "error": "not_found", "message": f"لا يوجد مورد باسم «{q}» في السجل ولا في الدفتر"}
     except Exception as e:
-        return {"error": str(e)}
-    if not isinstance(suppliers, list):
-        suppliers = []
-    creditors = [s for s in suppliers if float(s.get("ajelBalance") or s.get("balance") or 0) > 0]
-    total = sum(float(s.get("ajelBalance") or s.get("balance") or 0) for s in creditors)
-    top = sorted(creditors, key=lambda x: float(x.get("ajelBalance") or x.get("balance") or 0), reverse=True)[:limit]
+        return {"error": f"SOURCE_ERROR: {e}", "cards": []}
+
+    creditors = [s for s in suppliers if s["balance"] > 0.005]
+    total = round(sum(s["balance"] for s in creditors), 2)
+    top = sorted(creditors, key=lambda x: x["balance"], reverse=True)[:limit]
     from core.card_builder import cards_from_suppliers
     return {
         "total_suppliers_with_balance": len(creditors),
-        "total_ap": round(total, 2),
-        "top_creditors": [{
-            "name": s.get("name"),
-            "balance": float(s.get("ajelBalance") or s.get("balance") or 0),
-        } for s in top],
-        "cards": cards_from_suppliers(top, limit=limit),
+        "total_ap": total,
+        "ap_source": "canonical_trial_balance_ledger",
+        "top_creditors": [{"name": s["name"], "balance": s["balance"], "account_code": s["account_code"]} for s in top],
+        "cards": cards_from_suppliers([
+            {"name": s["name"], "balance": s["balance"], "ajelBalance": s["balance"]} for s in top
+        ], limit=limit),
     }
 
 
@@ -614,9 +702,11 @@ async def _finance_sales_report(workshop_id: str = "finmodule-sync", query: str 
     try:
         async with httpx.AsyncClient(timeout=20.0, headers=_int_headers()) as client:
             r = await client.get(f"{base}/api/operations", params={"limit": max(int(limit or 200), 200)})
-            ops = r.json() if r.status_code == 200 else []
+            if r.status_code != 200:
+                return {"error": f"SOURCE_ERROR: HTTP {r.status_code} من /api/operations — لا يمكن إصدار التقرير", "cards": []}
+            ops = r.json()
     except Exception as e:
-        return {"error": str(e), "cards": []}
+        return {"error": f"SOURCE_ERROR: {e}", "cards": []}
     if isinstance(ops, dict):
         ops = ops.get("data") or ops.get("items") or ops.get("operations") or []
     if not isinstance(ops, list):
@@ -656,7 +746,36 @@ async def _finance_sales_report(workshop_id: str = "finmodule-sync", query: str 
             continue
         sales.append(o)
     total = sum(float(o.get("total") or 0) for o in sales)
-    paid = sum(float(o.get("paidAmount") or o.get("paid_amount") or 0) for o in sales)
+
+    # 💰 مصدر السداد الحقيقي: totalPaid (دفعات مؤكدة + خصومات − استرجاعات، من visit_sync)
+    # المفاتيح القديمة paidAmount/paid_amount غير موجودة في schema العمليات — كانت تنتج صفراً صامتاً.
+    def _op_paid(o):
+        for k in ("totalPaid", "total_paid"):
+            v = o.get(k)
+            if v is not None and v != "":
+                return float(v or 0)
+        return None  # مصدر السداد غائب عن هذا السجل — لا نفترض صفراً
+
+    paid = 0.0
+    paid_unknown_count = 0
+    paid_count = partial_count = unpaid_count = 0
+    for o in sales:
+        p = _op_paid(o)
+        if p is None:
+            paid_unknown_count += 1
+            p = 0.0
+        else:
+            paid += p
+        status = str(o.get("paymentStatus") or o.get("payment_status") or "").strip().lower()
+        if not status:
+            t = float(o.get("total") or 0)
+            status = "paid" if p >= t - 0.01 and t > 0 else ("partial" if p > 0.01 else "unpaid")
+        if status == "paid":
+            paid_count += 1
+        elif status in {"partial", "partially_paid"}:
+            partial_count += 1
+        else:
+            unpaid_count += 1
     from core.card_builder import cards_from_operations
     return {
         "period": label,
@@ -664,10 +783,16 @@ async def _finance_sales_report(workshop_id: str = "finmodule-sync", query: str 
         "total_sales": round(total, 2),
         "paid_amount": round(paid, 2),
         "unpaid_amount": round(max(total - paid, 0), 2),
+        "paid_count": paid_count,
+        "partial_count": partial_count,
+        "unpaid_count": unpaid_count,
+        "paid_unknown_count": paid_unknown_count,
+        "paid_source": "operations.totalPaid (confirmed payments + discounts − refunds)",
         "items": [{
             "id": o.get("id"),
             "partner": o.get("partnerName") or o.get("customerName"),
             "total": float(o.get("total") or 0),
+            "paid": _op_paid(o),
             "date": o.get("createdAt") or o.get("created_at") or o.get("date"),
             "payment_status": o.get("paymentStatus") or o.get("payment_status"),
         } for o in sales[:10]],
@@ -1311,6 +1436,7 @@ def _bootstrap() -> None:
         description="تدفق نقدي خلال 30 يوماً (الإيرادات vs المصاريف).",
         handler=_firewall_cash_flow,
         params={"workshop_id": "string?"},
+        sensitivity="revenue",
     )
     register_tool(
         "firewall.operation_integrity",
@@ -1325,6 +1451,7 @@ def _bootstrap() -> None:
         description="ملخص ذمم العملاء + أعلى 5 مدينين.",
         handler=_finance_ar_summary,
         params={"workshop_id": "string?"},
+        sensitivity="financial",
     )
     register_tool(
         "workshop.active_visits",
@@ -1339,6 +1466,7 @@ def _bootstrap() -> None:
         description="🔍 بحث عن عميل بالاسم أو الهاتف — يرجع المطابقات + رصيد الذمم لكل عميل.",
         handler=_customers_search,
         params={"workshop_id": "string?", "query": "string", "limit": "int?"},
+        sensitivity="financial",
     )
     register_tool(
         "vehicles.search",
@@ -1364,9 +1492,10 @@ def _bootstrap() -> None:
     register_tool(
         "finance.payables_summary",
         agent="FinanceAgent",
-        description="💼 ملخص ذمم الموردين (الأرصدة الدائنة) + أعلى 5 موردين مدينين للورشة.",
+        description="💼 ملخص ذمم الموردين من الدفتر القانوني (نفس مصدر الميزانية العمومية) + أعلى الموردين دائنية.",
         handler=_finance_payables_summary,
-        params={"workshop_id": "string?", "limit": "int?"},
+        params={"workshop_id": "string?", "limit": "int?", "query": "string?"},
+        sensitivity="financial",
     )
     register_tool(
         "suppliers.search",
@@ -1374,6 +1503,7 @@ def _bootstrap() -> None:
         description="🏢 بحث موردين بالاسم وإرجاع الرصيد والحركات المختصرة.",
         handler=_suppliers_search,
         params={"workshop_id": "string?", "query": "string?", "limit": "int?"},
+        sensitivity="financial",
     )
     register_tool(
         "operations.recent",
@@ -1402,6 +1532,7 @@ def _bootstrap() -> None:
         description="🏆 أكثر الخدمات مبيعاً فعلياً (عدد مرات البيع + الإيراد) من بنود العمليات المسجّلة.",
         handler=_operations_top_services,
         params={"workshop_id": "string?", "limit": "int?"},
+        sensitivity="revenue",
     )
     register_tool(
         "finance.sales_report",
@@ -1409,6 +1540,7 @@ def _bootstrap() -> None:
         description="📊 تقرير المبيعات والإيرادات لفترة عربية مثل اليوم/الأسبوع/كل المدة.",
         handler=_finance_sales_report,
         params={"workshop_id": "string?", "query": "string?", "limit": "int?"},
+        sensitivity="revenue",
     )
     register_tool(
         "operations.search",
@@ -1430,6 +1562,7 @@ def _bootstrap() -> None:
         description="📒 القيود المحاسبية الفعلية (دفتر اليومية) من قاعدة البيانات — يرجع العدد وإجمالي المدين/الدائن وآخر القيود. استخدميها لأي سؤال عن 'القيود' أو 'دفتر اليومية' أو 'ميزان المراجعة' بدل اختلاق قيود.",
         handler=_accounting_journal_entries,
         params={"workshop_id": "string?", "limit": "int?", "query": "string?"},
+        sensitivity="financial",
     )
     # 🆕 Phase 3C.5 — Natural Language Search + Approvals + Audit + WhatsApp
     register_tool(

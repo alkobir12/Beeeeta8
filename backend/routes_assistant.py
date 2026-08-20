@@ -134,7 +134,8 @@ async def assistant_call_tool(name: str, request: Request, payload: Dict[str, An
     )
     _rbac.require(_rbac.can_approve(_actor))
     args = payload or {}
-    result = await tool_router.call_tool(name, **args)
+    args.pop("actor_role", None)  # الهوية من JWT فقط — لا تُؤخذ من الجسم
+    result = await tool_router.call_tool(name, actor_role=_actor.role, **args)
     return result
 
 
@@ -321,19 +322,27 @@ async def assistant_chat_result(job_id: str):
 
 
 @router.get("/dashboard")
-async def assistant_dashboard(workshop_id: str = Query(default="finmodule-sync")):
+async def assistant_dashboard(request: Request, workshop_id: str = Query(default="finmodule-sync")):
     """🆕 Phase 3B — لوحة افتتاحية تظهر تلقائياً عند فتح الـDrawer.
 
     تجمع 8 مؤشرات من firewall + workshop + finance بدون مكالمة LLM.
     """
     from core import tool_router as _tr
+    from core import rbac as _rbac
+    # 🔐 نفس بوابة صلاحيات الشات: دور المستخدم من JWT — مؤشرات الإيرادات تُحذف لغير المخوّل
+    _ident = _rbac.extract_identity(request)
+    _role = _ident.get("role_hint")
     panels = []
 
     async def _safe_run(label: str, tool: str, **kwargs):
         try:
-            r = await _tr.call_tool(tool, workshop_id=workshop_id, **kwargs)
+            r = await _tr.call_tool(tool, actor_role=_role, workshop_id=workshop_id, **kwargs)
             if r.get("success"):
-                return r.get("result")
+                res = r.get("result")
+                # فشل مصدر داخل الأداة (error dict) → احذف المؤشر، لا تعرض صفراً صامتاً
+                if isinstance(res, dict) and res.get("error"):
+                    return None
+                return res
         except Exception:
             pass
         return None

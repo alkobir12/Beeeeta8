@@ -780,19 +780,14 @@ def _baseline_prompt() -> str:
     )
 
 
-# 🔐 L13-T6 — أدوات تكشف الإيرادات: تتطلب دور معتمد أو صلاحية reports.revenue
-_REVENUE_TOOLS = {"firewall.cash_flow", "services.top"}
+# 🔐 L13-T6 — أدوات الإيرادات تُعرَّف الآن بميتاداتا sensitivity في سجل الأدوات
+# (server-side gate داخل tool_router.call_tool — لا أسماء ثابتة قابلة للتقادم)
+def _is_revenue_tool(name: str) -> bool:
+    return tool_router.tool_sensitivity(name) == "revenue"
 
 
 def _can_view_revenue(role: Optional[str]) -> bool:
-    r = (role or "").strip().lower()
-    try:
-        from core.rbac import APPROVER_ROLES, get_role_permissions
-        if r in APPROVER_ROLES:
-            return True
-        return bool((get_role_permissions(r).get("reports") or {}).get("revenue"))
-    except Exception:
-        return False
+    return tool_router.role_can_view_revenue(role)
 
 
 async def _chat_impl(
@@ -994,7 +989,7 @@ async def _chat_impl(
     else:
         tool_names = detect_tools(message)
     # 🔐 L13-T6: حجب أدوات الإيرادات عن الأدوار غير المخوّلة (بنك كاترينا الأمني)
-    _rev_blocked = [t for t in tool_names if t in _REVENUE_TOOLS and not _can_view_revenue(proposer_role)]
+    _rev_blocked = [t for t in tool_names if _is_revenue_tool(t) and not _can_view_revenue(proposer_role)]
     if _rev_blocked:
         tool_names = [t for t in tool_names if t not in _rev_blocked]
         if not tool_names:
@@ -1017,7 +1012,7 @@ async def _chat_impl(
             q = forced_query or _extract_query(message, tn)
             if q:
                 kwargs["query"] = q
-        result = await tool_router.call_tool(tn, **kwargs)
+        result = await tool_router.call_tool(tn, actor_role=proposer_role, **kwargs)
         tool_results.append(result)
         # Pull any cards the tool emitted
         if isinstance(result, dict) and result.get("success"):

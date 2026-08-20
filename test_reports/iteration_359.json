@@ -1,0 +1,36 @@
+{
+  "summary": "Backend-only verification of KATRINA P0 RED FINDINGS REPAIR. Wrote pytest suite (34 tests) at /app/backend/tests/test_p0_red_findings_repair.py covering the 3 fixes end-to-end (in-process call_tool + HTTP + chat E2E). All 34 tests PASS. FIX 1 (server-side permission gate) confirmed: technician + no-role both DENIED for finance.sales_report, operations.top_services, firewall.cash_flow with error=PERMISSION_DENIED; admin allowed; body-injection {actor_role:admin} does NOT bypass (403); technician dashboard omits cash_flow_30d panel; admin dashboard exposes it plus total_ap; technician chat returns explicit denial (🚫) with no revenue in tool_results. FIX 1 non-regressions confirmed: technician still allowed on finance.ar_summary, finance.payables_summary, accounting.journal_entries, vehicles.status_summary, operations.recent, customers.search. FIX 2 (sales_report paid): paid_amount > 0 sourced from operations.totalPaid (was silently 0 before); code-inspection confirms SOURCE_ERROR branch on non-200 (never zero). FIX 3 (payables SSOT): total_ap=420.0 with ap_source=canonical_trial_balance_ledger and account_code=2101/مخرطة العوفي; query variants — العوفي→420, الراكضي→CONFIRMED_ZERO, unknown supplier→error=not_found; dashboard total_ap panel matches tool; canonical trial-balance account 2101 credit-debit=420. Chat regressions passed: admin ذمم الموردين reply contains 420; admin إجمالي الذمم reply contains AR total.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/finance/journal-entries + /api/finance/ar/customers + finance.sales_report", "issue": "LIVE DATA DRIFT during test window – observed journal_entries count 106→107→109 (main-agent evidence baseline was 106), total_ar 19405→19395→19230, sales_report operations count 15→16 with paid_amount 5745→5910. All my tests are READ-ONLY (write=False on every tool call, chat prompts are questions only). Something OUTSIDE this test session is mutating financial data despite the 'FINANCIAL CORE FROZEN' policy. Suspected sources: background scheduled reconciliation task, another agent/session running against the same DB, or an operation creation triggered by a non-obvious side-effect. Requires main-agent investigation but does NOT invalidate the 3 fixes – the fix logic is correct, only the specific expected numeric values from the pre-fix evidence file no longer hold."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_p0_red_findings_repair.py",
+    "/app/test_reports/pytest/p0_repair.xml"
+  ],
+  "action_items": [
+    "Investigate the source of live financial-data drift observed during testing (journal count grew 106→109, AR total dropped from 19405→19230). If a background task or another session is creating operations, that violates the 'FINANCIAL CORE FROZEN' contract and will make future immutability regressions unreliable.",
+    "Consider tightening the /api/assistant/tool/{name} endpoint response semantics: current gate correctly denies with 403, but ensure the body of the 403 does NOT include any partial revenue data (spot-checked, currently clean)."
+  ],
+  "critical_code_review_comments": [
+    "tool_router.call_tool now enforces sensitivity=revenue with fail-closed default (actor_role=None also denied) – correct design.",
+    "role_can_view_revenue helper is centralised; sensitivity is registered per-tool at register_tool time; assistant_kernel._is_revenue_tool now reads from the registry (no more stale hardcoded set). This closes the exact class of bug that caused the original 'services.top' regression.",
+    "routes_assistant./tool/{name} pops actor_role from request body before dispatch – prevents client-side role spoofing.",
+    "routes_assistant./dashboard._safe_run treats result-with-error as omission (no zero placeholder) – prevents information leakage via zero-value revenue panels.",
+    "finance._finance_sales_report now returns explicit SOURCE_ERROR on upstream non-200 instead of falling back to 0 – prevents silent data-loss.",
+    "finance._finance_payables_summary reads canonical trial-balance ledger (single source of truth) instead of stale suppliers.ajelBalance – aligns supplier AP with the accounting engine."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_p0_red_findings_repair.py (new test file, 34 tests)"
+  ],
+  "success_rate": {"backend": "100% (34/34 tests passed)", "frontend": "n/a (backend-only per request)"},
+  "test_credentials": "Admin مدير/010101 via /api/auth/login (internal). Technician JWT minted via auth_jwt.create_access_token('فني-اختبار','technician') – no technician user account exists in DB.",
+  "seed_data_creation": "None – all tests are strictly READ-ONLY.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Financial data is drifting live (journal_entries 106→109, total_ar 19405→19230 across a ~5-minute window). Do NOT hardcode exact numeric baselines from pre-existing evidence files; use structural assertions or the current live snapshot. Run pytest tests/test_p0_red_findings_repair.py from /app/backend for a full regression of the P0 red-finding fixes. Use INTERNAL_URL=http://localhost:8001 to bypass the edge CORS strip. Chat LLM calls cost budget – 4 chat tests are included; do not add more without reason. Legacy failing suites (test_firewall_iter222, test_assistant_iter223, test_bot_tools_iter232, test_ar_not_triggered_by_supplier_query) are pre-existing 401 failures — ignore.",
+  "rca of the issue": "P0 RED-1 (revenue leak): kernel-level revenue-tool set (_REVENUE_TOOLS) referenced a stale tool name 'services.top' after rename to 'operations.top_services', so the sensitivity check at the kernel layer silently no-op'd for the renamed tool and technicians could invoke it. Fix moved the gate INSIDE tool_router.call_tool with per-tool sensitivity metadata registered at register_tool time — cannot desync with rename. P0 RED-2 (sales_report paid=0): reader looked up 'paidAmount' key which does not exist on operation docs; canonical key is 'totalPaid'. Fix reads totalPaid with confirmed-payments/discounts/refunds accounting; on API failure returns explicit SOURCE_ERROR rather than falling back to 0. P0 RED-3 (supplier payables=0): read the mutable suppliers.ajelBalance snapshot (which was 0) instead of the immutable trial-balance ledger account 2101 credit balance (=420). Fix pivots to canonical_trial_balance_ledger as the SSOT for AP."
+}

@@ -1,0 +1,175 @@
+{
+  "immutability": {
+    "journal_count": 106,
+    "journal_total_debit": 177834.06,
+    "operations_count": 82
+  },
+  "gate": {
+    "finance.sales_report": {
+      "technician": "PERMISSION_DENIED",
+      "no_role": "PERMISSION_DENIED",
+      "admin_ok": true
+    },
+    "operations.top_services": {
+      "technician": "PERMISSION_DENIED",
+      "no_role": "PERMISSION_DENIED",
+      "admin_ok": true
+    },
+    "firewall.cash_flow": {
+      "technician": "PERMISSION_DENIED",
+      "no_role": "PERMISSION_DENIED",
+      "admin_ok": true
+    },
+    "tech_allowed:finance.ar_summary": {
+      "success": true,
+      "error": null
+    },
+    "tech_allowed:finance.payables_summary": {
+      "success": true,
+      "error": null
+    },
+    "tech_allowed:accounting.journal_entries": {
+      "success": true,
+      "error": null
+    },
+    "tech_allowed:vehicles.status_summary": {
+      "success": true,
+      "error": null
+    },
+    "tech_allowed:operations.recent": {
+      "success": true,
+      "error": null
+    },
+    "tech_allowed:customers.search": {
+      "success": true,
+      "error": null
+    }
+  },
+  "sensitivity_map": {
+    "firewall.health_score": "operational",
+    "firewall.top_alerts": "operational",
+    "firewall.cash_flow": "revenue",
+    "firewall.operation_integrity": "operational",
+    "finance.ar_summary": "financial",
+    "workshop.active_visits": "operational",
+    "customers.search": "financial",
+    "vehicles.search": "operational",
+    "parts.search": "operational",
+    "inventory.low_stock": "operational",
+    "finance.payables_summary": "financial",
+    "suppliers.search": "financial",
+    "operations.recent": "operational",
+    "vehicles.status_summary": "operational",
+    "vehicles.recent": "operational",
+    "operations.top_services": "revenue",
+    "finance.sales_report": "revenue",
+    "operations.search": "operational",
+    "operations.empty_items": "operational",
+    "accounting.journal_entries": "financial",
+    "nl.search": "operational",
+    "runtime.pending_approvals": "operational",
+    "runtime.audit_recent": "operational",
+    "services.search": "operational",
+    "services.categories": "operational",
+    "parts.list": "operational"
+  },
+  "sales_report": {
+    "period": "كل المدة",
+    "count": 16,
+    "total_sales": 16170.0,
+    "paid_amount": 5745.0,
+    "unpaid_amount": 10425.0,
+    "paid_count": 4,
+    "partial_count": 1,
+    "unpaid_count": 11,
+    "paid_unknown_count": 0,
+    "paid_source": "operations.totalPaid (confirmed payments + discounts − refunds)",
+    "raw_cross_check_paid": 31738.0,
+    "samples": {
+      "paid": {
+        "partner": "عبد الرحمن العطان",
+        "total": 4912.0,
+        "totalPaid": 4912.0
+      },
+      "partial": {
+        "partner": "ابو حمود التويجري",
+        "total": 515.0,
+        "totalPaid": 300.0
+      },
+      "unpaid": null
+    }
+  },
+  "sales_report_month": {
+    "period": "هذا الشهر",
+    "count": 16,
+    "total_sales": 16170.0,
+    "paid_amount": 5745.0,
+    "unpaid_amount": 10425.0
+  },
+  "payables": {
+    "total_ap": 420.0,
+    "total_suppliers_with_balance": 1,
+    "ap_source": "canonical_trial_balance_ledger",
+    "top_creditors": [
+      {
+        "name": "مخرطة العوفي",
+        "balance": 420.0,
+        "account_code": "2101"
+      }
+    ]
+  },
+  "payables_awfi": {
+    "query": "العوفي",
+    "matches": [
+      {
+        "account_code": "2101",
+        "name": "مخرطة العوفي",
+        "balance": 420.0
+      }
+    ],
+    "total_ap_for_query": 420.0,
+    "ap_source": "canonical_trial_balance_ledger"
+  },
+  "payables_true_zero": {
+    "supplier": "الراكضي",
+    "result": {
+      "query": "الراكضي",
+      "matches": [
+        {
+          "name": "الراكضي",
+          "balance": 0.0,
+          "balance_state": "CONFIRMED_ZERO"
+        }
+      ],
+      "total_ap_for_query": 0.0,
+      "ap_source": "canonical_trial_balance_ledger (لا يوجد حساب دفتري للمورد — رصيد مؤكد صفر)"
+    }
+  },
+  "payables_not_found": {
+    "query": "مورد خيالي غير موجود اطلاقا",
+    "error": "not_found",
+    "message": "لا يوجد مورد باسم «مورد خيالي غير موجود اطلاقا» في السجل ولا في الدفتر"
+  },
+  "parity": {
+    "chat_tool_ap": 420.0,
+    "panel_ap": 420.0,
+    "canonical_ap": 420.0,
+    "delta_tool": 0.0,
+    "delta_panel": 0.0,
+    "panel_keys": [
+      "active_visits",
+      "health_score",
+      "total_ar",
+      "total_ap",
+      "cash_flow_30d",
+      "critical_findings",
+      "low_stock",
+      "ops_with_warnings"
+    ]
+  },
+  "immutability_after": {
+    "journal_count": 106,
+    "journal_total_debit": 177834.06,
+    "operations_count": 82
+  }
+}
