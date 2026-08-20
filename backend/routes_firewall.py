@@ -421,6 +421,8 @@ async def firewall_auto_fix(
             }
             from core import accounting_engine
             _res = accounting_engine.post_entry(entry, fallback=False)
+            from core.journal_attribution import record_attribution
+            record_attribution(_res, entry)
             if not _res:
                 raise HTTPException(status_code=500, detail="accounting_engine_rejected_firewall_adjustment")
             _jid = (_res[0].get("id") if _res else entry["id"])

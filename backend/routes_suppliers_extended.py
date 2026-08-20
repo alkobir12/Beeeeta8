@@ -527,8 +527,10 @@ async def import_execute(payload: Dict[str, Any] = Body(...)):
 
     from core import accounting_engine
     imported: List[Dict[str, Any]] = []
+    from core.journal_attribution import record_attribution
     for item in prepared:
         posted_rows = accounting_engine.post_entry(item["entry"], fallback=False)
+        record_attribution(posted_rows, item["entry"])
         if not isinstance(posted_rows, list) or not posted_rows or not (posted_rows[0] or {}).get("id"):
             raise HTTPException(
                 status_code=502,

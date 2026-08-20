@@ -1671,6 +1671,8 @@ def _safe_insert_journal_entry(supa: SupabaseService, entry: Dict[str, Any]):
     try:
         from core import accounting_engine
         result = accounting_engine.post_entry(entry, fallback=False)
+        from core.journal_attribution import record_attribution
+        record_attribution(result, entry)
         if not result:
             raise RuntimeError("accounting_engine_rejected_entry")
         return result

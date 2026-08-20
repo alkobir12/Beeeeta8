@@ -244,6 +244,8 @@ async def supplier_balance_payment(payload: Dict[str, Any] = Body(...)):
     }
     from core import accounting_engine
     inserted = accounting_engine.post_entry(entry, fallback=False)
+    from core.journal_attribution import record_attribution
+    record_attribution(inserted, entry)
     if not inserted:
         raise HTTPException(
             status_code=500,

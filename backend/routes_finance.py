@@ -3247,6 +3247,17 @@ async def get_journal_entries(
                 }
             )
 
+        # 🪪 إسناد المنشئ/المعتمد/المرحّل (Batch — بلا N+1)
+        try:
+            from core.journal_origin import resolve_origins
+            origins = resolve_origins(entries)
+            for item in formatted:
+                item["origin"] = origins.get(str(item.get("id") or ""))
+        except Exception as origin_err:
+            print(f"origin resolve failed: {origin_err}")
+            for item in formatted:
+                item["origin"] = {"error": "ORIGIN_RESOLVE_FAILED"}
+
         return {"success": True, "data": formatted, "total": len(formatted)}
 
     except Exception as e:
@@ -3506,6 +3517,8 @@ async def close_period(
         try:
             from core import accounting_engine
             posted_rows = accounting_engine.post_entry(new_entry, fallback=False)
+            from core.journal_attribution import record_attribution
+            record_attribution(posted_rows, new_entry)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"فشل حفظ قيد الإقفال: {e}")
         if not isinstance(posted_rows, list) or not posted_rows or not (posted_rows[0] or {}).get("id"):
@@ -3632,6 +3645,8 @@ async def create_journal_entry(entry: dict, request: Request, workshop_id: str =
         full_entry_data = {**entry_data, "transaction_type": transaction_type}
         from core import accounting_engine
         response_data = accounting_engine.post_entry(full_entry_data, fallback=False)
+        from core.journal_attribution import record_attribution
+        record_attribution(response_data, full_entry_data)
         if not isinstance(response_data, list) or not response_data or not (response_data[0] or {}).get("id"):
             raise HTTPException(
                 status_code=502,
@@ -3714,10 +3729,12 @@ async def delete_journal_entry(entry_id: str, workshop_id: str = Query(...)):
                 }
 
         from core import accounting_engine
+        from core.journal_attribution import get_request_actor
+        _actor_identity = get_request_actor() or {}
         reverse_result = accounting_engine.reverse_entry(
             journal_id=entry_id,
             reason="manual_journal_delete_request",
-            actor={"user_id": "routes_finance.delete_journal_entry"},
+            actor={"user_id": _actor_identity.get("username") or "routes_finance.delete_journal_entry"},
         )
         if not reverse_result.get("reversed"):
             entries_info = reverse_result.get("entries") or []
@@ -3780,6 +3797,12 @@ async def get_journal_entry(entry_id: str, workshop_id: str = Query(...)):
             "source": entry.get("source", "manual"),
             "reference_id": entry.get("reference_id"),
         }
+        try:
+            from core.journal_origin import resolve_origins
+            normalized_entry["origin"] = resolve_origins([entry]).get(str(entry.get("id") or ""))
+        except Exception as origin_err:
+            print(f"origin resolve failed: {origin_err}")
+            normalized_entry["origin"] = {"error": "ORIGIN_RESOLVE_FAILED"}
         return {
             "success": True,
             "data": normalized_entry,

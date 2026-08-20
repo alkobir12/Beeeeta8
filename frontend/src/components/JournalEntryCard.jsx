@@ -123,6 +123,13 @@ const cleanAccountName = (name) => {
   return value;
 };
 
+const CREATOR_PILL_STYLES = {
+  user: 'border-sky-200 bg-sky-50 text-sky-800',
+  katrina: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  system: 'border-slate-300 bg-slate-100 text-slate-700',
+  unknown: 'border-zinc-300 bg-zinc-100 text-zinc-600',
+};
+
 export default function JournalEntryCard({
   entry,
   description = '',
@@ -139,6 +146,7 @@ export default function JournalEntryCard({
   const kind = classifyEntry(entry);
   const ks = KIND_STYLES[kind] || KIND_STYLES.neutral;
   const typeLabel = entryTypeLabel(entry);
+  const origin = entry?.origin && !entry.origin.error ? entry.origin : null;
 
   const partyName = entry?.party_label && entry.party_label !== 'مفتوح' ? entry.party_label : '';
   const partyRole = entry?.party_type === 'customer' ? 'عميل' : entry?.party_type === 'supplier' ? 'مورد' : '';
@@ -271,6 +279,14 @@ export default function JournalEntryCard({
           <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-black text-sky-800" data-testid={`journal-card-source-tag-${cardId}`}>
             {sourceLabel(entry?.source)}
           </span>
+          {origin?.creator_label ? (
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${CREATOR_PILL_STYLES[origin.creator_kind] || CREATOR_PILL_STYLES.unknown}`}
+              data-testid={`journal-card-creator-tag-${cardId}`}
+            >
+              {origin.creator_label}
+            </span>
+          ) : null}
         </div>
       </section>
 
@@ -280,6 +296,32 @@ export default function JournalEntryCard({
             {description && !descriptionUsedInHeader ? (
               <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-[12px] font-bold leading-relaxed text-zinc-700" data-testid={`journal-card-description-${cardId}`}>
                 {description}
+              </div>
+            ) : null}
+
+            {origin ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2.5" data-testid={`journal-card-origin-${cardId}`}>
+                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black text-zinc-500">
+                  <UserRound size={12} /> من فعل هذا؟
+                </div>
+                <dl className="space-y-1.5 text-[12px] font-bold text-zinc-800">
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">المنشئ</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-creator-${cardId}`}>{origin.creator_label}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">المعتمِد</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-approver-${cardId}`}>{origin.approver_label}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">مُرحِّل القيد</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-poster-${cardId}`}>{origin.poster_label}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">قناة الإدخال</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-channel-${cardId}`}>{origin.channel_label}</dd>
+                  </div>
+                </dl>
               </div>
             ) : null}
 

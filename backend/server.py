@@ -695,6 +695,10 @@ app.state.limiter = assistant_limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+# 🪪 التقاط هوية JWT لكل طلب (لإسناد القيود المحاسبية — Creator/Origin Visibility)
+from core.journal_attribution import ActorContextASGIMiddleware
+app.add_middleware(ActorContextASGIMiddleware)
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
@@ -972,6 +976,8 @@ async def settle_vehicle_credit_operations(vehicle_id: str):
 
         from core import accounting_engine
         posted_rows = accounting_engine.post_entry(entry, fallback=False)
+        from core.journal_attribution import record_attribution
+        record_attribution(posted_rows, entry)
         if not isinstance(posted_rows, list) or not posted_rows or not (posted_rows[0] or {}).get("id"):
             raise RuntimeError("credit_settlement_journal_not_persisted")
         update_result = (
@@ -1294,6 +1300,8 @@ async def save_vehicle_parts_and_create_journal(
         try:
             from core import accounting_engine
             posted = accounting_engine.post_entry(journal_entry, fallback=False)
+            from core.journal_attribution import record_attribution
+            record_attribution(posted, journal_entry)
             if not posted:
                 raise RuntimeError("accounting_engine_rejected_entry")
             print("✅ Journal entry posted via AccountingEngine")

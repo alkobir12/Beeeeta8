@@ -169,6 +169,8 @@ def post_vehicle_finalization_canonical_entry(
     )
     from core import accounting_engine
     posted = accounting_engine.post_entry(entry, fallback=False)
+    from core.journal_attribution import record_attribution
+    record_attribution(posted, entry)
     if not posted:
         raise RuntimeError("accounting_engine_rejected_finalization_entry")
     journal_id = (posted[0] or {}).get("id")
@@ -294,6 +296,8 @@ def post_visit_finalization_canonical_entry(
     )
     from core import accounting_engine
     posted = accounting_engine.post_entry(entry, fallback=False)
+    from core.journal_attribution import record_attribution
+    record_attribution(posted, entry)
     if not isinstance(posted, list) or not posted or not (posted[0] or {}).get("id"):
         raise RuntimeError("accounting_engine_rejected_visit_finalization_entry")
     return {
