@@ -3053,28 +3053,27 @@ async def ar_repair(dry_run: bool = Query(False)):
     }
 
 
-@router.get("/journal-entries")
-async def get_journal_entries(
-    workshop_id: str = Query(...),
-    skip: int = Query(0),
-    limit: int = Query(50),
-    start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None),
-    include_rakan: bool = False,
-):
-    """
-    القيود المحاسبية من Supabase و MongoDB operations
-    """
-    try:
-        entries = _fetch_journal_entries(
-            workshop_id,
-            start_date=start_date,
-            end_date=end_date,
-            skip=skip,
-            limit=limit,
-            include_rakan=include_rakan,
-        )
+_JOURNAL_PAGE_SIZES = (25, 50)
 
+
+def _classify_entry_kind(tx_type: Optional[str]) -> str:
+    """تصنيف القيد للعرض (مرآة classifyEntry في الواجهة) — قراءة فقط."""
+    t = str(tx_type or "").strip().lower()
+    if t in ("sale", "sale_return", "receipt_voucher"):
+        return "income"
+    if t == "payment":
+        return "collection"
+    if t in ("purchase", "purchase_return", "expense", "salary"):
+        return "outflow"
+    if t in ("repair_reversal", "reversal"):
+        return "correction"
+    if t == "closing":
+        return "closing"
+    return "neutral"
+
+
+def _enrich_and_format_entries(entries):
+        """إثراء قيود الدفتر القانوني الواحد بحقول العرض (طرف/مركبة/تصنيفات) — قراءة فقط."""
         operation_link_sources = {"operation", "operation_rakan_parts", "operation_payment", "supplier_balance_payment"}
         operation_refs = [
             str(e.get("reference_id") or "").strip()
@@ -3229,6 +3228,7 @@ async def get_journal_entries(
                 {
                     "id": entry.get("id"),
                     "date": entry.get("date", ""),
+                    "created_at": entry.get("created_at") or "",
                     "description": description,
                     "lines": normalized_lines,
                     "total": entry.get("total", 0),
@@ -3244,8 +3244,194 @@ async def get_journal_entries(
                     "payment_method_label_ar": _payment_method_label_ar(payment_method),
                     "payment_status": payment_status,
                     "payment_status_label_ar": _payment_status_label_ar(payment_status),
+                    "is_pos": "SOURCE:SMART_POS" in str(description or "").upper(),
                 }
             )
+
+        return formatted
+
+
+def _paginated_journal_response(
+    workshop_id: str,
+    *,
+    start_date: Optional[str],
+    end_date: Optional[str],
+    page: int,
+    page_size: int,
+    search: Optional[str],
+    entry_kind: Optional[str],
+    account: Optional[str] = None,
+    include_rakan: bool,
+) -> Dict[str, Any]:
+    """صفحات server-side على الدفتر القانوني الواحد + بحث/فلاتر + KPI كامل النتائج."""
+    if page_size not in _JOURNAL_PAGE_SIZES:
+        page_size = _JOURNAL_PAGE_SIZES[0]
+    page = max(1, int(page or 1))
+
+    entries = _fetch_journal_entries(
+        workshop_id,
+        start_date=start_date,
+        end_date=end_date,
+        limit=None,
+        include_rakan=include_rakan,
+    )
+    all_formatted = _enrich_and_format_entries(entries)
+
+    # خريطة العكس من كامل الدفتر (قبل الفلاتر) — الأصل لا يُخفى
+    reversal_of: Dict[str, str] = {}
+    for e in all_formatted:
+        ref = str(e.get("reference_id") or "")
+        if ref.startswith("reversal::"):
+            reversal_of[ref[len("reversal::"):]] = str(e.get("id") or "")
+
+    kind = str(entry_kind or "all").strip().lower()
+    scoped = all_formatted
+    if kind == "pos":
+        scoped = [e for e in scoped if e.get("is_pos")]
+    elif kind in ("income", "collection", "outflow"):
+        scoped = [e for e in scoped if _classify_entry_kind(e.get("transaction_type")) == kind]
+    elif kind == "other":
+        scoped = [
+            e for e in scoped
+            if _classify_entry_kind(e.get("transaction_type")) not in ("income", "collection", "outflow")
+        ]
+
+    # فلتر حساب (روابط دليل الحسابات ?account=CODE) — مطابقة على بنود القيد
+    account_code = str(account or "").strip()
+    if account_code:
+        def _has_account(e):
+            for ln in (e.get("lines") or []):
+                if str(ln.get("code") or ln.get("account") or "").strip() == account_code:
+                    return True
+            return False
+        scoped = [e for e in scoped if _has_account(e)]
+
+    q = str(search or "").strip().lower()
+    if q:
+        search_fields = (
+            "id", "reference_id", "description", "party_label", "vehicle_label",
+            "operation_type_label", "transaction_type_label_ar", "payment_method_label_ar",
+        )
+        scoped = [
+            e for e in scoped
+            if q in " ".join(str(e.get(f) or "") for f in search_fields).lower()
+        ]
+
+    # KPI من كامل النتائج المطابقة (وليس الصفحة الحالية)
+    def _amt(e):
+        try:
+            return float(e.get("total") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    income = [e for e in scoped if _classify_entry_kind(e.get("transaction_type")) in ("income", "collection")]
+    outflow = [e for e in scoped if _classify_entry_kind(e.get("transaction_type")) == "outflow"]
+    total_movement = round(sum(_amt(e) for e in scoped), 2)
+    kpi = {
+        "total_count": len(scoped),
+        "income_count": len(income),
+        "income_amount": round(sum(_amt(e) for e in income), 2),
+        "outflow_count": len(outflow),
+        "outflow_amount": round(sum(_amt(e) for e in outflow), 2),
+        "total_debit": total_movement,
+        "total_credit": total_movement,
+        "total_movement": total_movement,
+        "pos_total_count": len([e for e in scoped if e.get("is_pos")]),
+    }
+
+    # ترتيب ثابت (تاريخ ← إنشاء ← معرف) لضمان صفر تكرار/فقدان بين الصفحات
+    scoped.sort(
+        key=lambda e: (str(e.get("date") or ""), str(e.get("created_at") or ""), str(e.get("id") or "")),
+        reverse=True,
+    )
+
+    total_count = len(scoped)
+    total_pages = (total_count + page_size - 1) // page_size
+    start_idx = (page - 1) * page_size
+    page_items = scoped[start_idx:start_idx + page_size]
+
+    for e in page_items:
+        eid = str(e.get("id") or "")
+        if eid in reversal_of:
+            e["is_reversed"] = True
+            e["reversal_id"] = reversal_of[eid]
+        ref = str(e.get("reference_id") or "")
+        if ref.startswith("reversal::"):
+            e["reversed_of"] = ref[len("reversal::"):]
+
+    # 🪪 الإسناد للصفحة الحالية فقط (Batch — بلا N+1)
+    try:
+        from core.journal_origin import resolve_origins
+        origins = resolve_origins(page_items)
+        for item in page_items:
+            item["origin"] = origins.get(str(item.get("id") or ""))
+    except Exception as origin_err:
+        print(f"origin resolve failed: {origin_err}")
+        for item in page_items:
+            item["origin"] = {"error": "ORIGIN_RESOLVE_FAILED"}
+
+    return {
+        "success": True,
+        "data": page_items,
+        "items": page_items,
+        "total": len(page_items),
+        "page": page,
+        "page_size": page_size,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "kpi": kpi,
+    }
+
+
+@router.get("/journal-entries")
+async def get_journal_entries(
+    workshop_id: str = Query(...),
+    skip: int = Query(0),
+    limit: int = Query(50),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    include_rakan: bool = False,
+    page: Optional[int] = Query(None, ge=1),
+    page_size: int = Query(25),
+    search: Optional[str] = Query(None),
+    entry_kind: Optional[str] = Query(None),
+    account: Optional[str] = Query(None),
+):
+    """قيود الدفتر القانوني الواحد.
+
+    وضعان: legacy (skip/limit — متوافق مع المستهلكين القدامى)،
+    وpaginated (page/page_size + بحث وفلاتر server-side + KPI كامل النتائج).
+    """
+    if page is not None:
+        # المسار المرقّم: الفشل يعيد خطأً صريحاً (لا بيانات تجريبية ولا صفر صامت)
+        try:
+            return _paginated_journal_response(
+                workshop_id,
+                start_date=start_date,
+                end_date=end_date,
+                page=page,
+                page_size=page_size,
+                search=search,
+                entry_kind=entry_kind,
+                account=account,
+                include_rakan=include_rakan,
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Error in paginated journal: {e}")
+            raise HTTPException(status_code=502, detail="JOURNAL_FETCH_FAILED")
+
+    try:
+        entries = _fetch_journal_entries(
+            workshop_id,
+            start_date=start_date,
+            end_date=end_date,
+            skip=skip,
+            limit=limit,
+            include_rakan=include_rakan,
+        )
+        formatted = _enrich_and_format_entries(entries)
 
         # 🪪 إسناد المنشئ/المعتمد/المرحّل (Batch — بلا N+1)
         try:

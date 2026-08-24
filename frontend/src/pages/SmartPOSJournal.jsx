@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
 import {
   Banknote,
@@ -222,7 +222,7 @@ const buildVehicleLabel = (vehicle) => {
   return [plate, customer].filter(Boolean).join(' — ');
 };
 
-export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], recentEntries = [], onSaved }) {
+export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], onSaved, onViewAllPos }) {
   const [activeTemplateKey, setActiveTemplateKey] = useState('instant_sale');
   const [customPurchaseAccountId, setCustomPurchaseAccountId] = useState(null);
   const [isEditingDebit, setIsEditingDebit] = useState(false);
@@ -247,8 +247,9 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
   const [lookupsLoading, setLookupsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedToast, setSavedToast] = useState(null);
-  const [localRecentEntries, setLocalRecentEntries] = useState([]);
-  const [recentEntriesLoading, setRecentEntriesLoading] = useState(false);
+  const [posEntries, setPosEntries] = useState([]);
+  const [posTotalCount, setPosTotalCount] = useState(null);
+  const [posBlockState, setPosBlockState] = useState('loading');
 
   const accountRefs = useMemo(() => {
     const cash = pickAccount(accounts, [
@@ -462,38 +463,32 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
     };
   }, [apiBase]);
 
-  useEffect(() => {
-    let mounted = true;
-    const loadRecentEntries = async () => {
-      if (normalizeArray(recentEntries).length > 0) {
-        setLocalRecentEntries([]);
-        setRecentEntriesLoading(false);
-        return;
-      }
-      try {
-        setRecentEntriesLoading(true);
-        const response = await axios.get(`${apiBase}/finance/journal-entries`, {
-          params: { workshop_id: workshopId, limit: 5 },
-        });
-        if (!mounted) return;
-        const rows = normalizeArray(response?.data?.data || response?.data);
-        setLocalRecentEntries(rows);
-      } catch (error) {
-        console.warn('Recent Smart POS entries failed to load:', error?.message || error);
-        if (mounted) setLocalRecentEntries([]);
-      } finally {
-        if (mounted) setRecentEntriesLoading(false);
-      }
-    };
-    loadRecentEntries();
-    return () => {
-      mounted = false;
-    };
-  }, [apiBase, workshopId, recentEntries]);
+  // بلوك قيود POS = إسقاط مفلتر (Filtered Projection) من نفس الدفتر القانوني الواحد — لا دفتر ثانٍ
+  const loadPosEntries = useCallback(async () => {
+    try {
+      setPosBlockState('loading');
+      const response = await axios.get(`${apiBase}/finance/journal-entries`, {
+        params: { workshop_id: workshopId, page: 1, page_size: 25, entry_kind: 'pos' },
+        timeout: 20000,
+      });
+      const data = response?.data || {};
+      if (!data?.success) throw new Error(data?.error || 'pos_journal_fetch_failed');
+      setPosEntries(normalizeArray(data?.data).slice(0, 8));
+      setPosTotalCount(Number(data?.total_count || 0));
+      setPosBlockState('success');
+    } catch (error) {
+      console.warn('POS journal projection failed to load:', error?.message || error);
+      // خطأ ≠ صفر: نحتفظ بآخر عدد معروف ولا نعرض 0 مضللاً
+      setPosBlockState('error');
+    }
+  }, [apiBase, workshopId]);
 
-  const effectiveRecentEntries = normalizeArray(recentEntries).length > 0
-    ? normalizeArray(recentEntries)
-    : normalizeArray(localRecentEntries);
+  useEffect(() => {
+    loadPosEntries();
+    const onFinUpdated = () => loadPosEntries();
+    window.addEventListener('finance:updated', onFinUpdated);
+    return () => window.removeEventListener('finance:updated', onFinUpdated);
+  }, [loadPosEntries]);
 
   // 🆕 P0: حساب العملاء النشطين (لديهم زيارات/عمليات آجلة) لفرزهم أولاً في collect_customer
   const dashboardCustomerIds = useMemo(() => {
@@ -1412,22 +1407,39 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
         </div>
 
         <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-4" data-testid="pos-recent-entries-panel">
-          <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400">
-            <HandCoins size={14} />
-            آخر القيود
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-400">
+              <HandCoins size={14} />
+              قيود POS الأخيرة
+            </div>
+            <span className="rounded-full border border-cyan-300/25 bg-cyan-500/10 px-3 py-1 text-xs font-bold text-cyan-100" data-testid="pos-total-count">
+              إجمالي قيود POS: {posTotalCount === null ? '—' : posTotalCount}
+            </span>
           </div>
 
-          {effectiveRecentEntries.length === 0 && recentEntriesLoading ? (
+          {posBlockState === 'loading' ? (
             <div className="rounded-2xl border border-cyan-300/15 bg-cyan-500/10 px-4 py-8 text-center text-sm text-cyan-100" data-testid="pos-recent-entries-loading">
-              جاري تحميل آخر القيود...
+              جاري تحميل قيود POS...
             </div>
-          ) : effectiveRecentEntries.length === 0 ? (
+          ) : posBlockState === 'error' ? (
+            <div className="rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-6 text-center text-sm text-rose-100" data-testid="pos-recent-entries-error">
+              <div className="mb-3">تعذر تحميل قيود POS</div>
+              <button
+                type="button"
+                onClick={loadPosEntries}
+                className="rounded-xl border border-rose-300/30 bg-rose-500/15 px-4 py-2 text-xs font-bold text-rose-50 transition hover:bg-rose-500/25"
+                data-testid="pos-block-retry-button"
+              >
+                إعادة المحاولة
+              </button>
+            </div>
+          ) : posEntries.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-8 text-center text-sm text-slate-500" data-testid="pos-recent-entries-empty">
-              لا توجد قيود سابقة للنسخ.
+              لا توجد قيود POS بعد.
             </div>
           ) : (
             <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
-              {effectiveRecentEntries.slice(0, 5).map((entry, index) => (
+              {posEntries.map((entry, index) => (
                 <div
                   key={entry?.id || `recent-${index}`}
                   className="rounded-2xl border border-white/10 bg-black/15 p-3"
@@ -1450,6 +1462,12 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
                         <span>{entry?.date || ''}</span>
                         <span>•</span>
                         <span>{labelFromMap(entry?.source, SOURCE_LABELS, 'قيد يومية')}</span>
+                        {entry?.is_reversed ? (
+                          <>
+                            <span>•</span>
+                            <span className="font-bold text-amber-300" data-testid={`pos-recent-entry-reversed-${entry?.id || index}`}>معكوس</span>
+                          </>
+                        ) : null}
                         {(entry?.payment_method || entry?.paymentMethod || entry?.payment_method_label_ar) ? (
                           <>
                             <span>•</span>
@@ -1457,6 +1475,11 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
                           </>
                         ) : null}
                       </div>
+                      {entry?.origin?.creator_label ? (
+                        <div className="mt-1 text-xs text-slate-400" data-testid={`pos-recent-entry-creator-${entry?.id || index}`}>
+                          بواسطة: {entry.origin.creator_label}
+                        </div>
+                      ) : null}
                     </div>
 
                     <button
@@ -1486,6 +1509,15 @@ export default function SmartPOSJournal({ apiBase, workshopId, accounts = [], re
               ))}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => onViewAllPos && onViewAllPos()}
+            className="mt-3 w-full rounded-2xl border border-cyan-300/30 bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-100 transition hover:bg-cyan-500/20"
+            data-testid="pos-view-all-button"
+          >
+            عرض جميع قيود POS{posTotalCount === null ? '' : ` (${posTotalCount})`}
+          </button>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-cyan-950/40 p-4" data-testid="pos-smart-summary-panel">
             <div className="mb-2 flex items-center gap-2 text-white font-semibold">

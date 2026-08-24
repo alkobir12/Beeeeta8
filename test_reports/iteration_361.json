@@ -1,0 +1,43 @@
+{
+  "summary": "Iter361 — Journal Ledger Final Completion (READ-ONLY, live prod DB). Backend: 32/32 pytest passed (17/17 pagination+search+filters+KPI+POS+reversal+deep-link+legacy in test_journal_pagination_iter361.py, 15/15 origin visibility in test_creator_origin_visibility.py). Verified pagination contract page_size=25 and 50 (unique==total_count==145, no duplicates, no missing), KPI full-dataset constant across pages, entry_kind partition (income+collection+outflow+other == 'all'), entry_kind=pos matches Supabase canonical SOURCE:SMART_POS ids (22), search by party/id/reference_id, date boundaries exclusive on end_date=day-before, POS↔journal parity, reversal cross-links + independent attribution, legacy mode shape unchanged (no page/kpi keys), account deep-link filter matches lines. Frontend (mobile 390 + desktop 1920): admin login مدير/010101 OK. Full journal view (/accounting/journal-entries?view=full): grid renders 25 cards (journal-entries-grid), pagination bar with السابق/التالي, indicator 'صفحة 1 من 6', total 'إجمالي القيود: 145' matches API kpi.total_count exactly (NOT 25), التالي loads different cards + URL ?page=2, page-size 50 resets to page 1 (URL becomes ?size=50, indicator 'صفحة 1 من 3'), nonsense search yields journal-empty-state + journal-clear-filters-button that correctly restores full list, expand card shows origin block with all 4 sub-testids (journal-card-origin-{creator|approver|poster|channel}-{id}) plus journal-card-technical-{id}, historical entries render 'غير مسجل — قيد تاريخي' (no invented admin/system), deep link ?ref=<real_reference_id> locates the entry, deep link ?account=005 renders journal-account-filter-chip 'حساب 005 ✕'. POS view (POS الذكي): panel + pos-total-count + pos-view-all-button exist BUT during loading/error the badge and button label display '(0)' instead of API total_count=22 — violates spec 'pos-total-count where N == API total_count for entry_kind=pos (NOT the displayed 8)'.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SmartPOSJournal.jsx pos-recent-entries-panel", "issue": "pos-total-count badge displays 'إجمالي قيود POS: 0' and pos-view-all-button reads 'عرض جميع قيود POS (0)' while the panel is stuck on 'جاري تحميل قيود POS...' (loading) or transitions to 'تعذّر تحميل قيود POS' (error). API returns total_count=22 for entry_kind=pos. Per spec, N MUST equal API total_count (not displayed 8), so it must never render 0 during LOADING or ERROR — 0 is only acceptable if the API truly returned 0. Repro: login → /accounting/journal-entries → click 'POS الذكي' → observe both badge and view-all button show (0) for >15s even after retry.", "selector": "[data-testid='pos-total-count'], [data-testid='pos-view-all-button']", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "POS Recent Entries panel initial load in preview automation", "issue": "loadPosEntries appears to be hit by the same preview edge net::ERR_ABORTED that main journal handles gracefully with retry-CTA. In the POS panel, the fallback shows an error card with 'إعادة المحاولة' but the header count badge and the view-all button remain at (0) — they should either hide the number, show '—', or fall back to a cached last-known total. Also observed: after clicking pos-view-all-button URL correctly becomes ?view=full&kind=pos but the main journal-entries-grid takes noticeably longer than expected to render (subsequent XHR).", "affected_selectors": ["[data-testid='pos-total-count']", "[data-testid='pos-view-all-button']", "[data-testid='pos-recent-entries-panel']"]}
+    ],
+    "design_issues": [
+      {"screen": "Journal filter bar (both mobile & desktop)", "issues": ["Date inputs use native browser mm/dd/yyyy picker (journal-date-from / journal-date-to) — codebase standard is shadcn Calendar; native picker is inconsistent with RTL Arabic UI and mixes MM/DD ordering into an app that otherwise uses DD/MM. Consider replacing with the shadcn Calendar/Popover pattern used elsewhere."]},
+      {"screen": "Pagination URL param naming", "issues": ["Initial page navigation uses '?page=2' but page-size change writes '?size=50' — inconsistent. Either use ?page=N&size=M throughout or ?page=N&page_size=M throughout. Non-blocking but harms deep-link/testability contract."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_journal_pagination_iter361.py",
+    "/app/backend/tests/test_creator_origin_visibility.py",
+    "/app/test_reports/pytest/iter361_pagination.xml",
+    "/app/test_reports/pytest/iter361_origin.xml"
+  ],
+  "action_items": [
+    "Fix SmartPOSJournal.jsx pos-total-count badge & pos-view-all-button to render the API total_count value (from the same response used for the recent list), and NEVER render 0 in LOADING or ERROR states — use skeleton/'—' placeholder or last-known-good.",
+    "Consider mirroring the journal-error-state + journal-retry-button UX inside the POS recent-entries panel (currently the retry lives inside the error card but the header count still misleads with 0).",
+    "Optional: harmonize URL param name (?page_size vs ?size) between initial state and page-size change."
+  ],
+  "critical_code_review_comments": [
+    "Backend _paginated_journal_response contract is stable and safe: kpi is computed on the full filtered dataset (verified constant across page 1, 2, last) — no leaked page-only aggregates.",
+    "Backend entry_kind='pos' correctly projects the SAME canonical journal_entries table (SOURCE:SMART_POS marker in description) — no second ledger. Canonical Supabase count == API total_count == 22 in this snapshot.",
+    "Backend legacy mode (no page param) still returns {success,data,total} without kpi/total_pages — protects any legacy consumer.",
+    "Frontend JournalEntries.jsx correctly resets to page 1 on page_size change and on search debounce; URL sync is present for page/size/search/kind/account/ref/entry.",
+    "Frontend JournalEntryCard details ordering matches spec: debit/credit table → description → origin block → collapsed technical <details>. Historical entries render 'غير مسجل — قيد تاريخي' with no invented admin/system.",
+    "Frontend SmartPOSJournal pos-total-count is coupled to local state that only updates on successful fetch — it should read total_count from the last response even under error, and use loading skeleton instead of showing 0. This is the single P0 UX bug in this iteration."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (32/32)", "frontend": "≈90% — 1 HIGH bug on POS count badge; main journal view + deep links + expand + origin + reversal + pagination all pass"},
+  "test_credentials": "admin مدير/010101 (preview internal)",
+  "seed_data_creation": "NONE — strict read-only test run. No POST/PUT/DELETE to journal entries. Ledger snapshot 145 at start; live production activity may move it independently.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend regression covered by test_journal_pagination_iter361.py (17 tests, ~70s) + test_creator_origin_visibility.py (15 tests, ~4s). Do not re-run POST/DELETE E2E from iter360 casually — production DB. Preview edge net::ERR_ABORTED can flake browser XHR; main journal handles it (retry button), POS panel does NOT (leaves badge at 0). When re-testing POS fix, verify: (a) pos-total-count reads API total_count=22 immediately after fetch and stays >0 during subsequent refetches, (b) if fetch fails the badge shows '—' or last-known — never 0, (c) pos-view-all-button label mirrors the same source.",
+  "rca of the issue": "POS_TOTAL_COUNT_ZERO_ON_LOAD: pos-total-count in SmartPOSJournal.jsx (loadPosEntries area) initializes local state to 0 and only updates on successful API response. Under the documented preview net::ERR_ABORTED (which affects the /api call at page mount), state never updates → badge & view-all button perpetually read 0. Spec explicitly requires N == API total_count for entry_kind=pos and forbids '0 قيود' in ERROR state. Mitigation: (1) render skeleton or '—' when count is null/undefined instead of a hard 0, (2) preserve last-known-good total across failed refetches, (3) surface the same journal-retry-button pattern used in the main journal so the badge can recover on click."
+}

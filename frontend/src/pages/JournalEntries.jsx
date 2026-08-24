@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveBackendBase } from '../utils/backendBase';
 import SmartAccountSelect from '../components/SmartAccountSelect';
 import SmartPOSJournal from './SmartPOSJournal';
-import JournalEntryCard, { classifyEntry } from '../components/JournalEntryCard';
+import JournalEntryCard from '../components/JournalEntryCard';
 import axios from 'axios';
 import { api } from '../services/api';
 import { hasPermission } from '../utils/permissions';
@@ -31,6 +31,9 @@ import {
   Trash2,
   Save,
   X,
+  AlertTriangle,
+  ChevronRight,
+  ChevronLeft,
 } from 'lucide-react';
 
 const API_URL = (
@@ -39,6 +42,8 @@ const API_URL = (
     : `${resolveBackendBase() || ''}/api`.replace('//api', '/api')
 );
 const WORKSHOP_ID = process.env.REACT_APP_WORKSHOP_ID || 'finmodule-sync';
+const DEFAULT_PAGE_SIZE = 25;
+const PAGE_SIZES = [25, 50];
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('ar-SA', {
@@ -134,11 +139,24 @@ const ensureObject = (value) => (value && typeof value === 'object' ? value : nu
 
 export default function JournalEntries() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const themeName = 'dark';
   const [entries, setEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [fetchState, setFetchState] = useState('loading'); // loading | success | error
+  const [kpi, setKpi] = useState(null);
+  const [page, setPage] = useState(() => Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1));
+  const [pageSize, setPageSize] = useState(() => {
+    const fromUrl = parseInt(searchParams.get('size') || '', 10);
+    return PAGE_SIZES.includes(fromUrl) ? fromUrl : DEFAULT_PAGE_SIZE;
+  });
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('q') || searchParams.get('entry') || searchParams.get('ref') || '');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || searchParams.get('entry') || searchParams.get('ref') || '');
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('kind') || 'all');
+  const [accountFilter, setAccountFilter] = useState(() => searchParams.get('account') || '');
+  const [dateStart, setDateStart] = useState(() => searchParams.get('from') || '');
+  const [dateEnd, setDateEnd] = useState(() => searchParams.get('to') || '');
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEntryForm, setShowEntryForm] = useState(false);
@@ -151,6 +169,10 @@ export default function JournalEntries() {
   const [partyEditorSaving, setPartyEditorSaving] = useState(false);
   const [coaAccounts, setCoaAccounts] = useState([]);
   const [viewMode, setViewMode] = useState(() => {
+    const urlView = searchParams.get('view');
+    if (urlView === 'full' || urlView === 'pos') return urlView;
+    // روابط عميقة من صفحات أخرى (جدار الحماية / دليل الحسابات / مركز كاترينا) → افتح الدفتر الكامل مباشرة
+    if (searchParams.get('entry') || searchParams.get('ref') || searchParams.get('account') || searchParams.get('q')) return 'full';
     try { return localStorage.getItem('journal.viewMode') || 'pos'; } catch (e) { return 'pos'; }
   });
   const [workshopProfile, setWorkshopProfile] = useState(null);
@@ -173,20 +195,50 @@ export default function JournalEntries() {
   }, [canUsePosJournal, viewMode]);
 
   useEffect(() => {
-    const journalController = new AbortController();
     const profileController = new AbortController();
     const settingsController = new AbortController();
 
-    fetchJournalEntries(journalController.signal);
     fetchWorkshopProfile(profileController.signal);
     fetchWorkshopSettings(settingsController.signal);
 
     return () => {
-      journalController.abort();
       profileController.abort();
       settingsController.abort();
     };
   }, []);
+
+  // جلب صفحة الدفتر عند أي تغيير في الصفحة/الحجم/البحث/الفلاتر
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchJournalEntries(controller.signal);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, searchQuery, statusFilter, accountFilter, dateStart, dateEnd, coaAccounts.length]);
+
+  // مزامنة الحالة مع الرابط (Back / Forward / Refresh تعيد المستخدم لحالته)
+  useEffect(() => {
+    const params = {};
+    if (viewMode !== 'pos') params.view = viewMode;
+    if (page > 1) params.page = String(page);
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.size = String(pageSize);
+    if (searchQuery) params.q = searchQuery;
+    if (statusFilter !== 'all') params.kind = statusFilter;
+    if (accountFilter) params.account = accountFilter;
+    if (dateStart) params.from = dateStart;
+    if (dateEnd) params.to = dateEnd;
+    setSearchParams(params, { replace: true });
+  }, [viewMode, page, pageSize, searchQuery, statusFilter, accountFilter, dateStart, dateEnd, setSearchParams]);
+
+  // Debounce للبحث Server-side
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery((prev) => {
+        if (prev !== searchInput) setPage(1);
+        return searchInput;
+      });
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     const accountsController = new AbortController();
@@ -204,42 +256,53 @@ export default function JournalEntries() {
     };
     window.addEventListener('finance:updated', onFinUpdated);
     return () => window.removeEventListener('finance:updated', onFinUpdated);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, searchQuery, statusFilter, dateStart, dateEnd]);
 
-  useEffect(() => {
-    if (coaAccounts.length > 0) {
-      fetchJournalEntries();
-    }
-  }, [coaAccounts.length]);
-
+  // خطأ الإلغاء فقط عندما يكون الإلغاء منا (تغيير صفحة/إغلاق) — فشل الشبكة الحقيقي = ERROR وليس EMPTY
   const isAbortLikeError = (error, signal) => {
     if (signal?.aborted) return true;
-    const message = String(error?.message || '').toLowerCase();
-    return error?.name === 'AbortError' || message.includes('aborted');
+    return error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError' || error?.name === 'AbortError';
   };
 
   const fetchJournalEntries = async (signal = undefined) => {
-    setLoading(true);
+    setFetchState('loading');
     try {
-      const response = await api.get('/finance/journal-entries', { params: { workshop_id: WORKSHOP_ID, limit: 50 }, signal });
+      const params = { workshop_id: WORKSHOP_ID, page, page_size: pageSize };
+      if (searchQuery) params.search = searchQuery;
+      if (statusFilter && statusFilter !== 'all') params.entry_kind = statusFilter;
+      if (accountFilter) params.account = accountFilter;
+      if (dateStart) params.start_date = dateStart;
+      if (dateEnd) params.end_date = dateEnd;
+
+      // مهلة صريحة: طلب معلّق لا يترك المستخدم أمام سبينر لا نهائي — يتحول لحالة خطأ مع زر إعادة المحاولة
+      const response = await api.get('/finance/journal-entries', { params, signal, timeout: 30000 });
       const data = response.data;
+      if (!data?.success) throw new Error(data?.error || 'journal_fetch_failed');
 
-      if (data?.success) {
-        const rawEntries = ensureArray(data?.data)
-          .map((entry) => ensureObject(entry))
-          .filter(Boolean);
+      const rawEntries = ensureArray(data?.data)
+        .map((entry) => ensureObject(entry))
+        .filter(Boolean);
+      const meta = {
+        totalCount: Number(data?.total_count || 0),
+        totalPages: Number(data?.total_pages || 0),
+        page: Number(data?.page || page),
+        pageSize: Number(data?.page_size || pageSize),
+      };
 
-        const transformedEntries = rawEntries.map((entry, index) => {
+      const transformedEntries = rawEntries.map((entry, index) => {
           const rawLines = ensureArray(entry?.lines)
             .map((line) => ensureObject(line))
             .filter(Boolean);
+          const globalNumber = Math.max(1, meta.totalCount - ((meta.page - 1) * meta.pageSize + index));
 
           return {
           id: entry?.id || String(index),
-          entry_number: `JE-${String(index + 1).padStart(4, '0')}`,
+          entry_number: `JE-${String(globalNumber).padStart(4, '0')}`,
           date: entry?.date,
           total: Number(entry?.total || 0),
           entry_date: entry?.date,
+          created_at: entry?.created_at || '',
           description: sanitizeEntryText(entry?.description || ''),
           reference_type: entry?.source === 'operation'
             ? (entry?.transaction_type === 'sale' || entry?.transaction_type === 'service' ? 'invoice' : 'purchase')
@@ -269,21 +332,27 @@ export default function JournalEntries() {
           transaction_type: entry?.transaction_type || '',
           transaction_type_label_ar: entry?.transaction_type_label_ar || '',
           reference_id: entry?.reference_id || '',
-          source: entry?.source || 'manual'
+          source: entry?.source || 'manual',
+          origin: entry?.origin || null,
+          is_pos: Boolean(entry?.is_pos),
+          is_reversed: Boolean(entry?.is_reversed),
+          reversal_id: entry?.reversal_id || '',
+          reversed_of: entry?.reversed_of || '',
         };
       });
-        setEntries(transformedEntries);
-      } else {
-        setEntries([]);
+      setEntries(transformedEntries);
+      setKpi(data?.kpi || null);
+      setTotalCount(meta.totalCount);
+      setTotalPages(meta.totalPages);
+      if (meta.totalPages > 0 && page > meta.totalPages) {
+        setPage(meta.totalPages);
       }
+      setFetchState('success');
     } catch (error) {
       if (isAbortLikeError(error, signal)) return;
       console.error('Error fetching journal entries:', error);
-      setEntries([]);
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
+      // ⚠️ خطأ ≠ فارغ: لا نعرض «0 قيود» عند فشل الجلب — حالة خطأ صريحة مع زر إعادة المحاولة
+      setFetchState('error');
     }
   };
 
@@ -421,40 +490,52 @@ export default function JournalEntries() {
     }
   };
 
-  const filteredEntries = ensureArray(entries).filter((entry) => {
-    const safeEntry = ensureObject(entry);
-    if (!safeEntry) return false;
-    if (statusFilter !== 'all') {
-      const kind = classifyEntry(entry);
-      if (statusFilter === 'income' && kind !== 'income') return false;
-      if (statusFilter === 'collection' && kind !== 'collection') return false;
-      if (statusFilter === 'outflow' && kind !== 'outflow') return false;
-      if (statusFilter === 'other' && ['income', 'collection', 'outflow'].includes(kind)) return false;
-    }
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    const safeDescription = sanitizeEntryText(entry.description || '');
-    return (
-      entry.entry_number?.toLowerCase().includes(query) ||
-      safeDescription.toLowerCase().includes(query) ||
-      entry.operation_type_label?.toLowerCase().includes(query) ||
-      entry.party_label?.toLowerCase().includes(query) ||
-      entry.customer_name?.toLowerCase().includes(query) ||
-      entry.vehicle_plate?.toLowerCase().includes(query)
-    );
-  });
+  // البحث والفلاتر أصبحت Server-side على كامل الدفتر — القيود المعروضة هي صفحة الخادم كما هي
+  const filteredEntries = ensureArray(entries).filter((entry) => ensureObject(entry));
 
-  const safeEntries = ensureArray(entries).filter((entry) => ensureObject(entry));
-
-  const incomeEntries = safeEntries.filter((e) => ['income', 'collection'].includes(classifyEntry(e)));
-  const outflowEntries = safeEntries.filter((e) => classifyEntry(e) === 'outflow');
+  // KPI من كامل النتائج المطابقة (Server-side canonical aggregation) — لا من الصفحة الحالية
   const stats = {
-    total: safeEntries.length,
-    income: incomeEntries.length,
-    incomeAmount: incomeEntries.reduce((sum, e) => sum + (Number(e.total_debit) || 0), 0),
-    outflow: outflowEntries.length,
-    outflowAmount: outflowEntries.reduce((sum, e) => sum + (Number(e.total_debit) || 0), 0),
-    totalAmount: safeEntries.reduce((sum, e) => sum + (Number(e.total_debit) || 0), 0),
+    total: kpi ? Number(kpi.total_count || 0) : totalCount,
+    income: kpi ? Number(kpi.income_count || 0) : 0,
+    incomeAmount: kpi ? Number(kpi.income_amount || 0) : 0,
+    outflow: kpi ? Number(kpi.outflow_count || 0) : 0,
+    outflowAmount: kpi ? Number(kpi.outflow_amount || 0) : 0,
+    totalAmount: kpi ? Number(kpi.total_movement || 0) : 0,
+  };
+
+  const hasActiveFilters = Boolean(searchQuery || statusFilter !== 'all' || accountFilter || dateStart || dateEnd);
+
+  const clearFilters = () => {
+    setSearchInput('');
+    setSearchQuery('');
+    setStatusFilter('all');
+    setAccountFilter('');
+    setDateStart('');
+    setDateEnd('');
+    setPage(1);
+  };
+
+  // الانتقال لقيد محدد (أصل/عكس): بحث server-side بالمعرف
+  const handleLocateEntry = (entryId) => {
+    if (!entryId) return;
+    setViewMode('full');
+    try { localStorage.setItem('journal.viewMode', 'full'); } catch (e) { void e; }
+    setStatusFilter('all');
+    setDateStart('');
+    setDateEnd('');
+    setSearchInput(String(entryId));
+    setSearchQuery(String(entryId));
+    setPage(1);
+  };
+
+  // «عرض جميع قيود POS» من بلوك POS → نفس صفحة الدفتر مع فلتر POS مفعّل
+  const handleViewAllPos = () => {
+    setViewMode('full');
+    try { localStorage.setItem('journal.viewMode', 'full'); } catch (e) { void e; }
+    setStatusFilter('pos');
+    setSearchInput('');
+    setSearchQuery('');
+    setPage(1);
   };
 
   const handlePrintInvoice = (entry) => {
@@ -652,8 +733,8 @@ export default function JournalEntries() {
             apiBase={API_URL}
             workshopId={WORKSHOP_ID}
             accounts={coaAccounts}
-            recentEntries={(entries || []).slice(0, 5)}
             onSaved={() => fetchJournalEntries()}
+            onViewAllPos={handleViewAllPos}
           />
         </div>
       ) : null}
@@ -746,8 +827,8 @@ export default function JournalEntries() {
             <input
               type="text"
               placeholder="بحث برقم القيد أو الوصف أو العميل..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pr-10 pl-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               style={{ 
                 backgroundColor: styles.inputBg,
@@ -768,11 +849,12 @@ export default function JournalEntries() {
               { key: 'income', label: 'بيع', active: 'bg-emerald-600 text-white shadow-md' },
               { key: 'collection', label: 'تحصيل', active: 'bg-teal-600 text-white shadow-md' },
               { key: 'outflow', label: 'شراء ومصروف', active: 'bg-rose-600 text-white shadow-md' },
+              { key: 'pos', label: 'نقاط البيع', active: 'bg-cyan-600 text-white shadow-md' },
               { key: 'other', label: 'أخرى', active: 'bg-amber-600 text-white shadow-md' },
             ].map((filter) => (
               <button
                 key={filter.key}
-                onClick={() => setStatusFilter(filter.key)}
+                onClick={() => { setStatusFilter(filter.key); setPage(1); }}
                 className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                   statusFilter === filter.key ? filter.active : ''
                 }`}
@@ -783,6 +865,48 @@ export default function JournalEntries() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* فلترة الفترة (تُطبق داخل الخادم) */}
+        <div className="mt-3 flex flex-wrap items-center gap-2" data-testid="journal-date-filters">
+          <span className="text-xs" style={{ color: styles.textMuted }}>الفترة:</span>
+          <input
+            type="date"
+            value={dateStart}
+            onChange={(e) => { setDateStart(e.target.value); setPage(1); }}
+            className="rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            style={{ backgroundColor: styles.inputBg, border: `1px solid ${styles.inputBorder}`, color: styles.textPrimary, colorScheme: 'dark' }}
+            data-testid="journal-date-from"
+          />
+          <span className="text-xs" style={{ color: styles.textMuted }}>إلى</span>
+          <input
+            type="date"
+            value={dateEnd}
+            onChange={(e) => { setDateEnd(e.target.value); setPage(1); }}
+            className="rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            style={{ backgroundColor: styles.inputBg, border: `1px solid ${styles.inputBorder}`, color: styles.textPrimary, colorScheme: 'dark' }}
+            data-testid="journal-date-to"
+          />
+          {accountFilter ? (
+            <button
+              type="button"
+              onClick={() => { setAccountFilter(''); setPage(1); }}
+              className="rounded-xl px-3 py-2 text-xs font-bold text-sky-200 border border-sky-400/30 bg-sky-500/10 transition hover:bg-sky-500/20"
+              data-testid="journal-account-filter-chip"
+            >
+              حساب {accountFilter} ✕
+            </button>
+          ) : null}
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-xl px-3 py-2 text-xs font-bold text-amber-200 border border-amber-400/30 bg-amber-500/10 transition hover:bg-amber-500/20"
+              data-testid="journal-clear-filters-top-button"
+            >
+              مسح الفلاتر
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -804,22 +928,53 @@ export default function JournalEntries() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-              <span style={{ color: styles.textSecondary }}>جاري التحميل...</span>
+        {fetchState === 'loading' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 p-3 sm:p-4" data-testid="journal-loading-skeleton">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-44 rounded-[24px] animate-pulse" style={{ background: 'rgba(148,163,184,0.14)' }} />
+            ))}
+          </div>
+        ) : fetchState === 'error' ? (
+          <div className="p-12 text-center" data-testid="journal-error-state">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-rose-500/15">
+              <AlertTriangle size={32} className="text-rose-300" />
             </div>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: styles.textPrimary }}>تعذر تحميل دفتر اليومية</h3>
+            <p className="mb-4" style={{ color: styles.textSecondary }}>حدث خطأ أثناء جلب القيود — لن نعرض أرقاماً غير مؤكدة.</p>
+            <button
+              type="button"
+              onClick={() => fetchJournalEntries()}
+              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white transition"
+              style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}
+              data-testid="journal-retry-button"
+            >
+              <RefreshCw size={15} /> إعادة المحاولة
+            </button>
           </div>
         ) : filteredEntries.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="p-12 text-center" data-testid="journal-empty-state">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ backgroundColor: styles.inputBg }}>
               <BookOpen size={32} style={{ color: styles.textMuted }} />
             </div>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: styles.textPrimary }}>لا توجد قيود</h3>
-            <p style={{ color: styles.textSecondary }}>أضف قيداً جديداً أو قم بإضافة بنود لملف مركبة</p>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: styles.textPrimary }}>
+              {hasActiveFilters ? 'لا توجد قيود مطابقة' : 'لا توجد قيود'}
+            </h3>
+            <p className="mb-4" style={{ color: styles.textSecondary }}>
+              {hasActiveFilters ? 'جرّب تعديل البحث أو الفلاتر' : 'أضف قيداً جديداً أو قم بإضافة بنود لملف مركبة'}
+            </p>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-xl px-5 py-2.5 text-sm font-bold text-amber-100 border border-amber-400/30 bg-amber-500/10 transition hover:bg-amber-500/20"
+                data-testid="journal-clear-filters-button"
+              >
+                مسح الفلاتر
+              </button>
+            ) : null}
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 p-3 sm:p-4" data-testid="journal-entries-grid">
             {filteredEntries.map((entry) => (
               <JournalEntryCard
@@ -831,9 +986,58 @@ export default function JournalEntries() {
                 onPrint={handlePrintInvoice}
                 onEditParty={handleQuickEditParty}
                 onDelete={(selected) => setDeleteConfirm(selected)}
+                onLocateEntry={handleLocateEntry}
               />
             ))}
           </div>
+
+          {/* شريط الصفحات — Server-side Pagination */}
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+            style={{ borderTop: `1px solid ${styles.cardBorder}` }}
+            data-testid="journal-pagination-bar"
+          >
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-xl px-4 py-2 text-sm font-bold transition disabled:opacity-35 disabled:cursor-not-allowed"
+                style={{ backgroundColor: styles.inputBg, border: `1px solid ${styles.inputBorder}`, color: styles.textPrimary }}
+                data-testid="journal-prev-page-button"
+              >
+                <ChevronRight size={15} /> السابق
+              </button>
+              <span className="px-2 text-sm font-bold" style={{ color: styles.textSecondary }} data-testid="journal-page-indicator">
+                صفحة {page} من {Math.max(totalPages, 1)}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-xl px-4 py-2 text-sm font-bold transition disabled:opacity-35 disabled:cursor-not-allowed"
+                style={{ backgroundColor: styles.inputBg, border: `1px solid ${styles.inputBorder}`, color: styles.textPrimary }}
+                data-testid="journal-next-page-button"
+              >
+                التالي <ChevronLeft size={15} />
+              </button>
+            </div>
+            <div className="flex items-center gap-3 text-xs" style={{ color: styles.textMuted }}>
+              <span data-testid="journal-total-count-label">إجمالي القيود: <strong style={{ color: styles.textPrimary }}>{totalCount}</strong></span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                className="rounded-xl px-2 py-2 text-xs focus:outline-none"
+                style={{ backgroundColor: styles.inputBg, border: `1px solid ${styles.inputBorder}`, color: styles.textPrimary }}
+                data-testid="journal-page-size-select"
+              >
+                {PAGE_SIZES.map((s) => (
+                  <option key={s} value={s}>{s} / صفحة</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          </>
         )}
       </div>
         </>

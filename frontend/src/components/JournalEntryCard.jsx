@@ -138,6 +138,7 @@ export default function JournalEntryCard({
   onPrint,
   onEditParty,
   onDelete,
+  onLocateEntry,
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -279,6 +280,11 @@ export default function JournalEntryCard({
           <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-black text-sky-800" data-testid={`journal-card-source-tag-${cardId}`}>
             {sourceLabel(entry?.source)}
           </span>
+          {entry?.is_reversed ? (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-800" data-testid={`journal-card-reversed-tag-${cardId}`}>
+              معكوس
+            </span>
+          ) : null}
           {origin?.creator_label ? (
             <span
               className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${CREATOR_PILL_STYLES[origin.creator_kind] || CREATOR_PILL_STYLES.unknown}`}
@@ -293,38 +299,6 @@ export default function JournalEntryCard({
       {expanded ? (
         <section className="border-t border-zinc-200 bg-white/65" data-testid={`journal-card-details-section-${cardId}`}>
           <div className="space-y-3 px-4 py-4" data-testid={`journal-card-details-${cardId}`}>
-            {description && !descriptionUsedInHeader ? (
-              <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-[12px] font-bold leading-relaxed text-zinc-700" data-testid={`journal-card-description-${cardId}`}>
-                {description}
-              </div>
-            ) : null}
-
-            {origin ? (
-              <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2.5" data-testid={`journal-card-origin-${cardId}`}>
-                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black text-zinc-500">
-                  <UserRound size={12} /> من فعل هذا؟
-                </div>
-                <dl className="space-y-1.5 text-[12px] font-bold text-zinc-800">
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="shrink-0 text-zinc-500">المنشئ</dt>
-                    <dd className="text-left" data-testid={`journal-card-origin-creator-${cardId}`}>{origin.creator_label}</dd>
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="shrink-0 text-zinc-500">المعتمِد</dt>
-                    <dd className="text-left" data-testid={`journal-card-origin-approver-${cardId}`}>{origin.approver_label}</dd>
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="shrink-0 text-zinc-500">مُرحِّل القيد</dt>
-                    <dd className="text-left" data-testid={`journal-card-origin-poster-${cardId}`}>{origin.poster_label}</dd>
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <dt className="shrink-0 text-zinc-500">قناة الإدخال</dt>
-                    <dd className="text-left" data-testid={`journal-card-origin-channel-${cardId}`}>{origin.channel_label}</dd>
-                  </div>
-                </dl>
-              </div>
-            ) : null}
-
             <div className="overflow-hidden rounded-2xl border border-zinc-200">
               <table className="w-full text-[11px]" data-testid={`journal-card-lines-table-${cardId}`}>
                 <thead className="bg-zinc-50 text-zinc-700">
@@ -356,6 +330,72 @@ export default function JournalEntryCard({
                 </tfoot>
               </table>
             </div>
+
+            {description && !descriptionUsedInHeader ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2 text-[12px] font-bold leading-relaxed text-zinc-700" data-testid={`journal-card-description-${cardId}`}>
+                {description}
+              </div>
+            ) : null}
+
+            {(entry?.is_reversed && entry?.reversal_id) || entry?.reversed_of ? (
+              <div className="flex flex-wrap gap-2" data-testid={`journal-card-reversal-links-${cardId}`}>
+                {entry?.is_reversed && entry?.reversal_id ? (
+                  <button
+                    type="button"
+                    className="min-h-[40px] flex-1 rounded-2xl border border-amber-300 bg-amber-50 px-3 text-[12px] font-black text-amber-800 transition active:scale-[0.99]"
+                    onClick={() => onLocateEntry && onLocateEntry(entry.reversal_id)}
+                    data-testid={`journal-card-view-reversal-${cardId}`}
+                  >
+                    عرض القيد العكسي
+                  </button>
+                ) : null}
+                {entry?.reversed_of ? (
+                  <button
+                    type="button"
+                    className="min-h-[40px] flex-1 rounded-2xl border border-amber-300 bg-amber-50 px-3 text-[12px] font-black text-amber-800 transition active:scale-[0.99]"
+                    onClick={() => onLocateEntry && onLocateEntry(entry.reversed_of)}
+                    data-testid={`journal-card-view-original-${cardId}`}
+                  >
+                    عرض القيد الأصلي
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {origin ? (
+              <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2.5" data-testid={`journal-card-origin-${cardId}`}>
+                <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black text-zinc-500">
+                  <UserRound size={12} /> من فعل هذا؟
+                </div>
+                <dl className="space-y-1.5 text-[12px] font-bold text-zinc-800">
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">المنشئ</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-creator-${cardId}`}>{origin.creator_label}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">المعتمِد</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-approver-${cardId}`}>{origin.approver_label}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">مُرحِّل القيد</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-poster-${cardId}`}>{origin.poster_label}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500">قناة الإدخال</dt>
+                    <dd className="text-left" data-testid={`journal-card-origin-channel-${cardId}`}>{origin.channel_label}</dd>
+                  </div>
+                </dl>
+              </div>
+            ) : null}
+
+            <details className="rounded-2xl border border-zinc-200 bg-white px-3 py-2" data-testid={`journal-card-technical-${cardId}`}>
+              <summary className="cursor-pointer select-none text-[11px] font-black text-zinc-500">تفاصيل تقنية</summary>
+              <div className="mt-2 space-y-1 break-all text-[10px] font-bold text-zinc-500" dir="ltr">
+                <div data-testid={`journal-card-technical-id-${cardId}`}>ID: {entry?.id || '-'}</div>
+                {entry?.reference_id ? <div data-testid={`journal-card-technical-ref-${cardId}`}>REF: {entry.reference_id}</div> : null}
+                {entry?.source ? <div data-testid={`journal-card-technical-source-${cardId}`}>SOURCE: {entry.source}</div> : null}
+              </div>
+            </details>
           </div>
         </section>
       ) : null}
