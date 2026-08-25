@@ -1,0 +1,308 @@
+{
+ "tables": {
+  "vehicles": {
+   "columns": [
+    "brand",
+    "color",
+    "completion_date",
+    "created_at",
+    "customer_email",
+    "customer_id",
+    "customer_name",
+    "customer_phone",
+    "entry_date",
+    "estimated_completion",
+    "file_number",
+    "id",
+    "images",
+    "model",
+    "notes",
+    "parts",
+    "plate_number",
+    "services",
+    "status",
+    "technician_id",
+    "technician_name",
+    "tracking_link",
+    "updated_at",
+    "vin",
+    "year"
+   ],
+   "fk_like": [
+    "customer_id",
+    "technician_id"
+   ],
+   "sampled": true
+  },
+  "vehicle_visits": {
+   "columns": [
+    "created_at",
+    "entry_date",
+    "exit_date",
+    "id",
+    "mileage",
+    "notes",
+    "status",
+    "technician_id",
+    "vehicle_id"
+   ],
+   "fk_like": [
+    "technician_id",
+    "vehicle_id"
+   ],
+   "sampled": true
+  },
+  "operations": {
+   "columns": [
+    "account_id",
+    "created_at",
+    "id",
+    "invoice_number",
+    "items",
+    "notes",
+    "op_date",
+    "partner_name",
+    "partner_type",
+    "payment_method",
+    "subtotal",
+    "total",
+    "type",
+    "updated_at",
+    "vehicle_id",
+    "visit_id"
+   ],
+   "fk_like": [
+    "account_id",
+    "vehicle_id",
+    "visit_id"
+   ],
+   "sampled": true
+  },
+  "journal_entries": {
+   "columns": [
+    "created_at",
+    "date",
+    "description",
+    "id",
+    "lines",
+    "reference_id",
+    "source",
+    "total",
+    "transaction_type",
+    "updated_at",
+    "workshop_id"
+   ],
+   "fk_like": [
+    "reference_id",
+    "workshop_id"
+   ],
+   "sampled": true
+  },
+  "accounts": {
+   "columns": [
+    "balance",
+    "code",
+    "created_at",
+    "id",
+    "is_system",
+    "name",
+    "name_en",
+    "parent_id",
+    "type"
+   ],
+   "fk_like": [
+    "parent_id"
+   ],
+   "sampled": true
+  },
+  "customers": {
+   "columns": [
+    "address",
+    "created_at",
+    "email",
+    "id",
+    "last_visit",
+    "name",
+    "phone",
+    "total_visits",
+    "updated_at",
+    "vehicle_brand",
+    "vehicle_km",
+    "vehicle_plate"
+   ],
+   "fk_like": [],
+   "sampled": true
+  },
+  "parts": {
+   "columns": [
+    "category",
+    "created_at",
+    "id",
+    "image",
+    "min_quantity",
+    "name",
+    "part_number",
+    "purchase_price",
+    "quantity",
+    "selling_price",
+    "supplier",
+    "updated_at"
+   ],
+   "fk_like": [],
+   "sampled": true
+  },
+  "services": {
+   "columns": [
+    "active",
+    "category",
+    "created_at",
+    "duration_minutes",
+    "id",
+    "name",
+    "notes",
+    "price",
+    "updated_at",
+    "vat_percent"
+   ],
+   "fk_like": [],
+   "sampled": true
+  },
+  "invoices": {
+   "columns": [
+    "created_at",
+    "currency",
+    "customer_id",
+    "discount",
+    "id",
+    "invoice_number",
+    "items",
+    "notes",
+    "operation_id",
+    "partner_name",
+    "payment_method",
+    "status",
+    "subtotal",
+    "tax",
+    "tax_amount",
+    "tax_rate",
+    "total",
+    "type",
+    "updated_at",
+    "vehicle_id",
+    "workshop_id"
+   ],
+   "fk_like": [
+    "customer_id",
+    "operation_id",
+    "vehicle_id",
+    "workshop_id"
+   ],
+   "sampled": true
+  },
+  "approval_requests": {
+   "columns": [
+    "amount",
+    "created_at",
+    "customer_id",
+    "expires_at",
+    "id",
+    "images",
+    "otp_code",
+    "otp_verified_at",
+    "responded_at",
+    "responder_name",
+    "responder_phone",
+    "revoked",
+    "service_items",
+    "service_items_text",
+    "status",
+    "title",
+    "token",
+    "vehicle_id"
+   ],
+   "fk_like": [
+    "customer_id",
+    "vehicle_id"
+   ],
+   "sampled": true
+  },
+  "business_accounts": {
+   "columns": [
+    "active",
+    "archived",
+    "code",
+    "created_at",
+    "currency",
+    "id",
+    "name",
+    "updated_at"
+   ],
+   "fk_like": [],
+   "sampled": true
+  },
+  "transactions": {
+   "columns": [
+    "account_id",
+    "amount",
+    "category",
+    "created_at",
+    "created_by",
+    "date",
+    "description",
+    "id",
+    "reference",
+    "type",
+    "vehicle_id"
+   ],
+   "fk_like": [
+    "account_id",
+    "vehicle_id"
+   ],
+   "sampled": true
+  },
+  "technicians": {
+   "columns": [
+    "active_jobs",
+    "completed_jobs",
+    "created_at",
+    "id",
+    "name",
+    "phone",
+    "rating",
+    "specialty",
+    "updated_at"
+   ],
+   "fk_like": [],
+   "sampled": true
+  }
+ },
+ "relationships": [],
+ "financial": {
+  "journal_entries": 150,
+  "with_business_link": 142,
+  "without_any_reference": 8,
+  "reversal_entries": 16,
+  "duplicate_reversal_targets": {},
+  "entries_touching_AR005": 107,
+  "legacy_source_entries": 20,
+  "source_distribution": {
+   "operation": 31,
+   "unified_visit_payment": 37,
+   "vehicle_visit": 33,
+   "reversal": 16,
+   "hist_vehicle_ar_repair": 3,
+   "manual": 7,
+   "fin_engine_align_v1": 7,
+   "period_close": 1,
+   "historical_financial_repair": 3,
+   "ajel_supplier_purchase": 3,
+   "active_vehicle_ar_repair": 7,
+   "operation_payment": 2
+  }
+ },
+ "orphans": {
+  "visits_bad_vehicle": 0,
+  "ops_bad_vehicle": 0,
+  "ops_bad_visit": 0
+ }
+}

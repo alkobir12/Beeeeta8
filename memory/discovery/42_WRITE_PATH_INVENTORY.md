@@ -1,0 +1,78 @@
+# 42_WRITE_PATH_INVENTORY (static)
+
+Total write call-sites: **329** (live routes + offline scripts)
+
+- Supabase writes: 109
+- Mongo writes: 206
+- post_entry (AccountingEngine) call-sites: 14
+- **journal_entries DIRECT writes OUTSIDE accounting_engine: 1**
+   - scripts/cleanup_test_data_feb2026.py:61 delete (script=True)
+
+## Live (non-script) writes to financial/business tables by table
+- **account_code_aliases**: update_one=1
+- **account_display_codes**: update_one=1
+- **account_status_overrides**: delete_one=1, update_one=1
+- **account_usage**: update_one=1
+- **accounts** 💰: delete=1, delete_one=1, insert=6, insert_many=1, insert_one=2, update=4, update_one=4
+- **ai_bots**: insert_one=1, update_one=1
+- **ai_search_logs**: insert_one=1
+- **approval_requests**: insert=1, insert_one=1, update=1, update_one=1
+- **auth_audit**: delete_many=3
+- **auth_credentials**: delete_many=3
+- **auth_otps**: insert_one=1
+- **bot_conversations**: insert_one=1, update_one=1
+- **budgets**: insert=1, insert_one=1
+- **business_accounts** 💰: delete=2, delete_many=1, delete_one=1, insert=2, insert_one=3, update=1, update_many=1, update_one=1
+- **chart_of_accounts**: delete_many=1
+- **coa**: insert_one=1, update_one=1
+- **customer_approval_logs**: insert_one=1, update_one=1
+- **customer_feedback**: insert_one=1
+- **customer_file_numbers**: delete_one=2, update_one=1
+- **customers**: delete=2, delete_one=1, insert=3, insert_one=4, update=3, update_one=4
+- **document_output_assets**: insert_one=1, update_one=2
+- **document_template_audit**: insert_one=1
+- **document_template_resolution_audit**: insert_one=2
+- **document_templates**: delete_many=2, insert_many=1, insert_one=4, update_many=2, update_one=9
+- **dtc_references**: insert_many=1, insert_one=1, update_one=1
+- **electrical_references**: insert_one=1
+- **employee_performance**: insert_one=1
+- **faqs**: insert_one=1
+- **fault_knowledge**: delete=1, update=1
+- **firewall_dismissed_alerts**: update_one=2
+- **firewall_resolved_alerts**: insert_one=1
+- **injector_reports**: insert_one=1
+- **inventory_backorders**: insert=1, insert_one=1, update_one=1
+- **invoice_templates**: insert_one=3, update_many=1, update_one=8
+- **invoices** 💰: delete=4, delete_many=2, insert=2, update=1
+- **journal_entries** 💰: post_entry=14
+- **maintenance_orders**: insert_one=1, update_one=3
+- **moltbot_messages**: insert=1
+- **moltbot_projects**: insert=1
+- **moltbot_sessions**: insert=1
+- **operations** 💰: delete=8, delete_many=7, delete_one=1, insert=3, insert_one=3, update=5, update_one=2, upsert=1
+- **outbound_message_templates**: update_one=3
+- **outbound_share_attempts**: insert_one=1, update_one=1
+- **parts**: delete=2, delete_one=1, insert=3, insert_many=2, insert_one=1, update=5, update_many=1, update_one=5, upsert=1
+- **print_templates**: delete_one=1, insert_one=1, update_many=1, update_one=2
+- **products**: insert_one=1, update_one=1
+- **salary_records**: insert_one=1, update_one=1
+- **service_packages**: insert_one=1
+- **services**: delete=1, delete_many=1, delete_one=1, insert=2, insert_many=3, insert_one=2, update=1, update_many=1, update_one=1, upsert=2
+- **settings**: insert_one=1, update_one=2
+- **shop_orders**: insert_one=1, update_one=1
+- **suppliers**: delete=1, delete_one=1, insert=2, insert_one=1, update=2, update_one=1
+- **technicians**: delete_many=1, insert=1, insert_many=2, insert_one=1
+- **ticket_responses**: insert_one=1
+- **tickets**: insert_one=1, update_one=2
+- **transactions** 💰: insert=1, insert_one=4
+- **trusted_devices**: delete_many=3
+- **user_layouts**: update_one=1, upsert=1
+- **users**: delete=1, delete_one=1, insert=1, insert_one=1, update_one=1
+- **vehicle_files**: insert_one=1
+- **vehicle_references**: insert_one=1
+- **vehicle_visits** 💰: delete=1, delete_one=1, insert=2, insert_one=1, update=3, update_one=3
+- **vehicles**: delete=2, delete_one=2, insert=2, insert_one=3, update=3, update_one=4
+- **whatsapp_messages**: insert_one=2
+- **workshop_profile**: delete_many=1, insert_one=2, update_one=3
+- **workshop_services**: insert_one=1
+- **workshop_settings**: insert=2

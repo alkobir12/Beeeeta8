@@ -1,0 +1,295 @@
+[
+ {
+  "name": "firewall.health_score",
+  "agent": "FirewallAgent",
+  "description": "الحصول على درجة الصحة المالية وعدد التنبيهات النشطة.",
+  "params": {
+   "workshop_id": "string?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "firewall.top_alerts",
+  "agent": "FirewallAgent",
+  "description": "أهم 5 تنبيهات مفعّلة في النظام (مرتّبة حسب الخطورة).",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "firewall.cash_flow",
+  "agent": "FirewallAgent",
+  "description": "تدفق نقدي خلال 30 يوماً (الإيرادات vs المصاريف).",
+  "params": {
+   "workshop_id": "string?"
+  },
+  "write": false,
+  "sensitivity": "revenue"
+ },
+ {
+  "name": "firewall.operation_integrity",
+  "agent": "FirewallAgent",
+  "description": "🆕 يفحص جميع العمليات ويرجع التي بها مشاكل ربط/تنبيهات (missing journal, duplicates, mismatch).",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "finance.ar_summary",
+  "agent": "FinanceAgent",
+  "description": "ملخص ذمم العملاء + أعلى 5 مدينين.",
+  "params": {
+   "workshop_id": "string?"
+  },
+  "write": false,
+  "sensitivity": "financial"
+ },
+ {
+  "name": "workshop.active_visits",
+  "agent": "WorkshopAgent",
+  "description": "عدد الزيارات المفتوحة حالياً في الورشة.",
+  "params": {
+   "workshop_id": "string?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "customers.search",
+  "agent": "FinanceAgent",
+  "description": "🔍 بحث عن عميل بالاسم أو الهاتف — يرجع المطابقات + رصيد الذمم لكل عميل.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "financial"
+ },
+ {
+  "name": "vehicles.search",
+  "agent": "WorkshopAgent",
+  "description": "🚗 بحث عن مركبة برقم اللوحة / الماركة / الموديل / اسم المالك.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "parts.search",
+  "agent": "WorkshopAgent",
+  "description": "🔧 بحث ذكي في المخزون عن قطعة (بالاسم/التصنيف) — يرجع السعر+الكمية المتاحة. مفيد للأسئلة 'بيع X' و 'سعر X' و 'كم عندي X'.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string",
+   "limit": "int?",
+   "in_stock_only": "bool?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "inventory.low_stock",
+  "agent": "WorkshopAgent",
+  "description": "📦 يرجع قائمة بقطع الغيار التي مخزونها أقل من الحد الأدنى المُحدّد لها.",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "finance.payables_summary",
+  "agent": "FinanceAgent",
+  "description": "💼 ملخص ذمم الموردين من الدفتر القانوني (نفس مصدر الميزانية العمومية) + أعلى الموردين دائنية.",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?",
+   "query": "string?"
+  },
+  "write": false,
+  "sensitivity": "financial"
+ },
+ {
+  "name": "suppliers.search",
+  "agent": "FinanceAgent",
+  "description": "🏢 بحث موردين بالاسم وإرجاع الرصيد والحركات المختصرة.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "financial"
+ },
+ {
+  "name": "operations.recent",
+  "agent": "WorkshopAgent",
+  "description": "آخر N عمليات (بيع/شراء/مصاريف/تحصيل) مع المبلغ وحالة السداد.",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "vehicles.status_summary",
+  "agent": "WorkshopAgent",
+  "description": "🚗 عدد المركبات الحالية في الورشة حسب الحالة (مطابق للوحة التحكم) — للأسئلة «كم مركبة».",
+  "params": {
+   "workshop_id": "string?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "vehicles.recent",
+  "agent": "WorkshopAgent",
+  "description": "🚗 آخر المركبات المضافة أو المحدّثة.",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "operations.top_services",
+  "agent": "WorkshopAgent",
+  "description": "🏆 أكثر الخدمات مبيعاً فعلياً (عدد مرات البيع + الإيراد) من بنود العمليات المسجّلة.",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "revenue"
+ },
+ {
+  "name": "finance.sales_report",
+  "agent": "FinanceAgent",
+  "description": "📊 تقرير المبيعات والإيرادات لفترة عربية مثل اليوم/الأسبوع/كل المدة.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "revenue"
+ },
+ {
+  "name": "operations.search",
+  "agent": "WorkshopAgent",
+  "description": "بحث عمليات بالاسم (عميل/مورد) — يرجع كل عمليات الشخص المحدد مع المبالغ والحالة.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "operations.empty_items",
+  "agent": "WorkshopAgent",
+  "description": "🧾 عمليات/ملفات بدون بنود تفصيلية.",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "accounting.journal_entries",
+  "agent": "FinanceAgent",
+  "description": "📒 القيود المحاسبية الفعلية (دفتر اليومية) من قاعدة البيانات — يرجع العدد وإجمالي المدين/الدائن وآخر القيود. استخدميها لأي سؤال عن 'القيود' أو 'دفتر اليومية' أو 'ميزان المراجعة' بدل اختلاق قيود.",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?",
+   "query": "string?"
+  },
+  "write": false,
+  "sensitivity": "financial"
+ },
+ {
+  "name": "nl.search",
+  "agent": "WorkshopAgent",
+  "description": "🧠 بحث بلغة طبيعية: 'أكثر العملاء مديونية'، 'الفواتير المتأخرة'، 'أكبر العمليات'.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "runtime.pending_approvals",
+  "agent": "WorkshopAgent",
+  "description": "⏳ المسوّدات بانتظار الاعتماد (بطاقات Approval).",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "runtime.audit_recent",
+  "agent": "WorkshopAgent",
+  "description": "📜 آخر N أحداث في سجل التدقيق (بطاقات Audit).",
+  "params": {
+   "workshop_id": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "services.search",
+  "agent": "WorkshopAgent",
+  "description": "🔧 يبحث في كتالوج الخدمات (520+ خدمة) بالاسم أو التصنيف.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string?",
+   "category": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "services.categories",
+  "agent": "WorkshopAgent",
+  "description": "🗂️ تصنيفات الخدمات المتاحة (فرامل، تعليق، كهرباء، ...) مع عدد الخدمات.",
+  "params": {
+   "workshop_id": "string?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ },
+ {
+  "name": "parts.list",
+  "agent": "WorkshopAgent",
+  "description": "📦 يبحث في كتالوج قطع الغيار (148 قطعة) ويُرجع السعر والكمية.",
+  "params": {
+   "workshop_id": "string?",
+   "query": "string?",
+   "limit": "int?"
+  },
+  "write": false,
+  "sensitivity": "operational"
+ }
+]
