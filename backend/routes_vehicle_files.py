@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 from typing import Dict, Any
 from datetime import datetime
 import uuid
+from core import authz as _authz
 
 router = APIRouter(prefix="/api")
 db = None
@@ -14,10 +15,13 @@ def set_db(database):
 
 @router.post("/vehicles/{vehicle_id}/upload-file")
 async def upload_vehicle_file(
-    vehicle_id: str, file: UploadFile = File(...), file_type: str = "diagnostic"
+    vehicle_id: str, request: Request, file: UploadFile = File(...), file_type: str = "diagnostic"
 ):
     """رفع ملف أو فيديو لمركبة"""
     try:
+        actor = await _authz.resolve_request_actor(request)
+        if not (actor.can("vehicles", "view") or actor.can("archive", "view")):
+            raise HTTPException(status_code=403, detail={"error": "vehicle_access_required"})
         from pathlib import Path
 
         # Check if vehicle exists
@@ -56,9 +60,12 @@ async def upload_vehicle_file(
 
 
 @router.get("/vehicles/{vehicle_id}/files")
-async def get_vehicle_files(vehicle_id: str):
+async def get_vehicle_files(vehicle_id: str, request: Request):
     """الحصول على ملفات المركبة"""
     try:
+        actor = await _authz.resolve_request_actor(request)
+        if not (actor.can("vehicles", "view") or actor.can("archive", "view")):
+            raise HTTPException(status_code=403, detail={"error": "vehicle_access_required"})
         files = (
             await db.vehicle_files.find({"vehicleId": vehicle_id})
             .sort("uploadedAt", -1)
@@ -76,9 +83,12 @@ async def get_vehicle_files(vehicle_id: str):
 
 
 @router.post("/vehicles/compare-diagnostics")
-async def compare_vehicle_diagnostics(payload: Dict[str, Any]):
+async def compare_vehicle_diagnostics(request: Request, payload: Dict[str, Any]):
     """مقارنة بيانات تشخيص مركبتين"""
     try:
+        actor = await _authz.resolve_request_actor(request)
+        if not (actor.can("vehicles", "view") or actor.can("archive", "view")):
+            raise HTTPException(status_code=403, detail={"error": "vehicle_access_required"})
         import os
         from emergentintegrations.llm.chat import LlmChat, UserMessage
 

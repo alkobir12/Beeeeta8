@@ -989,3 +989,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - Secret exposure audit read-only بدون طباعة قيم: `backend/.env` غير tracked حالياً لكنه موجود في git history؛ توجد أسماء/مواقع مفاتيح Supabase/JWT/LLM/bypass داخل ملفات محلية/تاريخ، لذلك `SECRET_ROTATION_REQUIRED=YES` قبل اعتماد production.
 - التحقق: P0 auth suite 10 passed، regression المجمد 19 passed / 4 skipped، build ناجح، ولا تغيير على `AccountingEngine`, `routes_finance`, `JournalEntries`, `vehicle_finalization_posting`, `VehicleFinancialSummary`.
 
+## تحديث 2026-08-25 — Phase 1B Authorization Closure
+- تم إغلاق Phase 1B للكود والاختبارات فقط بدون deploy وبدون أي mutation لبيانات الإنتاج وبدون لمس `AccountingEngine` أو معالجة P0-DUP-AR.
+- تم تحديث `core/authz.py` إلى fail-closed للمسارات الحساسة/المعدّلة، حل 22 `POLICY_DECISION_REQUIRED`، تصنيف 512 endpoint، وتوليد `AUTHORIZATION_FINAL_CLOSURE_REPORT.md` مع `authz_matrix_phase1b.json` و`write_path_audit_phase1b.json`.
+- تم إضافة/تعزيز حمايات mass assignment في users/profile/layouts/settings/accounts، وتقييد Runtime/Finance Bot حسب صلاحية الإجراء الهدف لا حسب prompt/tool.
+- التحقق: pytest 18 passed، `test_authorization_phase1b.py` 10/10، `test_authz_ssot.py` ALL PASS، `closure_authz_after.py` أعاد AUTHZ_COMPLETE=495 وPUBLIC_INTENTIONAL=17 وPOLICY_DECISION_REQUIRED=0 وSUM=512، وتحقق مستقل Iter364 غير مدمّر.
+

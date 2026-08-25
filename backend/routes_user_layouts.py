@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from typing import List
 import os
 import json
 
 from supabase_service import SupabaseService
+from core import authz as _authz
 
 router = APIRouter(prefix="/api")
 
@@ -50,7 +51,9 @@ def _mem_write(rows: List[dict]):
 
 # ---------- routes ----------
 @router.get("/user-layouts/{user_id}/{page}")
-async def get_layout(user_id: str, page: str):
+async def get_layout(user_id: str, page: str, request: Request):
+    actor = await _authz.resolve_request_actor(request)
+    _authz.ensure_self_actor(actor, user_id)
     try:
         if DB_PROVIDER == "supabase" and not supabase.mock_mode:
             res = (
@@ -83,7 +86,9 @@ async def get_layout(user_id: str, page: str):
 
 
 @router.put("/user-layouts/{user_id}/{page}")
-async def upsert_layout(user_id: str, page: str, payload: LayoutUpdate):
+async def upsert_layout(user_id: str, page: str, payload: LayoutUpdate, request: Request):
+    actor = await _authz.resolve_request_actor(request)
+    _authz.ensure_self_actor(actor, user_id)
     if payload.page != page:
         raise HTTPException(status_code=400, detail="Page mismatch")
 

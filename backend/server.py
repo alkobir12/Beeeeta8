@@ -581,7 +581,12 @@ class SecurityHeadersAndRateLimitMiddleware:
 
         # ── 2b) Authorization SSOT — نقطة إنفاذ واحدة مركزية (core/authz) ──
         if auth_result:  # authenticated (non-public) request → apply central policy
-            _authz_denial = _authz_enforce(path, method, auth_result)
+            _authz_denial = _authz_enforce(
+                path,
+                method,
+                auth_result,
+                request_id=headers_in.get("x-request-id") or headers_in.get("x-correlation-id"),
+            )
             if _authz_denial is not None:
                 await _send_json(403, {"success": False, "error": "authorization_denied",
                                        "detail": _authz_denial})(send)
@@ -2869,10 +2874,14 @@ async def reset_inventory_data():
 
 @api_router.post("/vehicles/{vehicle_id}/upload-file")
 async def upload_vehicle_file(
-    vehicle_id: str, file: UploadFile = File(...), file_type: str = "diagnostic"
+    vehicle_id: str, request: Request, file: UploadFile = File(...), file_type: str = "diagnostic"
 ):
     """رفع ملف أو صورة أو فاتورة لمركبة (يُخزَّن في نظام الملفات مع سجل ميتاداتا)."""
     try:
+        from core import authz as _authz_local
+        actor = await _authz_local.resolve_request_actor(request)
+        if not (actor.can("vehicles", "view") or actor.can("archive", "view")):
+            raise HTTPException(status_code=403, detail={"error": "vehicle_access_required"})
         # تحقّق من وجود المركبة في وضع Supabase
         if DB_PROVIDER == "supabase":
             v = supabase_service.vehicles_get(vehicle_id)

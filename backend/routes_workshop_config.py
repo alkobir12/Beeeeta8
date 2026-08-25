@@ -16,20 +16,73 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
-from fastapi import APIRouter, Body, File, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, HTTPException, Request, UploadFile
 
 from mem_store import _mem_read, _mem_write
 from supabase_service import SupabaseService
+from core import authz as _authz
 
 router = APIRouter(prefix="/api", tags=["workshop_config"])
 
 # Injected by server.py via set_db(database)
 db = None
 
+_FORBIDDEN_PRIVILEGE_FIELDS = {
+    "role", "roles", "permission", "permissions", "isadmin", "is_admin", "admin",
+    "adminflags", "admin_flags", "status", "isactive", "is_active", "ownerid",
+    "owner_id", "userid", "user_id", "createdby", "created_by", "updatedby",
+    "updated_by", "audit", "auditlog", "audit_log", "security", "securityconfig",
+    "security_config", "password", "passwordhash", "password_hash", "token",
+    "access_token", "refresh_token",
+}
+_SETTINGS_WRITABLE_FIELDS = {
+    "currency", "taxRate", "language", "timezone", "invoicePrefix", "workshopName",
+    "workshopPhone", "workshopAddress", "workshopEmail", "menuConfig", "printDefaults",
+    "theme", "style", "notifications", "vatNumber", "taxNumber", "updatedAt",
+}
+_PROFILE_WRITABLE_FIELDS = {
+    "name", "nameEnglish", "phone", "whatsapp", "email", "address", "city",
+    "postalCode", "commercialRegister", "workingHours", "invoiceFooter",
+    "termsAndConditions", "slogan", "logo", "taxNumber",
+}
+
 
 def set_db(database):
     global db
     db = database
+
+
+def _flatten_keys(payload: Any, prefix: str = "") -> set[str]:
+    keys: set[str] = set()
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            name = str(key)
+            keys.add((prefix + name).lower().replace("-", "").replace(".", ""))
+            keys |= _flatten_keys(value, prefix="")
+    elif isinstance(payload, list):
+        for item in payload:
+            keys |= _flatten_keys(item, prefix="")
+    return keys
+
+
+def _reject_privileged_fields(payload: Dict[str, Any], *, surface: str) -> None:
+    present = _flatten_keys(payload)
+    blocked = sorted(k for k in present if k in _FORBIDDEN_PRIVILEGE_FIELDS)
+    if blocked:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "privileged_field_rejected",
+                "surface": surface,
+                "fields": blocked,
+                "msg": "لا يمكن تعديل حقول الصلاحيات/الأمان عبر هذا المسار",
+            },
+        )
+
+
+def _allowlisted(payload: Dict[str, Any], allowed: set[str], *, surface: str) -> Dict[str, Any]:
+    _reject_privileged_fields(payload, surface=surface)
+    return {k: v for k, v in (payload or {}).items() if k in allowed}
 
 
 # --------------------- Settings ---------------------
@@ -102,6 +155,7 @@ async def get_settings():
 @router.post("/settings")
 async def save_settings(payload: Dict[str, Any] = Body(...)):
     try:
+        payload = _allowlisted(payload, _SETTINGS_WRITABLE_FIELDS, surface="settings")
         DB_PROVIDER = os.environ.get("DB_PROVIDER", "mongo").lower()
 
         if DB_PROVIDER == "supabase":
@@ -188,8 +242,13 @@ async def get_workshop_profile():
 
 
 @router.put("/profile")
-async def update_workshop_profile(payload: Dict[str, Any] = Body(...)):
+async def update_workshop_profile(request: Request, payload: Dict[str, Any] = Body(...)):
     try:
+        actor = await _authz.resolve_request_actor(request)
+        target_user = str((payload or {}).get("userId") or (payload or {}).get("user_id") or "").strip()
+        if target_user:
+            _authz.ensure_self_actor(actor, target_user)
+        payload = _allowlisted(payload, _PROFILE_WRITABLE_FIELDS, surface="profile")
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
 
         if provider in ("supabase", "memory") or db is None:
@@ -211,15 +270,18 @@ async def update_workshop_profile(payload: Dict[str, Any] = Body(...)):
 
 
 @router.post("/profile/upload-logo")
-async def upload_workshop_logo(file: UploadFile = File(...)):
+async def upload_workshop_logo(request: Request, file: UploadFile = File(...)):
     """Upload workshop logo image (max 2MB) and store as data: URL."""
     try:
+        await _authz.resolve_request_actor(request)
         content = await file.read()
         if len(content) > 2 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File size must be less than 2MB")
+        content_type = file.content_type or "image/png"
+        if not str(content_type).startswith("image/"):
+            raise HTTPException(status_code=415, detail="Logo upload accepts image files only")
 
         base64_image = base64.b64encode(content).decode("utf-8")
-        content_type = file.content_type or "image/png"
         logo_url = f"data:{content_type};base64,{base64_image}"
 
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()

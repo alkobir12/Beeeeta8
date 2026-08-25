@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Request
 from pydantic import BaseModel, Field
 from typing import Optional, Any, Dict, List, Tuple
 import os
@@ -11,6 +11,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from routes_finance import supabase  # reuse existing client
+from core import rbac
 
 router = APIRouter(prefix="/api/finance-bot", tags=["finance-bot"])
 
@@ -70,6 +71,27 @@ INTERACTIVE_ACTIONS = [
 ]
 AUDIT_SESSION_MEM: Dict[str, Dict[str, Any]] = {}
 _AUDIT_DB = None
+
+
+async def _require_financial_read(request: Request):
+    ident = rbac.extract_identity(request)
+    if not ident.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    if not (
+        actor.can("journal_entries", "view")
+        or actor.can("reports", "view")
+        or actor.can("debts", "view")
+    ):
+        raise HTTPException(status_code=403, detail={"error": "financial_read_required"})
+    return actor
+
+
+async def _require_financial_evidence_upload(request: Request):
+    actor = await _require_financial_read(request)
+    if not (actor.can("vehicles", "view") or actor.can("archive", "view")):
+        raise HTTPException(status_code=403, detail={"error": "file_upload_authorization_required"})
+    return actor
 
 
 def _get_audit_db():
@@ -529,12 +551,14 @@ async def finance_bot_health():
 
 @router.post("/evidence/upload")
 async def upload_finance_evidence(
+    request: Request,
     file: UploadFile = File(...),
     session_id: str = Form(...),
     finding_id: Optional[str] = Form(None),
 ):
     """رفع مرفق داعم للتدقيق وربطه بجلسة/ملاحظة."""
     try:
+        await _require_financial_evidence_upload(request)
         safe_session = re.sub(r"[^a-zA-Z0-9_-]", "", session_id) or "audit"
         ext = Path(file.filename or "evidence").suffix or ".bin"
         evidence_id = str(uuid.uuid4())
@@ -564,6 +588,8 @@ async def upload_finance_evidence(
             await audit_db.finance_audit_evidence.insert_one({**record})
 
         return {"success": True, "data": record}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"تعذر رفع المرفق: {e}")
 
@@ -601,8 +627,9 @@ def _response_state_transition(
 
 
 @router.post("/chat", response_model=FinanceBotChatResponse)
-async def finance_bot_chat(payload: FinanceBotChatRequest):
+async def finance_bot_chat(request: Request, payload: FinanceBotChatRequest):
     """جلسة تدقيق تفاعلية: سؤال واحد فقط + حالة Finding محفوظة في DB."""
+    await _require_financial_read(request)
 
     workshop_id = payload.workshop_id or os.environ.get("DEFAULT_WORKSHOP_ID", "finmodule-sync")
     session_id = payload.session_id or payload.conversation_id or str(uuid.uuid4())
@@ -929,11 +956,12 @@ async def _auto_link_finding(
 
 
 @router.post("/auto-link")
-async def auto_link_endpoint(payload: Dict[str, Any]):
+async def auto_link_endpoint(request: Request, payload: Dict[str, Any]):
     """
     يربط ملاحظة تدقيق بالقيود والعمليات الفعلية تلقائياً.
     Body: {finding: {...}, workshop_id: str, days_back: int}
     """
+    await _require_financial_read(request)
     finding = payload.get("finding") or {}
     workshop_id = str(payload.get("workshop_id") or "finmodule-sync")
     days_back = int(payload.get("days_back") or 90)
@@ -1055,11 +1083,12 @@ async def _detect_contradictions(
 
 
 @router.post("/detect-contradictions")
-async def detect_contradictions_endpoint(payload: Dict[str, Any]):
+async def detect_contradictions_endpoint(request: Request, payload: Dict[str, Any]):
     """
     يكشف التناقضات في مجموعة findings مقارنةً بالبيانات المالية.
     Body: {findings: [...], workshop_id: str, financial_data: {...}}
     """
+    await _require_financial_read(request)
     raw_findings = payload.get("findings") or []
     workshop_id = str(payload.get("workshop_id") or "finmodule-sync")
     financial_data = payload.get("financial_data") or {}

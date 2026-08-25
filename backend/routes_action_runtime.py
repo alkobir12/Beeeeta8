@@ -34,7 +34,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
-from core import action_runtime, rbac
+from core import action_runtime, rbac, authz as _authz
 from core.log_utils import get_logger
 
 _log = get_logger("routes.runtime")
@@ -127,6 +127,20 @@ async def _require_approver(request: Request) -> "rbac.Actor":
     return actor
 
 
+async def _resolve_request_actor_or_401(request: Request) -> "rbac.Actor":
+    ident = rbac.extract_identity(request)
+    if not ident.get("user_id"):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    if not actor.active:
+        raise HTTPException(status_code=403, detail="inactive_actor")
+    return actor
+
+
+def _require_runtime_target(actor: "rbac.Actor", action_name: Optional[str]) -> None:
+    _authz.require_runtime_target_permission(actor, action_name)
+
+
 # ─── Drafts ─────────────────────────────────────────────────────────────────
 
 
@@ -172,8 +186,11 @@ async def runtime_get_draft(draft_id: str, request: Request):
 @router.post("/drafts/{draft_id}/request_approval")
 async def runtime_request_approval(draft_id: str, request: Request, payload: Optional[Dict[str, Any]] = Body(default=None)):
     payload = payload or {}
-    ident = rbac.extract_identity(request, payload)
-    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    actor = await _resolve_request_actor_or_401(request)
+    draft = action_runtime.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    _require_runtime_target(actor, draft.get("action"))
     result = action_runtime.request_approval(draft_id=draft_id, requester=actor.name or actor.id or payload.get("requester"))
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
@@ -189,8 +206,7 @@ async def runtime_discard_draft(draft_id: str, request: Request, payload: Option
     if d["status"] not in ("draft", "pending_approval", "rejected"):
         raise HTTPException(status_code=400, detail=f"cannot_discard_in_state:{d['status']}")
     # RBAC: المُنشئ نفسه يمكنه التجاهل، أو من يملك صلاحية الاعتماد
-    ident = rbac.extract_identity(request, payload)
-    actor = await rbac.resolve_actor(user_id=ident["user_id"], name=ident["name"], role_hint=ident["role_hint"])
+    actor = await _resolve_request_actor_or_401(request)
     actor_ident = actor.name or actor.id or ""
     if actor_ident != d.get("proposer"):
         rbac.require(rbac.can_approve(actor))
@@ -417,7 +433,7 @@ async def runtime_db_peek(table: str, request: Request):
 
 
 @router.post("/power")
-async def runtime_alias_power(payload: Dict[str, Any] = Body(...)):
+async def runtime_alias_power(request: Request, payload: Dict[str, Any] = Body(...)):
     """Alias: POST /api/runtime/power {"text": "..."}
 
     Behaviour:
@@ -429,10 +445,11 @@ async def runtime_alias_power(payload: Dict[str, Any] = Body(...)):
     different `approver` ("bot_reviewer") can pass the Four-Eyes check.
     """
     from core import power_mode
+    actor = await _resolve_request_actor_or_401(request)
     text = (payload.get("text") or payload.get("message") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="text required")
-    proposer = payload.get("proposer") or "bot_tester"
+    proposer = actor.name or actor.id
     # Prepend "/power " so the multi-intent splitter kicks in
     msg = text if text.startswith("/power") else f"/power {text}"
     result = await power_mode.power_process(
@@ -445,6 +462,7 @@ async def runtime_alias_power(payload: Dict[str, Any] = Body(...)):
         return {"draft": None, "approval": None, "drafts": []}
     # Pick the first runtime-eligible draft, fall back to the first overall
     primary = next((d for d in drafts if d.get("runtime", {}).get("enabled")), drafts[0])
+    _require_runtime_target(actor, primary.get("action"))
     approval = None
     if primary.get("runtime", {}).get("enabled"):
         approval = action_runtime.request_approval(
@@ -533,7 +551,7 @@ async def runtime_alias_report(request: Request):
 
 
 @router.post("/intent/parse")
-async def runtime_parse_intent(payload: Dict[str, Any] = Body(...)):
+async def runtime_parse_intent(request: Request, payload: Dict[str, Any] = Body(...)):
     """POST /api/runtime/intent/parse
 
     Body: {"text": "...", "session_id": "..."}
@@ -541,15 +559,17 @@ async def runtime_parse_intent(payload: Dict[str, Any] = Body(...)):
     create a draft — pure parsing. Useful for "preview" UX.
     """
     from core.llm_intent_parser import parse_intent_with_llm
+    actor = await _resolve_request_actor_or_401(request)
     text = (payload.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="text required")
     action = await parse_intent_with_llm(text, session_id=payload.get("session_id"))
+    _require_runtime_target(actor, action.action)
     return {"success": True, "data": action.model_dump()}
 
 
 @router.post("/intent/execute")
-async def runtime_execute_intent(payload: Dict[str, Any] = Body(...)):
+async def runtime_execute_intent(request: Request, payload: Dict[str, Any] = Body(...)):
     """POST /api/runtime/intent/execute
 
     Pipeline: text → LLM-parsed Action → register as Action Runtime draft →
@@ -560,13 +580,16 @@ async def runtime_execute_intent(payload: Dict[str, Any] = Body(...)):
     without creating a draft.
     """
     from core.llm_intent_parser import parse_intent_with_llm
+    actor = await _resolve_request_actor_or_401(request)
     text = (payload.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="text required")
-    proposer = payload.get("proposer") or "bot_tester"
+    proposer = actor.name or actor.id
 
     action = await parse_intent_with_llm(text, session_id=payload.get("session_id"))
     action_name = action.action
+
+    _require_runtime_target(actor, action_name)
 
     # ── Read-only path: get_active_visits — never a draft ──
     if action_name == "get_active_visits":
@@ -639,14 +662,17 @@ async def runtime_execute_unified(request: Request, payload: Dict[str, Any] = Bo
       • "error"             — runtime failure (e.g. four_eyes_violation)
     """
     from core.unified_executor import execute_text
+    from core.llm_intent_parser import parse_intent_with_llm
     text = (payload.get("text") or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="text required")
     # 🔐 الهوية الحقيقية من JWT — مرساة الأربع أعين
-    ident = rbac.extract_identity(request, payload)
+    actor = await _resolve_request_actor_or_401(request)
+    parsed = await parse_intent_with_llm(text, session_id=payload.get("session_id"))
+    _require_runtime_target(actor, parsed.action)
     result = await execute_text(
         text,
-        proposer=ident.get("name") or payload.get("proposer"),
+        proposer=actor.name or actor.id,
         session_id=payload.get("session_id"),
     )
     # Always return HTTP 200 for "rejected" (text we understood but is not an

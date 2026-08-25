@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 from typing import Dict, Any
 import pandas as pd
 from io import BytesIO
@@ -15,9 +15,13 @@ def set_db(database):
 
 
 @router.post("/references/import-file")
-async def import_references_from_file(file: UploadFile = File(...)):
+async def import_references_from_file(request: Request, file: UploadFile = File(...)):
     """استيراد مراجع من PDF أو Excel"""
     try:
+        from core import authz as _authz
+        actor = await _authz.resolve_request_actor(request)
+        if actor.role != "admin":
+            raise HTTPException(status_code=403, detail={"error": "admin_only_import"})
         contents = await file.read()
         imported_counts = {}
 
@@ -214,6 +218,8 @@ async def import_references_from_file(file: UploadFile = File(...)):
             "imported": imported_counts,
             "filename": file.filename,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

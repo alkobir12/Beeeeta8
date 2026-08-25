@@ -27,6 +27,8 @@ def _grants_privileged_perms(perms) -> bool:
 
 DB_PROVIDER = os.environ.get("DB_PROVIDER", "mongo").lower()
 USERS_FILE = os.path.join(os.path.dirname(__file__), "uploads", "users.json")
+_USER_CREATE_FIELDS = {"name", "username", "email", "phone", "role", "permissions", "guidanceEnabled"}
+_USER_UPDATE_FIELDS = {"name", "username", "email", "phone", "role", "permissions", "isActive", "guidanceEnabled"}
 
 supabase = SupabaseService()
 _db = None
@@ -110,7 +112,8 @@ def _normalize_user_row(row: dict) -> dict:
 
 
 def _prepare_user_payload(payload: dict, *, is_create: bool = False) -> dict:
-    doc = dict(payload or {})
+    allowed = _USER_CREATE_FIELDS if is_create else _USER_UPDATE_FIELDS
+    doc = {k: v for k, v in dict(payload or {}).items() if k in allowed}
     if is_create and not doc.get("username"):
         doc["username"] = doc.get("name") or doc.get("phone") or ""
     elif not is_create and any(key in doc for key in ("username", "name", "phone")) and not doc.get("username"):

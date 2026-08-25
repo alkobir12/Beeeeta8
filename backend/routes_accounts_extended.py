@@ -278,6 +278,12 @@ _LIST_ACCOUNTS_CACHE_TTL = 10.0  # seconds
 _USAGE_MAP_CACHE = None
 _USAGE_MAP_CACHE_AT = 0.0
 _USAGE_MAP_CACHE_TTL = 30.0  # seconds (usage timestamps can be slightly stale)
+_ACCOUNT_WRITABLE_FIELDS = {"code", "name", "nameEn", "type", "parentId"}
+_ACCOUNT_FORBIDDEN_FIELDS = {
+    "id", "_id", "createdAt", "created_at", "updatedAt", "updated_at",
+    "balance", "isSystem", "is_system", "ownerId", "owner_id", "workshop_id",
+    "createdBy", "created_by", "audit", "permissions", "role", "status",
+}
 
 
 def invalidate_accounts_cache():
@@ -285,6 +291,13 @@ def invalidate_accounts_cache():
     global _LIST_ACCOUNTS_CACHE_AT, _USAGE_MAP_CACHE_AT
     _LIST_ACCOUNTS_CACHE_AT = 0.0
     _USAGE_MAP_CACHE_AT = 0.0
+
+
+def _sanitize_account_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    forbidden = [k for k in (payload or {}).keys() if k in _ACCOUNT_FORBIDDEN_FIELDS]
+    if forbidden:
+        raise HTTPException(status_code=422, detail={"error": "forbidden_account_fields", "fields": forbidden})
+    return {k: v for k, v in (payload or {}).items() if k in _ACCOUNT_WRITABLE_FIELDS}
 
 
 @router.get("/accounts")
@@ -343,6 +356,7 @@ async def list_accounts():
 async def create_account(payload: Dict[str, Any] = Body(...)):
     """Create a new account"""
     try:
+        payload = _sanitize_account_payload(payload)
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         account_id = str(uuid.uuid4())
 
@@ -357,7 +371,7 @@ async def create_account(payload: Dict[str, Any] = Body(...)):
                 "name_en": payload.get("nameEn", ""),
                 "type": payload.get("type", "expense"),
                 "parent_id": payload.get("parentId"),
-                "is_system": payload.get("isSystem", False),
+                "is_system": False,
                 "balance": 0.0,
             }
             res = supa.client.table("accounts").insert(row).execute()
@@ -382,7 +396,7 @@ async def create_account(payload: Dict[str, Any] = Body(...)):
             "nameEn": payload.get("nameEn", ""),
             "type": payload.get("type", "expense"),
             "parentId": payload.get("parentId"),
-            "isSystem": payload.get("isSystem", False),
+            "isSystem": False,
             "balance": 0.0,
             "createdAt": datetime.now(timezone.utc),
         }
@@ -399,6 +413,7 @@ async def create_account(payload: Dict[str, Any] = Body(...)):
 async def update_account(account_id: str, payload: Dict[str, Any] = Body(...)):
     """Update an existing account"""
     try:
+        payload = _sanitize_account_payload(payload)
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         if provider == "supabase":
             from supabase_service import SupabaseService
@@ -415,9 +430,6 @@ async def update_account(account_id: str, payload: Dict[str, Any] = Body(...)):
                 upd["type"] = payload["type"]
             if "parentId" in payload:
                 upd["parent_id"] = payload["parentId"]
-            if "balance" in payload:
-                upd["balance"] = payload["balance"]
-
             res = (
                 supa.client.table("accounts").update(upd).eq("id", account_id).execute()
             )
@@ -435,7 +447,7 @@ async def update_account(account_id: str, payload: Dict[str, Any] = Body(...)):
             }
 
         # MongoDB fallback
-        upd = {k: v for k, v in payload.items() if k not in ["id", "_id", "createdAt"]}
+        upd = dict(payload)
         await db.accounts.update_one({"id": account_id}, {"$set": upd})
         doc = await db.accounts.find_one({"id": account_id}, {"_id": 0})
         return doc or {}
