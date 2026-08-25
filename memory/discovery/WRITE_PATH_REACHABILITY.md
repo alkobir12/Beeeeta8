@@ -1,0 +1,15 @@
+# WRITE-PATH REACHABILITY (item 4, 329 call-sites)
+
+## Totals
+
+- LIVE_PRODUCTION_API: 252
+- LIVE_BACKGROUND_JOB: 3
+- LIVE_KATRINA: 0
+- ADMIN_ONLY: 0
+- OFFLINE_SCRIPT: 10
+- MIGRATION: 0
+- TEST_ONLY: 11
+- DEAD_CODE: 0
+- UNKNOWN: 53
+
+**SUM = 329 · production-reachable write call-sites = 255**

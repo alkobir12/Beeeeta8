@@ -1,0 +1,123 @@
+{
+ "journal_8": {
+  "total": 8,
+  "by_class": {
+   "reversal": 6,
+   "legitimate_unreferenced": 1,
+   "manual": 1
+  },
+  "entries": [
+   {
+    "id": "352c18f8",
+    "source": "manual",
+    "date": "2026-08-17T20:14",
+    "desc": "قيد اختبار مؤقت للحذف العكسي",
+    "class": "reversal"
+   },
+   {
+    "id": "08ef48f7",
+    "source": "manual",
+    "date": "2026-08-17T20:14",
+    "desc": "قيد اختبار مؤقت للحذف العكسي - probe",
+    "class": "reversal"
+   },
+   {
+    "id": "ff0fa70a",
+    "source": "manual",
+    "date": "2026-08-17T20:20",
+    "desc": "قيد اختبار مؤقت للحذف العكسي UI c7e280",
+    "class": "reversal"
+   },
+   {
+    "id": "2270c734",
+    "source": "period_close",
+    "date": "2026-08-10T15:09",
+    "desc": "إقفال الفترة حتى 2026-08-10",
+    "class": "legitimate_unreferenced"
+   },
+   {
+    "id": "5f8a91ef",
+    "source": "manual",
+    "date": "2026-08-17T20:21",
+    "desc": "قيد اختبار مؤقت للحذف العكسي d53de0",
+    "class": "reversal"
+   },
+   {
+    "id": "5bdc8c1a",
+    "source": "manual",
+    "date": "2026-08-17T20:21",
+    "desc": "قيد اختبار مؤقت للحذف العكسي UI 69b98d",
+    "class": "reversal"
+   },
+   {
+    "id": "eaff4964",
+    "source": "manual",
+    "date": "2026-08-20T21:37",
+    "desc": "قيد اختبار إسناد المنشئ — سيُعكس فوراً [TEST_ORIGIN_VISIBILI",
+    "class": "reversal"
+   },
+   {
+    "id": "0b405419",
+    "source": "manual",
+    "date": "2026-08-20T21:49",
+    "desc": "[TEST_ORIGIN_QA] iter360 net-zero attribution",
+    "class": "manual"
+   }
+  ]
+ },
+ "actions": {
+  "STATIC_FULLY_TRACED": 287,
+  "UI_ONLY": 4,
+  "DEAD": 181,
+  "BROKEN": 0,
+  "EXTERNAL": 0,
+  "UNKNOWN": 0
+ },
+ "actions_sum": 472,
+ "fields": {
+  "UI_TO_API_TO_SCHEMA_TO_DB": 190,
+  "UI_TO_API_ONLY": 0,
+  "UI_ONLY": 11,
+  "DISPLAY_SEARCH_ONLY": 0,
+  "DEAD": 142,
+  "UNKNOWN": 0
+ },
+ "fields_sum": 343,
+ "forms": {
+  "FULL_STATIC_SUBMIT_PATH": 21,
+  "PARTIAL_PATH": 0,
+  "UI_ONLY": 0,
+  "DEAD": 16,
+  "UNKNOWN": 0
+ },
+ "forms_sum": 37,
+ "non_wired_pages": [
+  "DEAD: BalanceSheet.jsx (onClick=1 fields=1 forms=0)",
+  "DEAD: BalanceSheet_old.jsx (onClick=1 fields=1 forms=0)",
+  "DEAD: BusinessAccounts.jsx (onClick=6 fields=8 forms=1)",
+  "DEAD: CashFlow.jsx (onClick=1 fields=2 forms=0)",
+  "DEAD: CashFlow_old.jsx (onClick=1 fields=2 forms=0)",
+  "DEAD: ChartOfAccounts.jsx (onClick=10 fields=6 forms=6)",
+  "DEAD: Customers_old.jsx (onClick=4 fields=7 forms=3)",
+  "DEAD: DieselExpertChat.jsx (onClick=16 fields=7 forms=1)",
+  "DEAD: FinancialControl.jsx (onClick=28 fields=8 forms=0)",
+  "DEAD: GeminiChatBot.jsx (onClick=2 fields=1 forms=0)",
+  "DEAD: IncomeStatement.jsx (onClick=1 fields=2 forms=0)",
+  "DEAD: IncomeStatement_old.jsx (onClick=1 fields=2 forms=0)",
+  "DEAD: InjectorDiagnostics.jsx (onClick=3 fields=9 forms=0)",
+  "DEAD: InjectorDiagnosticsV7.jsx (onClick=3 fields=7 forms=0)",
+  "DEAD: InvoiceTemplateStudio.jsx (onClick=44 fields=31 forms=0)",
+  "DEAD: InvoiceTemplateStudioV2.jsx (onClick=15 fields=2 forms=0)",
+  "DEAD: Knowledge.jsx (onClick=7 fields=12 forms=0)",
+  "DEAD: PartsCatalog.jsx (onClick=0 fields=2 forms=0)",
+  "DEAD: PublicAgent.jsx (onClick=0 fields=1 forms=1)",
+  "DEAD: References.jsx (onClick=12 fields=2 forms=0)",
+  "DEAD: SmartPOSJournal.jsx (onClick=12 fields=7 forms=0)",
+  "DEAD: Suppliers_old.jsx (onClick=2 fields=8 forms=3)",
+  "UI_ONLY: Taxes.jsx (onClick=4 fields=11 forms=0)",
+  "DEAD: Technicians_old.jsx (onClick=3 fields=4 forms=0)",
+  "DEAD: Templates.jsx (onClick=4 fields=2 forms=1)",
+  "DEAD: TrialBalance.jsx (onClick=1 fields=2 forms=0)",
+  "DEAD: Users.jsx (onClick=3 fields=6 forms=0)"
+ ]
+}
