@@ -995,3 +995,8 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم إضافة/تعزيز حمايات mass assignment في users/profile/layouts/settings/accounts، وتقييد Runtime/Finance Bot حسب صلاحية الإجراء الهدف لا حسب prompt/tool.
 - التحقق: pytest 18 passed، `test_authorization_phase1b.py` 10/10، `test_authz_ssot.py` ALL PASS، `closure_authz_after.py` أعاد AUTHZ_COMPLETE=495 وPUBLIC_INTENTIONAL=17 وPOLICY_DECISION_REQUIRED=0 وSUM=512، وتحقق مستقل Iter364 غير مدمّر.
 
+## تحديث 2026-08-25 — Phase 1B Final Consistency Check
+- تم إصدار `PHASE_1B_FINAL_CONSISTENCY_REPORT.md` لتصحيح التناقضات النصية: التصنيف النهائي Canonical هو PUBLIC=8, GENERAL_AUTH=109, SELF_ONLY=6, ROLE=16, PERMISSION=106, AUTHZ_COMPLETE_MUTATION=267, SUM=512.
+- تم توضيح أن 17 public و495 AUTHZ_COMPLETE هي أرقام legacy aggregation من `closure_authz_after.py` وليست التصنيف النهائي، وتم إنشاء `write_path_audit_phase1b_consistency.json` بعدد 286 writer بدون قيم S=self/V=alw/M=guard المضللة.
+- التحقق المستقل Iter365: 21/21 passed، UNKNOWN=0 endpoints/writers، no DB mutation، no AccountingEngine، no P0-DUP-AR، no MOCKED APIs.
+
