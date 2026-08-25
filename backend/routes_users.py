@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from datetime import datetime
 from typing import List
 import uuid
@@ -7,8 +7,23 @@ import json
 
 from models_users import User, UserCreate, UserUpdate
 from supabase_service import SupabaseService
+from core import authz as _authz
 
 router = APIRouter(prefix="/api")
+
+
+def _actor_is_admin(actor) -> bool:
+    return actor.role == "admin" or actor.can("users", "delete")
+
+
+def _grants_privileged_perms(perms) -> bool:
+    if not isinstance(perms, dict):
+        return False
+    for mod in ("users", "settings"):
+        m = perms.get(mod) or {}
+        if m.get("create") or m.get("edit") or m.get("delete"):
+            return True
+    return False
 
 DB_PROVIDER = os.environ.get("DB_PROVIDER", "mongo").lower()
 USERS_FILE = os.path.join(os.path.dirname(__file__), "uploads", "users.json")
@@ -243,7 +258,16 @@ async def get_users():
 
 
 @router.post("/users", response_model=User)
-async def create_user(user_data: UserCreate):
+async def create_user(user_data: UserCreate, request: Request):
+    # 🔐 object-level guard: only admin may create admin/privileged users
+    actor = await _authz.resolve_request_actor(request)
+    if not _actor_is_admin(actor):
+        if str(getattr(user_data, "role", "") or "").lower() == "admin":
+            raise HTTPException(status_code=403, detail={"error": "privilege_escalation_forbidden",
+                                                         "msg": "لا يمكن إنشاء مستخدم بدور admin"})
+        if _grants_privileged_perms(getattr(user_data, "permissions", None)):
+            raise HTTPException(status_code=403, detail={"error": "privilege_escalation_forbidden",
+                                                         "msg": "لا يمكن منح صلاحيات إدارة المستخدمين/الإعدادات"})
     try:
         if DB_PROVIDER == "supabase" and not supabase.mock_mode:
             payload = _prepare_user_payload(user_data.dict(), is_create=True)
@@ -280,7 +304,20 @@ async def create_user(user_data: UserCreate):
 
 
 @router.put("/users/{user_id}", response_model=User)
-async def update_user(user_id: str, update_data: UserUpdate):
+async def update_user(user_id: str, update_data: UserUpdate, request: Request):
+    # 🔐 object-level guards: no self privilege change, no privilege escalation
+    actor = await _authz.resolve_request_actor(request)
+    _data = {k: v for k, v in update_data.dict().items() if v is not None}
+    if str(user_id) == str(actor.id) and any(k in _data for k in ("role", "permissions", "isActive")):
+        raise HTTPException(status_code=403, detail={"error": "self_privilege_change_forbidden",
+                                                     "msg": "لا يمكنك تعديل دورك/صلاحياتك/حالتك بنفسك"})
+    if not _actor_is_admin(actor):
+        if str(_data.get("role", "") or "").lower() == "admin":
+            raise HTTPException(status_code=403, detail={"error": "privilege_escalation_forbidden",
+                                                         "msg": "لا يمكن ترقية مستخدم إلى admin"})
+        if _grants_privileged_perms(_data.get("permissions")):
+            raise HTTPException(status_code=403, detail={"error": "privilege_escalation_forbidden",
+                                                         "msg": "لا يمكن منح صلاحيات إدارة المستخدمين/الإعدادات"})
     try:
         if DB_PROVIDER == "supabase" and not supabase.mock_mode:
             payload = _prepare_user_payload({k: v for k, v in update_data.dict().items() if v is not None})
@@ -320,7 +357,12 @@ async def update_user(user_id: str, update_data: UserUpdate):
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: str):
+async def delete_user(user_id: str, request: Request):
+    # 🔐 object-level guard: cannot delete self
+    actor = await _authz.resolve_request_actor(request)
+    if str(user_id) == str(actor.id):
+        raise HTTPException(status_code=403, detail={"error": "cannot_delete_self",
+                                                     "msg": "لا يمكنك حذف حسابك الخاص"})
     try:
         if DB_PROVIDER == "supabase" and not supabase.mock_mode:
             supabase.users_delete(user_id)

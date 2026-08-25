@@ -1,0 +1,39 @@
+{
+  "summary": "HTTP-level verification of Authorization SSOT (core/authz) + object-level user guards against LIVE preview backend. 26/27 tests pass. Confirmed: P0-SEC-USERS closed (accountant 403 on all /api/users CRUD, admin 200 on GET), privilege escalation blocked (accountant POST /api/users role=admin → 403), destructive admin-only enforced on /api/financial-reset/* and /api/biz-accounts/cleanup, ledger perms honored (accountant edit=allowed, delete=403), settings mutation blocked for accountant, admin self-guards work (cannot self-delete or self-role-change → 403), no regressions on read endpoints (both roles 200 on /vehicles /customers /operations /finance/journal-entries /stats), unauth → 401, no 5xx from middleware. STRICT NON-DESTRUCTIVE: only GETs and rejected (401/403/410/422) requests were sent; no mutations persisted. Uncovered ONE defense-in-depth regex gap in core/authz.py (see rca).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/cleanup/* (top-level)",
+        "issue": "core/authz.py destructive_admin regex '^/api/[^?]*(/cleanup|/purge|/wipe|/danger|...)' requires a literal '/' before 'cleanup' but /api/ already consumes it, so top-level /api/cleanup, /api/purge, /api/wipe, /api/danger paths bypass the SSOT and reach the handler. Today the only such route (DELETE /cleanup/keep-debts-only) is a hardcoded 410 legacy stub, so there is NO current data-loss risk — but ANY future /api/cleanup|purge|wipe|danger endpoint would be unprotected by the middleware."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_authz_ssot_http_iter362.py",
+    "/app/test_reports/pytest/iter362_authz_http.xml"
+  ],
+  "action_items": [
+    "core/authz.py: tighten destructive_admin regex to also cover TOP-LEVEL paths. Current: r'^/api/[^?]*(financial-reset|/reset$|/reset-|reset-financial|/cleanup|/purge|/wipe|/danger)'. Suggested: r'^/api/([^?]*/)?(financial-reset|reset$|reset-|reset-financial|cleanup|purge|wipe|danger)' — i.e., make the leading '/' before the keyword OPTIONAL so /api/cleanup/... /api/purge/... /api/wipe/... /api/danger/... are all matched. Re-run tests/test_authz_ssot_http_iter362.py::TestDestructiveAdminOnly::test_top_level_cleanup_regex_gap after the fix; it should turn green (accountant 403 instead of 410)."
+  ],
+  "critical_code_review_comments": [
+    "core/authz.py destructive_admin regex has a subtle boundary bug — alternation branches that start with '/' (e.g., '/cleanup') never match top-level paths of the same name because '^/api/[^?]*' consumes the URL up to and including that slash. Recommend using a word-boundary / optional-prefix pattern for defense in depth.",
+    "routes_extended.py:2606 has unreachable code after 'raise HTTPException(410, ...)' — the entire confirm/actor-guard block below the raise is dead. Consider deleting to reduce audit surface."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_authz_ssot_http_iter362.py (new)"
+  ],
+  "success_rate": {"backend": "96% (26/27)", "frontend": "not tested (backend-only scope)"},
+  "test_credentials": "admin=مدير / 010101, accountant=احمد / 010101 (Preview only, from /app/memory/test_credentials.md). No account lockouts triggered.",
+  "seed_data_creation": "NONE — strict non-destructive run. No POST/PUT/DELETE successfully persisted; every mutation-shaped call was either rejected (401/403), validation-failed (422), or legacy-410.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Live authz matrix now covered by /app/backend/tests/test_authz_ssot_http_iter362.py (26 tests, ~30s). Fixtures cache tokens per session so re-runs stay under 5 login attempts (well below the 5/15min lockout). READ endpoint /finance/journal-entries requires ?workshop_id=default (or main/1). Dashboard summary is served by /api/stats (not /api/dashboard-summary). Legacy DELETE /api/cleanup/keep-debts-only always returns 410 — safe to probe but confirms the regex gap. Do NOT send confirm=KEEP_DEBTS_ONLY or any real financial-reset execute payload.",
+  "rca of the issue": {
+    "issue": "Top-level /api/cleanup|purge|wipe|danger paths bypass the destructive_admin authorization rule.",
+    "root_cause": "In core/authz.py the regex 'r\"^/api/[^?]*(financial-reset|/reset$|/reset-|reset-financial|/cleanup|/purge|/wipe|/danger)\"' anchors '^/api/' (consuming the slash), then '[^?]*' greedily matches path segments, and finally requires the alternation. Branches like '/cleanup' expect a literal '/' immediately before 'cleanup', but for /api/cleanup/... the only slash before 'cleanup' is the one already consumed by '^/api/', so there is nothing left for the branch to match. Branches without leading slash (financial-reset, reset-financial) still work at top level.",
+    "reproduction": "curl -X DELETE -H 'Authorization: Bearer <accountant_token>' 'https://<preview>/api/cleanup/keep-debts-only?confirm=x' → 410 (accountant reached handler). Expected: 403 from ASGI authz middleware.",
+    "mitigation": "Make the '/' before each keyword optional and/or use a segment-boundary regex. Example: r'^/api/(?:[^?]*/)?(financial-reset|reset$|reset-|reset-financial|cleanup|purge|wipe|danger)(?:/|$)'. After patch, re-run TestDestructiveAdminOnly::test_top_level_cleanup_regex_gap — it should pass. No data-loss risk currently because the only exposed route (DELETE /cleanup/keep-debts-only) is a legacy 410 stub, but this is a P1 defense-in-depth fix to prevent future regressions."
+  }
+}

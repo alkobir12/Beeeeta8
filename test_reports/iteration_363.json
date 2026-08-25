@@ -1,0 +1,27 @@
+{
+  "summary": "RETEST after core/authz.py destructive_admin regex fix. 27/27 HTTP authz tests pass (was 26/27 in iter362). Regex now: r'^/api/(?:[^?]*/)?(financial-reset|reset-financial|reset|cleanup|purge|wipe|danger)(?:/|-|$)' — top-level /api/cleanup/* is properly gated. Verified accountant (احمد) POST /api/cleanup/split-parts-services → 403 (previously bypassed). Full regression matrix from iter362 still holds: P0-SEC-USERS (accountant 403 CRUD, admin 200 GET), privilege escalation blocked, destructive endpoints admin-only, ledger perms honored, settings mutation blocked for accountant, admin self-guards work, reads 200 for both roles, unauth 401, no 5xx. STRICT NON-DESTRUCTIVE: only GET reads and rejected 401/403 attempts were made; no records created/updated/deleted.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_authz_ssot_http_iter362.py",
+    "/app/test_reports/pytest/iter363_authz_http.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "core/authz.py destructive_admin regex fix looks correct: optional path prefix (?:[^?]*/)? plus explicit terminator (?:/|-|$) covers both top-level (/api/cleanup/x) and nested (/api/biz-accounts/cleanup) forms while avoiding accidental prefix matches like /api/resetter (terminator forces / or - or end).",
+    "routes_extended.py:2606 still has unreachable code after HTTPException(410) — dead confirm/actor-guard block; recommend deleting to reduce audit surface (non-blocking)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (27/27)", "frontend": "not tested (backend-only scope)"},
+  "test_credentials": "admin=مدير / 010101, accountant=احمد / 010101 (Preview only). No lockouts triggered — tokens cached per session.",
+  "seed_data_creation": "NONE — strict non-destructive. No successful mutations; only GET reads and rejected 401/403 requests.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Authz SSOT verified end-to-end. Regex now handles both top-level and nested destructive paths. If new destructive endpoints are added, they must match one of: financial-reset, reset-financial, reset, cleanup, purge, wipe, danger (as full segments with /, -, or end terminator). Suite runs ~30s via pytest tests/test_authz_ssot_http_iter362.py.",
+  "rca of the issue": {
+    "issue": "iter362 gap: top-level /api/cleanup/* bypassed destructive_admin rule.",
+    "root_cause": "Original regex required a literal '/' before keyword branches (e.g. '/cleanup'), but '^/api/' already consumed the only slash before the keyword at top level.",
+    "fix": "Updated to r'^/api/(?:[^?]*/)?(financial-reset|reset-financial|reset|cleanup|purge|wipe|danger)(?:/|-|$)' — optional path prefix and explicit terminator.",
+    "verification": "curl -X POST accountant → /api/cleanup/split-parts-services returns 403 (was 500 pass-through / handler-reach). pytest test_top_level_cleanup_regex_gap now PASS."
+  }
+}

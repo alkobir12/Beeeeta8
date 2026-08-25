@@ -1,3 +1,11 @@
+## جلسة 2026-06 — تدقيق الجاهزية + PHASE 1: إصلاح التفويض المنهجي (AUTHZ-SYSTEMIC + P0-SEC-USERS) — منفّذ ومختبر (iteration_363: 27/27 ✅)
+- **الخلفية**: تدقيق READ-ONLY كامل (تقارير في `/app/memory/discovery/`) كشف P0-DUP-AR (ازدواج ذمم) + P0-SEC-USERS + **82 MISSING_AUTHZ** (0 object-level؛ الـbackend service_role يتجاوز RLS ⇒ الأمان في التطبيق فقط).
+- **الإصلاح (كود فقط، صفر تعديل بيانات)**: أُنشئ **Authorization SSOT** `core/authz.py` (يعيد استخدام `core/rbac.py` + `config/role_permissions.json`) بنقطة إنفاذ **واحدة** في middleware (`server.py`) + حراس object-level في `routes_users.py` (لا تصعيد ذاتي/لا حذف ذاتي/لا منح admin). السياسة مبنية حصراً على الأدوار الفعلية؛ المسارات غير المُدرجة تبقى «مُصادَق فقط» (لا كسر وظائف).
+- **النتيجة**: المصفوفة 512: AUTHZ_COMPLETE 0→**110**، MISSING_AUTHZ الصامت 82→**0**، **POLICY_DECISION_REQUIRED 22** (payroll/runtime/finance-bot/uploads — تحتاج قرار المالك). تحقّق: unit 32/32 + testing_agent HTTP 27/27 (محاسب→403 على users/reset/cleanup/settings/ledger-delete، admin→200، قراءات بلا انحدار، بلا 500).
+- **لم يُمَس**: AccountingEngine/الترحيل/AR (P0-DUP-AR منفصل). لا deploy (بانتظار موافقة).
+- تقرير كامل: `/app/memory/discovery/AUTHORIZATION_REPAIR_REPORT.md`.
+
+
 ## جلسة 2026-06 (فرع جديد) — P0-E تنظيف المكررات + XSS Hardening + جولة اكتشاف كاترينا
 ### إكمال دفتر اليومية النهائي (JOURNAL LEDGER FINAL COMPLETION) — منفذ ومختبر (iteration_361: خلفية 32/32 ✅ + إصلاح POS badge)
 - **Pagination حقيقية server-side**: `GET /finance/journal-entries?page=&page_size=` (25/50) تعيد items/page/page_size/total_count/total_pages/kpi. ترتيب ثابت (date←created_at←id DESC) = صفر تكرار/فقدان (مختبر على 25 و50 عبر كل الصفحات). الوضع legacy (skip/limit) محفوظ كما هو للمستهلكين القدامى (UnifiedBotWidget...) — بلا kpi/total_pages.

@@ -497,6 +497,7 @@ def _rate_bucket(path: str, method: str):
 
 from starlette.datastructures import MutableHeaders
 from auth_guard import authenticate as _auth_authenticate
+from core.authz import enforce_or_none as _authz_enforce
 
 
 class SecurityHeadersAndRateLimitMiddleware:
@@ -577,6 +578,14 @@ class SecurityHeadersAndRateLimitMiddleware:
         if auth_result is None:
             await _send_json(401, {"success": False, "error": "Not authenticated", "detail": "Not authenticated"})(send)
             return
+
+        # ── 2b) Authorization SSOT — نقطة إنفاذ واحدة مركزية (core/authz) ──
+        if auth_result:  # authenticated (non-public) request → apply central policy
+            _authz_denial = _authz_enforce(path, method, auth_result)
+            if _authz_denial is not None:
+                await _send_json(403, {"success": False, "error": "authorization_denied",
+                                       "detail": _authz_denial})(send)
+                return
 
         async def send_wrapper(message):
             if message["type"] == "http.response.start":
