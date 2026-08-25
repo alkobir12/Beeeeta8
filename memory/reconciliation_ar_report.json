@@ -1,0 +1,608 @@
+{
+ "vehicles": [
+  {
+   "vehicle_id": "2d79f3e9-0bf4-426d-ae65-6501b916a890",
+   "ledger_ar": -1700.0,
+   "canonical_ar": 0.0,
+   "gap": -1700.0,
+   "entries": [
+    {
+     "id": "f21b3f28",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -1700.0,
+     "date": "2026-08-16T08:46",
+     "desc": "تحصيل دفعة مؤكدة - عمر الخضيري [VISIT:15b9dfb5-0366-41cd-bc0"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+   "ledger_ar": 150.0,
+   "canonical_ar": 0.0,
+   "gap": 150.0,
+   "entries": [
+    {
+     "id": "6ddcabf8",
+     "src": "operation",
+     "type": "sale",
+     "ar_delta": 150.0,
+     "date": "2026-08-04T15:29",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة ca32e1a6"
+    },
+    {
+     "id": "1a721f64",
+     "src": "hist_vehicle_ar_repair",
+     "type": "sale",
+     "ar_delta": 150.0,
+     "date": "2026-08-04T15:44",
+     "desc": "[استرجاع بنود تاريخية من ملف المركبة] عاصم التويجري / ا ل و "
+    },
+    {
+     "id": "2acda727",
+     "src": "reversal",
+     "type": "reversal",
+     "ar_delta": -150.0,
+     "date": "2026-08-19T22:31",
+     "desc": "قيد عكسي — [استرجاع بنود تاريخية من ملف المركبة] عاصم التويج"
+    },
+    {
+     "id": "26d27a70",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -300.0,
+     "date": "2026-08-23T14:36",
+     "desc": "تحصيل دفعة مؤكدة - عاصم التويجري [VISIT:ca32e1a6-a0d5-46f0-b"
+    },
+    {
+     "id": "68415108",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 300.0,
+     "date": "2026-08-23T14:40",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ل و 7"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+   "ledger_ar": 2500.0,
+   "canonical_ar": 0.0,
+   "gap": 2500.0,
+   "entries": [
+    {
+     "id": "0e83fc0c",
+     "src": "operation",
+     "type": "sale",
+     "ar_delta": 2500.0,
+     "date": "2026-08-04T14:28",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 0fd379c7"
+    },
+    {
+     "id": "4601b6e8",
+     "src": "fin_engine_align_v1",
+     "type": "sale",
+     "ar_delta": 2500.0,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] ابو فهد / ا ق ل 22"
+    },
+    {
+     "id": "450a92ea",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -2500.0,
+     "date": "2026-08-18T14:22",
+     "desc": "تحصيل دفعة مؤكدة - ابو فهد  [VISIT:0fd379c7-8d78-4151-b32f-b"
+    },
+    {
+     "id": "ca56fee1",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 6118.0,
+     "date": "2026-08-18T14:22",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ق ل 2"
+    },
+    {
+     "id": "b9ed453a",
+     "src": "reversal",
+     "type": "reversal",
+     "ar_delta": -2500.0,
+     "date": "2026-08-19T22:31",
+     "desc": "قيد عكسي — [محاذاة المحرك المالي: استكمال ذمة ناقصة] ابو فهد"
+    },
+    {
+     "id": "8ef87cf0",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -3600.0,
+     "date": "2026-08-20T15:08",
+     "desc": "تحصيل دفعة مؤكدة - ابو فهد  [VISIT:0fd379c7-8d78-4151-b32f-b"
+    },
+    {
+     "id": "1227be07",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -18.0,
+     "date": "2026-08-22T07:29",
+     "desc": "تحصيل دفعة مؤكدة - ابو فهد  [VISIT:0fd379c7-8d78-4151-b32f-b"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+   "ledger_ar": 102.0,
+   "canonical_ar": 0.0,
+   "gap": 102.0,
+   "entries": [
+    {
+     "id": "2933cb91",
+     "src": "active_vehicle_ar_repair",
+     "type": "sale",
+     "ar_delta": 302.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] خالد القبيشي / ا ع ط 3550 "
+    },
+    {
+     "id": "5ac22c82",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 302.0,
+     "date": "2026-08-13T14:23",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ع ط 3"
+    },
+    {
+     "id": "557e7f9e",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -302.0,
+     "date": "2026-08-13T14:31",
+     "desc": "تحصيل دفعة مؤكدة - خالد القبيشي [VISIT:1d40d657-f682-40a5-b4"
+    },
+    {
+     "id": "7cde0493",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -200.0,
+     "date": "2026-08-15T15:33",
+     "desc": "تحصيل دفعة مؤكدة - خالد القبيشي [VISIT:1d40d657-f682-40a5-b4"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "c6dc5b23-b27d-43fa-820c-c34a576286a3",
+   "ledger_ar": 2373.0,
+   "canonical_ar": 623.0,
+   "gap": 1750.0,
+   "entries": [
+    {
+     "id": "ce520b09",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 2373.0,
+     "date": "2026-08-21T14:40",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ك ا 6"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "eb5b4dba-c6bb-4962-87ef-3ca741c23dce",
+   "ledger_ar": 1245.0,
+   "canonical_ar": 0.0,
+   "gap": 1245.0,
+   "entries": [
+    {
+     "id": "13e94b14",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -900.0,
+     "date": "2026-08-24T07:50",
+     "desc": "تحصيل دفعة مؤكدة - ابو ريان المحيميد [VISIT:1b78c30c-5f8b-4f"
+    },
+    {
+     "id": "6bb93c8c",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 2145.0,
+     "date": "2026-08-24T07:52",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ص ر 6"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "a12a52f9-b16f-4c6d-bae0-e43be376184d",
+   "ledger_ar": 0,
+   "canonical_ar": 225.0,
+   "gap": -225.0,
+   "entries": []
+  },
+  {
+   "vehicle_id": "a6e141b3-0348-461e-92f3-33fc85aeeb86",
+   "ledger_ar": 110.0,
+   "canonical_ar": 0.0,
+   "gap": 110.0,
+   "entries": [
+    {
+     "id": "11b2d8ef",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -500.0,
+     "date": "2026-08-13T21:37",
+     "desc": "تحصيل دفعة مؤكدة - مد الله الثواتي [VISIT:b31b327a-07ed-439c"
+    },
+    {
+     "id": "c3000c7f",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 610.0,
+     "date": "2026-08-13T21:38",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ب ق54"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "af49ee7e-24b5-4fd1-a4c6-2dc3c8f08f5c",
+   "ledger_ar": 1500.0,
+   "canonical_ar": 0.0,
+   "gap": 1500.0,
+   "entries": [
+    {
+     "id": "8cef844c",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 1500.0,
+     "date": "2026-08-11T13:50",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ت ج ر 0"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "e00544bd-184a-4388-95bd-125fed165127",
+   "ledger_ar": 2600.0,
+   "canonical_ar": 0.0,
+   "gap": 2600.0,
+   "entries": [
+    {
+     "id": "205c5107",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -5136.0,
+     "date": "2026-08-13T20:53",
+     "desc": "تحصيل دفعة مؤكدة - ابو ماجد الدخيل الله  [VISIT:3f2d23b5-ad1"
+    },
+    {
+     "id": "bfb337df",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 7736.0,
+     "date": "2026-08-13T20:54",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة د ل ح 4"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+   "ledger_ar": 1000.0,
+   "canonical_ar": 0.0,
+   "gap": 1000.0,
+   "entries": [
+    {
+     "id": "a31b2a3a",
+     "src": "active_vehicle_ar_repair",
+     "type": "sale",
+     "ar_delta": 500.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] 1046 ///صالح القصير / 1046"
+    },
+    {
+     "id": "8d042594",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 500.0,
+     "date": "2026-08-24T14:29",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ص ر 6"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+   "ledger_ar": 6706.0,
+   "canonical_ar": 0.0,
+   "gap": 6706.0,
+   "entries": [
+    {
+     "id": "e3ef28ca",
+     "src": "active_vehicle_ar_repair",
+     "type": "sale",
+     "ar_delta": 2428.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] فهد الطريسي / ح ل ص 5745 ["
+    },
+    {
+     "id": "3a61feba",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 4278.0,
+     "date": "2026-08-13T21:32",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ح ل ص 5"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+   "ledger_ar": 1975.0,
+   "canonical_ar": 0.0,
+   "gap": 1975.0,
+   "entries": [
+    {
+     "id": "6e010906",
+     "src": "active_vehicle_ar_repair",
+     "type": "sale",
+     "ar_delta": 1975.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] ابراهيم صالح / ب ر ق 4806 "
+    },
+    {
+     "id": "f27006bc",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -1800.0,
+     "date": "2026-08-13T21:10",
+     "desc": "تحصيل دفعة مؤكدة - ابراهيم صالح  [VISIT:6484969a-7714-43f8-b"
+    },
+    {
+     "id": "fcad0b0a",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 1800.0,
+     "date": "2026-08-13T21:11",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ر ق 4"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+   "ledger_ar": 13568.0,
+   "canonical_ar": 3887.0,
+   "gap": 9681.0,
+   "entries": [
+    {
+     "id": "e90e9a39",
+     "src": "active_vehicle_ar_repair",
+     "type": "sale",
+     "ar_delta": 500.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] فارس عوض / ح ق م 5520 [VIS"
+    },
+    {
+     "id": "74045e29",
+     "src": "operation",
+     "type": "sale",
+     "ar_delta": 2300.0,
+     "date": "2026-08-04T15:05",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 2635ecf1"
+    },
+    {
+     "id": "3128220e",
+     "src": "operation_payment",
+     "type": "payment",
+     "ar_delta": -2000.0,
+     "date": "2026-08-04T15:05",
+     "desc": "تحصيل دفعة زيارة — فارس عوض "
+    },
+    {
+     "id": "688328a2",
+     "src": "operation_payment",
+     "type": "payment",
+     "ar_delta": -300.0,
+     "date": "2026-08-04T15:08",
+     "desc": "تحصيل دفعة زيارة — فارس عوض "
+    },
+    {
+     "id": "5abdbff4",
+     "src": "fin_engine_align_v1",
+     "type": "sale",
+     "ar_delta": 3181.0,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] فارس عوض / ح ق م 5"
+    },
+    {
+     "id": "07ec9a86",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 13887.0,
+     "date": "2026-08-15T15:26",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ح ق م 5"
+    },
+    {
+     "id": "7270c0cc",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -4000.0,
+     "date": "2026-08-19T05:08",
+     "desc": "تحصيل دفعة مؤكدة - فارس عوض  [VISIT:2635ecf1-fd3b-4fe2-9629-"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "e93529cd-bc16-464f-bc59-a835b694df0f",
+   "ledger_ar": 0,
+   "canonical_ar": 4500.0,
+   "gap": -4500.0,
+   "entries": []
+  },
+  {
+   "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+   "ledger_ar": 600.0,
+   "canonical_ar": 0.0,
+   "gap": 600.0,
+   "entries": [
+    {
+     "id": "b31a49f4",
+     "src": "active_vehicle_ar_repair",
+     "type": "sale",
+     "ar_delta": 300.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] سلطان الشاص / ب ح ن 6923 ["
+    },
+    {
+     "id": "063fc24e",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 300.0,
+     "date": "2026-08-13T14:20",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ح ن 6"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+   "ledger_ar": 800.0,
+   "canonical_ar": 3545.0,
+   "gap": -2745.0,
+   "entries": [
+    {
+     "id": "79290ede",
+     "src": "operation",
+     "type": "sale",
+     "ar_delta": 800.0,
+     "date": "2026-08-04T15:24",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة f5813fbd"
+    },
+    {
+     "id": "d87d711e",
+     "src": "fin_engine_align_v1",
+     "type": "sale",
+     "ar_delta": 800.0,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] شاص 2006 / س ن د 6"
+    },
+    {
+     "id": "24cad53c",
+     "src": "reversal",
+     "type": "reversal",
+     "ar_delta": -800.0,
+     "date": "2026-08-19T22:31",
+     "desc": "قيد عكسي — [محاذاة المحرك المالي: استكمال ذمة ناقصة] شاص 200"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "9ff758da-6dfd-4c61-bd8c-55dab2f505e7",
+   "ledger_ar": 0,
+   "canonical_ar": 1500.0,
+   "gap": -1500.0,
+   "entries": []
+  },
+  {
+   "vehicle_id": "f0946eb4-13be-4eca-8128-c6b1832601b8",
+   "ledger_ar": 800.0,
+   "canonical_ar": 0.0,
+   "gap": 800.0,
+   "entries": [
+    {
+     "id": "d7ba7da9",
+     "src": "operation",
+     "type": "sale",
+     "ar_delta": 800.0,
+     "date": "2026-08-03T13:08",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 9092eddb"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "ddc21487-a04e-467f-b31e-f238c255d4a6",
+   "ledger_ar": 60.0,
+   "canonical_ar": 0.0,
+   "gap": 60.0,
+   "entries": [
+    {
+     "id": "fafb28f6",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -240.0,
+     "date": "2026-08-13T14:14",
+     "desc": "تحصيل دفعة مؤكدة - ابو حمود التويجري [VISIT:41642e27-4c69-43"
+    },
+    {
+     "id": "c1ca0a87",
+     "src": "unified_visit_payment",
+     "type": "payment",
+     "ar_delta": -390.0,
+     "date": "2026-08-23T14:43",
+     "desc": "تحصيل دفعة مؤكدة - ابو حمود التويجري [VISIT:41642e27-4c69-43"
+    },
+    {
+     "id": "4561a3a2",
+     "src": "vehicle_visit",
+     "type": "sale",
+     "ar_delta": 690.0,
+     "date": "2026-08-23T14:43",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ح ط84"
+    }
+   ]
+  }
+ ],
+ "unattributed_ar": [
+  {
+   "id": "98f0ded2",
+   "src": "operation",
+   "ar_delta": -200.0,
+   "ref": "3583f8b9-565d-4636-86a0-91d81ab9b4a2",
+   "desc": "أمر تحصيل/سداد (تحويل بنكي) - فاروق بنقالي"
+  },
+  {
+   "id": "1b91f14d",
+   "src": "fin_engine_align_v1",
+   "ar_delta": 167.84,
+   "ref": "3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e",
+   "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] مد الله الثواتي / "
+  },
+  {
+   "id": "6abc68ae",
+   "src": "reversal",
+   "ar_delta": -100.0,
+   "ref": "reversal::07dfb640-384c-41a7-a5fe-bd2df4",
+   "desc": "قيد عكسي — [CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمر"
+  },
+  {
+   "id": "e6537d43",
+   "src": "unified_visit_payment",
+   "ar_delta": -300.0,
+   "ref": "76d7fe6d-f2dc-48fe-a7a8-2889cde85f87",
+   "desc": "تحصيل دفعة مؤكدة - اختبار Canonical 0e16bdba [VISIT:76d7fe6d"
+  },
+  {
+   "id": "c7376bb9",
+   "src": "historical_financial_repair",
+   "ar_delta": -167.84,
+   "ref": "p0b-correction:1b91f14d-caa0-4212-a34b-f",
+   "desc": "[HISTORICAL_FINANCIAL_REPAIR] عكس مستهدف للقيد 1b91f14d-caa0"
+  },
+  {
+   "id": "0a9d7ab5",
+   "src": "reversal",
+   "ar_delta": 300.0,
+   "ref": "reversal::e6537d43-684c-4a95-8390-31e99e",
+   "desc": "قيد عكسي — تحصيل دفعة مؤكدة - اختبار Canonical 0e16bdba [VIS"
+  },
+  {
+   "id": "db783b86",
+   "src": "operation",
+   "ar_delta": -500.0,
+   "ref": "df39f700-6d8e-4db2-9bce-79ae04e98781",
+   "desc": "أمر تحصيل/سداد (تحويل بنكي) -    1046 ///صالح القصير"
+  },
+  {
+   "id": "8e70327a",
+   "src": "operation",
+   "ar_delta": -3618.0,
+   "ref": "4486efff-a9c8-4c11-8b28-79f9c080d1e2",
+   "desc": "أمر تحصيل/سداد (تحويل بنكي) - ابو فهد"
+  }
+ ],
+ "totals": {
+  "ledger_ar_vehicle_attributed": 37689.0,
+  "canonical_ar": 17580.0,
+  "unattributed_ar_sum": -4418.0
+ }
+}

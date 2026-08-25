@@ -1,0 +1,393 @@
+{
+ "safe_reversal_candidates": [
+  {
+   "vehicle_id": "b9fe95f6-e4c3-4466-b853-c0103dc75929",
+   "canonical_ar": 13887.0,
+   "legacy_ar_to_reverse": 5981.0,
+   "canonical_entries": [
+    {
+     "id": "07ec9a86-8809-4754-982b-7c719f7ed8ff",
+     "src": "vehicle_visit",
+     "ar_delta": 13887.0,
+     "date": "2026-08-15T15:26",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ح ق م 5520 — فارس",
+     "ref": "vehfinal:b9fe95f6-e4c3-4466-b853-c0103dc"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "5abdbff4-cbc9-4a55-ab95-8280d491d367",
+     "src": "fin_engine_align_v1",
+     "ar_delta": 3181.0,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] فارس عوض / ح ق م 5520 [VISIT",
+     "ref": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+    },
+    {
+     "id": "e90e9a39-19ff-4d94-b33b-b6be613530e0",
+     "src": "active_vehicle_ar_repair",
+     "ar_delta": 500.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] فارس عوض / ح ق م 5520 [VISIT:2635ecf",
+     "ref": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+    },
+    {
+     "id": "74045e29-c57a-4266-b6ce-aed98066cdc6",
+     "src": "operation",
+     "ar_delta": 2300.0,
+     "date": "2026-08-04T15:05",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 2635ecf1",
+     "ref": "2635ecf1-fd3b-4fe2-9629-f658f9a2c26d"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "a422209f-8cec-48a6-b06a-49e0c89972e6",
+   "canonical_ar": 6118.0,
+   "legacy_ar_to_reverse": 2500.0,
+   "canonical_entries": [
+    {
+     "id": "ca56fee1-630d-423f-92c9-1e35f9095101",
+     "src": "vehicle_visit",
+     "ar_delta": 6118.0,
+     "date": "2026-08-18T14:22",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ق ل 222 — ابو ف",
+     "ref": "vehfinal:a422209f-8cec-48a6-b06a-49e0c89"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "0e83fc0c-4af0-4ede-a73b-03f8dff1b6db",
+     "src": "operation",
+     "ar_delta": 2500.0,
+     "date": "2026-08-04T14:28",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 0fd379c7",
+     "ref": "0fd379c7-8d78-4151-b32f-beeb32dae664"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "d5376421-bd6e-420e-8585-ba36c3314082",
+   "canonical_ar": 4278.0,
+   "legacy_ar_to_reverse": 2428.0,
+   "canonical_entries": [
+    {
+     "id": "3a61feba-0dcd-477d-840b-d2b3fdc45912",
+     "src": "vehicle_visit",
+     "ar_delta": 4278.0,
+     "date": "2026-08-13T21:32",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ح ل ص 5745 — فهد ",
+     "ref": "vehfinal:d5376421-bd6e-420e-8585-ba36c33"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "e3ef28ca-459a-423d-a7d6-c03e51be5e5a",
+     "src": "active_vehicle_ar_repair",
+     "ar_delta": 2428.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] فهد الطريسي / ح ل ص 5745 [VISIT:3aa0",
+     "ref": "3aa0a6dc-bddb-46f2-ba49-3dbfbf386f14"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "a57b698d-752d-43bf-be66-41a0337de9eb",
+   "canonical_ar": 1800.0,
+   "legacy_ar_to_reverse": 1975.0,
+   "canonical_entries": [
+    {
+     "id": "fcad0b0a-684b-42d9-81cc-6a714e79a651",
+     "src": "vehicle_visit",
+     "ar_delta": 1800.0,
+     "date": "2026-08-13T21:11",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ر ق 4806 — ابرا",
+     "ref": "vehfinal:a57b698d-752d-43bf-be66-41a0337"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "6e010906-442f-41e1-ae0d-dae98bf5b094",
+     "src": "active_vehicle_ar_repair",
+     "ar_delta": 1975.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] ابراهيم صالح / ب ر ق 4806 [VISIT:648",
+     "ref": "6484969a-7714-43f8-b0b9-782c915b8abc"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "c92405eb-2097-4f42-aa3e-ccd455d9812f",
+   "canonical_ar": 500.0,
+   "legacy_ar_to_reverse": 500.0,
+   "canonical_entries": [
+    {
+     "id": "8d042594-9540-4986-9089-84ab44391ecc",
+     "src": "vehicle_visit",
+     "ar_delta": 500.0,
+     "date": "2026-08-24T14:29",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ص ر 6431 — 1046",
+     "ref": "vehfinal:c92405eb-2097-4f42-aa3e-ccd455d"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "a31b2a3a-1cea-426a-a173-d02af15f6d62",
+     "src": "active_vehicle_ar_repair",
+     "ar_delta": 500.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] 1046 ///صالح القصير / 1046  /// ب ص ",
+     "ref": "6973ed6f-8895-42cf-ad24-331832ebef96"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "f6590225-aef6-452b-af39-e0e42061fd81",
+   "canonical_ar": 302.0,
+   "legacy_ar_to_reverse": 302.0,
+   "canonical_entries": [
+    {
+     "id": "5ac22c82-afcd-4618-8c0f-82e88db53952",
+     "src": "vehicle_visit",
+     "ar_delta": 302.0,
+     "date": "2026-08-13T14:23",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ع ط 3550 — خالد",
+     "ref": "vehfinal:f6590225-aef6-452b-af39-e0e4206"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "2933cb91-682e-4844-8913-37ba6c48140b",
+     "src": "active_vehicle_ar_repair",
+     "ar_delta": 302.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] خالد القبيشي / ا ع ط 3550 [VISIT:1d4",
+     "ref": "1d40d657-f682-40a5-b404-4bea38757a12"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "c02cc9c7-6ff5-4fc7-9414-b15787fa9000",
+   "canonical_ar": 300.0,
+   "legacy_ar_to_reverse": 300.0,
+   "canonical_entries": [
+    {
+     "id": "063fc24e-73ac-4094-a66d-ecc10ad6d20c",
+     "src": "vehicle_visit",
+     "ar_delta": 300.0,
+     "date": "2026-08-13T14:20",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ح ن 6923 — سلطا",
+     "ref": "vehfinal:c02cc9c7-6ff5-4fc7-9414-b15787f"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "b31a49f4-02ba-4a0b-9dc5-fa06796c8614",
+     "src": "active_vehicle_ar_repair",
+     "ar_delta": 300.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] سلطان الشاص / ب ح ن 6923 [VISIT:b48c",
+     "ref": "b48c0850-1453-4740-9639-1a99687fda67"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
+   "canonical_ar": 300.0,
+   "legacy_ar_to_reverse": 150.0,
+   "canonical_entries": [
+    {
+     "id": "68415108-5076-4b3a-9841-43319db89dc4",
+     "src": "vehicle_visit",
+     "ar_delta": 300.0,
+     "date": "2026-08-23T14:40",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ل و 7121 — عاصم",
+     "ref": "vehfinal:0ee51492-8405-4235-8c63-4ca01b6"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "6ddcabf8-3305-403c-86e0-820e69e99847",
+     "src": "operation",
+     "ar_delta": 150.0,
+     "date": "2026-08-04T15:29",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة ca32e1a6",
+     "ref": "ca32e1a6-a0d5-46f0-b2c0-ede7439c1da0"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "bea27237-7274-4fe2-84b3-8106740645d7",
+   "canonical_ar": 250.0,
+   "legacy_ar_to_reverse": 0.0,
+   "canonical_entries": [
+    {
+     "id": "005c1c0e-dc09-4dd4-99ee-02ac45c23821",
+     "src": "vehicle_visit",
+     "ar_delta": 250.0,
+     "date": "2026-08-20T12:25",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ا ر ح 6912 — محمد",
+     "ref": "vehfinal:bea27237-7274-4fe2-84b3-8106740"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "ca256e8e-1000-4dd8-ab36-556a11b42bcb",
+     "src": "hist_vehicle_ar_repair",
+     "ar_delta": 250.0,
+     "date": "2026-08-04T15:44",
+     "desc": "[استرجاع بنود تاريخية من ملف المركبة] 77  //محمد  فهدالعمر / ا ر ح 691",
+     "ref": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f"
+    },
+    {
+     "id": "8c233cc0-2189-4f32-8443-943df3494177",
+     "src": "fin_engine_align_v1",
+     "ar_delta": -250.0,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: إثبات سداد تاريخي مؤكد] 77  //محمد  فهدالعمر / ",
+     "ref": "4075cc96-b1c1-4bd3-9f7b-6b35c7ab666f"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "b885d618-a2fa-45df-b14f-0a9e9ff1b484",
+   "canonical_ar": 2300.0,
+   "legacy_ar_to_reverse": 0.0,
+   "canonical_entries": [
+    {
+     "id": "f293b477-0e55-4d80-b792-53940d400ab7",
+     "src": "vehicle_visit",
+     "ar_delta": 2300.0,
+     "date": "2026-08-11T18:03",
+     "desc": "[CANONICAL_BUSINESS] اعتماد الإجمالي النهائي للمركبة ب ر ب 82023 — فيص",
+     "ref": "vehfinal:b885d618-a2fa-45df-b14f-0a9e9ff"
+    }
+   ],
+   "legacy_candidates": [
+    {
+     "id": "ea999c19-4bfc-4771-83f1-ebae1dae70c9",
+     "src": "fin_engine_align_v1",
+     "ar_delta": 2300.0,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] فيصل الجفير / ب ر ب 82023 [V",
+     "ref": "174f49a1-5482-43d5-b333-ede2743a7d79"
+    },
+    {
+     "id": "4cb248a7-0ec8-41ae-8d7c-aa81e4d99f46",
+     "src": "historical_financial_repair",
+     "ar_delta": -2300.0,
+     "date": "2026-08-11T18:03",
+     "desc": "[HISTORICAL_FINANCIAL_REPAIR] عكس مستهدف للقيد ea999c19-4bfc-4771-83f1",
+     "ref": "p0b-correction:ea999c19-4bfc-4771-83f1-e"
+    },
+    {
+     "id": "646644eb-83e4-4567-836b-6a1f3f6c0f03",
+     "src": "historical_financial_repair",
+     "ar_delta": -1210.0,
+     "date": "2026-08-11T18:03",
+     "desc": "[HISTORICAL_FINANCIAL_REPAIR] عكس مستهدف للقيد e4333a1d-6785-4ebe-a381",
+     "ref": "p0b-correction:e4333a1d-6785-4ebe-a381-b"
+    },
+    {
+     "id": "e4333a1d-6785-4ebe-a381-b2b990dfd1b6",
+     "src": "operation",
+     "ar_delta": 1210.0,
+     "date": "2026-08-04T15:03",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 174f49a1",
+     "ref": "174f49a1-5482-43d5-b333-ede2743a7d79"
+    }
+   ]
+  }
+ ],
+ "safe_reversal_total": 14136.0,
+ "safe_reversal_vehicle_count": 10,
+ "legacy_without_canonical_review": [
+  {
+   "vehicle_id": "496cff37-0130-452c-bebf-7a3993d948de",
+   "legacy_ar": 800.0,
+   "entries": [
+    {
+     "id": "79290ede-c4b2-425a-88b9-ec9c7845cb13",
+     "src": "operation",
+     "ar_delta": 800.0,
+     "date": "2026-08-04T15:24",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة f5813fbd",
+     "ref": "f5813fbd-f4b4-4561-9f13-9893d1880cc8"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "f0946eb4-13be-4eca-8128-c6b1832601b8",
+   "legacy_ar": 800.0,
+   "entries": [
+    {
+     "id": "d7ba7da9-fb62-4130-ba4d-1da170bd7702",
+     "src": "operation",
+     "ar_delta": 800.0,
+     "date": "2026-08-03T13:08",
+     "desc": "[قيد مؤقت — بيع آجل] عملية من الزيارة 9092eddb",
+     "ref": "9092eddb-cc58-4b21-ad72-2280037ab7d8"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "c5bfe993-c45a-4412-b196-be1cdd310c40",
+   "legacy_ar": 800.0,
+   "entries": [
+    {
+     "id": "8fc103c0-25f4-4d17-9e90-4037ae9c00ee",
+     "src": "active_vehicle_ar_repair",
+     "ar_delta": 800.0,
+     "date": "2026-08-04T13:44",
+     "desc": "[إصلاح روابط ذمم المركبات النشطة] عبد الكريم الشايعي / ا ص ص 7293 [VIS",
+     "ref": "72ccd3b0-f63b-4efc-957a-30c92aa163cf"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "6a8ace60-5ed7-48dd-bfd1-7d47d408f706",
+   "legacy_ar": 0.0,
+   "entries": [
+    {
+     "id": "24af080f-13bd-403b-9439-add38d3e3eaf",
+     "src": "hist_vehicle_ar_repair",
+     "ar_delta": 100.0,
+     "date": "2026-08-04T15:44",
+     "desc": "[استرجاع بنود تاريخية من ملف المركبة] 1036 /// ماجد الربعي / 0136///  ",
+     "ref": "ba89782c-65b1-4c4e-8fa7-30707379e2b2"
+    },
+    {
+     "id": "1c844489-69e0-4fcd-82aa-04cdb4f7007e",
+     "src": "fin_engine_align_v1",
+     "ar_delta": -100.0,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: إثبات سداد تاريخي مؤكد] 1036 /// ماجد الربعي / ",
+     "ref": "ba89782c-65b1-4c4e-8fa7-30707379e2b2"
+    }
+   ]
+  },
+  {
+   "vehicle_id": "8708bbd6-18be-4fb0-93a4-f9818b2b91ad",
+   "legacy_ar": 0.0,
+   "entries": [
+    {
+     "id": "1b91f14d-caa0-4212-a34b-f5d4f7c7cca3",
+     "src": "fin_engine_align_v1",
+     "ar_delta": 167.84,
+     "date": "2026-08-04T16:32",
+     "desc": "[محاذاة المحرك المالي: استكمال ذمة ناقصة] مد الله الثواتي / ا ب ق 5437",
+     "ref": "3b1ccedf-29c6-4d9e-9108-f11a7bcc5c5e"
+    },
+    {
+     "id": "c7376bb9-08cc-41da-887f-b17f5066fbba",
+     "src": "historical_financial_repair",
+     "ar_delta": -167.84,
+     "date": "2026-08-11T18:03",
+     "desc": "[HISTORICAL_FINANCIAL_REPAIR] عكس مستهدف للقيد 1b91f14d-caa0-4212-a34b",
+     "ref": "p0b-correction:1b91f14d-caa0-4212-a34b-f"
+    }
+   ]
+  }
+ ],
+ "legacy_without_canonical_total": 2400.0
+}
