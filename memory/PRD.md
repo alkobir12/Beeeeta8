@@ -1000,3 +1000,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم توضيح أن 17 public و495 AUTHZ_COMPLETE هي أرقام legacy aggregation من `closure_authz_after.py` وليست التصنيف النهائي، وتم إنشاء `write_path_audit_phase1b_consistency.json` بعدد 286 writer بدون قيم S=self/V=alw/M=guard المضللة.
 - التحقق المستقل Iter365: 21/21 passed، UNKNOWN=0 endpoints/writers، no DB mutation، no AccountingEngine، no P0-DUP-AR، no MOCKED APIs.
 
+## تحديث 2026-08-25 — Phase 1C Controlled Deployment Readiness
+- تم تنفيذ فحص جاهزية نشر مضبوط لتغييرات Authorization فقط، مع إصلاح محدود لـ `.gitignore` حتى لا يحجب ملفات `.env` المطلوبة، وتثبيت `load_dotenv(..., override=False)`.
+- نتيجة `deployment_agent`: PASS، لكن لم يتم تنفيذ deploy فعلي أو checkpoint فعلي من داخل بيئة الكود لأن أداة النشر غير متاحة هنا.
+- التحقق المستقل Iter367: 21/21 passed، no DB mutation، no mutating API calls، no AccountingEngine changes، no MOCKED APIs.
+- الحالة: `PHASE 1C READY FOR PLATFORM DEPLOYMENT — NOT DEPLOYED BY AGENT`؛ التحقق الحي بعد النشر لا يزال ينتظر تنفيذ deploy عبر المنصة.
+
