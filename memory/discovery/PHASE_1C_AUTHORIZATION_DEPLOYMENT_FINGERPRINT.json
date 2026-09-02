@@ -1,0 +1,245 @@
+{
+  "captured_at": "2026-09-02T12:20:42.622224+00:00",
+  "source_commit": "76db87ad44582ac01d6e1277085011f3eae9f12a",
+  "working_tree_state": "DIRTY",
+  "build_identifier": "76db87ad4458-dirty",
+  "canonical_endpoint_matrix_checksum_sha256": "40ef104b7953e060d885c0c8ed55cd51f2de146904618c5bcecb8bb61cf50358",
+  "writer_matrix_checksum_sha256": "257da342a2c8878995c16d575063dda3931ff321728cfba9ac88f698819fb895",
+  "endpoint_totals": {
+    "AUTHZ_COMPLETE_MUTATION": 267,
+    "GENERAL_AUTHENTICATED_READ": 109,
+    "ROLE_RESTRICTED": 16,
+    "PUBLIC_INTENTIONAL": 8,
+    "SELF_ONLY": 6,
+    "PERMISSION_RESTRICTED": 106
+  },
+  "endpoint_total_sum": 512,
+  "public_handler_definitions": 12,
+  "public_unique_method_path_routes": 12,
+  "public_handler_definitions_list": [
+    {
+      "method": "GET",
+      "path": "/openapi.json",
+      "name": "openapi",
+      "handler": "openapi"
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "name": "swagger_ui_html",
+      "handler": "swagger_ui_html"
+    },
+    {
+      "method": "GET",
+      "path": "/docs/oauth2-redirect",
+      "name": "swagger_ui_redirect",
+      "handler": "swagger_ui_redirect"
+    },
+    {
+      "method": "GET",
+      "path": "/redoc",
+      "name": "redoc_html",
+      "handler": "redoc_html"
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "name": "health_check",
+      "handler": "health_check"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "name": "api_health_check",
+      "handler": "api_health_check"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "name": "login",
+      "handler": "login"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "name": "logout",
+      "handler": "logout"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "name": "refresh",
+      "handler": "refresh"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/google/session",
+      "name": "google_session",
+      "handler": "google_session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/approvals/public/{token}",
+      "name": "public_approval",
+      "handler": "public_approval"
+    },
+    {
+      "method": "POST",
+      "path": "/api/approvals/public/{token}/respond",
+      "name": "respond_public_approval",
+      "handler": "respond_public_approval"
+    }
+  ],
+  "public_unique_method_path_routes_list": [
+    {
+      "method": "GET",
+      "path": "/api/approvals/public/{token}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health"
+    },
+    {
+      "method": "GET",
+      "path": "/docs"
+    },
+    {
+      "method": "GET",
+      "path": "/docs/oauth2-redirect"
+    },
+    {
+      "method": "GET",
+      "path": "/health"
+    },
+    {
+      "method": "GET",
+      "path": "/openapi.json"
+    },
+    {
+      "method": "GET",
+      "path": "/redoc"
+    },
+    {
+      "method": "POST",
+      "path": "/api/approvals/public/{token}/respond"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/google/session"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh"
+    }
+  ],
+  "api_health_effective_status": {
+    "definitions": [
+      {
+        "method": "GET",
+        "path": "/api/health",
+        "name": "api_health_check",
+        "handler": "api_health_check"
+      }
+    ],
+    "definition_count": 1,
+    "unique_method_path_count": 1,
+    "interpretation": "Effective FastAPI has one /api/health handler and one separate /health handler. The earlier 8-count duplicate is an inventory normalization artifact, not a duplicate /api/health registration in FastAPI."
+  },
+  "missing_authz": 0,
+  "policy_decision_required": 0,
+  "auth_only_no_object_check": 0,
+  "unknown": 0,
+  "writer_count": 286,
+  "writer_unknown": 0,
+  "dirty_files_count": 9,
+  "mutation_performed": "NO",
+  "deployment_executed": "NO",
+  "api_public_handler_definitions": 7,
+  "api_public_unique_method_path_routes": 7,
+  "api_public_handler_definitions_list": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "name": "api_health_check",
+      "handler": "api_health_check"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "name": "login",
+      "handler": "login"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "name": "logout",
+      "handler": "logout"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "name": "refresh",
+      "handler": "refresh"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/google/session",
+      "name": "google_session",
+      "handler": "google_session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/approvals/public/{token}",
+      "name": "public_approval",
+      "handler": "public_approval"
+    },
+    {
+      "method": "POST",
+      "path": "/api/approvals/public/{token}/respond",
+      "name": "respond_public_approval",
+      "handler": "respond_public_approval"
+    }
+  ],
+  "non_api_framework_public_routes": [
+    {
+      "method": "GET",
+      "path": "/openapi.json",
+      "name": "openapi",
+      "handler": "openapi"
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "name": "swagger_ui_html",
+      "handler": "swagger_ui_html"
+    },
+    {
+      "method": "GET",
+      "path": "/docs/oauth2-redirect",
+      "name": "swagger_ui_redirect",
+      "handler": "swagger_ui_redirect"
+    },
+    {
+      "method": "GET",
+      "path": "/redoc",
+      "name": "redoc_html",
+      "handler": "redoc_html"
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "name": "health_check",
+      "handler": "health_check"
+    }
+  ],
+  "inventory_public_rows": 8,
+  "inventory_vs_effective_public_interpretation": "Inventory has 8 PUBLIC_INTENTIONAL rows because /health was normalized to /api/health in endpoint inventory; effective FastAPI API registry has 7 unique public method+path routes; full FastAPI registry has 12 public routes including docs/openapi/redoc and /health."
+}

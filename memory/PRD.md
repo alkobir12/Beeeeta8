@@ -1006,3 +1006,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - التحقق المستقل Iter367: 21/21 passed، no DB mutation، no mutating API calls، no AccountingEngine changes، no MOCKED APIs.
 - الحالة: `PHASE 1C READY FOR PLATFORM DEPLOYMENT — NOT DEPLOYED BY AGENT`؛ التحقق الحي بعد النشر لا يزال ينتظر تنفيذ deploy عبر المنصة.
 
+## تحديث 2026-09-02 — Phase 1C.1 Pre-Deploy Closure
+- تم تصحيح الحالة إلى: `PHASE 1C PRE-DEPLOY READINESS = PASS`, `PHASE 1C LIVE DEPLOYMENT = NOT EXECUTED`, `PHASE 1C FINAL = OPEN`.
+- تم إعادة حماية ملفات env: `.env`, `.env.*`, `*.env` ignored، وإنشاء `.env.example` آمنة فقط؛ لكن تاريخ Git السابق يحتوي تتبع env ولذلك `PRE-DEPLOY GATE = FAIL` حتى يتم اعتماد/تنفيذ مسار معالجة التعرض التاريخي.
+- تم حفظ بصمة مالية read-only في `PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.*` وبصمة تفويض في `PHASE_1C_AUTHORIZATION_DEPLOYMENT_FINGERPRINT.json`، مع توضيح أن effective API public routes = 7 وأن inventory public rows = 8 بسبب artifact normalization بين `/health` و`/api/health`.
+- التحقق المستقل Iter368: 21/21 passed، no DB mutation، no mutating API calls، no deploy، no AccountingEngine changes، no MOCKED APIs.
+
