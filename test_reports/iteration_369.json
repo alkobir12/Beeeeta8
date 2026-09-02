@@ -1,0 +1,72 @@
+{
+  "summary": "Backend-only non-destructive Phase 1C.1A security/reproducible-build closure verification completed. Artifact consistency and targeted unit regressions passed (21/21), with one externally visible route discrepancy: public URL /health returns 500 proxy error while /api/health is 200.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/health",
+        "issue": "Public URL returns 500 (proxy to localhost:8000 ECONNREFUSED) instead of a healthy public framework route response, conflicting with 'intentionally public /health' expectation at ingress level.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Framework health probe via public app URL",
+        "issue": "Root /health is not reachable through public ingress; only /api/health succeeds.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/memory/discovery/PHASE_1C1A_SECURITY_REPRODUCIBLE_BUILD_CLOSURE_REPORT.md",
+    "/app/memory/discovery/PHASE_1C1A_HISTORICAL_SECRET_EXPOSURE_INVENTORY.json",
+    "/app/memory/discovery/PHASE_1C1A_HISTORICAL_SECRET_EXPOSURE_INVENTORY.md",
+    "/app/memory/discovery/PHASE_1C_FINANCIAL_FINGERPRINT_DEFINITION.md",
+    "/app/memory/discovery/FINAL_PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.json",
+    "/app/memory/discovery/FINAL_PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.md",
+    "/app/memory/discovery/PHASE_1C1A_AUTHORIZATION_REPRODUCIBLE_FINGERPRINT.json",
+    "/app/.gitignore",
+    "/app/.env.example",
+    "/app/backend/.env.example",
+    "/app/frontend/.env.example",
+    "/app/backend/server.py",
+    "/app/backend/tests/test_authz_ssot.py",
+    "/app/backend/tests/test_authorization_phase1b.py",
+    "/app/backend/tests/test_phase1b_final_consistency_iter365.py",
+    "/app/test_reports/pytest/iter369_phase1c1a_predeploy_closure.xml"
+  ],
+  "action_items": [
+    "Fix ingress/proxy routing for root /health (framework route) or update closure claim language to reflect externally reachable probe path.",
+    "Proceed with external rotation/revocation for the 16 historical server-side secrets.",
+    "Complete remote/shared git history sanitization through external coordinated process.",
+    "Create a clean saved commit/checkpoint after external actions before claiming reproducible clean build gate closure."
+  ],
+  "critical_code_review_comments": [
+    "Historical secret inventory contains key names/metadata only (no secret values printed), 55 keys total, 16 marked ROTATION REQUIRED — EXTERNAL ACTION.",
+    "Classification sanity holds: publishable/URL/model-name style keys are not auto-treated as secrets (example: REACT_APP_BACKEND_URL classified CLIENT-PUBLISHABLE, NOT REQUIRED).",
+    "Current env safety controls are present: .env/.env.*/ *.env ignored, real env tracked=0, real env staged=0, env example files use empty assignments only.",
+    "FastAPI docs/openapi/redoc are disabled in current code (docs_url=None, redoc_url=None, openapi_url=None).",
+    "Authorization reproducible fingerprint is internally consistent: endpoint_total_sum=512, public_api_routes=7, public_framework_routes=1, total_effective_public_http_routes=8, missing/policy/auth-only/unknown all 0, writer_count=286, writer_unknown=0.",
+    "Financial fingerprint definition reconciles reversal semantics via source/reference-based reversal_entry_count; final fingerprint uses reversal_entry_count=20 and explicit_reversal_link_count=20 (not the old zero-field query semantics).",
+    "Build identity is correctly non-clean in artifact (working_tree_state=DIRTY, build_identifier includes -dirty); gate remains FAIL with external blockers, which is accurate."
+  ],
+  "updated_files": [
+    "/app/test_reports/pytest/iter369_phase1c1a_predeploy_closure.xml",
+    "/app/test_reports/iteration_369.json"
+  ],
+  "success_rate": {
+    "backend": "96%",
+    "frontend": "not tested (backend-only scope)"
+  },
+  "seed_data_creation": "NONE",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Executed strict non-destructive checks only. Pytest command: pytest /app/backend/tests/test_authz_ssot.py /app/backend/tests/test_authorization_phase1b.py /app/backend/tests/test_phase1b_final_consistency_iter365.py -v --tb=short --junitxml=/app/test_reports/pytest/iter369_phase1c1a_predeploy_closure.xml (21 passed). Public URL checks: /api/health=200 with {status:ok}; /health=500 proxy ECONNREFUSED localhost:8000; /docs,/openapi.json,/redoc at root also proxy 500 via frontend path.",
+  "rca of the issue": "RCA for /health discrepancy: on this environment, non-/api paths are routed through frontend service. Frontend proxy attempts localhost:8000 for root health/docs/openapi/redoc and returns ECONNREFUSED, while backend is actually reachable through /api/* (e.g., /api/health=200). Mitigation: align ingress/proxy so intended public health endpoint resolves to backend runtime or redefine external health probe to /api/health in closure docs.",
+  "test_credentials": "Read /app/memory/test_credentials.md as required. No auth login flows executed.",
+  "main_agent_can_self_test": true
+}

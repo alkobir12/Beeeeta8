@@ -354,7 +354,7 @@ UPLOAD_DIR = ROOT_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Create the main app
-app = FastAPI(title="Workshop Management API")
+app = FastAPI(title="Workshop Management API", docs_url=None, redoc_url=None, openapi_url=None)
 
 
 @app.on_event("startup")

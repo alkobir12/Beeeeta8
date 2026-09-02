@@ -1,0 +1,51 @@
+{
+  "summary": "Backend-only Phase 1C.1A retest completed with strict non-destructive checks. Targeted authorization/consistency tests passed (21/21), external ingress behavior confirms /api/health is valid and /health is not externally routed, and docs/openapi/redoc are disabled in backend runtime. One remaining artifact inconsistency exists inside the closure report where Section 10 still states total_effective_public_http_routes=8.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "artifact: /app/memory/discovery/PHASE_1C1A_SECURITY_REPRODUCIBLE_BUILD_CLOSURE_REPORT.md",
+        "issue": "Section 6 correctly states TOTAL_EFFECTIVE_PUBLIC_HTTP_ROUTES = 7, but Section 10 still contains stale value total_effective_public_http_routes: 8; documentation is internally inconsistent."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_authz_ssot.py",
+    "/app/backend/tests/test_authorization_phase1b.py",
+    "/app/backend/tests/test_phase1b_final_consistency_iter365.py",
+    "/app/test_reports/pytest/iter370_phase1c1a_retest.xml",
+    "/app/memory/discovery/PHASE_1C1A_SECURITY_REPRODUCIBLE_BUILD_CLOSURE_REPORT.md",
+    "/app/memory/discovery/PHASE_1C1A_AUTHORIZATION_REPRODUCIBLE_FINGERPRINT.json",
+    "/app/backend/server.py"
+  ],
+  "action_items": [
+    "Update closure report Section 10 to align with external-ingress accounting: total_effective_public_http_routes must remain 7.",
+    "Keep PRE-DEPLOY GATE as FAIL until external secret rotation/revocation, remote history sanitization, and clean checkpoint are completed."
+  ],
+  "critical_code_review_comments": [
+    "FastAPI framework docs are disabled in code via docs_url=None, redoc_url=None, openapi_url=None; internal runtime returns 404 for /docs, /openapi.json, /redoc.",
+    "Ingress behavior confirms scope split: external /api/health=200, external /health=500 proxy ECONNREFUSED (not a backend-ingress public route).",
+    "Authorization fingerprint is aligned with requested external semantics: total_effective_public_http_routes=7 (int), external_ingress_public_routes=7, public_framework_routes_external_ingress=0.",
+    "PRE-DEPLOY GATE remains correctly FAIL for true external blockers (secret rotation/revocation, remote history sanitization, dirty checkpoint)."
+  ],
+  "updated_files": [
+    "/app/test_reports/pytest/iter370_phase1c1a_retest.xml",
+    "/app/test_reports/iteration_370.json"
+  ],
+  "success_rate": {
+    "backend": "95%",
+    "frontend": "not tested (backend-only scope)"
+  },
+  "seed_data_creation": "NONE",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Executed only non-destructive checks. Pytest command: pytest /app/backend/tests/test_authz_ssot.py /app/backend/tests/test_authorization_phase1b.py /app/backend/tests/test_phase1b_final_consistency_iter365.py -v --tb=short --junitxml=/app/test_reports/pytest/iter370_phase1c1a_retest.xml => 21 passed. External checks against REACT_APP_BACKEND_URL: /api/health=200, /health=500 proxy ECONNREFUSED, /docs=500, /openapi.json=500, /redoc=500. Internal backend checks (127.0.0.1:8001): /health=200, /api/health=200, /docs|/openapi.json|/redoc=404.",
+  "rca of the issue": "The prior discrepancy is resolved semantically for ingress: /health is internal FastAPI-only and not externally routed to backend. Remaining inconsistency is documentary: closure report Section 10 still carries legacy aggregate total_effective_public_http_routes=8, conflicting with Section 6 and fingerprint JSON external route model (7).",
+  "test_credentials": "Read /app/memory/test_credentials.md as required. No auth login or mutating API flow executed.",
+  "main_agent_can_self_test": true
+}

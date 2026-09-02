@@ -1,0 +1,97 @@
+{
+  "captured_at": "2026-09-02T12:36:39.633847+00:00",
+  "source_commit": "0ceb2ddc47724d6d2dc788edd1476680960f13d5",
+  "working_tree_state": "DIRTY",
+  "build_identifier": "0ceb2ddc4772-dirty",
+  "canonical_endpoint_matrix_checksum_sha256": "40ef104b7953e060d885c0c8ed55cd51f2de146904618c5bcecb8bb61cf50358",
+  "writer_matrix_checksum_sha256": "257da342a2c8878995c16d575063dda3931ff321728cfba9ac88f698819fb895",
+  "endpoint_totals": {
+    "AUTHZ_COMPLETE_MUTATION": 267,
+    "GENERAL_AUTHENTICATED_READ": 109,
+    "ROLE_RESTRICTED": 16,
+    "PUBLIC_INTENTIONAL": 8,
+    "SELF_ONLY": 6,
+    "PERMISSION_RESTRICTED": 106
+  },
+  "endpoint_total_sum": 512,
+  "public_api_routes": 7,
+  "public_api_handler_definitions": 7,
+  "public_framework_routes": 1,
+  "public_framework_handler_definitions": 1,
+  "total_effective_public_http_routes": 7,
+  "api_public_handler_definitions_list": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "handler": "api_health_check"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "handler": "login"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "handler": "logout"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "handler": "refresh"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/google/session",
+      "handler": "google_session"
+    },
+    {
+      "method": "GET",
+      "path": "/api/approvals/public/{token}",
+      "handler": "public_approval"
+    },
+    {
+      "method": "POST",
+      "path": "/api/approvals/public/{token}/respond",
+      "handler": "respond_public_approval"
+    }
+  ],
+  "framework_public_routes_list": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "handler": "health_check"
+    }
+  ],
+  "framework_route_policy": {
+    "/openapi.json": "DISABLED_IN_PRODUCTION_AND_CURRENT_BUILD",
+    "/docs": "DISABLED_IN_PRODUCTION_AND_CURRENT_BUILD",
+    "/docs/oauth2-redirect": "DISABLED_IN_PRODUCTION_AND_CURRENT_BUILD",
+    "/redoc": "DISABLED_IN_PRODUCTION_AND_CURRENT_BUILD",
+    "/health": "INTENTIONALLY_PUBLIC_INTERNAL_FASTAPI_HEALTH_PROBE_NOT_EXTERNAL_INGRESS_ROUTE; external health uses /api/health"
+  },
+  "missing_authz": 0,
+  "policy_decision_required": 0,
+  "auth_only_no_object_check": 0,
+  "unknown": 0,
+  "writer_count": 286,
+  "writer_unknown": 0,
+  "dirty_files": [
+    " M backend/server.py",
+    "?? .env.example",
+    "?? backend/.env.example",
+    "?? frontend/.env.example",
+    "?? memory/discovery/FINAL_PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.json",
+    "?? memory/discovery/FINAL_PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.md",
+    "?? memory/discovery/PHASE_1C1A_HISTORICAL_SECRET_EXPOSURE_INVENTORY.json",
+    "?? memory/discovery/PHASE_1C1A_HISTORICAL_SECRET_EXPOSURE_INVENTORY.md",
+    "?? memory/discovery/PHASE_1C_FINANCIAL_FINGERPRINT_DEFINITION.md"
+  ],
+  "deployment_executed": "NO",
+  "mutation_performed": "NO",
+  "public_framework_routes_internal_fastapi": 1,
+  "public_framework_routes_external_ingress": 0,
+  "internal_fastapi_public_http_routes": 8,
+  "external_ingress_public_routes": 7,
+  "external_ingress_note": "Kubernetes ingress routes /api/* to backend and non-/api to frontend; therefore backend /health is an internal FastAPI route and external GET /health is not a valid backend public route. Use /api/health externally."
+}

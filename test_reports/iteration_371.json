@@ -1,0 +1,45 @@
+{
+  "summary": "Final backend-only non-destructive retest for Phase 1C.1A completed. Closure report and authorization fingerprint now consistently use total_effective_public_http_routes=7 for external ingress semantics; targeted authorization/consistency tests passed (21/21). Gate remains FAIL for documented external blockers only.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/memory/discovery/PHASE_1C1A_SECURITY_REPRODUCIBLE_BUILD_CLOSURE_REPORT.md",
+    "/app/memory/discovery/PHASE_1C1A_AUTHORIZATION_REPRODUCIBLE_FINGERPRINT.json",
+    "/app/backend/server.py",
+    "/app/backend/tests/test_authz_ssot.py",
+    "/app/backend/tests/test_authorization_phase1b.py",
+    "/app/backend/tests/test_phase1b_final_consistency_iter365.py",
+    "/app/test_reports/pytest/iter371_phase1c1a_final_retest.xml"
+  ],
+  "action_items": [
+    "Keep PRE-DEPLOY GATE as FAIL until external secret rotation/revocation, remote history sanitization, and clean checkpoint creation are completed."
+  ],
+  "critical_code_review_comments": [
+    "Closure report Section 6 and Section 10 are now consistent: TOTAL_EFFECTIVE_PUBLIC_HTTP_ROUTES / total_effective_public_http_routes = 7.",
+    "Authorization fingerprint remains consistent and numeric: total_effective_public_http_routes=7 and external_ingress_public_routes=7.",
+    "Backend runtime configuration disables docs/openapi/redoc via FastAPI(docs_url=None, redoc_url=None, openapi_url=None); internal runtime returns 404 for these routes.",
+    "External ingress behavior is aligned with documentation: /api/health returns 200 while /health is not externally routed to backend in this environment.",
+    "Code quality note: /app/backend/server.py is very large (~3k+ lines), exceeding modularity guideline and increasing maintenance risk."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_371.json"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "not tested (backend-only scope)"
+  },
+  "seed_data_creation": "NONE",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Strict non-destructive verification only; no login, no DB mutation, no mutating API calls, no deploy. Verified closure report route count consistency, fingerprint route fields, runtime docs-disabled behavior, and external /api/health. Pytest command used: pytest /app/backend/tests/test_authz_ssot.py /app/backend/tests/test_authorization_phase1b.py /app/backend/tests/test_phase1b_final_consistency_iter365.py -v --tb=short --junitxml=/app/test_reports/pytest/iter371_phase1c1a_final_retest.xml (21 passed).",
+  "rca of the issue": "Previous mismatch was stale documentation text: Section 10 retained legacy total_effective_public_http_routes=8 while ingress-effective semantics had already shifted to 7 (excluding internal-only /health from external route totals). Updating Section 10 to 7 resolves the inconsistency without code-path changes.",
+  "test_credentials": "Read /app/memory/test_credentials.md as required. No auth flow executed in this retest."
+}

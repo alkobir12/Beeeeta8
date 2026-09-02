@@ -1012,3 +1012,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم حفظ بصمة مالية read-only في `PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.*` وبصمة تفويض في `PHASE_1C_AUTHORIZATION_DEPLOYMENT_FINGERPRINT.json`، مع توضيح أن effective API public routes = 7 وأن inventory public rows = 8 بسبب artifact normalization بين `/health` و`/api/health`.
 - التحقق المستقل Iter368: 21/21 passed، no DB mutation، no mutating API calls، no deploy، no AccountingEngine changes، no MOCKED APIs.
 
+## تحديث 2026-09-02 — Phase 1C.1A Security + Reproducible Build Closure
+- تم إنشاء inventory آمن لتعرض `.env` في تاريخ Git بدون عرض قيم أسرار: 55 key names، منها 16 historical secret/server credentials تتطلب `ROTATION REQUIRED — EXTERNAL ACTION`.
+- تم تعطيل FastAPI docs/openapi/redoc في الكود (`docs_url=None`, `redoc_url=None`, `openapi_url=None`) وتثبيت عدّ public: API external routes=7، framework internal `/health` فقط، total external effective public HTTP routes=7.
+- تم تصحيح semantic fingerprint المالي: `reversal_entry_count=20` حسب `source/reference semantics` بدل query السابقة الخاطئة التي أعطت صفر، وحفظ `FINAL_PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.*` مع checksum.
+- الحالة النهائية: `PRE-DEPLOY GATE = FAIL` بسبب external secret rotation/revocation، remote history sanitization، وعدم وجود clean commit/checkpoint؛ التحقق Iter371: 21/21 passed، no DB mutation، no deploy، no AccountingEngine، no MOCKED APIs.
+
