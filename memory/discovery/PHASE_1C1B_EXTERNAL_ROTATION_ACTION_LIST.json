@@ -1,0 +1,135 @@
+[
+  {
+    "provider": "Application Auth",
+    "credential": "JWT signing secret",
+    "affected_env_variables": [
+      "JWT_SECRET"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Application Auth"
+  },
+  {
+    "provider": "Application Runtime Secret",
+    "credential": "DEVELOPER_APPROVAL_CODE",
+    "affected_env_variables": [
+      "DEVELOPER_APPROVAL_CODE"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Application Runtime Secret"
+  },
+  {
+    "provider": "Application Runtime Secret",
+    "credential": "MANAGER_QUICK_PIN",
+    "affected_env_variables": [
+      "MANAGER_QUICK_PIN"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Application Runtime Secret"
+  },
+  {
+    "provider": "Application Runtime Secret",
+    "credential": "RATE_LIMIT_BYPASS_TOKEN",
+    "affected_env_variables": [
+      "RATE_LIMIT_BYPASS_TOKEN"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Application Runtime Secret"
+  },
+  {
+    "provider": "Application Runtime Secret",
+    "credential": "TEST_USER_PASSWORD",
+    "affected_env_variables": [
+      "TEST_USER_PASSWORD"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Application Runtime Secret"
+  },
+  {
+    "provider": "Blackbox",
+    "credential": "API key",
+    "affected_env_variables": [
+      "BLACKBOX_API_KEY"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Blackbox"
+  },
+  {
+    "provider": "DeepSeek",
+    "credential": "API key",
+    "affected_env_variables": [
+      "DEEPSEEK_API_KEY"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "DeepSeek"
+  },
+  {
+    "provider": "Emergent Universal LLM",
+    "credential": "Universal LLM key",
+    "affected_env_variables": [
+      "EMERGENT_LLM_KEY"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Emergent Universal LLM"
+  },
+  {
+    "provider": "Google",
+    "credential": "API key",
+    "affected_env_variables": [
+      "GOOGLE_API_KEY"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Google"
+  },
+  {
+    "provider": "Groq",
+    "credential": "API key",
+    "affected_env_variables": [
+      "GROQ_API_KEY"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Groq"
+  },
+  {
+    "provider": "MongoDB",
+    "credential": "Mongo connection credential",
+    "affected_env_variables": [
+      "MONGO_URL"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "MongoDB"
+  },
+  {
+    "provider": "Postgres/Supabase DB",
+    "credential": "Legacy Postgres connection credential",
+    "affected_env_variables": [
+      "DATABASE_URL",
+      "DIRECT_URL",
+      "POSTGRES_PASSWORD"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Postgres/Supabase DB"
+  },
+  {
+    "provider": "Supabase",
+    "credential": "Service role key(s)",
+    "affected_env_variables": [
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY_1"
+    ],
+    "status": "UNKNOWN",
+    "action": "ROTATE/REVOKE/PROVE_INACTIVE",
+    "external_system": "Supabase"
+  }
+]

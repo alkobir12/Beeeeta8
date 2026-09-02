@@ -93,5 +93,11 @@
   "public_framework_routes_external_ingress": 0,
   "internal_fastapi_public_http_routes": 8,
   "external_ingress_public_routes": 7,
-  "external_ingress_note": "Kubernetes ingress routes /api/* to backend and non-/api to frontend; therefore backend /health is an internal FastAPI route and external GET /health is not a valid backend public route. Use /api/health externally."
+  "external_ingress_note": "Kubernetes ingress routes /api/* to backend and non-/api to frontend; therefore backend /health is an internal FastAPI route and external GET /health is not a valid backend public route. Use /api/health externally.",
+  "public_terminology_normalized_at": "2026-09-02T12:57:27.604909+00:00",
+  "PUBLIC_POLICY_ROWS": 8,
+  "PUBLIC_UNIQUE_API_ROUTES": 7,
+  "PUBLIC_EXTERNAL_FRAMEWORK_ROUTES": 0,
+  "PUBLIC_INTERNAL_HEALTH_ROUTE": 1,
+  "public_8_7_explanation": "PUBLIC_POLICY_ROWS=8 because endpoint inventory normalization maps internal /health to /api/health rows. Effective external API public routes are 7. /health is internal FastAPI health only behind ingress; external health uses /api/health. No authorization behavior changed."
 }

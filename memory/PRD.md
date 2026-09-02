@@ -1018,3 +1018,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم تصحيح semantic fingerprint المالي: `reversal_entry_count=20` حسب `source/reference semantics` بدل query السابقة الخاطئة التي أعطت صفر، وحفظ `FINAL_PHASE_1C_PREDEPLOY_FINANCIAL_FINGERPRINT.*` مع checksum.
 - الحالة النهائية: `PRE-DEPLOY GATE = FAIL` بسبب external secret rotation/revocation، remote history sanitization، وعدم وجود clean commit/checkpoint؛ التحقق Iter371: 21/21 passed، no DB mutation، no deploy، no AccountingEngine، no MOCKED APIs.
 
+## تحديث 2026-09-02 — Phase 1C.1B Final Pre-Rotation Consistency Check
+- تم حسم `ANTHROPIC_API_KEY`: القيمة التاريخية كانت empty/placeholder وليست credential فعلية، لذلك `rotation_required=NO` مع justification صريح.
+- تم تطبيع المصطلحات النهائية: `PUBLIC_POLICY_ROWS=8`, `PUBLIC_UNIQUE_API_ROUTES=7`, `PUBLIC_EXTERNAL_FRAMEWORK_ROUTES=0`, `PUBLIC_INTERNAL_HEALTH_ROUTE=1`، بدون تغيير Authorization behavior.
+- تم تطبيع fingerprint المالي: `journal_row_count=190`, `reversal_entry_count=20`, `non_reversal_entry_count=170`, `explicit_reversal_link_count=20`، وحفظ `FINAL_PHASE_1C1B_PREDEPLOY_FINANCIAL_FINGERPRINT.*` checksum `5fb3453999ae85f5390d977293f5bd5c977e984df574530e92caf5ff981993c7`.
+- التحقق المستقل Iter373: 9/9 + 3/3 contract tests passed، no DB mutation، no deploy، no AccountingEngine، no migrations، no MOCKED APIs؛ `EXTERNAL_ROTATION_READY=YES`.
+

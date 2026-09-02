@@ -1,0 +1,23 @@
+# FINAL_PHASE_1C1B_PREDEPLOY_FINANCIAL_FINGERPRINT
+
+- captured_at: 2026-09-02T12:57:10.834392+00:00
+- scope: FINAL_PHASE_1C1B_PREDEPLOY_FINANCIAL_FINGERPRINT_READ_ONLY_SEMANTIC_NORMALIZED
+- journal_row_count: 190
+- reversal_entry_count: 20
+- non_reversal_entry_count: 170
+- reversed_original_count: 0
+- explicit_reversal_link_count: 20
+- total_debit: 283671.06
+- total_credit: 283671.06
+- journal_rows_with_line_drcr: 190
+- latest_journal_timestamp: 2026-09-02T08:19:25.050963+00:00
+- latest_journal_id: bcaa53f8-6f75-4d1c-959e-78dc5b493c91
+- canonical_accounts_receivable_estimate: 25948.0
+- canonical_accounts_payable_estimate: 1820.0
+- source_distribution: {'active_vehicle_ar_repair': 7, 'ajel_supplier_purchase': 3, 'fin_engine_align_v1': 7, 'hist_vehicle_ar_repair': 3, 'historical_financial_repair': 3, 'manual': 7, 'operation': 36, 'operation_payment': 2, 'period_close': 1, 'reversal': 20, 'unified_visit_payment': 56, 'vehicle_visit': 45}
+- source_tables_read: {'journal_entries': 190, 'operations': 120, 'vehicles': 231, 'accounts': 210}
+- orphan_reference_counts: {'operations_missing_vehicle_reference': 0, 'operations_count': 120, 'vehicles_count': 231, 'accounts_count': 210}
+- semantic_reconciliation: {'older_reverse_records_explanation': 'Previous static relationship report counted source=reversal rows; earlier Phase 1C fingerprint query only checked is_reversed/reversal_of fields, which do not exist in current schema. Correct metric is reversal_entry_count using source/reference semantics.', 'why_previous_zero_was_wrong': 'fingerprint query definition error / schema semantics mismatch', 'why_older_16_vs_current_20': 'current live DB now has 20 source=reversal rows; older read-only report snapshot had 16, indicating natural data change or later legitimate entries outside this read-only task. No mutation was performed here.', 'terminology_normalization': 'journal_active_business_record_count removed; use journal_row_count and non_reversal_entry_count because reversal rows are included in journal rows and are active ledger contra rows.'}
+- mutation_performed: NO
+- accounting_engine_changed: NO
+- checksum_sha256: 5fb3453999ae85f5390d977293f5bd5c977e984df574530e92caf5ff981993c7
