@@ -1024,3 +1024,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - تم تطبيع fingerprint المالي: `journal_row_count=190`, `reversal_entry_count=20`, `non_reversal_entry_count=170`, `explicit_reversal_link_count=20`، وحفظ `FINAL_PHASE_1C1B_PREDEPLOY_FINANCIAL_FINGERPRINT.*` checksum `5fb3453999ae85f5390d977293f5bd5c977e984df574530e92caf5ff981993c7`.
 - التحقق المستقل Iter373: 9/9 + 3/3 contract tests passed، no DB mutation، no deploy، no AccountingEngine، no migrations، no MOCKED APIs؛ `EXTERNAL_ROTATION_READY=YES`.
 
+## تحديث 2026-09-04 — Phase 1C CORS / Cookie Session Fix Attempt
+- تم تنفيذ إصلاح محدود فقط لـ CORS/cookie: backend CORS أصبح explicit methods/headers مع `allow_credentials=True`، وfrontend login لم يعد يستخدم fallback `credentials: omit` حتى يبقى cookie-backed.
+- التحقق الداخلي localhost:8001 يمر: OPTIONS/POST `/api/auth/login` يعيدان exact ACAO للـfrontend origin و`Access-Control-Allow-Credentials: true`، وcookies تحمل HttpOnly/Secure/SameSite=None/Path=/.
+- التحقق الخارجي Iter376 فشل بسبب edge/proxy: external preview يعيد `Access-Control-Allow-Origin: *` ويفتقد ACAC، حتى للـuntrusted origin؛ Root cause الآن `EXTERNAL_EDGE_CORS_REWRITE`, وليس FastAPI auth أو JWT أو Supabase.
+- لا JWT/Supabase/PIN/password/DB/AccountingEngine/migration/Phase2 changes؛ لا MOCKED APIs. الحالة: `AUTH_BROWSER_SESSION_FIX = FAIL` حتى يتم إصلاح CORS على edge/proxy أو توحيد origin.
+

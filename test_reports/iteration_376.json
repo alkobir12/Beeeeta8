@@ -1,0 +1,67 @@
+{
+  "summary": "Phase 1C CORS/cookie-session verification executed on both internal localhost and external preview. Internal backend CORS+cookie contract passes for trusted origin; external preview edge still returns wildcard ACAO and omits ACAC for credentialed auth, which is the first blocker for cross-origin cookie session reliability.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "OPTIONS/POST /api/auth/login (external preview)",
+        "issue": "External effective CORS contract failed: Access-Control-Allow-Origin='*' instead of exact frontend origin and Access-Control-Allow-Credentials missing/empty for credentialed cross-origin auth.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "OPTIONS /api/auth/login (external preview, untrusted origin)",
+        "issue": "Untrusted origin probe still receives Access-Control-Allow-Origin='*' on edge response, violating deny expectation for credentialed auth routes.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Frontend login page automation + session persistence after reload",
+        "issue": "Preview host loaded through wrapper state ('Frontend Preview Only. Please wake up servers...'), blocking reliable direct selector automation and browser-equivalent end-to-end persistence confirmation.",
+        "affected_selectors": [
+          "[data-testid=login-username-input]",
+          "[data-testid=login-submit-button]"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter376_phase1c_cors_cookie_session.py",
+    "/app/backend/tests/test_authz_ssot.py",
+    "/app/backend/tests/test_authorization_phase1b.py",
+    "/app/backend/tests/test_login_frontend_static.py",
+    "/app/test_reports/pytest/iter376_phase1c_cors_cookie_session.xml",
+    "/app/test_reports/pytest/iter376_authz_static.xml"
+  ],
+  "action_items": [
+    "Fix edge/proxy CORS handling for /api/auth/* to echo exact allowed origin (no '*') and include Access-Control-Allow-Credentials: true for credentialed requests.",
+    "Ensure untrusted origins do not get wildcard ACAO on auth endpoints at edge level.",
+    "After edge CORS fix, rerun browser login+reload persistence test on live preview frontend.",
+    "Optional hardening: remove '*' fallback branch from backend/server.py:_credentialed_cors_origin to enforce strict explicit-origin policy in code path as well."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py still contains wildcard fallback branch in _credentialed_cors_origin (`if '*' in allow_origins`), which weakens strict-origin intent if env is misconfigured.",
+    "Internal localhost behavior confirms backend code path is correct (trusted origin echo + ACAC true on OPTIONS/POST + httpOnly/secure/samesite cookies).",
+    "Frontend authToken.js login/refresh use credentials:'include' and no credentials:'omit' fallback detected (good for cookie-backed auth)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter376_phase1c_cors_cookie_session.py",
+    "/app/test_reports/iteration_376.json"
+  ],
+  "success_rate": {
+    "backend": "90% (27/30)",
+    "frontend": "40% (page load evidence only; full selector-driven flow blocked by preview wrapper state)"
+  },
+  "test_credentials": "Used /app/memory/test_credentials.md admin credential: username مدير, password 010101.",
+  "seed_data_creation": "NONE",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Internal checks (http://localhost:8001) pass for trusted origin CORS and cookie attributes. External preview checks reproducibly fail CORS contract with ACAO='*' and missing ACAC on /api/auth/login OPTIONS+POST; untrusted external origin also receives '*'. Authorization regression suites passed (20/20). Frontend build passed via yarn build. Browser automation on frontend host was blocked by preview wrapper state indicating wake-up/embedding layer interference.",
+  "rca of the issue": "Root cause is most likely external edge/proxy CORS rewriting/normalization overriding backend credentialed headers. Reproduction: send Origin=https://accounting-ssot-fix.preview.emergentagent.com to external /api/auth/login (OPTIONS or POST). Observed effective headers: ACAO='*' and no ACAC; expected exact origin + ACAC=true for credentials. Internal localhost does return expected headers, isolating issue away from core FastAPI auth logic. Cookie attributes on successful login are present (HttpOnly, Secure, SameSite=None, Path=/), but browser credentialed cross-origin policy remains blocked by external CORS contract mismatch.",
+  "mocked_apis": "NONE"
+}
