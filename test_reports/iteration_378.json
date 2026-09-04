@@ -1,0 +1,53 @@
+{
+  "summary": "Completed strict read-only Supabase runtime configuration diagnostic for Phase 1C scope (backend only). Verified effective config loading path, key type classification, fallback key inactivity for auth path, and live login/read behavior without changing secrets, .env, DB, or business code.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "runtime-config (SUPABASE_URL from backend/.env)",
+        "issue": "Project ref in backend/.env does not match expected beeeta8 (SUPABASE_PROJECT_MATCH=NO). Effective app-equivalent config still resolves from backend/.env with legacy project ref.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "runtime-config observability",
+        "issue": "Secondary vars SUPABASE_URL_1 and SUPABASE_SERVICE_ROLE_KEY_1 are absent in current environment and not active for login/live read path in this scope."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter378_supabase_runtime_config_diagnostic.py",
+    "/app/test_reports/pytest/iter378_supabase_runtime_config_diagnostic.xml"
+  ],
+  "action_items": [
+    "Provide correct platform/runtime Supabase env injection for expected project ref beeeta8 (outside this read-only run constraints).",
+    "Rotate effective runtime key to required non-legacy format only when environment management is available and approved.",
+    "Re-run this diagnostic after env injection/rotation to confirm SUPABASE_PROJECT_MATCH=YES and key classification target."
+  ],
+  "critical_code_review_comments": [
+    "server.py explicitly loads backend/.env via load_dotenv(ROOT_DIR / '.env', override=False), which explains why backend/.env remains effective when platform process vars are absent.",
+    "supabase_service.py also loads backend/.env at module import, reinforcing file-based runtime coupling.",
+    "No evidence found that login path jwt.decode uses SUPABASE_SERVICE_ROLE_KEY; JWT decode in auth_jwt.py is scoped to app JWT_SECRET only."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter378_supabase_runtime_config_diagnostic.py",
+    "/app/test_reports/iteration_378.json"
+  ],
+  "success_rate": {
+    "backend": "100% (10/10)",
+    "frontend": "N/A (backend-only scope)"
+  },
+  "test_credentials": "Used admin preview credential from /app/memory/test_credentials.md: username مدير, password 010101.",
+  "seed_data_creation": "NONE",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "This run intentionally performed diagnostics only. Verified shell process env lacked primary/secondary Supabase vars before explicit dotenv load. App-equivalent load from backend/.env provides SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, classifies key as LEGACY_JWT_SERVICE_ROLE, and leaves _1 vars absent. Live /api/auth/login and /api/users read passed.",
+  "rca of the issue": "Root cause category: runtime configuration source/injection mismatch. Reproduction: clear SUPABASE_* process vars, apply app-equivalent dotenv initialization, inspect metadata only. Result: effective Supabase URL/key come from backend/.env, URL project ref mismatches expected beeeta8, and key format classifies as legacy JWT service role. Because login/live reads still pass, failure is configuration-correctness (target project/key policy), not immediate availability.",
+  "mocked_apis": "NONE"
+}
