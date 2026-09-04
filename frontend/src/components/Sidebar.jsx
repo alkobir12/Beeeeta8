@@ -195,7 +195,7 @@ const Sidebar = ({
 
   const handleLogout = async () => {
     try {
-      await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/auth/logout`, {
+      await fetch(`${resolveBackendBase()}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });

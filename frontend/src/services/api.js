@@ -4,6 +4,8 @@ import { getStoredToken } from '../utils/authToken';
 
 export { API_BASE, resolveBackendBase };
 
+axios.defaults.withCredentials = true;
+
 const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,

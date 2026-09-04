@@ -1,0 +1,63 @@
+{
+  "summary": "Phase 1C same-origin auth transport re-validation completed on the configured preview host. Primary same-origin browser auth flow is working end-to-end (login/me/reload/me and read-only vehicles/customers), while edge-level cross-origin OPTIONS behavior still returns wildcard ACAO but remains non-blocking for same-origin transport objective.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "OPTIONS /api/auth/login (external preview, untrusted/trusted cross-origin probes)",
+        "issue": "Edge still returns Access-Control-Allow-Origin='*' and does not return Access-Control-Allow-Credentials for cross-origin probes; not credential-authorizing, but still outside strict explicit-origin expectation."
+      },
+      {
+        "endpoint": "GET /health",
+        "issue": "Returns 500 on preview host while /api/health is 200. Route is not required for this phase but worth noting."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Cross-origin auth transport strict CORS contract",
+        "issue": "Legacy cross-origin edge behavior remains wildcard-based; same-origin /api flow works and no longer depends on this path.",
+        "affected_selectors": [
+          "[data-testid='login-submit-button']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter377_same_origin_transport_live.py",
+    "/app/backend/tests/test_same_origin_auth_transport_static.py",
+    "/app/backend/tests/test_login_frontend_static.py",
+    "/app/backend/tests/test_iter376_phase1c_cors_cookie_session.py",
+    "/app/test_reports/pytest/iter377_same_origin_transport_live.xml",
+    "/app/test_reports/pytest/iter377_same_origin_auth.xml"
+  ],
+  "action_items": [
+    "Keep browser transport same-origin (/api) as primary path; this objective is validated on configured host.",
+    "Optional hardening: align edge OPTIONS behavior to explicit-origin policy if strict cross-origin diagnostics are still required in future phases.",
+    "Optional ops follow-up: inspect preview /health 500 if non-/api health route is expected by any external monitors."
+  ],
+  "critical_code_review_comments": [
+    "frontend/src/utils/backendBase.js correctly resolves browser backend base to '' and API_BASE to '/api'.",
+    "frontend/src/utils/authToken.js uses credentials:'include' and does not include credentials:'omit' login fallback.",
+    "backend/server.py defines _is_suppliers_table_missing twice (duplicate function definition), a maintainability/clarity issue to clean up later."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter377_same_origin_transport_live.py",
+    "/app/test_reports/iteration_377.json"
+  ],
+  "success_rate": {
+    "backend": "90% (37 passed / 41 executed, 3 failed cross-origin strict checks, 1 skipped env-dependent hash check)",
+    "frontend": "95% (same-origin login, me, reload persistence, vehicles/customers reads, cookie attribute checks passed)"
+  },
+  "test_credentials": "Used /app/memory/test_credentials.md admin credential: username مدير, password 010101.",
+  "seed_data_creation": "NONE",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Primary same-origin auth transport objective is green on https://katrina-fix-core.preview.emergentagent.com: /api/health 200, login 200, /api/auth/me 200, reload then /api/auth/me 200, /api/vehicles 200, /api/customers 200, cookies HttpOnly+Secure+SameSite=None observed without exposing values. Existing strict cross-origin edge assertions still fail due wildcard ACAO on OPTIONS, but this is no longer the primary transport path.",
+  "rca of the issue": "The remaining failures come from edge CORS normalization for cross-origin preflight (ACAO='*'). This does not grant credentialed authorization because ACAC is absent and browser transport has been shifted to same-origin /api. Reproduction: OPTIONS /api/auth/login with Origin set to trusted or untrusted non-same-origin host returns wildcard ACAO at edge.",
+  "mocked_apis": "NONE"
+}

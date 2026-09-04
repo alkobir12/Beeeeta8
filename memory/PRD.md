@@ -1030,3 +1030,9 @@ JWT RBAC ✅ | deny-by-default ✅ | CORS مقيّد ✅ | refresh tokens ✅
 - التحقق الخارجي Iter376 فشل بسبب edge/proxy: external preview يعيد `Access-Control-Allow-Origin: *` ويفتقد ACAC، حتى للـuntrusted origin؛ Root cause الآن `EXTERNAL_EDGE_CORS_REWRITE`, وليس FastAPI auth أو JWT أو Supabase.
 - لا JWT/Supabase/PIN/password/DB/AccountingEngine/migration/Phase2 changes؛ لا MOCKED APIs. الحالة: `AUTH_BROWSER_SESSION_FIX = FAIL` حتى يتم إصلاح CORS على edge/proxy أو توحيد origin.
 
+## تحديث 2026-09-04 — Phase 1C Same-Origin Auth Transport Closure
+- تم تحويل مسار مصادقة المتصفح إلى same-origin `/api` على host الحالي المدعوم `https://katrina-fix-core.preview.emergentagent.com`، بدون مزيد من CORS hacks وبدون تغيير JWT/Supabase/PIN/users/AccountingEngine/financial data/migrations/Phase2.
+- تم تحديث `backendBase.js` ليعيد base نسبي في المتصفح، و`authToken.js` لا يستخدم `credentials: omit`، و`api.js`/`Sidebar.jsx` يستخدمان credentials/same-origin مركزياً.
+- التحقق: browser flow نجح login → `/api/auth/me` → reload → `/api/auth/me` → vehicles/customers، وpytest 25 passed، build passed، وtesting agent Iter377 أكد same-origin auth/data flow؛ cross-origin edge wildcard باقٍ لكنه غير مستخدم في المسار الأساسي.
+- الحالة: `AUTH_TRANSPORT_CLOSURE = PASS` للمسار same-origin المدعوم؛ لا MOCKED APIs.
+

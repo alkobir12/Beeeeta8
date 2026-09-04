@@ -7,7 +7,9 @@
  * ('auth_session'='1') tells the app a session likely exists after reload.
  */
 
-const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+import { resolveBackendBase } from './backendBase';
+
+const BACKEND = resolveBackendBase();
 const SESSION_MARKER = 'auth_session';
 const LEGACY_TOKEN_KEY = 'auth_token';
 const LEGACY_REFRESH_KEY = 'refresh_token';
