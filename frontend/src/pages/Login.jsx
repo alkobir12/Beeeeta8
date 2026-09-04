@@ -27,9 +27,9 @@ const Login = () => {
   const [name, setName] = useState(() => localStorage.getItem(LAST_USERNAME_KEY) || '');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
-  const [showPassword, setShowPassword] = useState(() => !initialTrusted?.device_id);
+  const [showPassword, setShowPassword] = useState(true);
   const [rememberDevice, setRememberDevice] = useState(true);
-  const [pinMode, setPinMode] = useState(() => Boolean(initialTrusted?.device_id));
+  const [pinMode, setPinMode] = useState(false);
   const [trusted, setTrusted] = useState(initialTrusted);
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -275,8 +275,9 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setPinMode(!pinMode);
-                  setShowPassword(pinMode);
+                  const nextPinMode = !pinMode;
+                  setPinMode(nextPinMode);
+                  setShowPassword(!nextPinMode);
                   setAuthError('');
                 }}
                 className="text-[#0071E3] hover:underline"
