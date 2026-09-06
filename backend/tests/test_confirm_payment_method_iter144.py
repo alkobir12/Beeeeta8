@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://accounting-ssot-fix.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://financial-ssot.preview.emergentagent.com').rstrip('/')
 WORKSHOP_ID = os.environ.get('REACT_APP_WORKSHOP_ID', 'finmodule-sync')
 
 
@@ -27,8 +27,7 @@ class TestConfirmPaymentMethod:
         for op_id in self.created_operations:
             try:
                 self.session.delete(f"{BASE_URL}/api/operations/{op_id}")
-            except:
-                pass
+            except Exception:                pass
     
     def _create_credit_operation(self, op_type="sale", total=1000.0):
         """Helper to create a credit operation for testing"""

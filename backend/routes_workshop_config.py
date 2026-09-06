@@ -233,7 +233,7 @@ async def get_workshop_profile():
         doc = await db.workshop_profile.find_one({"id": "workshop_profile"}, {"_id": 0})
         if not doc:
             doc = {**_DEFAULT_PROFILE, "taxNumber": ""}
-            await db.workshop_profile.insert_one(doc)
+            await db.workshop_profile.insert_one(dict(doc))
         return doc
     except HTTPException:
         raise

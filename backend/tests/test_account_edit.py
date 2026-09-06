@@ -8,7 +8,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://accounting-ssot-fix.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://financial-ssot.preview.emergentagent.com')
 WORKSHOP_ID = "finmodule-sync"
 
 
@@ -36,8 +36,7 @@ class TestAccountUpdate:
         # Cleanup - delete the test account
         try:
             requests.delete(f"{BASE_URL}/api/accounts/{account['id']}")
-        except:
-            pass
+        except Exception:            pass
 
     def test_update_account_code(self, test_account):
         """Test updating account code"""

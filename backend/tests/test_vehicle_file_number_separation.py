@@ -10,7 +10,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://accounting-ssot-fix.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://financial-ssot.preview.emergentagent.com').rstrip('/')
 
 
 class TestVehicleFileNumberSeparation:
@@ -29,13 +29,11 @@ class TestVehicleFileNumberSeparation:
         if self.created_vehicle_id:
             try:
                 requests.delete(f"{BASE_URL}/api/vehicles/{self.created_vehicle_id}")
-            except:
-                pass
+            except Exception:                pass
         if self.created_customer_id:
             try:
                 requests.delete(f"{BASE_URL}/api/customers/{self.created_customer_id}")
-            except:
-                pass
+            except Exception:                pass
 
     def test_vehicle_creation_does_not_auto_fill_file_number(self):
         """

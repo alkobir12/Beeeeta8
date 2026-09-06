@@ -1,0 +1,41 @@
+{
+  "summary": "Verified P1-SEC-UPLOAD and P0-DESTRUCTIVE-RESET-HARDENING. Both new pytest suites pass (41 + 8 = 49 passed). Live denial matrix confirmed on preview (DELETE /api/operations = 403 destructive_operations_disabled with correlation_id, POST /api/admin/reset-inventory = 403 same, unauth vehicle-file download = 401). Destructive guard is wired BEFORE permission checks and BEFORE any delete call in both routes_extended.py:2523 and server.py:2834. Migration script safety validated (dry-run default, --apply alone REFUSED, no os.remove/unlink/rmtree, discovered=22 valid=11 invalid=11 conflicts=0 – matches developer numbers exactly). Frontend AuthenticatedFileImage uses fetch+credentials, blob URL, revokeObjectURL cleanup, loading+error states, no token in URL. Reference-import temp file cleanup is guaranteed via tempfile.TemporaryDirectory context manager on both success and exception paths. BUT sweep found TWO PERSISTENT UPLOAD SURFACES that were missed by the migration and still write to container-local disk – see backend_issues.critical.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/templates/upload (routes_templates.py:136)", "issue": "PERSISTENT UPLOAD SURFACE MISSED BY MIGRATION. routes_templates.py is mounted at /api/templates (server.py:650) alongside routes_document_templates.py at /api/document-templates. The routes_templates.py upload_template still does `with open(file_path, 'wb') as buffer: shutil.copyfileobj(file.file, buffer)` writing to `custom_templates/{uuid}{ext}` on container-local disk. These bytes will vanish on every redeploy just like the four surfaces that WERE migrated. It also has no size cap, no magic-byte content verification, and no auth. The dry-run of the migration script even lists these as `document-templates` orphan files (`/app/backend/custom_templates/*.html|.pdf`) which is proof the surface exists in the wild.", "priority": "HIGH"},
+      {"endpoint": "operation payment receipts (routes_extended.py:167 _save_operation_payment_receipt)", "issue": "PERSISTENT UPLOAD SURFACE NOT COVERED BY THIS MIGRATION. The receipt binary (proof-of-payment for a workshop operation – financial evidence class) is decoded from base64 and written to `uploads/operation_payment_receipts/{op_id}/{filename}` on container-local disk with `open(file_path, 'wb') as f: f.write(binary)`. Same durability failure mode as the four migrated surfaces: bytes vanish on redeploy, taking financial audit evidence with them. Not listed in developer's scope of five files but functionally is a persistent user-file surface.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "tests/test_p0_red_findings_repair.py", "issue": "6 pre-existing failures (test_paid_amount_uses_totalPaid, test_payables_total_ap_420, test_payables_query_alofi_420, test_trial_balance_contains_2101_credit_420, test_dashboard_total_ap_matches_tool, test_admin_chat_supplier_payables). Confirmed unrelated to this batch: all six pin ABSOLUTE financial values (supplier 2101 = 420.0) and the live trial-balance returns 0 rows for account 2101 => the supplier payable was settled in live data. Zero code-level overlap with P1-SEC-UPLOAD or destructive-guard changes. Note: the file has 34 tests total (28 passed + 6 failed), not 56 as the owner recalled."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_p1_sec_upload_and_reset_guard.py",
+    "/app/backend/tests/test_p1_sec_upload_functional.py"
+  ],
+  "action_items": [
+    "MIGRATE OR RETIRE routes_templates.py upload_template (line 136): it writes uploads to container-local disk and duplicates functionality that routes_document_templates.py has already been migrated for. Either delete routes_templates.py entirely (its router mount at server.py:650) if document-templates supersedes it, or route it through core.object_storage.put_object with validate_upload gating.",
+    "MIGRATE routes_extended.py _save_operation_payment_receipt (line 124-174) to object storage. Payment receipts are financial evidence in the same durability class as finance_audit_evidence. Currently writes to uploads/operation_payment_receipts/{op_id}/* with only a 6MB size gate and no magic-byte verification.",
+    "Consider consolidating: routes_templates.py and routes_document_templates.py appear to serve overlapping template-management responsibilities."
+  ],
+  "critical_code_review_comments": [
+    "Two persistent upload surfaces were missed in the P1 scope: routes_templates.py:136 and routes_extended.py:167 – see action_items.",
+    "The destructive_guard implementation is correctly ordered: guard runs BEFORE _require_request_permission and BEFORE any delete_many/loop delete in both wired routes (routes_extended.py:2523 vs 2526, server.py:2834 vs 2837).",
+    "routes_references.py temp file lifecycle is correct: tempfile.TemporaryDirectory context guarantees cleanup on both success and exception (with-block unwinding).",
+    "AuthenticatedFileImage cleanup is correct: created objectURL is revoked in the effect return; cancelled flag prevents state updates after unmount; no auth values written to console/logs.",
+    "Migration script correctly REFUSES --apply without --i-understand-this-writes (verified live), never deletes source files, never overwrites (conflict-first design)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% on new suites (49/49); 82% on pre-existing test_p0_red_findings_repair.py (28/34, unrelated financial-data drift)", "frontend": "smoke pass, no console errors from AuthenticatedFileImage import chain"},
+  "test_credentials": "مدير / 010101 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "None. Zero mutations performed – all live checks were denial-path only.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Two persistent upload surfaces remain that the developer's five-file scope did not cover: (1) POST /api/templates/upload in routes_templates.py:136 (writes to custom_templates/), (2) _save_operation_payment_receipt in routes_extended.py:167 (writes to uploads/operation_payment_receipts/{op_id}/). If the main agent migrates these, retest the four original surfaces to make sure nothing regressed and re-run the new pytest suites. The destructive guard, reference-import temp cleanup, AuthenticatedFileImage, and migration-script safety are all verified good and do not need re-testing.",
+  "rca of the issue": "The scope of P1-SEC-UPLOAD as stated targeted exactly five files (server.py vehicle-files, routes_vehicle_files.py, routes_finance_bot.py, routes_document_templates.py, routes_references.py). A full-tree sweep for `\\bopen\\(.*['\\\"]w` and `.write_bytes(` on uploaded content found two additional persistent surfaces that live under different modules and were not on that five-file list: routes_templates.py (a second templates router, prefix /api/templates, still mounted at server.py:650) and routes_extended.py's _save_operation_payment_receipt helper (payment-receipt binary attached to operations). Both belong in the same P1 class and will lose bytes on every redeploy under the current code."
+}

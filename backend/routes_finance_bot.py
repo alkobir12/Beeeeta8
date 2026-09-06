@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Request
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Request, Response
 from pydantic import BaseModel, Field
 from typing import Optional, Any, Dict, List, Tuple
 import os
@@ -12,6 +12,7 @@ from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from routes_finance import supabase  # reuse existing client
 from core import rbac
+from core import object_storage
 
 router = APIRouter(prefix="/api/finance-bot", tags=["finance-bot"])
 
@@ -556,30 +557,33 @@ async def upload_finance_evidence(
     session_id: str = Form(...),
     finding_id: Optional[str] = Form(None),
 ):
-    """رفع مرفق داعم للتدقيق وربطه بجلسة/ملاحظة."""
+    """رفع مرفق داعم للتدقيق وربطه بجلسة/ملاحظة (تخزين دائم في Object Storage)."""
     try:
         await _require_financial_evidence_upload(request)
-        safe_session = re.sub(r"[^a-zA-Z0-9_-]", "", session_id) or "audit"
-        ext = Path(file.filename or "evidence").suffix or ".bin"
-        evidence_id = str(uuid.uuid4())
-
-        folder = Path("/app/backend/uploads/finance_audit_evidence") / safe_session
-        folder.mkdir(parents=True, exist_ok=True)
-
-        filename = f"{evidence_id}{ext}"
-        path = folder / filename
-
         data = await file.read()
-        path.write_bytes(data)
+        checked = object_storage.validate_upload(
+            data, file.filename, file.content_type, "finance-audit-evidence"
+        )
+
+        safe_session = re.sub(r"[^a-zA-Z0-9_-]", "", session_id) or "audit"
+        evidence_id = str(uuid.uuid4())
+        object_key = object_storage.build_object_key(
+            "finance-audit-evidence", safe_session, checked["ext"]
+        )
+        stored = await object_storage.put_object(object_key, data, checked["content_type"])
 
         record = {
             "evidence_id": evidence_id,
             "session_id": session_id,
             "finding_id": finding_id,
-            "file_name": file.filename,
-            "file_path": str(path),
-            "mime_type": file.content_type,
+            "file_name": object_storage.safe_basename(file.filename or "evidence"),
+            "storage_backend": "emergent_object_storage",
+            "storage_path": stored["path"],
+            "mime_type": checked["content_type"],
+            "content_verification": checked["verification_level"],
             "size": len(data),
+            # Retention-first: audit evidence is never physically deleted.
+            "is_deleted": False,
             "uploaded_at": _now_iso(),
         }
 
@@ -592,6 +596,40 @@ async def upload_finance_evidence(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"تعذر رفع المرفق: {e}")
+
+
+@router.get("/evidence/{evidence_id}/download")
+async def download_finance_evidence(evidence_id: str, request: Request):
+    """تنزيل مرفق تدقيق — التفويض يُفحص على الخادم، ولا يُمرَّر أي توكن في الرابط."""
+    await _require_financial_evidence_upload(request)
+    audit_db = _get_audit_db()
+    if audit_db is None:
+        raise HTTPException(status_code=503, detail={"error": "audit_store_unavailable"})
+
+    record = await audit_db.finance_audit_evidence.find_one({"evidence_id": evidence_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail={"error": "evidence_not_found"})
+
+    media_type = record.get("mime_type") or "application/octet-stream"
+    storage_path = record.get("storage_path")
+    if storage_path:
+        data, detected = await object_storage.get_object(storage_path)
+        return Response(content=data, media_type=media_type or detected)
+
+    # LEGACY TEMPORARY COMPATIBILITY — evidence uploaded before the object-storage
+    # migration still lives on the container filesystem. Read-only fallback; it is
+    # NOT the target architecture and disappears with the pod.
+    legacy_path = record.get("file_path")
+    if legacy_path and Path(legacy_path).is_file():
+        return Response(content=Path(legacy_path).read_bytes(), media_type=media_type)
+
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "error": "evidence_content_unavailable",
+            "message": "المرفق كان مخزناً محلياً وفُقد مع إعادة تشغيل الحاوية.",
+        },
+    )
 
 
 def _response_state_transition(

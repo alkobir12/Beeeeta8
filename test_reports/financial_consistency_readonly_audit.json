@@ -2,7 +2,7 @@
   "generated_at": "2026-08-17T20:34:55.412420+00:00",
   "mode": "READ_ONLY",
   "environment": {
-    "preview": "https://accounting-ssot-fix.preview.emergentagent.com",
+    "preview": "https://financial-ssot.preview.emergentagent.com",
     "production": "https://car-repair-sys.emergent.host",
     "production_status": {
       "health_status": 200,

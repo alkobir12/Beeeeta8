@@ -2987,7 +2987,7 @@ async def create_chart_of_accounts_account(
                 "balance": 0.0,
                 "created_at": datetime.now().isoformat(),
             }
-            await db.accounts.insert_one(doc)
+            await db.accounts.insert_one(dict(doc))
             return {"success": True, "data": doc}
 
         raise HTTPException(status_code=503, detail="مصدر البيانات غير متاح حالياً")

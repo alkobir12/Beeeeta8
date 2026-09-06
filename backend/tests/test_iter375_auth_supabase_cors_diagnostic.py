@@ -43,7 +43,7 @@ BASE_URL = _base_url()
 WORKSHOP_ID = _workshop_id()
 ADMIN_USERNAME = "مدير"
 ADMIN_PASSWORD = "010101"
-PROBE_ORIGIN = "https://accounting-ssot-fix.preview.emergentagent.com"
+PROBE_ORIGIN = "https://financial-ssot.preview.emergentagent.com"
 
 
 @pytest.fixture(scope="session")

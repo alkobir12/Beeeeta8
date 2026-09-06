@@ -4,15 +4,15 @@ Custom Templates Management Routes
 """
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from typing import Optional
 from datetime import datetime, timezone
 import os
 import uuid
-import shutil
 from pathlib import Path
 import json
 from unified_workshop_template import unified_workshop_template
+from core import object_storage
 
 router = APIRouter(prefix="/api/templates")
 
@@ -128,15 +128,14 @@ async def upload_template(
         type = "invoice"
 
     template_id = str(uuid.uuid4())
-    filename = f"{template_id}{file_ext}"
-    file_path = TEMPLATES_DIR / filename
 
-    # حفظ الملف
-    try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"فشل في حفظ الملف: {str(e)}")
+    # حفظ الملف في تخزين دائم (Object Storage) — لا قرص الحاوية
+    raw_bytes = await file.read()
+    checked = object_storage.validate_upload(
+        raw_bytes, file.filename, file.content_type, "document-templates"
+    )
+    object_key = object_storage.build_object_key("document-templates", type, checked["ext"])
+    await object_storage.put_object(object_key, raw_bytes, checked["content_type"])
 
     is_html = file_ext in (".html", ".htm")
     if make_default and is_html:
@@ -151,9 +150,12 @@ async def upload_template(
         "description": description or "",
         "type": type,
         "file_type": file_ext[1:],  # html أو pdf
-        "filename": filename,
-        "original_filename": file.filename,
-        "file_size": os.path.getsize(file_path),
+        "storage_backend": "emergent_object_storage",
+        "storage_path": object_key,
+        "mime_type": checked["content_type"],
+        "content_verification": checked["verification_level"],
+        "original_filename": object_storage.safe_basename(file.filename or "template"),
+        "file_size": len(raw_bytes),
         "created_at": _now_iso(),
         "active": True,
         "isActive": bool(make_default and is_html),
@@ -186,12 +188,24 @@ async def download_template(template_id: str):
 
     if template.get("is_builtin"):
         content = _builtin_template_content(template.get("type", "invoice"))
-        temp_path = TEMPLATES_DIR / f"{template_id}.html"
-        temp_path.write_text(content, encoding="utf-8")
-        return FileResponse(path=temp_path, filename=template["original_filename"], media_type="text/html")
+        return Response(
+            content=content.encode("utf-8"),
+            media_type="text/html",
+            headers={"Content-Disposition": f'attachment; filename="{template_id}.html"'},
+        )
 
-    file_path = TEMPLATES_DIR / template["filename"]
-    if not file_path.exists():
+    storage_path = template.get("storage_path")
+    if storage_path:
+        payload, detected = await object_storage.get_object(storage_path)
+        return Response(
+            content=payload,
+            media_type=template.get("mime_type") or detected,
+            headers={"Content-Disposition": f'attachment; filename="{template_id}.{template.get("file_type", "html")}"'},
+        )
+
+    # LEGACY TEMPORARY COMPATIBILITY — pre-migration template files on container disk.
+    file_path = TEMPLATES_DIR / str(template.get("filename") or "")
+    if not template.get("filename") or not file_path.exists():
         raise HTTPException(status_code=404, detail="ملف النموذج غير موجود")
 
     return FileResponse(

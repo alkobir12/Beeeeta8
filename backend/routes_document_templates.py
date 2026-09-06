@@ -3,18 +3,18 @@ import asyncio
 import json
 import os
 import re
-import shutil
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
 
 from routes_templates import DOC_TYPES, INDEX_FILE, TEMPLATES_DIR, _builtin_template_content
+from core import object_storage
 
 router = APIRouter(prefix="/api/document-templates", tags=["document-templates"])
 db = None
@@ -219,13 +219,26 @@ async def _content(template: Dict[str, Any]) -> str:
         return _sanitize_html(content)[0]
     if template.get("inline_content"):
         return _sanitize_html(template["inline_content"])[0]
-    filename = template.get("filename")
-    path = TEMPLATES_DIR / str(filename or "")
-    if not filename or not path.exists():
-        raise HTTPException(status_code=409, detail={"code": "template_content_missing", "message": "ملف القالب المختار غير موجود."})
     if template.get("file_type") != "html":
         raise HTTPException(status_code=409, detail={"code": "template_not_renderable", "message": "هذا القالب ليس HTML ولا يمكن استخدامه للطباعة."})
-    clean, notes = _sanitize_html(path.read_text(encoding="utf-8"))
+
+    raw = None
+    storage_path = template.get("storage_path")
+    if storage_path:
+        data, _ = await object_storage.get_object(storage_path)
+        raw = data.decode("utf-8", errors="replace")
+    else:
+        # LEGACY TEMPORARY COMPATIBILITY — templates uploaded before the
+        # object-storage migration still live on the container filesystem.
+        # Read-only fallback; not the target architecture.
+        filename = template.get("filename")
+        path = TEMPLATES_DIR / str(filename or "")
+        if filename and path.exists():
+            raw = path.read_text(encoding="utf-8")
+    if raw is None:
+        raise HTTPException(status_code=409, detail={"code": "template_content_missing", "message": "ملف القالب المختار غير موجود."})
+
+    clean, notes = _sanitize_html(raw)
     if notes:
         await db.document_templates.update_one({"id": template["id"]}, {"$set": {"sanitization_notes": notes, "sanitized_at": _now(), "updated_at": _now()}})
     return clean
@@ -318,28 +331,39 @@ async def upload_template(
     extension = Path(file.filename or "").suffix.lower()
     if extension not in {".html", ".htm", ".pdf"}:
         raise HTTPException(status_code=422, detail={"code": "unsupported_template_file"})
+
+    raw_bytes = await file.read()
+    checked = object_storage.validate_upload(
+        raw_bytes, file.filename, file.content_type, "document-templates"
+    )
+
     template_id = str(uuid.uuid4())
-    filename = f"{template_id}{extension}"
-    target = TEMPLATES_DIR / filename
-    if extension in {".html", ".htm"}:
-        raw_html = (await file.read()).decode("utf-8", errors="replace")
+    is_html = extension in {".html", ".htm"}
+    if is_html:
+        raw_html = raw_bytes.decode("utf-8", errors="replace")
         clean_html, sanitization_notes = _sanitize_html(raw_html)
-        target.write_text(clean_html, encoding="utf-8")
+        stored_bytes = clean_html.encode("utf-8")
     else:
         sanitization_notes = []
-        with target.open("wb") as output:
-            shutil.copyfileobj(file.file, output)
+        stored_bytes = raw_bytes
+
+    object_key = object_storage.build_object_key("document-templates", doc_type, checked["ext"])
+    stored = await object_storage.put_object(object_key, stored_bytes, checked["content_type"])
+
     now = _now()
     template = {
         "id": template_id, "name": name or file.filename or "قالب جديد", "description": description or "",
         "tenant_id": tenant_id or "default", "document_type": doc_type, "locale": locale or "ar-SA", "version": 1,
-        "status": "valid" if extension in {".html", ".htm"} else "invalid", "active": True, "is_default": False,
-        "file_type": "html" if extension in {".html", ".htm"} else "pdf", "filename": filename,
-        "original_filename": file.filename, "file_size": target.stat().st_size, "is_builtin": False,
-        "source": "uploaded_html" if extension in {".html", ".htm"} else "uploaded_file", "created_at": now, "updated_at": now,
+        "status": "valid" if is_html else "invalid", "active": True, "is_default": False,
+        "file_type": "html" if is_html else "pdf",
+        "storage_backend": "emergent_object_storage", "storage_path": stored["path"],
+        "mime_type": checked["content_type"], "content_verification": checked["verification_level"],
+        "original_filename": object_storage.safe_basename(file.filename or "template"),
+        "file_size": len(stored_bytes), "is_builtin": False, "is_deleted": False,
+        "source": "uploaded_html" if is_html else "uploaded_file", "created_at": now, "updated_at": now,
         "sanitization_notes": sanitization_notes,
     }
-    await db.document_templates.insert_one(template)
+    await db.document_templates.insert_one(dict(template))
     return {"success": True, "template": _public(template)}
 
 
@@ -397,14 +421,30 @@ async def download_template(template_id: str):
     template = await db.document_templates.find_one({"id": template_id}, {"_id": 0})
     if not template:
         raise HTTPException(status_code=404, detail={"code": "template_not_found"})
+
+    download_name = template.get("original_filename") or f"{template['name']}.{template.get('file_type', 'html')}"
     if template.get("is_builtin"):
-        path = TEMPLATES_DIR / f"{template_id}.html"
-        path.write_text(_builtin_template_content(template["document_type"]), encoding="utf-8")
-    else:
-        path = TEMPLATES_DIR / str(template.get("filename") or "")
-    if not path.exists():
+        content = _builtin_template_content(template["document_type"]).encode("utf-8")
+        return Response(
+            content=content,
+            media_type="text/html",
+            headers={"Content-Disposition": f'attachment; filename="{template_id}.html"'},
+        )
+
+    storage_path = template.get("storage_path")
+    if storage_path:
+        data, detected = await object_storage.get_object(storage_path)
+        return Response(
+            content=data,
+            media_type=template.get("mime_type") or detected,
+            headers={"Content-Disposition": f'attachment; filename="{template_id}.{template.get("file_type", "html")}"'},
+        )
+
+    # LEGACY TEMPORARY COMPATIBILITY — pre-migration template files on container disk.
+    path = TEMPLATES_DIR / str(template.get("filename") or "")
+    if not template.get("filename") or not path.exists():
         raise HTTPException(status_code=404, detail={"code": "template_content_missing"})
-    return FileResponse(path=path, filename=template.get("original_filename") or f"{template['name']}.{template.get('file_type', 'html')}")
+    return FileResponse(path=path, filename=download_name)
 
 
 @router.delete("/{template_id}")

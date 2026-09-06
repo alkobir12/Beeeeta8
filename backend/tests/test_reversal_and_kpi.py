@@ -6,7 +6,7 @@ import pytest
 import requests
 from datetime import date
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://accounting-ssot-fix.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://financial-ssot.preview.emergentagent.com").rstrip("/")
 WORKSHOP = "finmodule-sync"
 API = f"{BASE_URL}/api"
 

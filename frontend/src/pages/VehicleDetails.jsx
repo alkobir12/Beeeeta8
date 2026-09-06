@@ -9,6 +9,7 @@ import { vehicleAPI, technicianAPI, financeAPI, customerAPI, visitAPI, serviceAP
 import VisitDeleteConfirmDialog from '../components/VisitDeleteConfirmDialog';
 import WhatsAppPreviewDialog from '../components/WhatsAppPreviewDialog';
 import VehicleFinancialSummary from '../components/VehicleFinancialSummary';
+import { AuthenticatedFileImage } from '../components/AuthenticatedFileImage';
 import QuickPrintDialog from '../components/QuickPrintDialog';
 import {
   ArchiveEditBanner,
@@ -3459,11 +3460,12 @@ const VehicleDetails = () => {
                         onClick={() => setPreviewImage(`${FILE_BASE}/api/vehicles/${id}/files/${file.id}`)}
                         data-testid={`vehicle-file-item-${file.id || idx}`}
                       >
-                        {file.filename.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                          <img
+                        {file.filename.match(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/i) ? (
+                          <AuthenticatedFileImage
                             src={`${FILE_BASE}/api/vehicles/${id}/files/${file.id}`}
                             alt="file"
                             className="w-full h-full object-cover"
+                            testId={`vehicle-file-thumb-${file.id || idx}`}
                           />
                         ) : (
                           <FileText size={24} />

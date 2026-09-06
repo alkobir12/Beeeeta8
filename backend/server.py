@@ -2828,7 +2828,12 @@ async def _attach_customer_file_numbers_to_vehicles(rows: List[dict]) -> List[di
 
 
 @api_router.post("/admin/reset-inventory")
-async def reset_inventory_data():
+async def reset_inventory_data(request: Request, confirm: str = Query(None)):
+    from core.destructive_guard import require_destructive_authorization
+
+    audit_ctx = await require_destructive_authorization(
+        request, action="reset_inventory", confirm=confirm
+    )
     try:
         updated_parts = 0
         updated_services = 0
@@ -2866,8 +2871,11 @@ async def reset_inventory_data():
         return {
             "success": True,
             "updated_parts": updated_parts,
-            "updated_services": updated_services
+            "updated_services": updated_services,
+            "correlation_id": audit_ctx["correlation_id"],
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
 
@@ -2876,9 +2884,11 @@ async def reset_inventory_data():
 async def upload_vehicle_file(
     vehicle_id: str, request: Request, file: UploadFile = File(...), file_type: str = "diagnostic"
 ):
-    """رفع ملف أو صورة أو فاتورة لمركبة (يُخزَّن في نظام الملفات مع سجل ميتاداتا)."""
+    """رفع ملف أو صورة أو فاتورة لمركبة — تخزين دائم في Object Storage."""
     try:
         from core import authz as _authz_local
+        from core import object_storage as _object_storage
+
         actor = await _authz_local.resolve_request_actor(request)
         if not (actor.can("vehicles", "view") or actor.can("archive", "view")):
             raise HTTPException(status_code=403, detail={"error": "vehicle_access_required"})
@@ -2888,46 +2898,31 @@ async def upload_vehicle_file(
             if not v:
                 raise HTTPException(status_code=404, detail="المركبة غير موجودة")
 
-        # مجلد رفع الملفات العام موجود مسبقًا كـ UPLOAD_DIR
-        vehicle_dir = UPLOAD_DIR / "vehicles" / vehicle_id
-        vehicle_dir.mkdir(parents=True, exist_ok=True)
-
-        # FIX-B027: فلتر نوع الملف (MIME)
-        ALLOWED_CONTENT_TYPES = {
-            "image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf",
-        }
-        if file.content_type and file.content_type not in ALLOWED_CONTENT_TYPES:
-            raise HTTPException(status_code=400, detail="نوع الملف غير مسموح به")
-
-        # FIX-B006: حماية من Path Traversal — اسم ملف آمن وضمن مجلد المركبة
-        original_name = file.filename or "upload.bin"
-        safe_name = re.sub(
-            r"[^A-Za-z0-9._\-\u0600-\u06FF]", "_", os.path.basename(original_name)
-        )
-        if not safe_name or safe_name in {".", ".."}:
-            safe_name = f"upload-{uuid.uuid4().hex[:8]}.bin"
-        file_path = vehicle_dir / safe_name
-        if not str(file_path.resolve()).startswith(str(vehicle_dir.resolve())):
-            raise HTTPException(status_code=400, detail="اسم ملف غير صالح")
-
-        # FIX-B026: فحص الحجم قبل الكتابة (10MB)
+        # حجم + تحقق نوع من محتوى الملف نفسه (ترويسة المتصفح ليست كافية وحدها)
         content = await file.read()
-        if len(content) > 10 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="الملف أكبر من الحد المسموح (10MB)")
+        checked = _object_storage.validate_upload(
+            content, file.filename, file.content_type, "vehicle-files"
+        )
 
-        with open(file_path, "wb") as f:
-            f.write(content)
+        # مفتاح كائن يولّده الخادم — لا اسم ملف من المستخدم في المسار (لا Path Traversal)
+        object_key = _object_storage.build_object_key("vehicle-files", vehicle_id, checked["ext"])
+        stored = await _object_storage.put_object(object_key, content, checked["content_type"])
 
-        # حفظ سجل الملف في تخزين JSON (ذاكرة)
+        # سجل الميتاداتا هو مصدر الحقيقة
         rows = _mem_read("vehicle_files")
         record = {
             "id": str(uuid.uuid4()),
             "vehicleId": vehicle_id,
-            "filename": safe_name,
+            "filename": _object_storage.safe_basename(file.filename or "upload"),
             "fileType": file_type,
-            "filePath": str(file_path),
+            "storage_backend": "emergent_object_storage",
+            "storage_path": stored["path"],
+            "mime_type": checked["content_type"],
+            "content_verification": checked["verification_level"],
+            "size": len(content),
+            "is_deleted": False,
             "uploadedAt": datetime.now(timezone.utc).isoformat(),
-            "uploadedBy": "system",
+            "uploadedBy": str(getattr(actor, "name", "") or "unknown"),
         }
         rows.append(record)
         _mem_write("vehicle_files", rows)
@@ -2940,10 +2935,13 @@ async def upload_vehicle_file(
 
 @api_router.get("/vehicles/{vehicle_id}/files")
 async def get_vehicle_files(vehicle_id: str):
-    """إرجاع قائمة ملفات المركبة من تخزين JSON."""
+    """إرجاع قائمة ملفات المركبة (سجلات غير محذوفة منطقياً)."""
     try:
         rows = _mem_read("vehicle_files")
-        files = [r for r in rows if r.get("vehicleId") == vehicle_id]
+        files = [
+            r for r in rows
+            if r.get("vehicleId") == vehicle_id and not r.get("is_deleted")
+        ]
         # أحدث الملفات أولاً
         files.sort(key=lambda x: x.get("uploadedAt") or "", reverse=True)
         return {"files": files, "count": len(files)}
@@ -2952,16 +2950,39 @@ async def get_vehicle_files(vehicle_id: str):
 
 
 @api_router.get("/vehicles/{vehicle_id}/files/{file_id}")
-async def download_vehicle_file(vehicle_id: str, file_id: str):
-    """تنزيل/عرض ملف معيّن لمركبة."""
+async def download_vehicle_file(vehicle_id: str, file_id: str, request: Request):
+    """تنزيل/عرض ملف مركبة — التفويض على الخادم، ولا توكن في الرابط."""
     try:
+        from core import authz as _authz_local
+        from core import object_storage as _object_storage
+        from fastapi import Response as _Response
+
+        actor = await _authz_local.resolve_request_actor(request)
+        if not (actor.can("vehicles", "view") or actor.can("archive", "view")):
+            raise HTTPException(status_code=403, detail={"error": "vehicle_access_required"})
+
         rows = _mem_read("vehicle_files")
         for r in rows:
-            if r.get("id") == file_id and r.get("vehicleId") == vehicle_id:
-                path = Path(r.get("filePath", ""))
-                if not path.exists():
-                    raise HTTPException(status_code=404, detail="الملف غير موجود")
-                return FileResponse(str(path), filename=r.get("filename") or path.name)
+            if r.get("id") != file_id or r.get("vehicleId") != vehicle_id or r.get("is_deleted"):
+                continue
+            media_type = r.get("mime_type") or "application/octet-stream"
+            storage_path = r.get("storage_path")
+            if storage_path:
+                data, detected = await _object_storage.get_object(storage_path)
+                return _Response(content=data, media_type=media_type or detected)
+
+            # LEGACY TEMPORARY COMPATIBILITY — ملفات ما قبل الترحيل على قرص الحاوية.
+            # قراءة فقط، وليست المعمارية الهدف، وتضيع مع إعادة تشغيل العُقدة.
+            legacy_path = Path(r.get("filePath", "") or "")
+            if legacy_path.is_file():
+                return FileResponse(str(legacy_path), filename=r.get("filename") or legacy_path.name)
+            raise HTTPException(
+                status_code=410,
+                detail={
+                    "error": "file_content_unavailable",
+                    "message": "الملف كان مخزناً محلياً وفُقد مع إعادة تشغيل الحاوية.",
+                },
+            )
         raise HTTPException(status_code=404, detail="الملف غير موجود")
     except HTTPException:
         raise

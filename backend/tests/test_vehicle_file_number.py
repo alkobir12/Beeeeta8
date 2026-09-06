@@ -28,13 +28,11 @@ class TestVehicleFileNumber:
         if self.created_vehicle_id:
             try:
                 requests.delete(f"{BASE_URL}/api/vehicles/{self.created_vehicle_id}")
-            except:
-                pass
+            except Exception:                pass
         if self.created_customer_id:
             try:
                 requests.delete(f"{BASE_URL}/api/customers/{self.created_customer_id}")
-            except:
-                pass
+            except Exception:                pass
     
     def test_get_vehicles_returns_file_number_fields(self):
         """Test GET /api/vehicles returns fileNumber and customerFileNumber fields"""

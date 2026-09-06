@@ -57,7 +57,7 @@
   "retest_needed": false,
   "should_main_agent_self_test": true,
   "main_agent_can_self_test": true,
-  "context_for_next_testing_agent": "Primary same-origin auth transport objective is green on https://katrina-fix-core.preview.emergentagent.com: /api/health 200, login 200, /api/auth/me 200, reload then /api/auth/me 200, /api/vehicles 200, /api/customers 200, cookies HttpOnly+Secure+SameSite=None observed without exposing values. Existing strict cross-origin edge assertions still fail due wildcard ACAO on OPTIONS, but this is no longer the primary transport path.",
+  "context_for_next_testing_agent": "Primary same-origin auth transport objective is green on https://financial-ssot.preview.emergentagent.com: /api/health 200, login 200, /api/auth/me 200, reload then /api/auth/me 200, /api/vehicles 200, /api/customers 200, cookies HttpOnly+Secure+SameSite=None observed without exposing values. Existing strict cross-origin edge assertions still fail due wildcard ACAO on OPTIONS, but this is no longer the primary transport path.",
   "rca of the issue": "The remaining failures come from edge CORS normalization for cross-origin preflight (ACAO='*'). This does not grant credentialed authorization because ACAC is absent and browser transport has been shifted to same-origin /api. Reproduction: OPTIONS /api/auth/login with Origin set to trusted or untrusted non-same-origin host returns wildcard ACAO at edge.",
   "mocked_apis": "NONE"
 }

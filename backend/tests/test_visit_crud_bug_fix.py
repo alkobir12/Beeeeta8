@@ -19,7 +19,7 @@ import os
 from datetime import datetime
 
 # Get base URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://accounting-ssot-fix.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://financial-ssot.preview.emergentagent.com').rstrip('/')
 
 # Test vehicle ID from the review request
 TEST_VEHICLE_ID = "ca81024e-195b-464e-9671-0f532aad1545"
@@ -39,8 +39,7 @@ class TestVisitCRUD:
         for visit_id in self.created_visit_ids:
             try:
                 self.session.delete(f"{BASE_URL}/api/visits/{visit_id}")
-            except:
-                pass
+            except Exception:                pass
     
     def test_01_get_vehicle_visits_initial(self):
         """Test GET /api/vehicles/{vehicle_id}/visits - verify endpoint works"""
@@ -232,8 +231,7 @@ class TestVisitCRUD:
             parsed = json.loads(notes)
             assert "items" in parsed and len(parsed["items"]) > 0, "Items should persist after close"
             print(f"✅ Visit {visit_id[:8]} still visible after close with {len(parsed['items'])} items")
-        except:
-            print(f"⚠️ Could not parse notes: {notes[:100]}")
+        except Exception:            print(f"⚠️ Could not parse notes: {notes[:100]}")
         
         return found_visit
     

@@ -3,7 +3,10 @@ from typing import Dict, Any
 import pandas as pd
 from io import BytesIO
 from datetime import datetime
+from pathlib import Path
 import uuid
+
+from core import object_storage
 
 router = APIRouter(prefix="/api")
 db = None
@@ -23,6 +26,8 @@ async def import_references_from_file(request: Request, file: UploadFile = File(
         if actor.role != "admin":
             raise HTTPException(status_code=403, detail={"error": "admin_only_import"})
         contents = await file.read()
+        # Size + content-verified type gate before any parsing or filesystem use.
+        object_storage.validate_upload(contents, file.filename, file.content_type, "references")
         imported_counts = {}
 
         # Determine file type
@@ -135,17 +140,22 @@ async def import_references_from_file(request: Request, file: UploadFile = File(
             # Import from PDF - fast batch processing
             from PyPDF2 import PdfReader
             import re
-            from pathlib import Path
+            import tempfile
 
-            # Save temporarily
-            temp_path = Path("/tmp") / file.filename
-            with open(temp_path, "wb") as f:
-                f.write(contents)
+            # PROCESSING_TEMP_FILE: the PDF is written to an OS-managed temporary
+            # directory under a random server-generated name purely so the parser
+            # can read it, then removed. Nothing durable is kept, so this is
+            # deliberately NOT object storage.
+            with tempfile.TemporaryDirectory(prefix="ref-import-") as temp_dir:
+                temp_path = Path(temp_dir) / f"{uuid.uuid4().hex}.pdf"
+                temp_path.write_bytes(contents)
+                reader = PdfReader(str(temp_path))
+                pages_text = [
+                    reader.pages[page_num].extract_text()
+                    for page_num in range(min(20, len(reader.pages)))
+                ]
 
-            # Extract text - limit to first 20 pages for speed
-            reader = PdfReader(str(temp_path))
             dtc_count = 0
-            max_pages = min(20, len(reader.pages))
 
             # Batch collect all codes first
             all_codes_with_context = {}
@@ -154,8 +164,7 @@ async def import_references_from_file(request: Request, file: UploadFile = File(
                 re.IGNORECASE,
             )
 
-            for page_num in range(max_pages):
-                text = reader.pages[page_num].extract_text()
+            for page_num, text in enumerate(pages_text):
                 codes = set(dtc_pattern.findall(text.upper()))
 
                 for code in codes:

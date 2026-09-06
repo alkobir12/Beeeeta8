@@ -32,7 +32,7 @@ def _workshop_id() -> str:
 BASE_URL = _base_url()
 WORKSHOP_ID = _workshop_id()
 INTERNAL_URL = "http://localhost:8001"
-TRUSTED_ORIGIN = "https://accounting-ssot-fix.preview.emergentagent.com"
+TRUSTED_ORIGIN = "https://financial-ssot.preview.emergentagent.com"
 UNTRUSTED_ORIGIN = "https://evil.example.com"
 ADMIN_USERNAME = "مدير"
 ADMIN_PASSWORD = "010101"

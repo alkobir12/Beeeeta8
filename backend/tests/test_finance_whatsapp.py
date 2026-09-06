@@ -14,7 +14,7 @@ import requests
 import os
 
 BASE_URL = os.environ.get(
-    "REACT_APP_BACKEND_URL", "https://accounting-ssot-fix.preview.emergentagent.com"
+    "REACT_APP_BACKEND_URL", "https://financial-ssot.preview.emergentagent.com"
 ).rstrip("/")
 WORKSHOP_ID = "finmodule-sync"
 
@@ -208,8 +208,7 @@ class TestHealthAndBasicAPIs:
                 data = response.json()
                 assert "status" in data, "Health response should have status"
                 print(f"✅ Health endpoint - Status: {data.get('status')}")
-            except:
-                # Frontend HTML response is also acceptable
+            except Exception:                # Frontend HTML response is also acceptable
                 print("✅ Health endpoint returns frontend HTML (status 200)")
 
     def test_stats_endpoint(self):

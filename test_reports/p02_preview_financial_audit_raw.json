@@ -1,6 +1,6 @@
 {
   "environment": "preview",
-  "base_url": "https://accounting-ssot-fix.preview.emergentagent.com",
+  "base_url": "https://financial-ssot.preview.emergentagent.com",
   "login_result": {
     "status": 200,
     "ok": true,

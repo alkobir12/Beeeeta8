@@ -13,7 +13,7 @@ import os
 import uuid
 
 BASE_URL = os.environ.get(
-    "REACT_APP_BACKEND_URL", "https://accounting-ssot-fix.preview.emergentagent.com"
+    "REACT_APP_BACKEND_URL", "https://financial-ssot.preview.emergentagent.com"
 ).rstrip("/")
 WORKSHOP_ID = "finmodule-sync"
 
@@ -33,8 +33,7 @@ class TestJournalEntriesCRUD:
                     f"{BASE_URL}/api/finance/journal-entries/{self.test_entry_id}",
                     params={"workshop_id": WORKSHOP_ID},
                 )
-            except:
-                pass
+            except Exception:                pass
 
     def test_create_journal_entry(self):
         """Test POST /api/finance/journal-entries - Create new manual entry"""

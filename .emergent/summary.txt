@@ -1,72 +1,89 @@
-<analysis>**original_problem_statement**: Overhaul financial operator (Katrina), fix Supplier Exclusion policy mismatches, correct the Income Statement reporting scope, fix the Journal KPI UI, implement Canonical Business Posting for vehicle finalization, and execute Security P0 Hardening. PRODUCT REQUIREMENTS: Supplier items are archive/movement only. Single active default template. Zero silent fallbacks. 100% synchronization of financial numbers using AccountingEngine as the SSOT.
+<analysis>**original_problem_statement**: Overhaul financial operator (Katrina), fix Supplier Exclusion policy mismatches, correct the Income Statement reporting scope, fix the Journal KPI UI, implement Canonical Business Posting for vehicle finalization, execute Security P0 Hardening, perform Katrina Discovery Audit, Fix Katrina Red Findings, implement Creator/Origin Visibility, overhaul Journal Ledger, and execute a P0 FINANCIAL + OPERATIONAL SSOT FULL SYSTEM AUDIT to find and fix the root cause of duplicate accounting entries. PRODUCT REQUIREMENTS: Supplier items are archive/movement only. Single active default template. Zero silent fallbacks. 100% synchronization of financial numbers using  as the strictly FROZEN Single Source of Truth (SSOT). No page/UI can create journal entries directly.
 
 **User's preferred language**: Arabic (العربية)
-**INSTRUCT NEXT AGENT**: You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in the user's preferred language only. The user communicates EXCLUSIVELY in Arabic. You MUST respond in Arabic ONLY. NEVER suggest English solutions or prompts.
+**INSTRUCT NEXT AGENT**: The user communicates EXCLUSIVELY in Arabic. You MUST automatically detect the user's primary language from their messages inside the trajectory and INSTRUCT the next agent to respond in the user's preferred language ONLY. NEVER suggest English solutions or prompts.
 
 **what currently exists?** 
-The financial core is currently **FROZEN** by user request.  is the strict Single Source of Truth (SSOT) and the ONLY allowed writer to  (P0-A completed). All direct database financial mutations, balancing plugs, and silent fallbacks have been aggressively blocked or removed. Canonical Integrity (P0-B) is completed for targeted discrepancies (2300 final total and 167.84 supplier exclusion). QuickPrint now correctly handles independent visits with independent canonical totals. Authentication is strict: name-only and default PIN () logins are removed; temporary password  is actively used for Preview.
+Phase 1A (Systemic Authorization Repair), Phase 1B (Authorization Closure), and Phase 1C (Same-Origin Auth Transport) are COMPLETE. The backend is secured with a centralized authorization matrix (512 endpoints explicitly classified, 0 missing). The frontend auth transport has been refactored to use same-origin relative paths () and  to bypass an external edge proxy CORS bug. Currently, the application is experiencing an environment configuration bug: the deployed application is failing to receive the new  Supabase keys and the correct  project reference from the platform deployment injection, falling back instead to local  legacy keys (). 
+*CRITICAL:* Zero Mutation Rule is in effect. Preview and Production share the same DB. DO NOT write, update, delete, reverse, or run migrations without explicit permission.
 
 **Last working item**:
-    - Last item agent was working: Diagnosing why the Production deployment is not showing data/updates despite the Preview working perfectly. Agent confirmed via , , and  that this is an Emergent Infrastructure issue (Stale Frontend Cache/Version Skew in Production), NOT a codebase, DB, or billing (50 credits) issue.
-    - Status: BLOCKED (Requires Emergent Support intervention by the user).
-    - Agent Testing Done: Y
-    - Which testing method agent to use? NA
+    - Last item agent was working: PRODUCTION SUPABASE RUNTIME VERIFICATION — READ ONLY. The agent was instructed to verify the actual PRODUCTION runtime (separately from Preview) to determine the effective Supabase URL and Key source/type without making any deployment or code changes.
+    - Status: BLOCKED (Execution paused by user).
+    - Agent Testing Done: Y (Heavily tested in prior steps, iterations 364-378).
+    - Which testing method agent to use? backend testing agent / manual bash scripts (READ-ONLY).
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: P0 - Secret Rotation Required in Production
-     - Attempted fixes: Identified in previous sessions but explicitly deferred to avoid breaking production without a deployment plan. Supabase key was noted as updated by user, but others may remain.
-     - Next debug checklist: Coordinate with the user to rotate exposed Git/.env secrets (JWT, LLM).
-     - Why fix this issue and what will be achieved with the fix? Secures the production environment.
-     - Status: NOT STARTED
+  Issue 1: Production Config / Supabase Key Mismatch (P0)
+     - Attempted fixes: Investigated deployment config, backend process environments, and  paths. Discovered  is overriding the expected platform variables.
+     - Next debug checklist: Await user approval/unpausing to finish Production read-only evaluation. 
+     - Why fix this issue and what will be achieved with the fix? Ensures the production backend connects to the correct Supabase project () using the new  instead of the legacy JWT token.
+     - Status: BLOCKED (Paused by user).
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Backend
-  - Issue 2: P0 - Critical Code Quality & Security Vulnerabilities (System Reported)
-     - Attempted fixes: None.
-     - Next debug checklist: 
-        1. Remove hardcoded secrets in .
-        2. Fix Circular Import ( →  → ).
-        3. Frontend: Fix  usage for JWT tokens in  (XSS vulnerability).
-        4. Frontend: Fix missing hook dependencies (484 instances, critical in ).
-     - Why fix this issue and what will be achieved with the fix? Prevents runtime crashes, severe XSS attacks, and React reconciliation bugs.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
-  - Issue 3: P1 - Public Verification Page for Documents
-     - Attempted fixes: None
-     - Next debug checklist: Build QR Code scanning to verify document hash, signatures, and approval status.
-     - Why fix this issue and what will be achieved with the fix? Core PRD requirement for QuickPrint UI.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Both
+     - Should Test frontend/backend/both after fix? Backend.
 
-**In progress Task List**: None.
+  Issue 2: P0-DUP-AR - Duplicate Journal Entries / SSOT Violation
+     - Attempted fixes: Discovery phase complete. Read-only Candidate Reversal Ledger created ().
+     - Next debug checklist: Await explicit user approval to mutate DB. Apply clean reversal per vehicle and deprecate legacy scripts.
+     - Why fix this issue and what will be achieved with the fix? Fixes ~12,069 SAR discrepancy.
+     - Status: BLOCKED (Awaiting user approval for production DB mutation).
+     - Is recurring issue? Y.
+     - Should Test frontend/backend/both after fix? Both.
+
+  Issue 3: Historical Secret Exposure (P1)
+     - Attempted fixes: Inventory done (). 16 keys (API/LLM/DB) found in git history require external rotation.
+     - Next debug checklist: Rotate secrets externally and purge git history.
+     - Status: DEFERRED EXTERNAL ACTION.
+     - Is recurring issue? N.
+
+  Issue 4: P1-SEC-UPLOAD - Vehicle file upload vulnerabilities (P1)
+     - Next debug checklist: Implement path traversal protections, migrate from local disk to Object Storage.
+     - Status: NOT STARTED.
+
+  Issue 5: P1-ENV-SHARED-DB - Preview & Prod share DB (P1)
+     - Next debug checklist: Segregate environments securely.
+     - Status: BLOCKED.
+
+**In progress Task List**:
+  Task 1: Production Supabase Runtime Verification
+     - Where to resume: Complete the READ-ONLY evaluation of the production environment variables and Supabase runtime as requested in the user's last message.
+     - What will be achieved with this? Isolates whether the environment injection issue is localized to preview or also affecting production.
+     - Status: BLOCKED (Execution paused).
+     - Should Test frontend/backend/both after fix? Backend (READ-ONLY).
+     - Blocked on something: User resume.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P0-C: READER CONSISTENCY. Make Katrina AI read from the exact same canonical AR read service () so Katrina AR matches Core AR (9,181). DO NOT create a new calculation for Katrina.
-    - P0-D: BALANCE SHEET GAP. Investigate the 908 gap READ-ONLY. Identify Assets, Liabilities, Equity, and root cause. DO NOT use balancing plugs. Propose fix for user approval.
-    - P0-E: RECONCILIATION DIFFERENCES (38,692.16). Categorize differences (Legacy, Temporary, Repair, etc.). DO NOT execute bulk repairs.
     - P1: Connect Katrina AI Operator to Document Templates and QuickPrint.
+    - P1: Public Verification Page for Documents (QR scanning).
     Future Tasks:
-    - P2: Google OAuth Testing on production.
     - P2: AR Aging Report (30/60/90 days) with automatic WhatsApp reminders.
-    - P2: Refactor/Split  (Oversized module).
+    - P2: Google OAuth Testing on production.
+    - P2: Distributed idempotency and rate-limiting.
+    - P2: AI Prompt Injection Guards.
+    - P3: Remove/clean up dead frontend code (26 dead pages, 18 unused components).
+    - P3: Refactor/Split  (Currently >6,000 lines).
 
 **Completed work in this session**
-- Restored Preview Authentication with temporary password  for  and  (DONE)
-- Executed P0-A: Single Writer Hardening. Removed all 8 direct journal mutation endpoints. Enforced fail-closed policy (DONE)
-- Executed P0-B: Canonical Integrity. Fixed missing 2300 canonical posting and reversed 167.84 supplier effect on AR idempotently (DONE)
-- Extracted and isolated QuickPrint to handle multiple independent visits properly (DONE)
-- Fixed Income Statement aggregation contract logic for Reversals (DONE)
-- Diagnosed Production Stale Frontend issue (DONE)
+- Phase 1B Authorization Final Closure: Secured 512 endpoints explicitly, removed fail-open logic, resolved 22 policy decisions.
+- Phase 1C Pre-Deploy Checks: Financial fingerprinting captured, git history secret inventory mapped.
+- Phase 1C Auth Transport Fix: Migrated frontend auth transport to same-origin  with  to bypass preview edge proxy CORS stripping. Verified session persists after reload.
+- Phase 1C Non-Destructive Closure: Froze clean build, regenerated matrices.
+- Swagger/OpenAPI/Redoc framework routes disabled in production settings.
 
 **Earlier issues found/mentioned but not fixed**
-   Issue 1: Testing Agent  on 
-   - Debug checklist: Testing agent browser automation fails to load authenticated  data due to the preview environment edge proxy/CORS limitations. 
-   - Why to solve this issue and what will be achieved with this? Allows E2E UI testing.
-   - Should Test frontend/backend/both after fix: Both
-   - Is recurring issue? Y (Platform limitation).
+   Issue 1: Idempotency and Rate-Limiting are In-Memory Only (P2)
+   - Debug checklist: Move idempotency keys and rate limits to a distributed cache/store.
+   - Why to solve this issue and what will be achieved with this? Prevents race conditions across instances.
+   - Should Test frontend/backend/both after fix: Backend
+   - Is recurring issue? Y
+
+   Issue 2: AI Prompt Injection Guards Missing (P2)
+   - Debug checklist: Add sanitization and strict delimiters to untrusted inputs.
+   - Why to solve this issue and what will be achieved with this? Prevents indirect prompt injections.
+   - Should Test frontend/backend/both after fix: Backend
+   - Is recurring issue? Y
 
 **Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: None
@@ -77,106 +94,84 @@ The financial core is currently **FROZEN** by user request.  is the strict Singl
 /app
 ├── backend
 │   ├── core
+│   │   ├── authz.py (Authorization SSOT)
+│   │   ├── auth_store.py (Mongo-backed auth store)
 │   │   ├── accounting_engine.py (Strict SSOT for journal writes - FROZEN)
-│   │   ├── unified_financial_engine.py
-│   │   ├── operation_journal_adapter.py (Fail-closed enforced)
-│   │   ├── vehicle_finalization_posting.py
-│   │   └── financial_actions.py
-│   ├── auth_jwt.py 
-│   ├── routes_finance.py (FROZEN - High complexity)
-│   ├── routes_extended.py (Direct mutations disabled)
-│   ├── server.py 
-│   └── scripts
-│       ├── financial_consistency_readonly_audit.py
-│       └── p0b_targeted_correction.py
+│   ├── server.py (Centralized middleware, CORS configured)
+│   ├── routes_*.py
+│   ├── tests/
 ├── frontend
-│   └── src
-│       ├── components
-│       │   ├── QuickPrintDialog.jsx
-│       │   └── vehicle-details
-│       │       └── VehicleDetailsChrome.jsx
-│       ├── pages
-│       │   ├── Login.jsx (Updated error handling)
-│       │   └── VehicleDetails.jsx (Refactored for QuickPrint independent visits)
-│       └── utils
-│           └── documentTemplate.js
+│   ├── src/utils/backendBase.js (Handles same-origin resolution )
+│   ├── src/utils/authToken.js (Manages httpOnly session cookies)
 
 **Key Technical Concepts**
-- **FINANCIAL CORE IS FROZEN**: User explicitly demanded that , Income Statement rules, Journal KPI UI,  policy, and Supplier Exclusion policy must NOT be modified. Do not build new financial engines.
-- **Single Writer Pattern**: Absolutely NO direct writes to  are allowed bypassing .
-- **Fail-Closed Financials**: If the  returns empty, None, or throws an error, the upstream process (operations, visits, etc.) MUST fail and roll back.
+- **ZERO MUTATION RULE:** Preview and Production share the same Supabase database. Do not execute DB inserts, updates, deletes, or migrations without EXPLICIT approval.
+- **SAME-ORIGIN AUTH:** Frontend now uses relative  paths with  instead of cross-origin CORS.
+- **LANGUAGE:** Respond EXCLUSIVELY in Arabic.
+- **ENVIRONMENT INJECTION:**  uses  in  to allow platform env vars to take precedence, but currently, local  is acting as the effective source because platform injection is failing.
 
 **key DB schema**
-  - : Accounting ledger (PostgreSQL via Supabase)
-  - : MongoDB auth storage (User accounts)
-  -  & : Application state
+  - : Accounting ledger
+  - : Application state for business actions
+  - : Handled via MongoDB ( / ).
 
 **changes in tech stack**
-  - None.
+  - Frontend auth transport migrated to same-origin cookie strategy. External edge CORS is intentionally ignored for primary auth flows.
 
 **All files of reference** 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  -  (CORS and middleware setup)
+  -  (Same-origin routing logic)
+  -  (Cookie handling)
+  -  (Phase 1B Closure)
+  -  (Baseline financial metrics)
 
 **Areas that need refactoring**: 
-- : Extremely large, needs splitting.
-- : Heavy component, missing dependency arrays.
+-  (>6,000 lines).
+- Frontend dead code purging.
 
 **key api endpoints**
--  
-- 
+- , , 
+- Internal FastAPI framework docs (, , ) are disabled in production.
 
 **Critical Info for New Agent**
-- **LANGUAGE**: Respond ONLY in Arabic.
-- **FREEZE WARNING**: The user strictly declared: . You must not write code that alters the  logic or core financial definitions without explicit user permission.
-- **AUTH CREDENTIALS**: To log in to the Preview environment, use username  or  with the password .  PIN does not work.
-- **NEXT TASKS (P0-C, P0-D, P0-E)**: Must be executed strictly as **READ-ONLY** analysis first. You must present the findings to the user and get approval before making any DB changes.
-- **PRODUCTION ISSUE**: Production is showing a stale frontend (old login screen) due to a deployment caching issue on Emergent's end. The user has been informed to contact Emergent support. Do not attempt to fix production by altering Preview code.
+- **ARABIC ONLY:** You must communicate with the user strictly in Arabic.
+- **ENVIRONMENT DANGER:** Production and Preview share the same database. ZERO MUTATION RULE is strictly enforced.
+- **AUTH TRANSPORT:** The app relies on  cookies over a same-origin proxy setup ( path). Do not revert to wildcard CORS for authenticated requests.
+- **CURRENT STATUS:** You are paused in the middle of a READ-ONLY diagnostic of the PRODUCTION Supabase environment variables. Do exactly what the user's last prompt asks: read-only evaluation of the live production environment to determine the Supabase key source. DO NOT change secrets or deploy.
 
 **documents and test reports created in this job**
   - 
+  -  & 
   - 
-  - 
-  -  (Read-only Audit)
-  -  (P0-A Verification)
-  -  (P0-B Final Retry)
+  -  through  (Auth closure, CORS, and Same-Origin verification tests)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - *User*: Please use ask_human tool and confirm your plan now.
- - *User*: There is a problem, data is not showing in the domain. Call the agent and see what the problem is.
- - *User*: (System Code Quality Report injection - Backend 34/100, Frontend 0/100).
- - *User*: Another problem, cannot login in preview. -> (Provided  and  via ask_human).
- - *User*: Fix it, make the new password for both users 010101.
- - *User*: Check the numbers in Vehicle, Operations, Debts, Journal, Finance, Katrina. Ensure they all use one accounting engine. Complete comprehensive check and find mismatches. -> (Agent ran read-only audit).
- - *User*: (Huge prompt accepting audit) Apply P0-A in Preview only. Block 8 direct journal writes. Fail closed. No silent fallbacks. STOP after P0-A. DO NOT START P0-B.
- - *User*: Approve P0-B for the two specific cases only. Do ONE FINAL E2E test. Then FINANCIAL CORE = FROZEN. -> (Agent executed P0-B).
- - *User*: Why is data not showing in production? Find the problem. -> (Agent found stale frontend deployment issue).
- - *User*: Could it be because of the 50 credit hosting? -> (Agent confirmed it's not billing, but an infrastructure version skew).
- - *Pending Action*: Wait for user to initiate P0-C, P0-D, or address the Code Quality/Security issues.
+ - *User*: URGENT READ-ONLY AUTH DIAGNOSTIC... Diagnosing login failure on edge.
+ - *User*: PHASE 1C — CORS / COOKIE SESSION FIX ONLY... Fixed FastAPI CORS.
+ - *User*: PHASE 1C — SAME-ORIGIN AUTH TRANSPORT CLOSURE... Migrated frontend to same-origin  to bypass edge proxies stripping credentials.
+ - *User*: PHASE 1C — FINAL NON-DESTRUCTIVE CLOSURE... Finalized auth fix, proved financial integrity via fingerprint.
+ - *User*:  Checking Supabase key via shell.
+ - *User*: READ-ONLY RUNTIME PROCESS ENV VERIFICATION... Asked to check the actual FastAPI backend process env.
+ - *User*: FINAL SUPABASE RUNTIME CONFIG SOURCE VERIFICATION... Agent determined  is overriding the config.
+ - *User*: PHASE 1C — SUPABASE RUNTIME CONFIG SOURCE FIX... Diagnosed project ref mismatch ( vs ).
+ - *User*: AFTER PLATFORM INCIDENT CLEARS: 1. Redeploy/restart current clean build only... Checked deployment metadata.
+ - *Pending Action (User's last message)*: PRODUCTION SUPABASE RUNTIME VERIFICATION — READ ONLY. User paused execution. Awaiting your execution to check the actual PRODUCTION environment safely and read-only.
 
 **Project Health Check:**
-Broken: Production Deployment (Stale Frontend Cache).
-Mocked: None.
-Vulnerable: Production Secrets exposed in Git/.env. Frontend localStorage JWT. Backend Hardcoded Secrets.
+Broken: Environment variable injection from platform (Deployed app uses local  fallback instead of intended secrets).
 
 **3rd Party Integrations**
-- Emergent LLM Key
-- Supabase PostgreSQL
+- Supabase PostgreSQL (Shared between Preview and Prod - Extreme Caution)
+- MongoDB
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Extensively for P0-A Guardrails and P0-B Canonical Integrity).
+  - Testing agent used after significant changes: YES (iterations 364-378 extensively).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: , , .
-  - Known regressions: None (Income statement classification bug was caught and fixed).
+  - Test files created: , , etc.
+  - Known regressions: None (Verified by 32/32 tests in iteration 378).
 
 **Credentials to test flow:**
-- Check . Preview access:  /  or  / .
+-  = مدير / 010101 (Check  for full list. NOTE: These are preview-only).
 
 **What agent forgot to execute**
-- The agent properly deferred the Production Secrets rotation to avoid breaking the live app, but the critical Code Quality review (System injected) containing hardcoded secrets and XSS vulnerabilities was completely ignored due to the user's strict focus on the Financial Audit (P0-A/P0-B). The next agent should bring these security issues to the user's attention.</analysis>
+- The agent was paused by the user before executing the final PRODUCTION SUPABASE RUNTIME VERIFICATION — READ ONLY commands. Pick up exactly there.</analysis>

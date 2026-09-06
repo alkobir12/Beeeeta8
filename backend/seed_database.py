@@ -6,6 +6,7 @@ Including 50+ services, technicians, and sample data
 import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import UpdateOne
 from dotenv import load_dotenv
 from pathlib import Path
 import uuid
@@ -578,10 +579,13 @@ async def seed_database():
 
     services.extend(extra_services)
 
-    print(f"📝 Adding {len(services)} services...")
-    await db.services.delete_many({})
-    await db.services.insert_many(services)
-    print(f"✅ Added {len(services)} services")
+    unique_services = list({s["name"]: s for s in services}.values())
+    print(f"📝 Seeding {len(unique_services)} services (idempotent, non-destructive)...")
+    await db.services.bulk_write(
+        [UpdateOne({"name": s["name"]}, {"$setOnInsert": s}, upsert=True) for s in unique_services],
+        ordered=False,
+    )
+    print(f"✅ Seeded {len(unique_services)} services")
 
     # ============ Technicians ============
     technicians = [
@@ -632,10 +636,12 @@ async def seed_database():
         },
     ]
 
-    print(f"👨‍🔧 Adding {len(technicians)} technicians...")
-    await db.technicians.delete_many({})
-    await db.technicians.insert_many(technicians)
-    print(f"✅ Added {len(technicians)} technicians")
+    print(f"👨‍🔧 Seeding {len(technicians)} technicians (idempotent, non-destructive)...")
+    await db.technicians.bulk_write(
+        [UpdateOne({"phone": t["phone"]}, {"$setOnInsert": t}, upsert=True) for t in technicians],
+        ordered=False,
+    )
+    print(f"✅ Seeded {len(technicians)} technicians")
 
     # ============ Workshop Profile ============
     workshop_profile = {
@@ -653,14 +659,15 @@ async def seed_database():
         "updatedAt": datetime.utcnow(),
     }
 
-    print("🏢 Adding workshop profile...")
-    await db.workshop_profile.delete_many({})
-    await db.workshop_profile.insert_one(workshop_profile)
-    print("✅ Added workshop profile")
+    print("🏢 Seeding workshop profile (idempotent, non-destructive)...")
+    await db.workshop_profile.update_one(
+        {"id": "workshop_profile"}, {"$setOnInsert": workshop_profile}, upsert=True
+    )
+    print("✅ Seeded workshop profile")
 
     print("\n✨ Database seeding completed successfully!")
     print("📊 Summary:")
-    print(f"   - Services: {len(services)}")
+    print(f"   - Services: {len(unique_services)}")
     print(f"   - Technicians: {len(technicians)}")
     print("   - Workshop Profile: 1")
 

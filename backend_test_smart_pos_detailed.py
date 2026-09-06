@@ -7,7 +7,7 @@ Verifying token parsing and party/vehicle information extraction
 import requests
 import json
 
-BACKEND_URL = "https://accounting-ssot-fix.preview.emergentagent.com/api"
+BACKEND_URL = "https://financial-ssot.preview.emergentagent.com/api"
 WORKSHOP_ID = "finmodule-sync"
 
 def test_token_parsing():

@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-08-08T08:19:59.872799+00:00",
-  "backend": "https://accounting-ssot-fix.preview.emergentagent.com",
+  "backend": "https://financial-ssot.preview.emergentagent.com",
   "sample_vehicle_id": "0ee51492-8405-4235-8c63-4ca01b6bccc8",
   "expected_total": 13475.84,
   "readiness_totals": {

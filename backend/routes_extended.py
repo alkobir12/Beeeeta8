@@ -27,6 +27,7 @@ except Exception:
 
 from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from bulk_delete_audit import record_bulk_delete_event
+from core import object_storage
 from supabase_service import SupabaseService
 import firewall_state
 import perf_cache as _perf_cache
@@ -121,7 +122,11 @@ def _safe_filename(value: str) -> str:
     return raw[:120] or f"receipt_{uuid.uuid4().hex[:8]}.bin"
 
 
-def _save_operation_payment_receipt(op_id: str, receipt_payload: Dict[str, Any]) -> Optional[Dict[str, str]]:
+async def _save_operation_payment_receipt(op_id: str, receipt_payload: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    """Store a payment-receipt binary durably in object storage.
+
+    Payment receipts are financial evidence, so they must survive a redeploy.
+    """
     if not isinstance(receipt_payload, dict):
         return None
 
@@ -151,7 +156,7 @@ def _save_operation_payment_receipt(op_id: str, receipt_payload: Dict[str, Any])
     if not binary:
         return None
 
-    # 6MB hard cap for safety
+    # 6MB hard cap for safety (stricter than the 25MB platform limit)
     if len(binary) > 6 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="receipt file too large (max 6MB)")
 
@@ -160,16 +165,16 @@ def _save_operation_payment_receipt(op_id: str, receipt_payload: Dict[str, Any])
         ext = mimetypes.guess_extension(mime_type) or ".bin"
     filename = _safe_filename(f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:8]}{ext}")
 
-    base_dir = os.path.join(os.path.dirname(__file__), "uploads", "operation_payment_receipts", op_id)
-    os.makedirs(base_dir, exist_ok=True)
-    file_path = os.path.join(base_dir, filename)
-
-    with open(file_path, "wb") as f:
-        f.write(binary)
+    # Content-verified: the declared mime type alone is never trusted.
+    checked = object_storage.validate_upload(binary, filename, mime_type, "operation-payment-receipts")
+    object_key = object_storage.build_named_object_key("operation-payment-receipts", op_id, filename)
+    await object_storage.put_object(object_key, binary, checked["content_type"])
 
     return {
         "filename": filename,
-        "mime_type": mime_type,
+        "mime_type": checked["content_type"],
+        "storage_backend": "emergent_object_storage",
+        "storage_path": object_key,
         "url": f"/api/operations/{op_id}/payment-receipts/{filename}",
     }
 
@@ -2515,15 +2520,21 @@ async def delete_operation(op_id: str, request: Request):
 
 
 @router.delete("/operations")
-async def delete_all_operations(request: Request):
-    """Delete all operations - for cleanup/reset"""
+async def delete_all_operations(request: Request, confirm: str = Query(None)):
+    """Delete all operations - fail-closed destructive route."""
     try:
+        from core.destructive_guard import require_destructive_authorization
+
+        audit_ctx = await require_destructive_authorization(
+            request, action="delete_all_operations", confirm=confirm
+        )
         actor_obj = await _require_request_permission(request, "operations", "delete")
         await _require_request_permission(request, "journal_entries", "delete")
         provider = os.environ.get("DB_PROVIDER", "mongo").lower()
         actor = _extract_request_actor(request)
         actor["user_id"] = actor_obj.name or actor_obj.id or actor["user_id"]
         actor["user_role"] = actor_obj.role or actor["user_role"]
+        actor["correlation_id"] = audit_ctx["correlation_id"]
         if provider == "supabase":
             supa = SupabaseService()
             # Delete all operations - use gt filter instead of neq
@@ -2741,6 +2752,18 @@ async def cleanup_keep_debts_only(request: Request, confirm: str = Query(...)):
 @router.get("/operations/{op_id}/payment-receipts/{filename}")
 async def get_operation_payment_receipt(op_id: str, filename: str):
     safe_name = _safe_filename(filename)
+    object_key = object_storage.build_named_object_key("operation-payment-receipts", op_id, safe_name)
+    headers = {"Content-Disposition": f'inline; filename="{safe_name}"'}
+
+    try:
+        payload, detected = await object_storage.get_object(object_key)
+        return StreamingResponse(io.BytesIO(payload), media_type=detected, headers=headers)
+    except Exception:
+        pass
+
+    # LEGACY TEMPORARY COMPATIBILITY — receipts stored before the object-storage
+    # migration still live on the container filesystem. Read-only fallback; it is
+    # NOT the target architecture and disappears with the pod.
     file_path = os.path.join(
         os.path.dirname(__file__),
         "uploads",
@@ -2754,7 +2777,6 @@ async def get_operation_payment_receipt(op_id: str, filename: str):
     guessed_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
     with open(file_path, "rb") as f:
         payload = f.read()
-    headers = {"Content-Disposition": f'inline; filename="{safe_name}"'}
     return StreamingResponse(io.BytesIO(payload), media_type=guessed_type, headers=headers)
 
 
@@ -3017,7 +3039,7 @@ async def confirm_operation_payment(op_id: str, request: Request, payload: Dict[
             )
 
         pay_date = (payload or {}).get("date")
-        receipt_info = _save_operation_payment_receipt(op_id, (payload or {}).get("receipt") or {})
+        receipt_info = await _save_operation_payment_receipt(op_id, (payload or {}).get("receipt") or {})
         if receipt_info and receipt_info.get("url"):
             desc = f"{desc} | إيصال: {receipt_info.get('filename')}"
         entry_source = "operation_payment"

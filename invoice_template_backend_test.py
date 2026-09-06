@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Backend URL from frontend/.env
-BASE_URL = "https://accounting-ssot-fix.preview.emergentagent.com/api"
+BASE_URL = "https://financial-ssot.preview.emergentagent.com/api"
 
 # Test results tracking
 tests_passed = 0

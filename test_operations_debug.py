@@ -25,7 +25,7 @@ async def debug_operations_display():
             print("=== DEBUGGING OPERATIONS DISPLAY ===")
             
             # Login
-            await page.goto('https://accounting-ssot-fix.preview.emergentagent.com/login')
+            await page.goto('https://financial-ssot.preview.emergentagent.com/login')
             await page.wait_for_selector('[data-testid="login-username-input"]', timeout=10000)
             await page.fill('[data-testid="login-username-input"]', 'مدير')
             await page.click('[data-testid="login-submit-button"]')
@@ -33,7 +33,7 @@ async def debug_operations_display():
             await page.wait_for_timeout(2000)
             
             # Navigate to operations
-            await page.goto('https://accounting-ssot-fix.preview.emergentagent.com/operations')
+            await page.goto('https://financial-ssot.preview.emergentagent.com/operations')
             await page.wait_for_timeout(5000)
             
             # Check API responses

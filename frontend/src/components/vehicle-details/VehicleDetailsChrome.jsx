@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, ClipboardList, FileCheck, Printer, Receipt, X } from 'lucide-react';
+import { AuthenticatedFileImage } from '../AuthenticatedFileImage';
 import { getStatusColor, getStatusLabel } from '../../mock/data';
 import { formatCurrency } from '../../utils/formatters';
 import { OPERATION_TYPE_LABELS, labelFromMap, resolveVisitDisplay } from '../../utils/displayLabels';
@@ -268,7 +269,12 @@ export const PreviewOverlay = ({ previewImage, onClose }) => {
       <button className="absolute top-4 left-4 p-2 rounded-full" style={{ background: 'rgba(255,255,255,0.96)', border: '1px solid rgba(203,213,225,0.8)', color: 'rgba(15,23,42,0.95)' }} onClick={onClose} data-testid="preview-close-button">
         <X size={32} />
       </button>
-      <img src={previewImage} alt="Preview" className="max-w-full max-h-[90vh] object-contain rounded-lg" onClick={(event) => event.stopPropagation()} />
+      <AuthenticatedFileImage
+        src={previewImage}
+        alt="Preview"
+        className="max-w-full max-h-[90vh] object-contain rounded-lg"
+        testId="vehicle-file-preview-image"
+      />
     </div>
   );
 };

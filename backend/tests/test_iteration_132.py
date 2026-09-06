@@ -36,8 +36,7 @@ class TestVehicleFileNumber:
         # Cleanup
         try:
             requests.delete(f"{BASE_URL}/api/vehicles/{vehicle_id}")
-        except:
-            pass
+        except Exception:            pass
     
     def test_update_vehicle_with_file_number(self, test_vehicle_id):
         """Test that fileNumber can be updated via PUT /api/vehicles/{id}"""

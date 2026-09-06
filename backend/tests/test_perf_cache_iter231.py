@@ -17,7 +17,7 @@ import pytest
 
 BASE_URL = os.environ.get(
     "REACT_APP_BACKEND_URL",
-    "https://accounting-ssot-fix.preview.emergentagent.com",
+    "https://financial-ssot.preview.emergentagent.com",
 ).rstrip("/")
 API = f"{BASE_URL}/api"
 

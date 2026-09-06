@@ -11,9 +11,9 @@
 - No Phase 2.
 
 ## Routing Finding
-- SAME_ORIGIN_PROXY_SUPPORTED = YES for the configured/current Emergent host from `REACT_APP_BACKEND_URL`: `https://katrina-fix-core.preview.emergentagent.com`.
+- SAME_ORIGIN_PROXY_SUPPORTED = YES for the configured/current Emergent host from `REACT_APP_BACKEND_URL`: `https://financial-ssot.preview.emergentagent.com`.
 - Same-origin `/api/health` is reachable on that host.
-- Older separate host `https://accounting-ssot-fix.preview.emergentagent.com` is not the supported same-origin transport target for this build and previously depended on failing cross-origin edge CORS.
+- Older separate host `https://financial-ssot.preview.emergentagent.com` is not the supported same-origin transport target for this build and previously depended on failing cross-origin edge CORS.
 
 ## Implementation
 - Browser API base is now relative same-origin `/api` through `resolveBackendBase()` returning `''` in browser runtime.
@@ -22,7 +22,7 @@
 - Logout uses the same resolver instead of a separate cross-origin backend URL.
 
 ## Verification
-- Browser same-origin flow on `https://katrina-fix-core.preview.emergentagent.com`:
+- Browser same-origin flow on `https://financial-ssot.preview.emergentagent.com`:
   - `/api/health` = 200
   - `POST /api/auth/login` = 200
   - `GET /api/auth/me` after login = 200

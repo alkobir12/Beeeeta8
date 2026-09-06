@@ -13,7 +13,7 @@ import time
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://accounting-ssot-fix.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://financial-ssot.preview.emergentagent.com").rstrip("/")
 
 FABRICATED_NAMES = ["خالد العتيبي", "محمد الشمري", "سعد القحطاني"]
 FABRICATED_REFS = ["PAY-001", "INV-004", "EXP-003", "PUR-002"]
