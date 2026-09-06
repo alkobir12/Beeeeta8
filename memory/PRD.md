@@ -1,3 +1,18 @@
+## جلسة 2026-06 (فرع جديد) — LEGACY FILES PRESERVATION MIGRATION ✅ نُفِّذ بإذن المالك + PRE-DEPLOY READINESS ✅ PASS (بلا نشر)
+- **الترحيل نُفِّذ وتحقّق**: `files=28 · uploaded_verified=28 · bytes=21,945,944 · conflict=0 · failed=0`. كل ملف **يُرفع ثم يُنزَّل من التخزين وتُقارن بصمة SHA-256** ⇒ `sha256_source == sha256_readback` للـ28 جميعاً. إعادة التشغيل ⇒ **28 SKIP_ALREADY_PRESENT** (idempotent).
+- **إثباتات عدم الهدم**: بصمات المصادر قبل/بعد **متطابقة تماماً** (`diff` فارغ، 28/28) · `files_deleted=0` · `files_moved=0` · `db_references_changed=0` · `db_writes=0` · `operations=39` و`chart_of_accounts=12` **قبل وبعد** · الاستبدال الصامت مستحيل (كائن بمحتوى مختلف ⇒ `CONFLICT` بلا كتابة).
+- **المفاتيح content-addressed** (بادئة SHA) ⇒ حتمية: `MIGRATE_NORMAL → workshop-erp/{surface}/{entity}/{sha16}-{name}` · `QUARANTINE → workshop-erp/legacy-quarantine/{surface}/{entity}/{sha16}-{name}` · **إيصال السداد NORMAL** استُخدم له المفتاح الحتمي الذي يحلّه مسار الخدمة ⇒ **قابل للخدمة فوراً بلا أي تغيير DB**. 28 مفتاحاً فريداً، صفر مشوّه.
+- **التوزيع**: finance_audit_evidence 9 QUARANTINE (150B) · payment_receipt 5 QUARANTINE (217B) + 1 NORMAL (67B) · template 3 NORMAL (8,193,213B) · vehicle 3 QUARANTINE (4,053,058B) + 7 NORMAL (9,699,239B).
+- **عزل الحجر مثبت**: `grep -rn "legacy-quarantine" backend/ frontend/src/` = **0** ⇒ الـ17 ملفاً محفوظة وغير قابلة للوصول عبر أي نقطة نهاية.
+- **حد صريح**: الـ11 ملفاً NORMAL **محفوظة لكن غير مربوطة بسجلاتها** (`db_references_changed=0` بأمر المالك). ربط `storage_path` يحتاج إذناً منفصلاً لأنه كتابة DB.
+- **الاختبارات**: `tests/test_legacy_files_preservation.py` = **15/15** (منها سحب فعلي من التخزين ومقارنة بصمة، والتحقق من أن السكربت غير هدّام بنيوياً). الحزمة الكاملة للجلسة = **92/92 PASS**.
+- **بناء الإنتاج**: `yarn build` **exit 0 · 29.75s · صفر errors · صفر warnings** · `/app/frontend/build` (16MB) · entry `main.8a3bf6a3.js` (الإنتاج الحالي على `main.35a8f1ca.js` القديم) · **code-splitting مُفعَّل** بعد أن كان حزمة واحدة.
+- **فحص الجاهزية النهائي**: `status=PASS · findings=[] · destructive_db_startup_confirmed=false` · `requests==2.32.5` مثبَّت (يعتمد عليه `core/object_storage.py`).
+- **🔴 شرط إلزامي واحد قبل النشر (إعداد لا كود)**: الأسطح الستة تعتمد على Object Storage الذي يحتاج `EMERGENT_LLM_KEY`. و`backend/.env` **غير متتبَّع في git** (أُزيل 0ceb2ddc) والمفتاح موجود فيه فقط، والمنصة **لا تحقنه** في process env (مثبت من `/proc/<pid>/environ` = 0 تطابق). ⇒ إن لم يُضبط في إعدادات بيئة الإنتاج، كل رفع/تنزيل بعد النشر يُرجع **503 `object_storage_not_configured`** (فشل صريح، لا fallback صامت). `INTEGRATION_PROXY_URL` يُحقَن ولديه افتراضي في الكود ⇒ ليس نقطة فشل. **لم يُلمس أي `.env`.**
+- المخرجات: `memory/discovery/LEGACY_FILES_PRESERVATION_AND_PREDEPLOY_REPORT.md` · `LEGACY_FILES_PRESERVATION_MANIFEST.json` · `legacy_sources_before.sha256` · `scripts/preserve_legacy_upload_files.py`.
+- `DEPLOY = NO` — بانتظار إذنك.
+
+
 ## جلسة 2026-06 (فرع جديد) — P0-DEAD-DESTRUCTIVE-CODE-REMOVAL + LEGACY-FILES-CLASSIFICATION ✅ (صفر نشر · صفر ترحيل · صفر تعديل بيانات)
 ### PART A — حذف الكود الهدّام الميت
 - حُذف **306 سطراً** من كود هدّام **غير قابل للوصول** كان يقبع أسفل `raise 410`: `reset_all_financial_data` (114 سطراً، 5600→5713) و`reset_ops_journals_keep_debts_only` (192 سطراً، 5768→5959) في `routes_finance.py`. كل دالة الآن = docstring + `raise 410` فقط. **لم يُستبدل بمسار آخر، ولم يُفعَّل، ولم تُحذف نقطتا النهاية.**
