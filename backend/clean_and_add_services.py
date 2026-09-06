@@ -519,4 +519,11 @@ async def clean_and_seed():
 
 
 if __name__ == "__main__":
+    import sys
+    from pathlib import Path as _Path
+
+    sys.path.insert(0, str(_Path(__file__).parent))
+    from core.destructive_guard import require_destructive_cli
+
+    require_destructive_cli("clean_and_seed_services")
     asyncio.run(clean_and_seed())

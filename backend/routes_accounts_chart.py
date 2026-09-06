@@ -3,7 +3,7 @@
 Chart of Accounts Routes
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query, Request
 from datetime import datetime
 import uuid
 import os
@@ -127,8 +127,11 @@ async def init_default_accounts():
 
 
 @router.delete("/reset")
-async def reset_accounts_chart():
-    """إعادة تهيئة دليل الحسابات الافتراضي مع تنظيف السجلات التجريبية."""
+async def reset_accounts_chart(request: Request, confirm: str = Query(None)):
+    """إعادة تهيئة دليل الحسابات الافتراضي — مسار هدّام مالي، fail-closed."""
+    from core.destructive_guard import require_destructive_authorization
+
+    await require_destructive_authorization(request, action="reset_accounts_chart", confirm=confirm)
     global CHART_TABLE_AVAILABLE
     try:
         if DB_PROVIDER == "supabase" and supabase_service.client and not supabase_service.mock_mode and CHART_TABLE_AVAILABLE:

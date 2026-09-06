@@ -147,6 +147,17 @@ def hydrate(state: Dict[str, Any]) -> None:
 
 
 def clear_all() -> None:  # pragma: no cover — للاختبارات فقط
+    from core.destructive_guard import ALLOWED_DB_ENV, ENABLE_FLAG_ENV
+
+    # fail-closed: never wipe the runtime store unless explicitly authorized
+    if (os.environ.get(ENABLE_FLAG_ENV) or "").strip().lower() not in {"1", "true", "yes", "on"}:
+        _log.warning("clear_all refused: %s is not enabled", ENABLE_FLAG_ENV)
+        return
+    allowed_db = (os.environ.get(ALLOWED_DB_ENV) or "").strip()
+    current_db = (os.environ.get("DB_NAME") or "").strip()
+    if not allowed_db or not current_db or allowed_db != current_db:
+        _log.warning("clear_all refused: database not authorized for destructive operations")
+        return
     if not is_enabled():
         return
     try:

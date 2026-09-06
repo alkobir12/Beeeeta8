@@ -1,0 +1,43 @@
+{
+  "summary": "PART A + PART B verification for the P0 Dead-Destructive-Code Removal batch. All 20 tests in test_p0_dead_destructive_code_removal.py pass. All 57 tests in the prior P1-SEC-UPLOAD suites still pass (no regression). Structural claims about routes_finance.py, routes_accounts_chart.py, core/destructive_guard.py, core/runtime_store.py and the four CLI scripts were re-verified independently and all match the request exactly. The LIVE DENIAL MATRIX on preview returned the exact expected codes and error strings, with operations count (39) and chart-of-accounts count (12) identical before and after the calls — ZERO mutations. The read-only legacy-upload classifier reproduced totals to the byte (files=28, bytes=21,945,944, valid=12, invalid=16, referenced=20, orphan=8, financial_evidence=15, MIGRATE_NORMAL=11, MIGRATE_LEGACY_QUARANTINE=17, HOLD_FOR_REVIEW=0), performed 0 writes, and produced real SHA-256 hashes (2 independently re-hashed and matched). Independent repo-wide sweep for Supabase and Mongo mass-delete idioms found no new unguarded destructive path beyond the ones already covered by the allow-list. No CRITICAL issues found. retest_needed=false.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_p0_dead_destructive_code_removal.py",
+    "/app/backend/tests/test_p1_sec_upload_and_reset_guard.py",
+    "/app/backend/tests/test_p1_sec_upload_functional.py",
+    "/app/scripts/classify_legacy_upload_files.py"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes_finance.py is now 5959 lines (was 6265) — the two legacy reset endpoints correctly reduce to docstring + raise HTTPException(410). Decorators intact. `require_destructive_authorization` correctly does NOT appear in routes_finance.py — endpoints are permanently disabled, not re-armed behind a guard.",
+    "routes_accounts_chart.py: reset_accounts_chart now uses `request: Request, confirm: str = Query(None)` and calls `require_destructive_authorization` as the FIRST awaited statement, BEFORE any Supabase `.delete().neq()`. Ordering verified.",
+    "core/destructive_guard.py: `require_destructive_cli` enforces the three conditions in the exact order requested — enable flag → DESTRUCTIVE_RESET_ALLOWED_DB == DB_NAME → CLI_CONFIRM_ARG (`--i-understand-this-destroys-data`). Raises SystemExit (fail-closed).",
+    "core/runtime_store.py: `clear_all()` returns early with a warning if the enable flag or DB match is missing; does not touch the database. Confirmed with a mock DB spy in the test suite (0 calls).",
+    "All four CLI scripts (clear_data.py, clean_and_add_services.py, adopt_unified_workflow_template.py, reset_primary_invoice_template.py) print REFUSED + 'Nothing was touched' and exit cleanly when run without env flags. Verified by direct execution.",
+    "Independent repository-wide sweep across /app/backend (excl. tests/scripts) for delete_many({}), update_many({}, .drop(), drop_database, .delete().neq/gte/gt/is_/not_.is_ found 11 hits, ALL either guarded (server.py:2868-2869 reset_inventory, routes_extended.py:2596 delete_all_operations, routes_accounts_chart.py:140 reset_accounts_chart), fail-closed CLI (adopt_unified_workflow_template.py:15, clean_and_add_services.py:42, reset_primary_invoice_template.py:17, clear_data.py:62), benign single-default/single-active invariants (routes_templates_extended.py:436, core/prompt_registry.py:80), or in-test-fixture (core/runtime_store.py:166 — now fail-closed). No missed unguarded Supabase mass-delete idiom. Allow-list in the sweep test faithfully matches these callers.",
+    "Live denial matrix on https://financial-ssot.preview.emergentagent.com: 401 for all four endpoints unauthenticated; 410/`legacy_reset_all_data_disabled` and 410/`legacy_keep_debts_only_disabled` for the two finance legacy routes; 403/`destructive_operations_disabled` with `correlation_id` for both `/api/accounts-chart/reset` and `/api/operations`. Operations count 39 and chart-of-accounts 12 identical before/after — no mutation occurred.",
+    "Classifier `classify_legacy_upload_files.py` grep for write primitives (put_object, os.remove, shutil.move, .unlink, update_one, insert_one, delete_one, insert_many, replace_one, upload_file) returned only two matches, both inside the docstring examples (the filename contains 'upload_files'). Structurally read-only.",
+    "Decision-rule compliance verified from JSON output: 0 files ever proposed for deletion; all 15 FINANCIAL_EVIDENCE=YES entries proposed for migration (14 invalid ones included), 0 held; every quarantine target uses prefix `workshop-erp/legacy-quarantine/`; grep across /app/backend/*.py returned ZERO matches for `legacy-quarantine` — no route reads from that prefix. Orphan files are never proposed for deletion.",
+    "SHA-256 authenticity: independently re-hashed 2 files, both matched the classifier output exactly (bed69d37…d065 and 7490cbbf…9e05a).",
+    "No import errors or new tracebacks in /var/log/supervisor/backend.err.log after this batch; only the pre-existing `google.generativeai` deprecation lines (not from this iteration). GET /api/health = 200, GET /api/auth/me = 200 with the admin token."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (20/20 dead-code suite; 57/57 regression suite; 4/4 CLI REFUSED; live denial matrix 4/4 correct)",
+    "frontend": "N/A (backend-only per request)"
+  },
+  "test_credentials": "Read /app/memory/test_credentials.md — admin='مدير' password='010101' on https://financial-ssot.preview.emergentagent.com. Login returned access_token length=213.",
+  "seed_data_creation": "None. Zero mutation rule strictly obeyed. Verified operations=39 and coa=12 pre/post identical.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration_382 closed the P0 Dead-Destructive-Code Removal batch and the read-only PART B classifier verification. Contract locked by tests/test_p0_dead_destructive_code_removal.py (20 tests). Prior green suites still 57/57. The pre-existing FIN-TEST-DEBT-2101 (6 failures in tests/test_p0_red_findings_repair.py) is untouched by design — owner forbade changing live data or the trial balance to make those tests pass. Actual on-disk file migration and PHASE 2A were explicitly deferred.",
+  "rca of the issue": "Not applicable — this iteration verifies a completed fix, not a new bug. Prior RCA (unreachable destructive code below a raise) is fully resolved: 306 lines removed (114 + 192), file dropped from 6265 to 5959 lines, both endpoints now docstring + 410-raise only. The newly discovered unguarded /api/accounts-chart/reset (previously Supabase `.delete().neq('id','')` with no confirm/guard) is now Request+confirm-parameterized and gated by `require_destructive_authorization` as its first action — live proof: 403 destructive_operations_disabled with correlation_id."
+}

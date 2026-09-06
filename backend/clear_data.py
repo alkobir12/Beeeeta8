@@ -76,4 +76,10 @@ async def clear_all_data():
 
 
 if __name__ == "__main__":
+    import sys
+
+    sys.path.insert(0, str(ROOT_DIR))
+    from core.destructive_guard import require_destructive_cli
+
+    require_destructive_cli("clear_all_data")
     asyncio.run(clear_all_data())

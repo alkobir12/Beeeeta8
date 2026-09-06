@@ -18,4 +18,10 @@ async def reset():
     await db.document_templates.insert_one({'id':TEMPLATE_ID,'tenant_id':'default','document_type':'invoice','locale':'ar-SA','name':'فاتورة رئيسية A4 وجوال','version':1,'status':'valid','active':True,'is_default':True,'file_type':'html','is_builtin':False,'source':'approved_pdf_rebuild','inline_content':HTML,'created_at':now,'updated_at':now})
     print({'template_id':TEMPLATE_ID,'deleted_all_templates':True})
     client.close()
-if __name__=='__main__': asyncio.run(reset())
+if __name__=='__main__':
+    import sys
+    from pathlib import Path as _Path
+    sys.path.insert(0, str(_Path(__file__).parent))
+    from core.destructive_guard import require_destructive_cli
+    require_destructive_cli("reset_primary_invoice_template")
+    asyncio.run(reset())

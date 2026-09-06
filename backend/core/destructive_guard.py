@@ -129,3 +129,39 @@ async def require_destructive_authorization(
     }
     logger.warning("destructive_authorized %s", context)
     return context
+
+
+CLI_CONFIRM_ARG = "--i-understand-this-destroys-data"
+
+
+def require_destructive_cli(action: str, argv: Optional[list] = None) -> None:
+    """Fail-closed gate for stand-alone destructive scripts (no HTTP request).
+
+    Refuses unless the dedicated enable flag is on, the database is explicitly
+    authorized, AND the operator passes the confirmation argument. Raises
+    SystemExit so a script can never proceed by accident.
+    """
+    import sys
+
+    args = list(argv if argv is not None else sys.argv[1:])
+
+    if (os.environ.get(ENABLE_FLAG_ENV) or "").strip().lower() not in _TRUTHY:
+        raise SystemExit(
+            f"REFUSED [{action}]: destructive operations are disabled "
+            f"({ENABLE_FLAG_ENV} is not set). Nothing was touched."
+        )
+
+    allowed_db = (os.environ.get(ALLOWED_DB_ENV) or "").strip()
+    current_db = (os.environ.get("DB_NAME") or "").strip()
+    if not allowed_db or not current_db or allowed_db != current_db:
+        raise SystemExit(
+            f"REFUSED [{action}]: current database is not authorized for destructive "
+            f"operations ({ALLOWED_DB_ENV} must equal DB_NAME). Nothing was touched."
+        )
+
+    if CLI_CONFIRM_ARG not in args:
+        raise SystemExit(
+            f"REFUSED [{action}]: pass {CLI_CONFIRM_ARG} to confirm. Nothing was touched."
+        )
+
+    logger.warning("destructive_cli_authorized action=%s database=%s", action, current_db)

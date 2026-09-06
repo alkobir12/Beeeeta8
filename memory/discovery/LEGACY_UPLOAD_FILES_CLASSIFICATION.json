@@ -1,0 +1,834 @@
+{
+  "mode": "READ_ONLY_CLASSIFICATION",
+  "files_moved": 0,
+  "files_deleted": 0,
+  "db_references_changed": 0,
+  "objects_uploaded": 0,
+  "totals": {
+    "files": 28,
+    "bytes": 21945944,
+    "valid": 12,
+    "invalid": 16,
+    "referenced": 20,
+    "orphan": 8,
+    "financial_evidence": 15
+  },
+  "proposed_actions": {
+    "MIGRATE_NORMAL": 11,
+    "MIGRATE_LEGACY_QUARANTINE": 17
+  },
+  "matrix_surface_x_reference_x_validity_x_financial": {
+    "vehicle|referenced|valid|non-financial": 7,
+    "vehicle|referenced|invalid|non-financial": 2,
+    "vehicle|orphan|valid|non-financial": 1,
+    "finance_audit_evidence|referenced|invalid|financial": 8,
+    "finance_audit_evidence|orphan|invalid|financial": 1,
+    "payment_receipt|orphan|invalid|financial": 5,
+    "payment_receipt|orphan|valid|financial": 1,
+    "template|referenced|valid|non-financial": 3
+  },
+  "files": [
+    {
+      "source_path": "/app/backend/uploads/vehicles/1a8d6eba-27e8-4603-a8ef-876a2f664167/f59f1fb6-cadf-4b0b-932a-e183aabd55a0.jpeg",
+      "surface": "vehicle",
+      "size": 139965,
+      "sha256": "bed69d37a295a8e028a790fa6cbc819fe36e7eda464c6be6ff509306e7b8d065",
+      "detected_actual_type": "image/jpeg",
+      "declared_legacy_type": "jpeg => image/jpeg",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "YES",
+      "reference": {
+        "entity": "1a8d6eba-27e8-4603-a8ef-876a2f664167",
+        "record_id": "869fa6ca-368f-4507-a290-92bc5f388906",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "1a8d6eba-27e8-4603-a8ef-876a2f664167",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/vehicle-files/1a8d6eba-27e8-4603-a8ef-876a2f664167/a66aab40345d4239b1a53d2994338454.jpeg",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/3bd7dfd4-e831-4583-8399-e9d86aa9275b/7f0cb065-fe89-47e0-9e89-c81df8d85cd6.jpeg",
+      "surface": "vehicle",
+      "size": 78948,
+      "sha256": "7490cbbf18397d0abaa4daf4b7936f90a1e8d61de928e01477312fbe84a9e05a",
+      "detected_actual_type": "image/jpeg",
+      "declared_legacy_type": "jpeg => image/jpeg",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "NO",
+      "reference": {
+        "entity": "3bd7dfd4-e831-4583-8399-e9d86aa9275b",
+        "record_id": "38b9780a-6594-4aad-a18e-2b434da79afc",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "3bd7dfd4-e831-4583-8399-e9d86aa9275b",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/vehicle-files/3bd7dfd4-e831-4583-8399-e9d86aa9275b/1605452a79fa4f338734b7c9a9c21af6.jpeg",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/641b1f96-6a55-46db-80e7-a76e3d1f394d/78938947585__A3FB0998-02AF-4347-9074-75A0C7564C81.MOV",
+      "surface": "vehicle",
+      "size": 340078,
+      "sha256": "4074f2e4082f46a77913bb933fb4fd41ee2aa866544dc2f892c04917ce9f5ca0",
+      "detected_actual_type": "video/quicktime",
+      "declared_legacy_type": "mov => unknown",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "mov",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "NO",
+      "reference": {
+        "entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+        "record_id": "dd31aa11-31b7-4c70-855a-bc6b3822eb39",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/vehicle-files/641b1f96-6a55-46db-80e7-a76e3d1f394d/78938947585__A3FB0998-02AF-4347-9074-75A0C7564C81.MOV",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "غير صالح لكن مرجعي — يُحفظ محجوزاً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/641b1f96-6a55-46db-80e7-a76e3d1f394d/IMG_1088.png",
+      "surface": "vehicle",
+      "size": 3712922,
+      "sha256": "3e5e7b5b66f000e68e760b9a0c8fcd673e5f573be785c5f61213fdd9ee0295e5",
+      "detected_actual_type": "image/png",
+      "declared_legacy_type": "png => image/png",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "NO",
+      "reference": null,
+      "related_entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/vehicle-files/641b1f96-6a55-46db-80e7-a76e3d1f394d/IMG_1088.png",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "صالح لكن يتيم — يُحفظ دون تعريضه للمستخدمين"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/641b1f96-6a55-46db-80e7-a76e3d1f394d/IMG_1089.png",
+      "surface": "vehicle",
+      "size": 1523760,
+      "sha256": "0f7310c3cd01253e31f288a6679f7752b9a8eb057de127dda7fdb1216af49fe4",
+      "detected_actual_type": "image/png",
+      "declared_legacy_type": "png => image/png",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "NO",
+      "reference": {
+        "entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+        "record_id": "cdb9ff32-aa93-4e55-8ca6-244f2c5aff4c",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/vehicle-files/641b1f96-6a55-46db-80e7-a76e3d1f394d/f782d38c732344b184aa59803397e08c.png",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/641b1f96-6a55-46db-80e7-a76e3d1f394d/image.jpg",
+      "surface": "vehicle",
+      "size": 1932857,
+      "sha256": "50c6608729f37b745299761f7db6cd311818955c45a99467f190ec05711fcbcb",
+      "detected_actual_type": "image/jpeg",
+      "declared_legacy_type": "jpg => image/jpeg",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "NO",
+      "reference": {
+        "entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+        "record_id": "0d03b490-ac17-4f6b-b5df-50301d4ff955",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/vehicle-files/641b1f96-6a55-46db-80e7-a76e3d1f394d/9e5585c41d8c4bf7b89d97e2f21bb64f.jpg",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/641b1f96-6a55-46db-80e7-a76e3d1f394d/test_invoice.txt",
+      "surface": "vehicle",
+      "size": 58,
+      "sha256": "50dcecbdfcfba4fddf5101191222994d9aa9a8f7e4c5ad72e761c32ead604f5a",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "NO",
+      "reference": {
+        "entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+        "record_id": "17e3b463-8b68-4900-951b-f6b6b28709b8",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "641b1f96-6a55-46db-80e7-a76e3d1f394d",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/vehicle-files/641b1f96-6a55-46db-80e7-a76e3d1f394d/test_invoice.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "غير صالح لكن مرجعي — يُحفظ محجوزاً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/e062c31c-4ab7-4944-93ea-452957b5c6b3/image.jpg",
+      "surface": "vehicle",
+      "size": 5826601,
+      "sha256": "61df2f64f818287bb325109be098cbd90d603d2cd1bc8eb699766418a083981e",
+      "detected_actual_type": "image/jpeg",
+      "declared_legacy_type": "jpg => image/jpeg",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "NO",
+      "reference": {
+        "entity": "e062c31c-4ab7-4944-93ea-452957b5c6b3",
+        "record_id": "c12d6496-ab51-4d9e-9f5a-e2e618128c5e",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "e062c31c-4ab7-4944-93ea-452957b5c6b3",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/vehicle-files/e062c31c-4ab7-4944-93ea-452957b5c6b3/8754c3e4e8b944dfbc9ce11590023c2a.jpg",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/eceae870-0427-4bc9-9a08-ae3e37ac4f5e/c86690ee-1c84-4342-8e3e-3778c2960807.jpeg",
+      "surface": "vehicle",
+      "size": 118679,
+      "sha256": "37efe765afe8603a5d7d0ef4def4cb6178303a2d886bbae4e7f00e0146959ad6",
+      "detected_actual_type": "image/jpeg",
+      "declared_legacy_type": "jpeg => image/jpeg",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "YES",
+      "reference": {
+        "entity": "eceae870-0427-4bc9-9a08-ae3e37ac4f5e",
+        "record_id": "b190e546-81e9-4031-a789-a84b925a31db",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "eceae870-0427-4bc9-9a08-ae3e37ac4f5e",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/vehicle-files/eceae870-0427-4bc9-9a08-ae3e37ac4f5e/c9b2295c8ced42e28cd6cd116365980d.jpeg",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/vehicles/fc0e7716-e24d-4aeb-a45f-3a1a25fbeb46/bb5fa9b5-4d7e-45f5-80f2-392358d769e0.jpeg",
+      "surface": "vehicle",
+      "size": 78429,
+      "sha256": "2a021cd1a344762314ed8035cdcc4f30d18e525def9a18d51040442767b48caa",
+      "detected_actual_type": "image/jpeg",
+      "declared_legacy_type": "jpeg => image/jpeg",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "NO",
+      "reference": {
+        "entity": "fc0e7716-e24d-4aeb-a45f-3a1a25fbeb46",
+        "record_id": "17d50574-27b8-489d-a158-c2c90e3b5675",
+        "source": "uploads/vehicle_files.json"
+      },
+      "related_entity": "fc0e7716-e24d-4aeb-a45f-3a1a25fbeb46",
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/vehicle-files/fc0e7716-e24d-4aeb-a45f-3a1a25fbeb46/6f62a697b7e242fcbe2fe9d61e39a1ef.jpeg",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/audit-interactive-patch-1/b1a1f404-2f37-435e-922b-dffbfa3cab46.txt",
+      "surface": "finance_audit_evidence",
+      "size": 8,
+      "sha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "f-high-1",
+        "record_id": "b1a1f404-2f37-435e-922b-dffbfa3cab46",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "audit-interactive-patch-1",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/audit-interactive-patch-1/b1a1f404-2f37-435e-922b-dffbfa3cab46.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/audit-test-session-1/3d78c487-046a-479f-adfa-a21046f70031.txt",
+      "surface": "finance_audit_evidence",
+      "size": 14,
+      "sha256": "02098a28485e8cd3fa9f2d9e477734dcde9a09361016fb2d3126454c3d086854",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "N/A",
+      "reference": null,
+      "related_entity": "audit-test-session-1",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/audit-test-session-1/3d78c487-046a-479f-adfa-a21046f70031.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/audit-test-session-2/330a6c8e-86c8-4147-a5f7-bc9480b47ae4.txt",
+      "surface": "finance_audit_evidence",
+      "size": 8,
+      "sha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "tb_unbalanced",
+        "record_id": "330a6c8e-86c8-4147-a5f7-bc9480b47ae4",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "audit-test-session-2",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/audit-test-session-2/330a6c8e-86c8-4147-a5f7-bc9480b47ae4.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/audit-test-session-2/b7345cb0-59aa-4f75-9024-8a8d88e408ef.txt",
+      "surface": "finance_audit_evidence",
+      "size": 8,
+      "sha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "tb_unbalanced",
+        "record_id": "b7345cb0-59aa-4f75-9024-8a8d88e408ef",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "audit-test-session-2",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/audit-test-session-2/b7345cb0-59aa-4f75-9024-8a8d88e408ef.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/audit-test-session-3/6e758820-afda-49c4-99eb-8e83c836cfc2.txt",
+      "surface": "finance_audit_evidence",
+      "size": 8,
+      "sha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "tb_unbalanced",
+        "record_id": "6e758820-afda-49c4-99eb-8e83c836cfc2",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "audit-test-session-3",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/audit-test-session-3/6e758820-afda-49c4-99eb-8e83c836cfc2.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/test-session-67f9cedf-b56b-443c-983e-5865e6dfac1c/f16e6245-8916-4791-86ed-05485325e39a.txt",
+      "surface": "finance_audit_evidence",
+      "size": 21,
+      "sha256": "d960609511962d52cd97168d8f128849f532f33b86da2e4804b1a8385630f689",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "finding_1",
+        "record_id": "f16e6245-8916-4791-86ed-05485325e39a",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "test-session-67f9cedf-b56b-443c-983e-5865e6dfac1c",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/test-session-67f9cedf-b56b-443c-983e-5865e6dfac1c/f16e6245-8916-4791-86ed-05485325e39a.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/test-session-b3c63553-c53b-41af-8e5b-5608bb28ca6e/21e22e03-0af4-41f2-aa1e-db8e90a07e2f.pdf",
+      "surface": "finance_audit_evidence",
+      "size": 22,
+      "sha256": "245384488b7dc6d8e6dce39909388483297692adaf0a3ef76c1ad60b8d72b3fd",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "pdf => application/pdf",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "file_content_not_verifiable",
+        "declared_extension": "pdf",
+        "message": "تعذر التحقق من محتوى الملف؛ لم يُقبل الرفع."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "finding_1",
+        "record_id": "21e22e03-0af4-41f2-aa1e-db8e90a07e2f",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "test-session-b3c63553-c53b-41af-8e5b-5608bb28ca6e",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/test-session-b3c63553-c53b-41af-8e5b-5608bb28ca6e/21e22e03-0af4-41f2-aa1e-db8e90a07e2f.pdf",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/test_close_ecef8028/72984866-5d8d-4ca4-a02b-061ed5a97912.pdf",
+      "surface": "finance_audit_evidence",
+      "size": 31,
+      "sha256": "738270e0ea4342a4527a0a6f60d8a10c6247acead783adf02e895ffcfbf6bdc5",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "pdf => application/pdf",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "file_content_not_verifiable",
+        "declared_extension": "pdf",
+        "message": "تعذر التحقق من محتوى الملف؛ لم يُقبل الرفع."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "f_to_close",
+        "record_id": "72984866-5d8d-4ca4-a02b-061ed5a97912",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "test_close_ecef8028",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/test_close_ecef8028/72984866-5d8d-4ca4-a02b-061ed5a97912.pdf",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/finance_audit_evidence/test_upload_3d9e1b08/693b3860-0694-4c31-8b25-3d11e9dce8d4.txt",
+      "surface": "finance_audit_evidence",
+      "size": 30,
+      "sha256": "01c7760421ad3012b7f1c00102ee7090af39cad4b53b8cb49689dfdccd4fa996",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "f_test_upload",
+        "record_id": "693b3860-0694-4c31-8b25-3d11e9dce8d4",
+        "source": "mongo:finance_audit_evidence"
+      },
+      "related_entity": "test_upload_3d9e1b08",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/finance-audit-evidence/test_upload_3d9e1b08/693b3860-0694-4c31-8b25-3d11e9dce8d4.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/operation_payment_receipts/209878af-ab7a-4565-b095-5d4f1704eec2/20260419200003_22dce3fa.txt",
+      "surface": "payment_receipt",
+      "size": 23,
+      "sha256": "7e50a55cff5eab06ccabb39b6772b8b2d7ab1469f9a80a47a74babc9c9c24b69",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "NO",
+      "reference": null,
+      "related_entity": "209878af-ab7a-4565-b095-5d4f1704eec2",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/operation-payment-receipts/209878af-ab7a-4565-b095-5d4f1704eec2/20260419200003_22dce3fa.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/operation_payment_receipts/4fe046ae-f7e7-4672-a36a-d958d6a5cbe1/20260419195949_e9e42c07.txt",
+      "surface": "payment_receipt",
+      "size": 76,
+      "sha256": "fd1c61c699071a38bf8bfb42f491aeca2829418ef97884c8764bbd65f15a3d6d",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "NO",
+      "reference": null,
+      "related_entity": "4fe046ae-f7e7-4672-a36a-d958d6a5cbe1",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/operation-payment-receipts/4fe046ae-f7e7-4672-a36a-d958d6a5cbe1/20260419195949_e9e42c07.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/operation_payment_receipts/b666d607-dfde-46e4-b221-0dab4111d0bc/20260419195621_dad7ccd4.txt",
+      "surface": "payment_receipt",
+      "size": 31,
+      "sha256": "ac4755f36e949e00144b467b09531d11b394145ebc4be3a688131320b281ae46",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "YES",
+      "reference": null,
+      "related_entity": "b666d607-dfde-46e4-b221-0dab4111d0bc",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/operation-payment-receipts/b666d607-dfde-46e4-b221-0dab4111d0bc/20260419195621_dad7ccd4.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/operation_payment_receipts/b666d607-dfde-46e4-b221-0dab4111d0bc/20260419195718_88dbe7fb.txt",
+      "surface": "payment_receipt",
+      "size": 29,
+      "sha256": "3214febd348ddf69f10075f227e391e850c1794b8a248b683392840b82b7321b",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "YES",
+      "reference": null,
+      "related_entity": "b666d607-dfde-46e4-b221-0dab4111d0bc",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/operation-payment-receipts/b666d607-dfde-46e4-b221-0dab4111d0bc/20260419195718_88dbe7fb.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/uploads/operation_payment_receipts/eede8f17-3e1c-4132-aa94-c8c574a18314/20260419195935_36bf6189.png",
+      "surface": "payment_receipt",
+      "size": 67,
+      "sha256": "ebf4f635a17d10d6eb46ba680b70142419aa3220f228001a036d311a22ee9d2a",
+      "detected_actual_type": "image/png",
+      "declared_legacy_type": "png => image/png",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "NO",
+      "reference": null,
+      "related_entity": "eede8f17-3e1c-4132-aa94-c8c574a18314",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/operation-payment-receipts/eede8f17-3e1c-4132-aa94-c8c574a18314/20260419195935_36bf6189.png",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "دليل مالي صالح — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/uploads/operation_payment_receipts/fff80180-defb-48f3-b418-fc785d09d867/20260419195928_0e93252f.txt",
+      "surface": "payment_receipt",
+      "size": 58,
+      "sha256": "16b9760a00df022cf0709cd31d8f7e9d176713e7b64cc3997e27963ae83756f0",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "txt => text/plain",
+      "content_verification": "unverifiable",
+      "VALID_UNDER_NEW_POLICY": "NO",
+      "invalid_reason": {
+        "error": "unsupported_file_type",
+        "extension": "txt",
+        "allowed": [
+          "heic",
+          "heif",
+          "jpeg",
+          "jpg",
+          "pdf",
+          "png",
+          "webp"
+        ],
+        "message": "نوع الملف غير مسموح به."
+      },
+      "DB_REFERENCED": "NO",
+      "ENTITY_EXISTS": "NO",
+      "reference": null,
+      "related_entity": "fff80180-defb-48f3-b418-fc785d09d867",
+      "FINANCIAL_EVIDENCE": "YES",
+      "proposed_object_key": "workshop-erp/legacy-quarantine/operation-payment-receipts/fff80180-defb-48f3-b418-fc785d09d867/20260419195928_0e93252f.txt",
+      "proposed_action": "MIGRATE_LEGACY_QUARANTINE",
+      "rationale": "دليل مالي يجب حفظه رغم فشل التحقق الحديث"
+    },
+    {
+      "source_path": "/app/backend/custom_templates/2071f1fa-e806-4a3f-9bbb-708f6b2228e2.html",
+      "surface": "template",
+      "size": 16053,
+      "sha256": "b8d6bc4de541c48d41b63f1d03a3dc5beb5335972bafa397cd780b773f45b5dc",
+      "detected_actual_type": "text/plain",
+      "declared_legacy_type": "html => text/html",
+      "content_verification": "text_heuristic",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "invoice",
+        "record_id": "2071f1fa-e806-4a3f-9bbb-708f6b2228e2",
+        "source": "mongo:document_templates"
+      },
+      "related_entity": null,
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/document-templates/unassigned/368db1867d4e4add989abcd4d242609c.html",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/custom_templates/fa68fe6e-bcd8-4002-bc8e-5c739dea314e.pdf",
+      "surface": "template",
+      "size": 1331070,
+      "sha256": "908c3e99fe728812cd3a9b551c32c3c6ad773137e5414885ababa1c15997636f",
+      "detected_actual_type": "application/pdf",
+      "declared_legacy_type": "pdf => application/pdf",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "invoice",
+        "record_id": "fa68fe6e-bcd8-4002-bc8e-5c739dea314e",
+        "source": "mongo:document_templates"
+      },
+      "related_entity": null,
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/document-templates/unassigned/eaa04fa617534a258ee64731146a2d07.pdf",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    },
+    {
+      "source_path": "/app/backend/custom_templates/fd3178e1-2624-4523-b4f1-7b1965cc2010.pdf",
+      "surface": "template",
+      "size": 6846090,
+      "sha256": "4a51cbd4c587c4c171b788c9d904f13d98cf0ed8121ead60b5a9ff461a05596e",
+      "detected_actual_type": "application/pdf",
+      "declared_legacy_type": "pdf => application/pdf",
+      "content_verification": "magic_verified",
+      "VALID_UNDER_NEW_POLICY": "YES",
+      "invalid_reason": null,
+      "DB_REFERENCED": "YES",
+      "ENTITY_EXISTS": "N/A",
+      "reference": {
+        "entity": "invoice",
+        "record_id": "fd3178e1-2624-4523-b4f1-7b1965cc2010",
+        "source": "mongo:document_templates"
+      },
+      "related_entity": null,
+      "FINANCIAL_EVIDENCE": "NO",
+      "proposed_object_key": "workshop-erp/document-templates/unassigned/20982aa69c5a43ac959f792e6064577c.pdf",
+      "proposed_action": "MIGRATE_NORMAL",
+      "rationale": "صالح ومرجعي — يُرحَّل عادياً"
+    }
+  ]
+}

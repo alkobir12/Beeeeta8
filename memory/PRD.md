@@ -1,3 +1,34 @@
+## جلسة 2026-06 (فرع جديد) — P0-DEAD-DESTRUCTIVE-CODE-REMOVAL + LEGACY-FILES-CLASSIFICATION ✅ (صفر نشر · صفر ترحيل · صفر تعديل بيانات)
+### PART A — حذف الكود الهدّام الميت
+- حُذف **306 سطراً** من كود هدّام **غير قابل للوصول** كان يقبع أسفل `raise 410`: `reset_all_financial_data` (114 سطراً، 5600→5713) و`reset_ops_journals_keep_debts_only` (192 سطراً، 5768→5959) في `routes_finance.py`. كل دالة الآن = docstring + `raise 410` فقط. **لم يُستبدل بمسار آخر، ولم يُفعَّل، ولم تُحذف نقطتا النهاية.**
+- **اكتشاف جديد وخطير أثناء المسح**: `DELETE /api/accounts-chart/reset` كان يمسح **دليل الحسابات كاملاً** على Supabase (`delete().neq("id","")`) **بلا `Request` ولا `confirm` ولا أي حراسة** ⇒ أُضيفت `require_destructive_authorization`.
+- **4 سكربتات مستقلة** تمسح مجموعات كاملة (منها `invoices`, `transactions`, `customer_receipts`, `document_templates`) أصبحت fail-closed عبر `require_destructive_cli` الجديدة: `clear_data.py` · `clean_and_add_services.py` · `adopt_unified_workflow_template.py` · `reset_primary_invoice_template.py`. و`core/runtime_store.clear_all()` أصبحت fail-closed أيضاً.
+- **تحقق حي مُصادَق**: `reset-all-data` → 410 · `reset-ops-journals-keep-debts` → 410 · `accounts-chart/reset` → **403 destructive_operations_disabled** · `DELETE /api/operations` → **403** · السكربتات الأربعة → `REFUSED … Nothing was touched`.
+- `backend/tests/test_p0_dead_destructive_code_removal.py` = **20/20 PASS** (فحص AST يثبت أن الحراسة تُستدعى **قبل** أي `delete_many/update_many/delete`، ومسح شامل يفشل إن ظهرت أي عملية هدّامة غير مُدرَجة في قائمة السماح).
+- باقي `update_many({})` (`routes_templates_extended.py:436` · `core/prompt_registry.py:80`) = ثابتة «افتراضي/نشط واحد» ⇒ BENIGN لا فقد بيانات.
+
+### PART B — تصنيف 28 ملفاً قديماً (READ-ONLY، صفر نقل/حذف/تغيير مراجع)
+- `files=28 · bytes=21,945,944 · valid=12 · invalid=16 · referenced=20 · orphan=8 · financial_evidence=15` ⇒ المقترح: **MIGRATE_NORMAL=11 · MIGRATE_LEGACY_QUARANTINE=17 · HOLD_FOR_REVIEW=0**.
+- قواعد القرار: «غير صالح» ليس سبباً للحذف · كل دليل مالي يُحفظ رغم فشل التحقق الحديث · غير الصالح يُقترح إلى `workshop-erp/legacy-quarantine/…` **غير قابل للاسترجاع عبر نقاط النهاية العادية** · `orphan ≠ delete`.
+- **ملاحظة جوهرية**: من 15 ملفاً مالياً **14 غير صالح** وواحد صالح فقط؛ وكل أدلة التدقيق التسعة `.txt` أو `.pdf` ببايتات نص (8–31 بايت، محتوى مثل `test evidence`) ⇒ **مصنوعات اختبار لا أدلة حقيقية**. لا يبرر الحذف، القرار للمالك.
+- **مؤشر تاريخي يستحق PHASE 2A**: 7 من 10 ملفات مركبات **مرجعية لكن مركبتها غير موجودة حياً** (`ENTITY_EXISTS=NO`؛ 238 مركبة حية).
+- إيصالات السداد الستة بلا مرجع على مستوى الملف (الربط الوحيد نص وصف القيد `| إيصال: {filename}`)، لكن **عمليتين ما زالت عملياتهما موجودة**. `operations`/`journal_entries` مصدرهما Supabase وقد استُعلم فعلياً (client حقيقي غير mock).
+- القوالب الثلاثة كلها صالحة ومرجعية (2 PDF + 1 HTML، 8.19MB). `custom_templates_index.json` فارغ ⇒ المراجع الثلاثة من `mongo:document_templates`.
+- تصحيح رقم: `21,945,944` بايت = مجموع أحجام الملفات بدقة؛ الرقم السابق `22,039,852` كان من `du -sb` (يضيف حجم المجلدات). عدد الملفات متطابق 28.
+- المخرجات: `memory/discovery/P0_DEAD_CODE_AND_LEGACY_FILES_CLASSIFICATION.md` · `memory/discovery/LEGACY_UPLOAD_FILES_CLASSIFICATION.json` (28 صفاً بكل الحقول) · `scripts/classify_legacy_upload_files.py`.
+
+### Financial Test Debt (مُسجَّل بلا أي تغيير بيانات)
+- `FIN-TEST-DEBT-2101`: 6 اختبارات في `tests/test_p0_red_findings_repair.py` تُثبِّت رقماً مطلقاً (الحساب 2101 = 420.0) وميزان المراجعة الحي لا يُرجع 2101 إطلاقاً. **لم تُلمس البيانات الحية ولا ميزان المراجعة لإرضاء اختبار.** السؤال المفتوح (هل الاختبار stale أم أن اختفاء 2101 يكشف مشكلة تاريخية؟) يُحسم في PHASE 2A.
+
+### التحقق المستقل — iteration_382
+- **0 critical · 0 minor · retest_needed=false** · backend 100% (20/20 + 57/57 + 4/4 رفض CLI + 4/4 مصفوفة رفض حية).
+- **صفر تعديل مؤكَّد بالأرقام**: `operations=39` و`chart_of_accounts=12` متطابقان **قبل وبعد** كل نداءات الرفض.
+- مسح مستقل لمصطلحات المسح الجماعي في **Mongo وSupabase معاً** (`.delete().neq/gte/gt/is_/not_.is_` ضمناً): 11 إصابة كلها GUARDED أو CLI fail-closed أو BENIGN ⇒ **لا مصطلح Supabase فائت**.
+- المُصنِّف read-only بنيوياً (صفر بدائيات كتابة)، والأرقام أُعيد إنتاجها بالبايت، وSHA-256 أُعيد حسابه لملفين وتطابق.
+- `grep` على كل `/app/backend/*.py` = **صفر** إشارة إلى `legacy-quarantine` ⇒ أي ملف محجوز سيكون غير قابل للوصول عبر أي مسار.
+- التقرير: `/app/test_reports/iteration_382.json`.
+
+
 ## جلسة 2026-06 (فرع جديد) — P1-SEC-UPLOAD + P0-DESTRUCTIVE-RESET-HARDENING ✅ PASS (كود فقط · صفر نشر · صفر تعديل بيانات)
 - **القاعدة الحاكمة المعتمدة**: `PERSISTENT_USER_FILES` → Object Storage · `PROCESSING_TEMP_FILES` → مجلد مؤقت آمن بتنظيف مضمون.
 - **6 أسطح رفع مُعالَجة** (الماسح أبلغ عن 5؛ وكيل الاختبار كشف **سطحين إضافيين** في iteration_380 وتم إصلاحهما):

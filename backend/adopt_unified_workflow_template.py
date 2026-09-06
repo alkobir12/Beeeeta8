@@ -18,4 +18,10 @@ async def run():
         docs.append({'id':f'unified-{doc_type}-a4-mobile-v1','tenant_id':'default','document_type':doc_type,'locale':'ar-SA','name':f'{title} موحد A4 وجوال','version':1,'status':'valid','active':True,'is_default':True,'file_type':'html','is_builtin':False,'source':'approved_workflow_design','inline_content':HTML,'created_at':now,'updated_at':now})
     await db.document_templates.insert_many(docs)
     print({'template_ids':[d['id'] for d in docs]}); client.close()
-if __name__=='__main__': asyncio.run(run())
+if __name__=='__main__':
+    import sys
+    from pathlib import Path as _Path
+    sys.path.insert(0, str(_Path(__file__).parent))
+    from core.destructive_guard import require_destructive_cli
+    require_destructive_cli("adopt_unified_workflow_template")
+    asyncio.run(run())
